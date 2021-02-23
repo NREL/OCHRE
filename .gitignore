@@ -1,0 +1,14 @@
+*.pyc
+*.log
+.DS_Store
+
+.idea/
+__pycache__/
+src/
+build/
+dist/
+*.egg-info/
+
+outputs/
+test/outputs/
+ochre/Models/SAM_weather_*.csv

@@ -1,0 +1,10 @@
+Description,Name,Value,Units
+Max power of battery,capacity,6,kW
+Discharging Efficiency,efficiency,0.95,fraction
+Max ramp rate,ramp_rate,0.1,kW/min
+Schedule: Charge Start Time,charge_start_hour,9,hour of day
+Schedule: Discharge Start Time,discharge_start_hour,16,hour of day
+Schedule: Charge Power,charge_power,1,kW
+Schedule: Discharge Power,discharge_power,1,kW
+Self-Consumption: Grid Import Limit,import_limit,0,kW
+Self-Consumption: Grid Export Limit,export_limit,0,kW
