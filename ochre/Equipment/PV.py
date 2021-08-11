@@ -258,6 +258,7 @@ def run_sam(tilt=0, orientation=180, capacity=5, strings=2, modules=20, inv_effi
     ssc.data_set_number(data, b'cec_bifacial_ground_clearance_height', 1)
     ssc.data_set_number(data, b'cec_standoff', 6)
     ssc.data_set_number(data, b'cec_height', 0)
+    ssc.data_set_number(data, b'cec_transient_thermal_model_unit_mass', 11.091900000000001)
     ssc.data_set_number(data, b'inverter_model', 0)
 
     # * key inverter variables
