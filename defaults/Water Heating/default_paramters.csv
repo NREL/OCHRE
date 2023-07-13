@@ -1,0 +1,5 @@
+Description,Name,Value,Units
+Temperature_Set_Point,T_set,49,
+Temperature_Deadband,T_db,4,
+Electric_Element_Lower_Tank,P_hw1,4.5,
+Electric_Element_Upper_Tank,P_hw2,4.5,

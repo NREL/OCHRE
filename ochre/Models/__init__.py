@@ -1,4 +1,5 @@
-from .RCModel import RCModel, ModelException
+from .StateSpaceModel import StateSpaceModel, ModelException
+from .RCModel import RCModel, OneNodeRCModel
 from .Humidity import HumidityModel
-from .Envelope import Zone, Boundary, Envelope, ZONES
-from .Water import StratifiedWaterModel, OneNodeWaterModel, TwoNodeWaterModel, IdealWaterModel, WATER_DRAWS
+from .Envelope import Zone, Boundary, Envelope
+from .Water import StratifiedWaterModel, OneNodeWaterModel, TwoNodeWaterModel, IdealWaterModel

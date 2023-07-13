@@ -1,0 +1,325 @@
+Boundary Name,Boundary Type,Construction Type,Insulation Details,Received From,Assembly R Value,Finish Type
+Adjacent Attic Wall,Standard,,,MF_300 - bldg0000019,2.639702463970247,
+Adjacent Ceiling,Standard,,,MF_100 - bldg0000012,0.5699086620495835,
+Adjacent Floor,Standard,,,MF_100 - bldg0000012,0.2599816849816849,
+Adjacent Foundation Wall,Crawlspace,Crawlspace,,MF_100 - bldg0000023,0.6398467432950191,
+Adjacent Foundation Wall,Finished Basement,Finished Basement,,MF_300 - bldg0000059,1.0898272552783108,
+Adjacent Foundation Wall,Unfinished Basement,Unfinished Basement,,MF_300 - bldg0000010,0.6398467432950191,
+Adjacent Rim Joist,Standard,,,MF_100 - bldg0000023,2.639702463970247,
+Adjacent Wall,ConcreteMasonryUnit,ConcreteMasonryUnit,,MF_100 - bldg0000054,2.639702463970247,
+Adjacent Wall,StructuralBrick,StructuralBrick,,MF_100 - bldg0000035,2.639702463970247,
+Adjacent Wall,WoodStud,WoodStud,,MF_100 - bldg0000012,2.639702463970247,
+Attic Floor,Minimal,,Minimal,Fully_minimal (Denver),498.3762296,
+Attic Floor,R-13,,R-13,MF_100 - bldg0000015,13.06789413118527,
+Attic Floor,R-19,,R-19,MF_100 - bldg0000005,19.066487575554063,
+Attic Floor,R-30,,R-30,MF_100 - bldg0000002,30.0582318687136,
+Attic Floor,R-38,,R-38,MF_100 - bldg0000001,38.056300268096514,
+Attic Floor,R-49,,R-49,MF_100 - bldg0000019,49.07519446845289,
+Attic Floor,R-60,,R-60,MF_300 - bldg0000146,60.05923418658769,
+Attic Floor,R-7,,R-7,MF_100 - bldg0000014,7.168286832470647,
+Attic Floor,Uninsulated,,Uninsulated,MF_300 - bldg0000012,0.5699086620495835,
+Attic Roof,"asphalt or fiberglass shingles, Unfinished, Uninsulated, Pitched",Pitched,"Unfinished, Uninsulated",MF_100 - bldg0000001,1.3896231032794908,asphalt or fiberglass shingles
+Attic Roof,"asphalt or fiberglass shingles, Unfinished, Uninsulated, Pitched, Radiant Barrier","Pitched, Radiant Barrier","Unfinished, Uninsulated",MF_300 - bldg0000034,1.3896231032794908,asphalt or fiberglass shingles
+Attic Roof,"metal surfacing, Unfinished, Uninsulated, Pitched",Pitched,"Unfinished, Uninsulated",MF_100 - bldg0000005,1.3896231032794908,metal surfacing
+Attic Roof,"metal surfacing, Unfinished, Uninsulated, Pitched, Radiant Barrier","Pitched, Radiant Barrier","Unfinished, Uninsulated",MF_300 - bldg0000032,1.3896231032794908,metal surfacing
+Attic Roof,"slate or tile shingles, Unfinished, Uninsulated, Pitched",Pitched,"Unfinished, Uninsulated",MF_100 - bldg0000057,1.3896231032794908,slate or tile shingles
+Attic Roof,"slate or tile shingles, Unfinished, Uninsulated, Pitched, Radiant Barrier","Pitched, Radiant Barrier","Unfinished, Uninsulated",MF_300 - bldg0000012,1.3896231032794908,slate or tile shingles
+Attic Roof,"wood shingles or shakes, Unfinished, Uninsulated, Pitched",Pitched,"Unfinished, Uninsulated",MF_100 - bldg0000003,1.3896231032794908,wood shingles or shakes
+Attic Roof,"wood shingles or shakes, Unfinished, Uninsulated, Pitched, Radiant Barrier","Pitched, Radiant Barrier","Unfinished, Uninsulated",MF_300 - bldg0000131,1.3896231032794908,wood shingles or shakes
+Attic Wall,Minimal,,Minimal,Copied from Minimal Exterior Wall,499.04339459999994,
+Attic Wall,"WoodStud, aluminum siding, Est. R-3.1",WoodStud,Est. R-3.1,MF_300 - bldg0000089,3.1232123212321232,aluminum siding
+Attic Wall,"WoodStud, asbestos siding, Est. R-3.1",WoodStud,Est. R-3.1,MF_300 - bldg0000032,3.1232123212321232,asbestos siding
+Attic Wall,"WoodStud, brick veneer, Est. R-3.1",WoodStud,Est. R-3.1,MF_100 - bldg0000004,3.1232123212321232,brick veneer
+Attic Wall,"WoodStud, composite shingle siding, Est. R-3.1",WoodStud,Est. R-3.1,MF_100 - bldg0000019,3.1232123212321232,composite shingle siding
+Attic Wall,"WoodStud, fiber cement siding, Est. R-3.1",WoodStud,Est. R-3.1,MF_300 - bldg0000025,3.1232123212321232,fiber cement siding
+Attic Wall,"WoodStud, stucco, Est. R-3.1",WoodStud,Est. R-3.1,MF_100 - bldg0000007,3.1232123212321232,stucco
+Attic Wall,"WoodStud, vinyl siding, Est. R-3.1",WoodStud,Est. R-3.1,MF_100 - bldg0000003,3.1232123212321232,vinyl siding
+Attic Wall,"WoodStud, wood siding, Est. R-3.1",WoodStud,Est. R-3.1,MF_100 - bldg0000001,3.1232123212321232,wood siding
+Door,R-2.1,,R-2.1,MF_300 - bldg0000002,1.222652885443583,
+Door,R-5.0,,R-5.0,MF_100 - bldg0000001,4.1234567901234565,
+Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, R-15",ConcreteMasonryUnit,"6-in Hollow, R-15",MF_300 - bldg0000233,14.721285973554576,aluminum siding
+Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, R-19",ConcreteMasonryUnit,"6-in Hollow, R-19",MF_300 - bldg0000238,17.11787760024118,aluminum siding
+Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, R-7",ConcreteMasonryUnit,"6-in Hollow, R-7",MF_300 - bldg0000014,9.121285140562248,aluminum siding
+Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, Uninsulated",ConcreteMasonryUnit,"6-in Hollow, Uninsulated",MF_300 - bldg0000016,3.7232786885245903,aluminum siding
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-11",ConcreteMasonryUnit,"6-in Hollow, R-11",MF_300 - bldg0000027,12.119530416221984,asbestos siding
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-15",ConcreteMasonryUnit,"6-in Hollow, R-15",MF_300 - bldg0000051,14.721285973554576,asbestos siding
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-7",ConcreteMasonryUnit,"6-in Hollow, R-7",MF_300 - bldg0000036,9.121285140562248,asbestos siding
+Exterior Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-11",ConcreteMasonryUnit,"6-in Hollow, R-11",MF_100 - bldg0000054,12.221265604821353,brick veneer
+Exterior Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-15",ConcreteMasonryUnit,"6-in Hollow, R-15",MF_300 - bldg0000189,14.821195510310623,brick veneer
+Exterior Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-19",ConcreteMasonryUnit,"6-in Hollow, R-19",MF_300 - bldg0000041,17.22171671216257,brick veneer
+Exterior Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-7",ConcreteMasonryUnit,"6-in Hollow, R-7",MF_300 - bldg0000010,9.220526144852224,brick veneer
+Exterior Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, Uninsulated",ConcreteMasonryUnit,"6-in Hollow, Uninsulated",MF_300 - bldg0000057,3.820995962314939,brick veneer
+Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-11",ConcreteMasonryUnit,"6-in Hollow, R-11",MF_300 - bldg0000012,12.119530416221984,composite shingle siding
+Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-15",ConcreteMasonryUnit,"6-in Hollow, R-15",MF_300 - bldg0000234,14.721285973554576,composite shingle siding
+Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-19",ConcreteMasonryUnit,"6-in Hollow, R-19",MF_300 - bldg0000043,17.11787760024118,composite shingle siding
+Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, Uninsulated",ConcreteMasonryUnit,"6-in Hollow, Uninsulated",MF_300 - bldg0000102,3.7232786885245903,composite shingle siding
+Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, R-11",ConcreteMasonryUnit,"6-in Hollow, R-11",MF_300 - bldg0000049,11.72171758876961,fiber cement siding
+Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, R-15",ConcreteMasonryUnit,"6-in Hollow, R-15",MF_300 - bldg0000018,14.3203026481715,fiber cement siding
+Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, R-19",ConcreteMasonryUnit,"6-in Hollow, R-19",MF_300 - bldg0000258,16.719670200235573,fiber cement siding
+Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, R-7",ConcreteMasonryUnit,"6-in Hollow, R-7",MF_300 - bldg0000118,8.720626631853785,fiber cement siding
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-11",ConcreteMasonryUnit,"6-in Hollow, R-11",MF_300 - bldg0000047,11.519578007709477,none
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-7",ConcreteMasonryUnit,"6-in Hollow, R-7",MF_300 - bldg0000145,8.521686927810295,none
+Exterior Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-11",ConcreteMasonryUnit,"6-in Hollow, R-11",MF_100 - bldg0000007,11.72171758876961,stucco
+Exterior Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-15",ConcreteMasonryUnit,"6-in Hollow, R-15",MF_300 - bldg0000129,14.3203026481715,stucco
+Exterior Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-19",ConcreteMasonryUnit,"6-in Hollow, R-19",MF_300 - bldg0000022,16.719670200235573,stucco
+Exterior Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-7",ConcreteMasonryUnit,"6-in Hollow, R-7",MF_100 - bldg0000111,8.720626631853785,stucco
+Exterior Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, Uninsulated",ConcreteMasonryUnit,"6-in Hollow, Uninsulated",MF_300 - bldg0000148,3.322410766530134,stucco
+Exterior Wall,"ConcreteMasonryUnit, vinyl siding, 6-in Hollow, R-11",ConcreteMasonryUnit,"6-in Hollow, R-11",MF_300 - bldg0000141,12.119530416221984,vinyl siding
+Exterior Wall,"ConcreteMasonryUnit, vinyl siding, 6-in Hollow, R-15",ConcreteMasonryUnit,"6-in Hollow, R-15",MF_300 - bldg0000071,14.721285973554576,vinyl siding
+Exterior Wall,"ConcreteMasonryUnit, vinyl siding, 6-in Hollow, R-19",ConcreteMasonryUnit,"6-in Hollow, R-19",MF_300 - bldg0000171,17.11787760024118,vinyl siding
+Exterior Wall,"ConcreteMasonryUnit, vinyl siding, 6-in Hollow, R-7",ConcreteMasonryUnit,"6-in Hollow, R-7",MF_300 - bldg0000151,9.121285140562248,vinyl siding
+Exterior Wall,"ConcreteMasonryUnit, vinyl siding, 6-in Hollow, Uninsulated",ConcreteMasonryUnit,"6-in Hollow, Uninsulated",MF_300 - bldg0000165,3.7232786885245903,vinyl siding
+Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-11",ConcreteMasonryUnit,"6-in Hollow, R-11",MF_300 - bldg0000094,12.919226393629124,wood siding
+Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-15",ConcreteMasonryUnit,"6-in Hollow, R-15",MF_300 - bldg0000008,15.51790106586499,wood siding
+Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-19",ConcreteMasonryUnit,"6-in Hollow, R-19",MF_300 - bldg0000256,17.917324076995897,wood siding
+Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, Uninsulated",ConcreteMasonryUnit,"6-in Hollow, Uninsulated",MF_100 - bldg0000022,4.520700636942675,wood siding
+Exterior Wall,Minimal,,Minimal,Fully_minimal (Denver),499.04339459999994,
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-15",StructuralBrick,"12-in, 3-wythe, R-15",MF_300 - bldg0000224,15.620357634112793,aluminum siding
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-19",StructuralBrick,"12-in, 3-wythe, R-19",MF_300 - bldg0000164,18.01967629324024,aluminum siding
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, Uninsulated",StructuralBrick,"12-in, 3-wythe, Uninsulated",MF_300 - bldg0000201,4.6237785016286646,aluminum siding
+Exterior Wall,"StructuralBrick, asbestos siding, 12-in, 3-wythe, R-11",StructuralBrick,"12-in, 3-wythe, R-11",MF_300 - bldg0000065,13.01994955285485,asbestos siding
+Exterior Wall,"StructuralBrick, asbestos siding, 12-in, 3-wythe, R-15",StructuralBrick,"12-in, 3-wythe, R-15",MF_300 - bldg0000037,15.620357634112793,asbestos siding
+Exterior Wall,"StructuralBrick, asbestos siding, 12-in, 3-wythe, R-19",StructuralBrick,"12-in, 3-wythe, R-19",MF_300 - bldg0000283,18.01967629324024,asbestos siding
+Exterior Wall,"StructuralBrick, asbestos siding, 12-in, 3-wythe, R-7",StructuralBrick,"12-in, 3-wythe, R-7",MF_300 - bldg0000132,10.02117896223085,asbestos siding
+Exterior Wall,"StructuralBrick, asbestos siding, 12-in, 3-wythe, Uninsulated",StructuralBrick,"12-in, 3-wythe, Uninsulated",MF_300 - bldg0000031,4.6237785016286646,asbestos siding
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-11",StructuralBrick,"12-in, 3-wythe, R-11",MF_300 - bldg0000194,13.01994955285485,composite shingle siding
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-19",StructuralBrick,"12-in, 3-wythe, R-19",MF_300 - bldg0000175,18.01967629324024,composite shingle siding
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, Uninsulated",StructuralBrick,"12-in, 3-wythe, Uninsulated",MF_300 - bldg0000009,4.6237785016286646,composite shingle siding
+Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, R-11",StructuralBrick,"12-in, 3-wythe, R-11",MF_300 - bldg0000174,12.620582351633695,fiber cement siding
+Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, R-15",StructuralBrick,"12-in, 3-wythe, R-15",MF_300 - bldg0000125,15.218440096488878,fiber cement siding
+Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, R-19",StructuralBrick,"12-in, 3-wythe, R-19",MF_300 - bldg0000034,17.617126900403353,fiber cement siding
+Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, R-7",StructuralBrick,"12-in, 3-wythe, R-7",MF_300 - bldg0000068,9.620467638088783,fiber cement siding
+Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-11",StructuralBrick,"12-in, 3-wythe, R-11",MF_100 - bldg0000011,12.421789542769634,none
+Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-19",StructuralBrick,"12-in, 3-wythe, R-19",MF_100 - bldg0000006,17.41717791411043,none
+Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-7",StructuralBrick,"12-in, 3-wythe, R-7",MF_300 - bldg0000080,9.420939107350256,none
+Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, Uninsulated",StructuralBrick,"12-in, 3-wythe, Uninsulated",MF_100 - bldg0000010,4.021246458923513,none
+Exterior Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-11",StructuralBrick,"12-in, 3-wythe, R-11",MF_100 - bldg0000096,12.620582351633695,stucco
+Exterior Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-15",StructuralBrick,"12-in, 3-wythe, R-15",MF_100 - bldg0000062,15.218440096488878,stucco
+Exterior Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-19",StructuralBrick,"12-in, 3-wythe, R-19",MF_300 - bldg0000103,17.617126900403353,stucco
+Exterior Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-7",StructuralBrick,"12-in, 3-wythe, R-7",MF_100 - bldg0000014,9.620467638088783,stucco
+Exterior Wall,"StructuralBrick, stucco, 12-in, 3-wythe, Uninsulated",StructuralBrick,"12-in, 3-wythe, Uninsulated",MF_300 - bldg0000013,4.221561338289964,stucco
+Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, R-11",StructuralBrick,"12-in, 3-wythe, R-11",MF_300 - bldg0000040,13.01994955285485,vinyl siding
+Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, R-15",StructuralBrick,"12-in, 3-wythe, R-15",MF_300 - bldg0000140,15.620357634112793,vinyl siding
+Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, R-19",StructuralBrick,"12-in, 3-wythe, R-19",MF_300 - bldg0000086,18.01967629324024,vinyl siding
+Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, R-7",StructuralBrick,"12-in, 3-wythe, R-7",MF_300 - bldg0000255,10.02117896223085,vinyl siding
+Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-11",StructuralBrick,"12-in, 3-wythe, R-11",MF_300 - bldg0000069,13.821811100292113,wood siding
+Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-15",StructuralBrick,"12-in, 3-wythe, R-15",MF_300 - bldg0000297,16.419895893580104,wood siding
+Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-7",StructuralBrick,"12-in, 3-wythe, R-7",MF_300 - bldg0000166,10.82142176481799,wood siding
+Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, Uninsulated",StructuralBrick,"12-in, 3-wythe, Uninsulated",MF_100 - bldg0000005,5.423113658070678,wood siding
+Exterior Wall,"WoodStud, aluminum siding, R-11",WoodStud,R-11,MF_300 - bldg0000017,10.02117896223085,aluminum siding
+Exterior Wall,"WoodStud, aluminum siding, R-15",WoodStud,R-15,MF_300 - bldg0000082,11.821778055382053,aluminum siding
+Exterior Wall,"WoodStud, aluminum siding, R-19",WoodStud,R-19,MF_300 - bldg0000115,15.12117177097204,aluminum siding
+Exterior Wall,"WoodStud, aluminum siding, R-7",WoodStud,R-7,MF_100 - bldg0000095,8.42183328389202,aluminum siding
+Exterior Wall,"WoodStud, aluminum siding, Uninsulated",WoodStud,Uninsulated,MF_100 - bldg0000012,3.1232123212321232,aluminum siding
+Exterior Wall,"WoodStud, asbestos siding, R-11",WoodStud,R-11,MF_300 - bldg0000105,10.02117896223085,asbestos siding
+Exterior Wall,"WoodStud, asbestos siding, R-15",WoodStud,R-15,MF_300 - bldg0000053,11.821778055382053,asbestos siding
+Exterior Wall,"WoodStud, asbestos siding, R-19",WoodStud,R-19,MF_300 - bldg0000032,15.12117177097204,asbestos siding
+Exterior Wall,"WoodStud, asbestos siding, R-7",WoodStud,R-7,MF_300 - bldg0000213,8.42183328389202,asbestos siding
+Exterior Wall,"WoodStud, asbestos siding, Uninsulated",WoodStud,Uninsulated,MF_300 - bldg0000209,3.1232123212321232,asbestos siding
+Exterior Wall,"WoodStud, brick veneer, R-11",WoodStud,R-11,MF_100 - bldg0000004,10.12121212121212,brick veneer
+Exterior Wall,"WoodStud, brick veneer, R-15",WoodStud,R-15,MF_100 - bldg0000024,11.921058156623976,brick veneer
+Exterior Wall,"WoodStud, brick veneer, R-19",WoodStud,R-19,MF_100 - bldg0000058,15.218440096488878,brick veneer
+Exterior Wall,"WoodStud, brick veneer, R-7",WoodStud,R-7,MF_100 - bldg0000098,8.521686927810295,brick veneer
+Exterior Wall,"WoodStud, brick veneer, Uninsulated",WoodStud,Uninsulated,MF_100 - bldg0000008,3.2224744608399543,brick veneer
+Exterior Wall,"WoodStud, composite shingle siding, R-11",WoodStud,R-11,MF_100 - bldg0000019,10.02117896223085,composite shingle siding
+Exterior Wall,"WoodStud, composite shingle siding, R-15",WoodStud,R-15,MF_300 - bldg0000021,11.821778055382053,composite shingle siding
+Exterior Wall,"WoodStud, composite shingle siding, R-19",WoodStud,R-19,MF_100 - bldg0000026,15.12117177097204,composite shingle siding
+Exterior Wall,"WoodStud, composite shingle siding, R-7",WoodStud,R-7,MF_300 - bldg0000190,8.42183328389202,composite shingle siding
+Exterior Wall,"WoodStud, composite shingle siding, Uninsulated",WoodStud,Uninsulated,MF_300 - bldg0000104,3.1232123212321232,composite shingle siding
+Exterior Wall,"WoodStud, fiber cement siding, R-11",WoodStud,R-11,MF_300 - bldg0000025,9.620467638088783,fiber cement siding
+Exterior Wall,"WoodStud, fiber cement siding, R-15",WoodStud,R-15,MF_300 - bldg0000196,11.419951729686243,fiber cement siding
+Exterior Wall,"WoodStud, fiber cement siding, R-19",WoodStud,R-19,MF_300 - bldg0000075,14.721285973554576,fiber cement siding
+Exterior Wall,"WoodStud, fiber cement siding, R-7",WoodStud,R-7,MF_300 - bldg0000098,8.020906907755332,fiber cement siding
+Exterior Wall,"WoodStud, fiber cement siding, Uninsulated",WoodStud,Uninsulated,MF_300 - bldg0000002,2.721955896452541,fiber cement siding
+Exterior Wall,"WoodStud, stucco, R-11",WoodStud,R-11,MF_100 - bldg0000021,9.620467638088783,stucco
+Exterior Wall,"WoodStud, stucco, R-15",WoodStud,R-15,MF_300 - bldg0000246,11.419951729686243,stucco
+Exterior Wall,"WoodStud, stucco, R-19",WoodStud,R-19,MF_100 - bldg0000051,14.721285973554576,stucco
+Exterior Wall,"WoodStud, stucco, R-7",WoodStud,R-7,MF_100 - bldg0000076,8.020906907755332,stucco
+Exterior Wall,"WoodStud, stucco, Uninsulated",WoodStud,Uninsulated,MF_100 - bldg0000037,2.721955896452541,stucco
+Exterior Wall,"WoodStud, vinyl siding, R-11",WoodStud,R-11,MF_100 - bldg0000013,10.02117896223085,vinyl siding
+Exterior Wall,"WoodStud, vinyl siding, R-15",WoodStud,R-15,MF_100 - bldg0000063,11.821778055382053,vinyl siding
+Exterior Wall,"WoodStud, vinyl siding, R-19",WoodStud,R-19,MF_300 - bldg0000066,15.12117177097204,vinyl siding
+Exterior Wall,"WoodStud, vinyl siding, R-7",WoodStud,R-7,MF_100 - bldg0000003,8.42183328389202,vinyl siding
+Exterior Wall,"WoodStud, vinyl siding, Uninsulated",WoodStud,Uninsulated,MF_100 - bldg0000009,3.1232123212321232,vinyl siding
+Exterior Wall,"WoodStud, wood siding, R-11",WoodStud,R-11,MF_100 - bldg0000033,10.82142176481799,wood siding
+Exterior Wall,"WoodStud, wood siding, R-15",WoodStud,R-15,MF_100 - bldg0000001,12.620582351633695,wood siding
+Exterior Wall,"WoodStud, wood siding, R-19",WoodStud,R-19,MF_100 - bldg0000023,15.918138491729744,wood siding
+Exterior Wall,"WoodStud, wood siding, R-7",WoodStud,R-7,MF_100 - bldg0000040,9.220526144852224,wood siding
+Exterior Wall,"WoodStud, wood siding, Uninsulated",WoodStud,Uninsulated,MF_100 - bldg0000002,3.921270718232044,wood siding
+Floor,2ft R10 Exterior,,2ft R10 Exterior,Minimal_slab_2ftR10_ext,10.013853517572,
+Floor,"2ft R10 Perimeter, R5 Gap",,2ft R10 Perimeter,Minimal_slab_2ftR10_R5G,8.320862381747999,
+Floor,2ft R5 Exterior,,2ft R5 Exterior,Minimal_slab_2ftR5_ext,8.546745003598,
+Floor,"2ft R5 Perimeter, R5 Gap",,2ft R5 Perimeter,Minimal_slab_2ftR5_R5G,7.88909470769,
+Floor,"4ft R10 Perimeter, R5 Gap",,4ft R10 Perimeter,Minimal_slab_4ftR10_R5G,9.98108998697,
+Floor,4ft R5 Exterior,,4ft R5 Exterior,Minimal_slab_4ftR5_ext (Denver),10.751293,
+Floor,"4ft R5 Perimeter, R5 Gap",,4ft R5 Perimeter,Minimal_slab_4ftR5_R5G,9.008391205101999,
+Floor,Minimal,,Minimal,Fully_minimal (OLD),500.495899638654,
+Floor,"R10 Whole Slab, R5 Gap",,R10 Whole Slab,Minimal_slab_wholeR10_R5G,14.842532843726001,
+Floor,Uninsulated,,Uninsulated,Minimal_slab_unins,5.5089847228240005,
+Foundation Ceiling,Ceiling R-13,,Ceiling R-13,MF_100 - bldg0000065,15.9584035975267,
+Foundation Ceiling,Ceiling R-19,,Ceiling R-19,MF_100 - bldg0000023,20.752923976608187,
+Foundation Ceiling,Ceiling R-30,,Ceiling R-30,MF_300 - bldg0000014,28.46115288220551,
+Foundation Ceiling,Ceiling R-38,,Ceiling R-38,MF_300 - bldg0000001,33.2630345635618,
+Foundation Ceiling,Uninsulated,,Uninsulated,MF_100 - bldg0000002,3.4600853138330283,
+Foundation Floor,Minimal,,Minimal,"copied from Floor, Minimal",500.495899638654,
+Foundation Floor,Uninsulated,,Uninsulated,"copied from Floor, Uninsulated",5.5089847228240005,
+Foundation Furniture,Standard,,,MF_100 - bldg0000002,7.494720168954593,
+Foundation Wall,"CS,  Half Wall R10",Crawlspace,Half R10,Copied from Unfinished Basement,4.762741285632001,
+Foundation Wall,"CS,  Half Wall R5",Crawlspace,Half R5,Copied from Unfinished Basement,4.234690090564,
+Foundation Wall,"CS,  Uninsulated",Crawlspace,Uninsulated,Copied from Unfinished Basement,3.94090720224,
+Foundation Wall,"CS,  Whole Wall R10",Crawlspace,R10,Copied from Unfinished Basement,11.877599965028002,
+Foundation Wall,"CS,  Whole Wall R13",Crawlspace,R13,Minimal_crawlspace_R13 (Denver),14.87636,
+Foundation Wall,"CS,  Whole Wall R15",Crawlspace,R15,Minimal_crawlspace_R15 (Denver),16.875016,
+Foundation Wall,"CS,  Whole Wall R20",Crawlspace,R20,Copied from Unfinished Basement,21.875603430770003,
+Foundation Wall,"CS,  Whole Wall R5",Crawlspace,R5,Copied from Unfinished Basement,7.267890483098,
+Foundation Wall,"FB, R10",Finished Basement,R10,"Copied from FB, R5",12.327474133794,
+Foundation Wall,"FB, R13",Finished Basement,R13,Minimal_fin_basement_R13,11.376510054566,
+Foundation Wall,"FB, R15",Finished Basement,R15,Minimal_fin_basement_R15,17.326475869504,
+Foundation Wall,"FB, R18",Finished Basement,R18,Minimal_fin_basement_R13_R5XPS,13.032753367442,
+Foundation Wall,"FB, R5",Finished Basement,R5,Minimal_fin_basement_R5,7.328472403762,
+Foundation Wall,"FB, Uninsulated",Finished Basement,Uninsulated,Minimal_fin_basement_unins,3.9408173649240004,
+Foundation Wall,"UB, Half Wall R10",Unfinished Basement,Half R10,Minimal_basement_halfwall_R10,4.762741285632001,
+Foundation Wall,"UB, Half Wall R5",Unfinished Basement,Half R5,Minimal_basement_halfwall_R5,4.234690090564,
+Foundation Wall,"UB, Uninsulated",Unfinished Basement,Uninsulated,Minimal_basement_ceiling_R13,3.94090720224,
+Foundation Wall,"UB, Whole Wall R10",Unfinished Basement,R10,Minimal_basement_wholewall_R10,11.877599965028002,
+Foundation Wall,"UB, Whole Wall R13",Unfinished Basement,R13,Minimal_unfin_basement_R13 (Denver),9.204038,
+Foundation Wall,"UB, Whole Wall R15",Unfinished Basement,R15,Minimal_unfin_basement_R15 (Denver),16.875016,
+Foundation Wall,"UB, Whole Wall R20",Unfinished Basement,R20,Minimal_basement_wholewall_R20,21.875603430770003,
+Foundation Wall,"UB, Whole Wall R5",Unfinished Basement,R5,Minimal_basement_wholewall_R5,7.267890483098,
+Garage Attached Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-7",ConcreteMasonryUnit,"6-in Hollow, R-7",MF_300 - bldg0000036,8.63836908565343,asbestos siding
+Garage Attached Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-15",ConcreteMasonryUnit,"6-in Hollow, R-15",MF_300 - bldg0000189,14.338383838383836,brick veneer
+Garage Attached Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-11",ConcreteMasonryUnit,"6-in Hollow, R-11",MF_100 - bldg0000007,11.23688897684544,stucco
+Garage Attached Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-19",ConcreteMasonryUnit,"6-in Hollow, R-19",MF_300 - bldg0000271,17.438574938574938,wood siding
+Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-11",StructuralBrick,"12-in, 3-wythe, R-11",MF_100 - bldg0000011,11.938603868797308,none
+Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-19",StructuralBrick,"12-in, 3-wythe, R-19",MF_100 - bldg0000006,16.939140811455847,none
+Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, Uninsulated",StructuralBrick,"12-in, 3-wythe, Uninsulated",MF_100 - bldg0000018,3.539900249376558,none
+Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-11",StructuralBrick,"12-in, 3-wythe, R-11",MF_100 - bldg0000108,12.137665669089351,stucco
+Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-7",StructuralBrick,"12-in, 3-wythe, R-7",MF_100 - bldg0000014,9.138902301625624,stucco
+Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, Uninsulated",StructuralBrick,"12-in, 3-wythe, Uninsulated",MF_300 - bldg0000289,3.740447957839262,stucco
+Garage Attached Wall,"WoodStud, brick veneer, R-11",WoodStud,R-11,MF_100 - bldg0000017,9.63843150568664,brick veneer
+Garage Attached Wall,"WoodStud, brick veneer, R-19",WoodStud,R-19,MF_100 - bldg0000058,14.736568907344928,brick veneer
+Garage Attached Wall,"WoodStud, brick veneer, R-7",WoodStud,R-7,MF_100 - bldg0000098,8.037938844847112,brick veneer
+Garage Attached Wall,"WoodStud, brick veneer, Uninsulated",WoodStud,Uninsulated,MF_100 - bldg0000073,2.7390255668113843,brick veneer
+Garage Attached Wall,"WoodStud, composite shingle siding, R-11",WoodStud,R-11,MF_100 - bldg0000019,9.538048043003526,composite shingle siding
+Garage Attached Wall,"WoodStud, composite shingle siding, R-19",WoodStud,R-19,MF_100 - bldg0000026,14.637793245681875,composite shingle siding
+Garage Attached Wall,"WoodStud, stucco, R-11",WoodStud,R-11,MF_100 - bldg0000039,9.138902301625624,stucco
+Garage Attached Wall,"WoodStud, stucco, R-19",WoodStud,R-19,MF_100 - bldg0000074,14.237713139418254,stucco
+Garage Attached Wall,"WoodStud, vinyl siding, R-11",WoodStud,R-11,MF_100 - bldg0000013,9.538048043003526,vinyl siding
+Garage Attached Wall,"WoodStud, vinyl siding, R-7",WoodStud,R-7,MF_100 - bldg0000003,7.937928142038305,vinyl siding
+Garage Attached Wall,"WoodStud, vinyl siding, Uninsulated",WoodStud,Uninsulated,MF_100 - bldg0000031,2.639702463970247,vinyl siding
+Garage Attached Wall,"WoodStud, wood siding, R-11",WoodStud,R-11,MF_100 - bldg0000033,10.338674435542607,wood siding
+Garage Attached Wall,"WoodStud, wood siding, R-15",WoodStud,R-15,MF_100 - bldg0000001,12.137665669089351,wood siding
+Garage Attached Wall,"WoodStud, wood siding, R-19",WoodStud,R-19,MF_100 - bldg0000028,15.43773790103317,wood siding
+Garage Attached Wall,"WoodStud, wood siding, Uninsulated",WoodStud,Uninsulated,MF_100 - bldg0000087,3.4391278013325257,wood siding
+Garage Ceiling,Standard,,,MF_100 - bldg0000003,0.5699086620495835,
+Garage Floor,2ft R10 Exterior,,2ft R10 Exterior,copied from Floor,8.350026906372001,
+Garage Floor,"2ft R10 Perimeter, R5 Gap",,2ft R10 Perimeter,copied from Floor,6.657035770547999,
+Garage Floor,2ft R5 Exterior,,2ft R5 Exterior,copied from Floor,6.882918392398,
+Garage Floor,"2ft R5 Perimeter, R5 Gap",,2ft R5 Perimeter,copied from Floor,6.225268096490001,
+Garage Floor,"4ft R10 Perimeter, R5 Gap",,4ft R10 Perimeter,copied from Floor,8.31726337577,
+Garage Floor,"4ft R5 Perimeter, R5 Gap",,4ft R5 Perimeter,copied from Floor,7.344564593902,
+Garage Floor,Minimal,,Minimal,Minimal_garage_R13 (OLD),498.83249842321396,
+Garage Floor,"R10 Whole Slab, R5 Gap",,R10 Whole Slab,copied from Floor,13.178706232526,
+Garage Floor,Uninsulated,,Uninsulated,copied from Floor,3.8451581116240003,
+Garage Furniture,Standard,,,MF_100 - bldg0000001,7.494720168954593,
+Garage Interior Ceiling,Ceiling R-13,,Ceiling R-13,MF_100 - bldg0000065,15.9584035975267,
+Garage Interior Ceiling,Ceiling R-19,,Ceiling R-19,MF_100 - bldg0000100,20.752923976608187,
+Garage Interior Ceiling,Ceiling R-38,,Ceiling R-38,MF_300 - bldg0000058,33.2630345635618,
+Garage Interior Ceiling,Uninsulated,,Uninsulated,MF_100 - bldg0000013,3.4600853138330283,
+Garage Wall,"ConcreteMasonryUnit, asbestos siding",ConcreteMasonryUnit,,MF_300 - bldg0000036,3.1232123212321232,asbestos siding
+Garage Wall,"ConcreteMasonryUnit, brick veneer",ConcreteMasonryUnit,,MF_300 - bldg0000189,3.1232123212321232,brick veneer
+Garage Wall,"ConcreteMasonryUnit, stucco",ConcreteMasonryUnit,,MF_100 - bldg0000007,3.1232123212321232,stucco
+Garage Wall,"ConcreteMasonryUnit, wood siding",ConcreteMasonryUnit,,MF_300 - bldg0000271,3.1232123212321232,wood siding
+Garage Wall,"StructuralBrick, none",StructuralBrick,,MF_100 - bldg0000006,3.1232123212321232,none
+Garage Wall,"StructuralBrick, stucco",StructuralBrick,,MF_100 - bldg0000014,3.1232123212321232,stucco
+Garage Wall,"WoodStud, brick veneer",WoodStud,,MF_100 - bldg0000017,3.1232123212321232,brick veneer
+Garage Wall,"WoodStud, composite shingle siding",WoodStud,,MF_100 - bldg0000019,3.1232123212321232,composite shingle siding
+Garage Wall,"WoodStud, stucco",WoodStud,,MF_100 - bldg0000039,3.1232123212321232,stucco
+Garage Wall,"WoodStud, vinyl siding",WoodStud,,MF_100 - bldg0000003,3.1232123212321232,vinyl siding
+Garage Wall,"WoodStud, wood siding",WoodStud,,MF_100 - bldg0000001,3.1232123212321232,wood siding
+Indoor Furniture,Standard,,,MF_100 - bldg0000001,7.494720168954593,
+Interior Wall,Standard,,,MF_100 - bldg0000001,2.1880539499036606,
+Raised Floor,Ceiling R-13,,Ceiling R-13,MF_100 - bldg0000024,16.680376028202115,
+Raised Floor,Ceiling R-19,,Ceiling R-19,MF_300 - bldg0000184,21.4750378214826,
+Raised Floor,Ceiling R-30,,Ceiling R-30,MF_300 - bldg0000155,29.177800616649535,
+Raised Floor,Ceiling R-38,,Ceiling R-38,MF_300 - bldg0000007,33.97965290245362,
+Raised Floor,Minimal,,Minimal,Fully_minimal (Denver),498.76352598000005,
+Raised Floor,Uninsulated,,Uninsulated,MF_100 - bldg0000044,4.181148748159057,
+Rim Joist,"aluminum siding, R-10, Exterior",,"R-10, Exterior",MF_300 - bldg0000014,12.221265604821353,aluminum siding
+Rim Joist,"aluminum siding, R-13, Interior",,"R-13, Interior",MF_300 - bldg0000176,12.6712787324258,aluminum siding
+Rim Joist,"aluminum siding, R-15, Exterior",,"R-15, Exterior",MF_300 - bldg0000109,17.22171671216257,aluminum siding
+Rim Joist,"aluminum siding, R-5, Exterior",,"R-5, Exterior",MF_300 - bldg0000016,7.221162406206282,aluminum siding
+Rim Joist,"aluminum siding, Uninsulated",,Uninsulated,MF_300 - bldg0000205,2.222309197651663,aluminum siding
+Rim Joist,"asbestos siding, R-10, Exterior",,"R-10, Exterior",MF_300 - bldg0000105,12.221265604821353,asbestos siding
+Rim Joist,"asbestos siding, R-13, Interior",,"R-13, Interior",MF_300 - bldg0000161,12.6712787324258,asbestos siding
+Rim Joist,"asbestos siding, R-5, Exterior",,"R-5, Exterior",MF_300 - bldg0000160,7.221162406206282,asbestos siding
+Rim Joist,"asbestos siding, Uninsulated",,Uninsulated,MF_300 - bldg0000036,2.222309197651663,asbestos siding
+Rim Joist,"brick veneer, R-10, Exterior",,"R-10, Exterior",MF_100 - bldg0000058,12.319375135604252,brick veneer
+Rim Joist,"brick veneer, R-13, Interior",,"R-13, Interior",MF_300 - bldg0000193,12.771030139451192,brick veneer
+Rim Joist,"brick veneer, R-15, Exterior",,"R-15, Exterior",MF_300 - bldg0000033,17.321537522879805,brick veneer
+Rim Joist,"brick veneer, R-5, Exterior",,"R-5, Exterior",MF_300 - bldg0000059,7.321727917472598,brick veneer
+Rim Joist,"brick veneer, Uninsulated",,Uninsulated,MF_100 - bldg0000008,2.322290388548057,brick veneer
+Rim Joist,"composite shingle siding, R-10, Exterior",,"R-10, Exterior",MF_300 - bldg0000043,12.221265604821353,composite shingle siding
+Rim Joist,"composite shingle siding, R-13, Interior",,"R-13, Interior",MF_300 - bldg0000162,12.6712787324258,composite shingle siding
+Rim Joist,"composite shingle siding, R-15, Exterior",,"R-15, Exterior",MF_300 - bldg0000012,17.22171671216257,composite shingle siding
+Rim Joist,"composite shingle siding, R-5, Exterior",,"R-5, Exterior",MF_300 - bldg0000157,7.221162406206282,composite shingle siding
+Rim Joist,"composite shingle siding, Uninsulated",,Uninsulated,MF_100 - bldg0000019,2.222309197651663,composite shingle siding
+Rim Joist,"fiber cement siding, R-10, Exterior",,"R-10, Exterior",MF_300 - bldg0000135,11.821778055382053,fiber cement siding
+Rim Joist,"fiber cement siding, R-13, Interior",,"R-13, Interior",MF_300 - bldg0000064,12.271450183704344,fiber cement siding
+Rim Joist,"fiber cement siding, R-5, Exterior",,"R-5, Exterior",MF_300 - bldg0000061,6.82123978856319,fiber cement siding
+Rim Joist,"fiber cement siding, Uninsulated",,Uninsulated,MF_300 - bldg0000068,1.822792937399679,fiber cement siding
+Rim Joist,"none, R-15, Exterior",,"R-15, Exterior",MF_300 - bldg0000080,16.621779859484775,none
+Rim Joist,"none, R-5, Exterior",,"R-5, Exterior",MF_300 - bldg0000145,6.621574344023323,none
+Rim Joist,"none, Uninsulated",,Uninsulated,MF_100 - bldg0000010,1.6227493569591311,none
+Rim Joist,"stucco, R-10, Exterior",,"R-10, Exterior",MF_300 - bldg0000127,11.821778055382053,stucco
+Rim Joist,"stucco, R-13, Interior",,"R-13, Interior",MF_300 - bldg0000074,12.271450183704344,stucco
+Rim Joist,"stucco, R-15, Exterior",,"R-15, Exterior",MF_300 - bldg0000186,16.81872037914692,stucco
+Rim Joist,"stucco, R-5, Exterior",,"R-5, Exterior",MF_300 - bldg0000058,6.82123978856319,stucco
+Rim Joist,"stucco, Uninsulated",,Uninsulated,MF_100 - bldg0000037,1.822792937399679,stucco
+Rim Joist,"vinyl siding, R-10, Exterior",,"R-10, Exterior",MF_300 - bldg0000255,12.221265604821353,vinyl siding
+Rim Joist,"vinyl siding, R-13, Interior",,"R-13, Interior",MF_300 - bldg0000026,12.6712787324258,vinyl siding
+Rim Joist,"vinyl siding, R-15, Exterior",,"R-15, Exterior",MF_300 - bldg0000040,17.22171671216257,vinyl siding
+Rim Joist,"vinyl siding, R-5, Exterior",,"R-5, Exterior",MF_300 - bldg0000179,7.221162406206282,vinyl siding
+Rim Joist,"vinyl siding, Uninsulated",,Uninsulated,MF_100 - bldg0000003,2.222309197651663,vinyl siding
+Rim Joist,"wood siding, R-10, Exterior",,"R-10, Exterior",MF_100 - bldg0000030,13.01994955285485,wood siding
+Rim Joist,"wood siding, R-13, Interior",,"R-13, Interior",MF_300 - bldg0000069,13.470937129300118,wood siding
+Rim Joist,"wood siding, R-15, Exterior",,"R-15, Exterior",MF_300 - bldg0000094,18.01967629324024,wood siding
+Rim Joist,"wood siding, R-5, Exterior",,"R-5, Exterior",MF_300 - bldg0000063,8.020906907755332,wood siding
+Rim Joist,"wood siding, Uninsulated",,Uninsulated,MF_100 - bldg0000002,3.0218201170835552,wood siding
+Roof,Minimal,,Minimal,Fully_minimal (OLD),499.1095827166759,
+Roof,R-30,,R-30,Fully_minimal (DC),29.786007513476,
+Roof,"asphalt or fiberglass shingles, Finished, R-13, Flat",Flat,"Finished, R-13",MF_300 - bldg0000045,13.33489901362142,asphalt or fiberglass shingles
+Roof,"asphalt or fiberglass shingles, Finished, R-19, Flat",Flat,"Finished, R-19",MF_100 - bldg0000081,20.2352102637206,asphalt or fiberglass shingles
+Roof,"asphalt or fiberglass shingles, Finished, R-30, Flat",Flat,"Finished, R-30",MF_300 - bldg0000035,28.734817813765183,asphalt or fiberglass shingles
+Roof,"asphalt or fiberglass shingles, Finished, R-30, Pitched",Pitched,"Finished, R-30",MF_100 - bldg0000100,28.778509883426253,asphalt or fiberglass shingles
+Roof,"asphalt or fiberglass shingles, Finished, R-38, Flat",Flat,"Finished, R-38",MF_100 - bldg0000035,35.53191489361702,asphalt or fiberglass shingles
+Roof,"asphalt or fiberglass shingles, Finished, R-38, Pitched",Pitched,"Finished, R-38",MF_100 - bldg0000086,35.576441102756895,asphalt or fiberglass shingles
+Roof,"asphalt or fiberglass shingles, Finished, R-49, Flat",Flat,"Finished, R-49",MF_300 - bldg0000052,46.01296596434359,asphalt or fiberglass shingles
+Roof,"asphalt or fiberglass shingles, Finished, R-7, Flat",Flat,"Finished, R-7",MF_300 - bldg0000010,9.23552374756018,asphalt or fiberglass shingles
+Roof,"asphalt or fiberglass shingles, Finished, Uninsulated, Flat",Flat,"Finished, Uninsulated",MF_100 - bldg0000061,2.737704918032787,asphalt or fiberglass shingles
+Roof,"metal surfacing, Finished, R-30, Flat",Flat,"Finished, R-30",MF_300 - bldg0000216,28.734817813765183,metal surfacing
+Roof,"metal surfacing, Finished, R-30, Pitched",Pitched,"Finished, R-30",MF_300 - bldg0000184,28.778509883426253,metal surfacing
+Roof,"metal surfacing, Finished, R-38, Flat",Flat,"Finished, R-38",MF_300 - bldg0000018,35.53191489361702,metal surfacing
+Roof,"metal surfacing, Finished, R-38, Pitched",Pitched,"Finished, R-38",MF_300 - bldg0000155,35.576441102756895,metal surfacing
+Roof,"metal surfacing, Finished, R-49, Flat",Flat,"Finished, R-49",MF_300 - bldg0000235,46.01296596434359,metal surfacing
+Roof,"metal surfacing, Finished, Uninsulated, Flat",Flat,"Finished, Uninsulated",MF_300 - bldg0000200,2.737704918032787,metal surfacing
+Roof,"metal surfacing, Finished, Uninsulated, Pitched",Pitched,"Finished, Uninsulated",MF_300 - bldg0000072,2.7888015717092336,metal surfacing
+Roof,"slate or tile shingles, Finished, R-13, Flat",Flat,"Finished, R-13",MF_300 - bldg0000075,13.33489901362142,slate or tile shingles
+Roof,"slate or tile shingles, Finished, R-13, Pitched",Pitched,"Finished, R-13",MF_300 - bldg0000009,13.388351803819855,slate or tile shingles
+Roof,"slate or tile shingles, Finished, R-19, Flat",Flat,"Finished, R-19",MF_300 - bldg0000027,20.2352102637206,slate or tile shingles
+Roof,"slate or tile shingles, Finished, R-19, Pitched",Pitched,"Finished, R-19",MF_300 - bldg0000063,20.285816362986782,slate or tile shingles
+Roof,"slate or tile shingles, Finished, R-30, Flat",Flat,"Finished, R-30",MF_300 - bldg0000093,28.734817813765183,slate or tile shingles
+Roof,"slate or tile shingles, Finished, R-30, Pitched",Pitched,"Finished, R-30",MF_300 - bldg0000212,28.778509883426253,slate or tile shingles
+Roof,"slate or tile shingles, Finished, R-38, Flat",Flat,"Finished, R-38",MF_300 - bldg0000017,35.53191489361702,slate or tile shingles
+Roof,"slate or tile shingles, Finished, R-38, Pitched",Pitched,"Finished, R-38",MF_300 - bldg0000258,35.576441102756895,slate or tile shingles
+Roof,"slate or tile shingles, Finished, R-49, Flat",Flat,"Finished, R-49",MF_300 - bldg0000108,46.01296596434359,slate or tile shingles
+Roof,"slate or tile shingles, Finished, R-7, Flat",Flat,"Finished, R-7",MF_300 - bldg0000039,9.23552374756018,slate or tile shingles
+Roof,"slate or tile shingles, Finished, R-7, Pitched",Pitched,"Finished, R-7",MF_300 - bldg0000081,9.288401766726649,slate or tile shingles
+Roof,"slate or tile shingles, Finished, Uninsulated, Flat",Flat,"Finished, Uninsulated",MF_300 - bldg0000016,2.737704918032787,slate or tile shingles
+Roof,"slate or tile shingles, Finished, Uninsulated, Pitched",Pitched,"Finished, Uninsulated",MF_300 - bldg0000037,2.7888015717092336,slate or tile shingles
+Roof,"wood shingles or shakes, Finished, R-19, Pitched",Pitched,"Finished, R-19",MF_300 - bldg0000224,20.285816362986782,wood shingles or shakes
+Roof,"wood shingles or shakes, Finished, R-30, Flat",Flat,"Finished, R-30",MF_300 - bldg0000099,28.734817813765183,wood shingles or shakes
+Roof,"wood shingles or shakes, Finished, R-38, Pitched",Pitched,"Finished, R-38",MF_300 - bldg0000068,35.576441102756895,wood shingles or shakes
+Roof,"wood shingles or shakes, Finished, R-49, Flat",Flat,"Finished, R-49",MF_300 - bldg0000042,46.01296596434359,wood shingles or shakes
+Roof,"wood shingles or shakes, Finished, R-7, Flat",Flat,"Finished, R-7",MF_300 - bldg0000003,9.23552374756018,wood shingles or shakes
+Roof,"wood shingles or shakes, Finished, Uninsulated, Flat",Flat,"Finished, Uninsulated",MF_300 - bldg0000006,2.737704918032787,wood shingles or shakes

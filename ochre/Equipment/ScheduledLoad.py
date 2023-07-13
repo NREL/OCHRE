@@ -1,146 +1,144 @@
 import os
 import pandas as pd
 
-from ochre.FileIO import default_input_path, Units
-from ochre.Equipment import Equipment, EquipmentException
-from ochre.FileIO import import_generic
+from ochre.utils.units import kwh_to_therms
+from ochre.utils import load_csv
+import ochre.utils.schedule as utils_schedule
+from ochre.Equipment import Equipment
+
+
+# TODO: Add option to put heat gains in multiple zones (e.g. basement MELs)
 
 
 class ScheduledLoad(Equipment):
     """
-    Equipment with a pre-defined schedule. Schedule may come from:
-
-    - The main schedule and properties files. The schedule must have a column with the same name as the equipment that
-     corresponds to the fraction of full load at a given time. The properties file must include the full load power in
-     Watts, and gain fractions for convective, radiative, and latent gains.
-    - A separate schedule file, named `equipment_schedule_file`. The schedule must be defined for a full year at
-     anywhere between 1 minute and 1 hour resolution. It must have a column that specifies the power output in kW. Note
-     that heat gains are not considered for this type of schedule.
+    Equipment with a pre-defined schedule for power. Schedule may come from the main schedule file or a separate file
+    named `equipment_schedule_file`. The schedule must have one or more columns named `<equipment_name> (<unit>)`, where
+    the unit can be 'kW' for electric equipment and 'therms/hour' for gas equipment. Combo equipment should have
+    two columns, one for electric and one for gas power.
     """
 
-    def __init__(self, full_schedule=None, equipment_schedule=None, properties_name=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, zone_name=None, **kwargs):
+        # Update zone based on name. Zone defaults to Indoor
+        if zone_name is None:
+            if 'Exterior' in self.name:
+                zone_name = 'Outdoor'
+            elif 'Garage' in self.name:
+                zone_name = 'Garage'
+            elif 'Basement' in self.name:
+                zone_name = 'Foundation'
 
-        self.power = 0  # in kW
-        self.sensible_gain_fraction = 0  # unitless
-        self.latent_gain_fraction = 0  # unitless
-        self.gas_ratio = 0  # unitless, ratio of gas/electric power, for gas equipment only
+        self.electric_name = None
+        self.gas_name = None
 
-        if equipment_schedule is not None:
-            # take schedule as is - used for PV; for now, no heat gains
-            self.schedule = equipment_schedule
-        elif full_schedule is not None and properties_name is not None:
-            # load from main schedule and properties file - schedule is a fraction of max power
-            if self.name in full_schedule:
-                schedule_name = self.name
-            elif self.name == 'Ventilation Fan':
-                schedule_name = 'ventilation_rate'
+        super().__init__(zone_name=zone_name, **kwargs)
 
-                # update properties for ventilation fan
-                vent_power = kwargs['ventilation cfm'] * kwargs['ventilation power (W/cfm)']
-                vent_type = kwargs.get('ventilation type', 'exhaust')
-                if vent_type == 'supply':
-                    gain_fraction = 1
-                elif vent_type == 'balanced':
-                    gain_fraction = 0.5
-                else:
-                    gain_fraction = 0
-                kwargs.update({properties_name + ' power (W)': vent_power,
-                               properties_name + ' convective gainfrac': gain_fraction,
-                               properties_name + ' radiative gainfrac': 0,
-                               properties_name + ' latent gainfrac': 0,
-                               })
+        self.p_set_point = 0  # in kW
+        self.gas_set_point = 0  # in therms/hour
 
-            else:
-                schedule_name = self.name.split(' ')[-1]
-            self.schedule = full_schedule.loc[:, schedule_name].copy()  # assumes only 1 column, convert to pd.Series
+        self.is_electric = self.electric_name in self.schedule
+        self.is_gas = self.gas_name in self.schedule
 
-            # Initialize from properties file
-            # FUTURE: standardize the properties file for non-controllable loads
-            if properties_name + ' power' in kwargs:
-                kwargs[properties_name + ' power (W)'] = kwargs[properties_name + ' power']
-            if properties_name + ' power elec' in kwargs:
-                kwargs[properties_name + ' power (W)'] = kwargs[properties_name + ' power elec']
-            if properties_name + ' electric power (W)' in kwargs:
-                kwargs[properties_name + ' power (W)'] = kwargs[properties_name + ' electric power (W)']
+        # Sensible and latent gain fractions, unitless
+        # FUTURE: separate convection and radiation, move radiation gains to the surfaces around the zone
+        self.sensible_gain_fraction = (kwargs.get('Convective Gain Fraction (-)', 0) +
+                                       kwargs.get('Radiative Gain Fraction (-)', 0))
+        self.latent_gain_fraction = kwargs.get('Latent Gain Fraction (-)', 0)
+        assert self.sensible_gain_fraction + self.latent_gain_fraction <= 1.001  # computational errors possible
 
-            if properties_name + ' power (W)' not in kwargs:
-                raise EquipmentException('Properties could not be parsed for {}.'.format(self.name))
+    def initialize_schedule(self, schedule=None, equipment_schedule_file=None,
+                            schedule_rename_columns=None, schedule_scale_factor=1, **kwargs):
+        self.electric_name = f'{self.name} (kW)'
+        self.gas_name = f'{self.name} (therms/hour)'
 
-            # Sensible and latent gain fractions, unitless
-            # FUTURE: separate convection and radiation, move radiation gains to the surfaces around the zone
-            self.sensible_gain_fraction = (kwargs[properties_name + ' convective gainfrac'] +
-                                           kwargs[properties_name + ' radiative gainfrac'])
-            self.latent_gain_fraction = kwargs[properties_name + ' latent gainfrac']
+        if equipment_schedule_file is not None:
+            # load schedule from separate schedule file - used for scheduled PV and EV
+            schedule = load_csv(equipment_schedule_file, sub_folder=self.end_use)
+            schedule = schedule.loc[:, schedule_rename_columns]
+            schedule = utils_schedule.set_annual_index(schedule, self.start_time.year, timezone=self.start_time.tzinfo)
+            schedule = utils_schedule.resample_and_reindex(schedule, **kwargs)
+            if schedule_rename_columns is not None:
+                schedule = schedule.rename(columns=schedule_rename_columns)
+            schedule *= schedule_scale_factor
 
-            max_power = kwargs[properties_name + ' power (W)']
-            self.schedule *= max_power / 1000  # W to kW
+        if schedule is None:
+            raise Exception(f'Schedule required for {self.name}')
+        
+        required_inputs = [name for name in [self.electric_name, self.gas_name] if name in schedule]
+        if not required_inputs:
+            raise Exception(f'Cannot find any schedule columns for {self.name}')
 
-            # check for gas power
-            if properties_name + ' gas power (W)' in kwargs and kwargs[properties_name + ' gas power (W)'] > 0:
-                self.is_gas = True
-                self.gas_ratio = kwargs[properties_name + ' gas power (W)'] / max_power
-            if properties_name + ' power gas' in kwargs and kwargs[properties_name + ' power gas'] > 0:
-                self.is_gas = True
-                self.gas_ratio = kwargs[properties_name + ' power gas'] / max_power
+        # set schedule columns to zero if month multiplier exists and is zero (for ceiling fans)
+        multipliers = kwargs.get('month_multipliers', [])
+        zero_months = [i for i, m in enumerate(multipliers) if m == 0]
+        if zero_months:
+            schedule.loc[schedule.index.month.isin(zero_months), required_inputs] = 0
 
-        elif 'equipment_schedule_file' in kwargs:
-            # load schedule from separate schedule file, for now, no heat gains
-            self.schedule = self.import_schedule(**kwargs)
-        else:
-            raise EquipmentException('No schedule found for {}'.format(self.name))
+        return super().initialize_schedule(schedule, required_inputs=required_inputs, **kwargs)
 
-        # check timing of schedule file
-        schedule_res = self.schedule.index[1] - self.schedule.index[0]
-        if self.time_res != schedule_res or self.start_time != self.schedule.index[0]:
-            raise EquipmentException('Times in {} schedule differ from equipment arguments'.format(self.name))
+    def update_external_control(self, control_signal):
+        # Control options for changing power:
+        #  - Load Fraction: gets multiplied by power from schedule, unitless (applied to electric AND gas)
+        #  - P Setpoint: overwrites electric power from schedule, in kW
+        #  - Gas Setpoint: overwrites gas power from schedule, in therms/hour
+        self.update_internal_control()
 
-        self.schedule_iterable = None
-        self.reset_time()
+        load_fraction = control_signal.get('Load Fraction')
+        if load_fraction:
+            self.p_set_point *= load_fraction
+            self.gas_set_point *= load_fraction
 
-    def import_schedule(self, equipment_schedule_file, val_col='Power', schedule_scale_factor=1,
-                        input_path=default_input_path, **kwargs):
-        if not os.path.isabs(equipment_schedule_file):
-            equipment_schedule_file = os.path.join(input_path, self.name, equipment_schedule_file)
-        schedule = import_generic(equipment_schedule_file, annual_input=True, keep_cols=[val_col], **kwargs)
-        schedule = schedule[val_col] * schedule_scale_factor
-        return schedule
+        p_set_ext = control_signal.get('P Setpoint')
+        if p_set_ext:
+            self.p_set_point = p_set_ext
 
-    def reset_time(self):
-        super().reset_time()
-        if isinstance(self.schedule, pd.DataFrame):
-            self.schedule_iterable = self.schedule.itertuples()
-        else:
-            self.schedule_iterable = iter(self.schedule)
+        gas_set_ext = control_signal.get('Gas Setpoint')
+        if gas_set_ext:
+            self.gas_set_point = gas_set_ext
 
-    def update_external_control(self, schedule, ext_control_args):
-        # Duty cycle allows power to reduce (or turn off), e.g. for resilience cases
-        load_fraction = ext_control_args.get('Load Fraction', 1)
+        return 'On' if self.p_set_point + self.gas_set_point != 0 else 'Off'
 
-        self.update_internal_control(schedule)
-        self.power *= load_fraction
+    def update_internal_control(self):
+        if self.is_electric:
+            self.p_set_point = self.current_schedule[self.electric_name]
+            if abs(self.p_set_point) > 20:
+                self.warn(f'High electric power warning: {self.p_set_point} kW.')
+                if abs(self.p_set_point) > 40:
+                    raise Exception(f'{self.name} electric power is too large: {self.p_set_point} kW.')
 
-        return 'On' if self.power > 0 else 'Off'
-
-    def update_internal_control(self, schedule):
-        self.power = next(self.schedule_iterable)
-
-        return 'On' if self.power > 0 else 'Off'
-
-    def calculate_power_and_heat(self, schedule):
-        self.electric_kw = self.power  # kW
         if self.is_gas:
-            self.gas_therms_per_hour = Units.kWh2therms(self.power * self.gas_ratio)
-            self.power += self.power * self.gas_ratio  # add gas power for heat gain calculation
+            self.gas_set_point = self.current_schedule[self.gas_name]
+            if abs(self.gas_set_point) > 0.5:
+                self.warn(f'High gas power warning: {self.gas_set_point} therms/hour.')
+                if abs(self.gas_set_point) > 1:
+                    raise Exception(f'{self.name} gas power is too large: {self.gas_set_point} therms/hour.')
 
-        self.sensible_gain = self.power * self.sensible_gain_fraction * 1000  # W
-        self.latent_gain = self.power * self.latent_gain_fraction * 1000  # W
+        return 'On' if self.p_set_point + self.gas_set_point != 0 else 'Off'
 
-    def generate_results(self, verbosity, to_ext=False):
-        results = super().generate_results(verbosity, to_ext)
-        if not to_ext:
-            if verbosity >= 6 and self.name != self.end_use:
-                # assumes electric and not gas equipment
-                results.update({self.name + ' Electric Power (kW)': self.electric_kw,
-                                self.name + ' Reactive Power (kVAR)': self.reactive_kvar})
+    def calculate_power_and_heat(self):
+        if self.mode == 'On':
+            self.electric_kw = self.p_set_point if self.is_electric else 0
+            self.gas_therms_per_hour = self.gas_set_point if self.is_gas else 0
+        else:
+            # Force power to 0
+            self.electric_kw = 0
+            self.gas_therms_per_hour = 0
+
+        total_power_w = (self.electric_kw + self.gas_therms_per_hour / kwh_to_therms) * 1000  # in W
+        self.sensible_gain = total_power_w * self.sensible_gain_fraction
+        self.latent_gain = total_power_w * self.latent_gain_fraction
+
+    def generate_results(self):
+        results = super().generate_results()
+
+        if self.verbosity >= 6 and self.name != self.end_use:
+            if self.is_electric:
+                results[f'{self.results_name} Electric Power (kW)'] = self.electric_kw
+                results[f'{self.results_name} Reactive Power (kVAR)'] = self.reactive_kvar
+            if self.is_gas:
+                results[f'{self.results_name} Gas Power (therms/hour)'] = self.gas_therms_per_hour
         return results
+
+
+class LightingLoad(ScheduledLoad):
+    end_use = 'Lighting'

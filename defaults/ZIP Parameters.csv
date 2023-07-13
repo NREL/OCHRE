@@ -1,0 +1,38 @@
+Category,Equipment Name,Included in OCHRE,Zp,Ip,Pp,Zq,Iq,Pq,pf,ZIP Reference,Notes
+HVAC,ASHP Heater,TRUE,0.72,-0.98,1.26,14.78,-23.71,9.93,0.84,"L. M. Hajagos and B. Danai, ""Laboratory measurements and models of modern loads and their effect on voltage stability studies,"" in IEEE Transactions on Power Systems, vol. 13, no. 2, pp. 584-592, May 1998",
+HVAC,MSHP Heater,TRUE,0.72,-0.98,1.26,14.78,-23.71,9.93,0.84,,Copied from ASHP
+HVAC,Electric Baseboard,TRUE,0.92,0.1,-0.02,0.15,0.86,-0.01,1,"A. Bokhari et al., ""Experimental Determination of the ZIP Coefficients for Modern Residential, Commercial, and Industrial Loads,"" in IEEE Transactions on Power Delivery, vol. 29, no. 3, pp. 1372-1381, June 2014.",
+HVAC,Electric Furnace,TRUE,0.92,0.1,-0.02,0.15,0.86,-0.01,1,,Copied from Electric Baseboard
+HVAC,Electric Boiler,TRUE,0.92,0.1,-0.02,0.15,0.86,-0.01,1,,Copied from Electric Baseboard
+HVAC,Air Conditioner,TRUE,1.6,-2.69,2.09,12.53,-21.11,9.58,0.96,"A. Bokhari et al., ""Experimental Determination of the ZIP Coefficients for Modern Residential, Commercial, and Industrial Loads,"" in IEEE Transactions on Power Delivery, vol. 29, no. 3, pp. 1372-1381, June 2014.",
+HVAC,ASHP Cooler,TRUE,1.6,-2.69,2.09,12.53,-21.11,9.58,0.96,,Copied from Air Conditioner
+HVAC,MSHP Cooler,TRUE,1.6,-2.69,2.09,12.53,-21.11,9.58,0.96,,Copied from Air Conditioner
+HVAC,Room AC,TRUE,1.6,-2.69,2.09,12.53,-21.11,9.58,0.96,,Copied from Air Conditioner
+HVAC,Ideal Cooler,TRUE,0,0,1,0,0,1,1,,Ideal real power only
+HVAC,Ideal Heater,TRUE,0,0,1,0,0,1,1,,Ideal real power only
+HVAC,fans,FALSE,0.26,0.9,-0.16,0.5,0.62,-0.12,0.87,,Not used
+HVAC,pumps,FALSE,0.72,-0.98,1.26,14.78,-23.71,9.93,0.84,"L. M. Hajagos and B. Danai, ""Laboratory measurements and models of modern loads and their effect on voltage stability studies,"" in IEEE Transactions on Power Systems, vol. 13, no. 2, pp. 584-592, May 1998",Not used
+HVAC,heat_rejection,FALSE,0,0,1,0,0,1,1,,Not used
+HVAC,mech_vent_fan,FALSE,0.26,0.9,-0.16,0.5,0.62,-0.12,0.87,,Not used
+Water Heater,Electric Resistance Water Heater,TRUE,1,0,0,1,0,0,1,Assumed constant impedance,
+Water Heater,Heat Pump Water Heater,TRUE,0.825,-0.44,0.615,7.465,-11.425,4.96,0.97,"Assumed 50% heater and 50%pumps, P.F. taken from lab test",
+Appliances,Refrigerator,TRUE,5.03,-8.48,4.45,17.44,-28.62,12.18,0.8,"A. Bokhari et al., ""Experimental Determination of the ZIP Coefficients for Modern Residential, Commercial, and Industrial Loads,"" in IEEE Transactions on Power Delivery, vol. 29, no. 3, pp. 1372-1381, June 2014.",
+Appliances,Clothes Washer,TRUE,0.05,0.31,0.64,-0.56,2.2,-0.64,0.65,"A. Arif, Z. Wang, J. Wang, B. Mather, H. Bashualdo and D. Zhao, ""Load Modeling: A Review,"" in IEEE Transactions on Smart Grid, 2013",
+Appliances,Clothes Dryer,TRUE,1,0,0,1,0,0,0.99,"Ning Lu, Yulong Xie, Zhenyu Huang, F. Puyleart and S. Yang, ""Load component database of household appliances and small office equipment,"" 2008 IEEE Power and Energy Society General Meeting - Conversion and Delivery of Electrical Energy in the 21st Century, Pittsburgh, PA, 2008, pp. 1-5",Defaults to electric
+Appliances,Dishwasher,TRUE,1,0,0,0,0,1,0.99,"Ning Lu, Yulong Xie, Zhenyu Huang, F. Puyleart and S. Yang, ""Load component database of household appliances and small office equipment,"" 2008 IEEE Power and Energy Society General Meeting - Conversion and Delivery of Electrical Energy in the 21st Century, Pittsburgh, PA, 2008, pp. 1-5",
+Appliances,Range,TRUE,1,0,0,1,0,0,1,"Ning Lu, Yulong Xie, Zhenyu Huang, F. Puyleart and S. Yang, ""Load component database of household appliances and small office equipment,"" 2008 IEEE Power and Energy Society General Meeting - Conversion and Delivery of Electrical Energy in the 21st Century, Pittsburgh, PA, 2008, pp. 1-5",Defaults to electric
+Appliances,extra_refrigerator,FALSE,5.03,-8.48,4.45,17.44,-28.62,12.18,0.8,,Not used
+Appliances,freezer,FALSE,5.03,-8.48,4.45,17.44,-28.62,12.18,0.8,,Not used
+Other,Lighting,TRUE,0.54,0.5,-0.04,0.46,0.51,0.03,1,"A. Bokhari et al., ""Experimental Determination of the ZIP Coefficients for Modern Residential, Commercial, and Industrial Loads,"" in IEEE Transactions on Power Delivery, vol. 29, no. 3, pp. 1372-1381, June 2014.",
+Other,Exterior Lighting,TRUE,0.54,0.5,-0.04,0.46,0.51,0.03,1,,Copied from Lighting
+Other,Garage Lighting,TRUE,0.54,0.5,-0.04,0.46,0.51,0.03,1,,Copied from Lighting
+Other,Basement Lighting,TRUE,0.54,0.5,-0.04,0.46,0.51,0.03,1,,Copied from Lighting
+Other,MELs,TRUE,0.36147,-0.08583,0.72436,8.39985,-14.1677,6.76785,0.8,TBD,
+Other,Basement MELs,TRUE,0.36147,-0.08583,0.72436,8.39985,-14.1677,6.76785,0.8,TBD,
+Other,Ventilation Fan,TRUE,0.26,0.9,-0.16,0.5,0.62,-0.12,0.87,,Copied from fans
+Other,ceiling_fan,FALSE,0.26,0.9,-0.16,0.5,0.62,-0.12,0.87,,Not used
+Other,pool_heater,FALSE,0.92,0.1,-0.02,0.15,0.86,-0.01,1,,Not used
+Other,pool_pump,FALSE,0.72,-0.98,1.26,14.78,-23.71,9.93,0.84,,Not used
+Other,hot_tub_heater,FALSE,0.92,0.1,-0.02,0.15,0.86,-0.01,1,,Not used
+Other,hot_tub_pump,FALSE,0.72,-0.98,1.26,14.78,-23.71,9.93,0.84,,Not used
+Other,well_pump,FALSE,0.72,-0.98,1.26,14.78,-23.71,9.93,0.84,,Not used

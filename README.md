@@ -1,20 +1,22 @@
-# OCHRE: NREL's Object-oriented Controllable High-resolution Residential Energy Model
+# OCHRE: The Object-oriented Controllable High-resolution Residential Energy Model
 
 A high-fidelity, high-resolution residential building model with behind-the-meter DERs and flexible load models 
 that integrates with controllers and distribution models in building-to-grid co-simulation platforms.
 
-Contact: jeff.maguire@nrel.gov, michael.blonsky@nrel.gov, killian.mckenna@nrel.gov, dylan.cutler@nrel.gov
+Contact: jeff.maguire@nrel.gov, michael.blonsky@nrel.gov, killian.mckenna@nrel.gov
 
 ## Installation
+
+Note that OCHRE requires Python version 3.9 or higher
 
 ### Stand-alone Installation
 
 For a stand-alone installation, OCHRE can be installed using `pip` from the command line:
 
 ```
-pip install --editable=git+https://github.com/NREL/OCHRE
+pip install git+https://github.nrel.gov/Customer-Modeling/ochre.git@dev
 ```
- 
+
 Alternatively, you can download the repo and run the `setup.py` file:
 
 ```
@@ -27,47 +29,71 @@ project and include the following lines:
 ```
 dependencies:
   - pip:
-    - --editable=git+https://github.com/NREL/OCHRE
+    - git+https://github.nrel.gov/Customer-Modeling/ochre
 ```
 
 
 ## Usage
 
-To simulate a single dwelling, a set of input parameters and input files must be defined. For example, see the python
-script in `bin/run_dwelling.py`. This section describes the required and optional input parameters and files.
+OCHRE can be used to simulate a residential dwelling or an individual piece of equipment. In either case, a python
+object is instantiated and then simulated. A set of input parameters and input files must be defined. 
 
-### Initialization Arguments
+Below is a simple example of simulating a dwelling:
+```
+import datetime as dt
+from ochre import Dwelling
+house = Dwelling(simulation_name, 
+                 start_time=dt.datetime(2018, 5, 1, 0, 0),
+                 time_res=dt.timedelta(minutes=10),       
+                 duration=dt.timedelta(days=3),
+                 properties_file='sample_resstock_house.xml',
+                 schedule_file='sample_resstock_schedule.csv',
+                 weather_file='USA_CO_Denver.Intl.AP.725650_TMY3.epw',
+                 verbosity=3,
+                 )
+df, metrics, hourly = dwelling.simulate()
+```
 
-Required arguments include:
+This will output 3 variables:
+ * `df`: a Pandas DataFrame with 10 minute resolution
+ * `metrics`: a dictionary of energy metrics
+ * `hourly`: a Pandas DataFrame with 1 hour resolution (verbosity >= 3 only)
+
+For more examples, see the following python scripts in the `bin` folder:
+* Run a single dwelling: `bin/run_dwelling.py`
+* Run a single piece of equipment: `bin/run_equipment.py`
+* Run a dwelling with an external controller: `bin/run_external_control.py`
+* Run multiple dwellings: `bin/run_multiple.py`
+* Run a fleet of equipment: `bin/run_fleet.py`
+
+Required and optional input parameters and files are described below for a dwelling.
+
+### Required Dwelling Parameters
+
 * `name`: Name of the simulation
-* `equipment_dict`: Dictionary of equipment to include in the dwelling (see below)
 * `start_time`: Simulation start time as a datetime.datetime
 * `time_res`: Simulation time resolution as a datetime.timedelta
 * `duration`: Simulation duration as a datetime.timedelta
-* `properties_file`: File name of BEopt properties file
-* `schedule_file`: File name of BEopt schedule file
-* `weather_file`: File name of weather file, typically a .epw file
+* `properties_file`: Path to building properties file (HPXML, yaml, or BEopt properties file)
+* `schedule_file`: Path to building schedule file (csv)
+* `weather_file` or `weather_path`: Path to weather file (epw or NSRDB file). `weather_path` can be used if the 
+Weather Station name is specified in the properties file.
 
-Optional arguments include:
-* `input_path`: Directory for input files (defaults to a built-in directory)
-* `output_path`: Path to output files (defaults to a built-in directory)
+### Optional Dwelling Parameters
+
+* `input_path`: Path with additional input files (defaults to a built-in directory)
+* `output_path`: Path to output files
+* `save_results`: if True, saves results to output files (default is True if `output_path` is specified)
 * `initialization_time`: Duration to initialize the building temperatures as a datetime.timedelta (default is no 
 initialization)
-* `water_draw_file`: File name for water draw schedule file (default is no water draw)
-* `save_results`: if True, saves results to output files (default is True)
+* `water_draw_file`: File name for water draw schedule file. For BEopt inputs only (default is no water draw)
 * `verbosity`: Verbosity of the output files as integer from 1 to 9 (default is 1)
-* `assume_equipment`: If True, some equipment is assumed from the properties file (default is False) 
-* `uncontrolled_equipment`: List of equipment names to be considered as "Uncontrolled" for external controller 
-communication
+* `metrics_verbosity`: Verbosity of the metrics output file as integer from 1 to 9 (default is 6)
 
-### Equipment-specific Arguments
+### Equipment-specific Parameters
 
-The `equipment_dict` dictionary includes all equipment-specific initialization arguments that vary by type of equipment.
-Dictionary keys are the equipment names, and values are dictionaries with equipment arguments. See `bin/run_dwelling.py`
-for examples.
-
-Below is a list of all equipment types and the equipment names:
-
+Equipment arguments can be included to override information from the properties file. See `bin/run_dwelling.py` or
+`bin/run_equipment.py` for examples. Below is a list of all of OCHRE's equipment names:
 * HVAC Heating:
   * Electric Furnace
   * Electric Baseboard
@@ -113,21 +139,21 @@ OCHRE is an object-oriented residential building model that simulates a variety 
 It simulates dwelling energy consumption (electricity and gas) at a high resolution (up to 1-minute) and is designed 
 to integrate in co-simulation with controllers, distribution systems, and other agents.
 Most equipment types are controllable though an external controller to simulate the impact of device
-controllers, HEMS, demand response, or other control strategies. The initialization integrates with BEopt output files 
-to simplify the building modeling.
+controllers, HEMS, demand response, or other control strategies.
+The initialization integrates with ResStock and BEopt output files to simplify the building modeling.
 
 The key features of the code are:
 
 * High-fidelity, high-resolution residential building simulation
-* Simple integration with co-simulation using object-oriented principles
 * Controllable equipment via external controllers
+* Simple integration with co-simulation using object-oriented principles
 * Voltage-dependent electric power and reactive power using an equipment-level ZIP model
 * Large variety of equipment types including HVAC, water heating, PV, batteries, and EVs
 * Envelope, HVAC, and water heating validation with EnergyPlus (in progress)
 
 OCHRE integrates with the following models and tools:
+* ResStock (for generating input files)
 * BEopt (for generating input files)
-* ResStock (for generating input files, in progress)
 * HELICS (for co-simulation)
 * Foresee (for HEMS control)
 * SAM (for PV modeling)
@@ -157,7 +183,7 @@ is flexible and can handle multiple nodes and boundaries, including:
   * Garage walls, roof, and floor (if garage exists)
   * Above- and below-ground foundation walls and ceiling (if foundation exists)
 
-RC coefficients are determined from the BEopt properties file. Sensible and latent heat gains within the dwelling are 
+RC coefficients are determined from the properties file. Sensible and latent heat gains within the dwelling are 
 taken from multiple sources:
 
 * HVAC delivered heat
@@ -166,7 +192,7 @@ taken from multiple sources:
 * Internal and external long-wave radiation
 * Occupancy and equipment heat gains
 
-The envelope also includes a humidity model to estimate indoor humidity and wet bulb temperature.
+The envelope also includes a humidity model that determines the indoor humidity and wet bulb temperature.
 
 ### HVAC
 
@@ -180,25 +206,27 @@ HVAC equipment use three types of algorithms for determining equipment capacity 
 (e.g. Ideal Heater, Ideal Cooler)
 
 Some HVAC models include multi-speed options, including single-speed, two-speed, and variable speed options.
-One- and two-speed options typically use the dynamic capacity algorithm, while variable speed option typically uses the
-ideal capacity algorithm.
+The one- and two-speed options typically use the dynamic capacity algorithm for high resolution simulations,
+while the variable speed option typically uses the ideal capacity algorithm.
 
-Note that the Air Source Heat Pump includes heating and cooling functionality, and includes an electric resistance 
-element that is enabled when outdoor air temperatures are below a threshold.
+The Air Source Heat Pump and Mini Split Heat Pump models include heating and cooling functionality.
+The heat pump heating model includes a defrost algorithm that reduces efficiency and capacity at low temperatures,
+as well as an electric resistance element that is enabled when the outdoor air temperature is below a threshold.
 
 By default, all HVAC equipment are controlled using a thermostat control. Heating and cooling setpoints are defined in
-the BEopt schedule file and can vary over time.
+the schedule file and can vary over time.
 
 All HVAC equipment can be externally controlled by updating the thermostat setpoints and deadband or by direct load 
-control (i.e. shut-off). Static and dynamic HVAC equipment can also be controlled using duty cycle control. The 
-equipment will follow the external control exactly while minimizing temperature deviation from setpoint and minimizing
-cycling.
+control (i.e. shut-off). Static and dynamic HVAC equipment can also be controlled using duty cycle control or by
+disabling specific speeds.
+The equipment will follow the duty cycle control exactly while minimizing temperature deviation from setpoint and 
+minimizing cycling.
 
 ### Water Heating
 
 The water tank model is an RC model that tracks temperature throughout the tank. It is a flexible model that can handle
 multiple nodes in the water tank. Currently, a 12-node, 2-node, and 1-node model are implemented. RC coefficients are
-derived from the BEopt properties file.
+derived from the properties file.
 
 The tank model accounts for internal and external conduction and heat flows from water draws, and includes an algorithm
 to simulate temperature inversion mixing. The model can handle regular and tempered water draws. A separate water draw
@@ -248,8 +276,8 @@ step, and is suggested for Level 2 charging only.
 
 ### Scheduled Equipment
 
-A wide variety of scheduled equipment are available. Equipment schedules are defined in the BEopt schedule file or in a 
-separate input file. Schedules from the BEopt file include power output as well as sensible and latent heat gains. 
+A wide variety of scheduled equipment are available. Equipment schedules are defined in the schedule file or in a 
+separate input file. Schedules from the file include power output as well as sensible and latent heat gains. 
 
 Scheduled equipment are typically not controlled, but can be externally controlled using a load fraction. For example,
 a co-simulation can set the load fraction to zero to simulate an outage or a resiliency use case. 
@@ -274,13 +302,14 @@ The basic file structure of code is described below.
 
 ### Input Files
 
-A number of input files are required to run the simulation. An example file structure is included in `defaults/`. It is
+A number of input files are required to run the simulation. Example files are included in `defaults/`. It is
 recommended to copy files from this folder to a separate location to make changes in inputs. This folder includes:
 
-* `BEopt_Files/`: contains BEopt properties and schedule files
-* `Weather/`: contains .epw weather files
-* `<equipment_name>/`: contains all equipment-specific files
-* `ZIP_loads.csv`: includes voltage-dependency ZIP data for all equipment
+* `Properties Files/`: contains example properties files (created from ResStock and BEopt)
+* `Schedule Files/`: contains example schedule files (created from ResStock and BEopt)
+* `Weather/`: contains example weather files (.epw and NSRDB formats)
+* `<end_use>/`: contains all end-use-specific files
+* `Equipment Defaults.csv`: includes heat gain coefficients and voltage-dependency ZIP data for all equipment
 
 
 ## Glossary of Building-Related Terms

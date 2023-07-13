@@ -3,8 +3,8 @@ import pandas as pd
 import datetime as dt
 import numpy as np
 
-from ochre.FileIO import default_input_path, save_to_csv
-from ochre.Equipment import Equipment, EquipmentException
+from ochre.utils import load_csv
+from ochre.Equipment import Equipment
 
 
 class EventBasedLoad(Equipment):
@@ -16,54 +16,31 @@ class EventBasedLoad(Equipment):
     By default, event-based equipment can be externally controlled by delaying the event start time. For now, events can
     be delayed indefinitely.
     """
-    name = 'Event-Based Load'
+    delay_event_end = True
 
     def __init__(self, **kwargs):
+        # event data is initialized in initialize_schedule
+        self.event_schedule = None
+        self.event_index = 0
+        self.event_start = None
+        self.event_end = None
+        self.in_event = False
+
         super().__init__(**kwargs)
 
-        # import pdf, convert to cumulative density function (cdf) and normalize to 1
-        probabilities, event_data = self.import_probabilities(**kwargs)
-
-        # self.power = 0  # in kW
-
-        # assume heat gains of 0
-        self.sensible_gain_fraction = 0  # unitless, gain = gain_fraction * power
-        self.latent_gain_fraction = 0  # unitless, gain = gain_fraction * power
-
-        # generate all events
-        self.event_schedule = self.generate_all_events(probabilities, event_data, **kwargs)
-        self.event_schedule = self.event_schedule.reset_index(drop=True)
-        self.event_index = 0
-
-        # for start and end times to be on the simulation time
-        self.event_schedule.loc[:, 'start_time'] = self.event_schedule.loc[:, 'start_time'].dt.round(self.time_res)
-        self.event_schedule.loc[:, 'end_time'] = self.event_schedule.loc[:, 'end_time'].dt.round(self.time_res)
-        self.event_start = self.event_schedule.loc[self.event_index, 'start_time']
-        self.event_end = self.event_schedule.loc[self.event_index, 'end_time']
-
-        # check that end time is at or after start time, and events do not overlap
-        negative_times = self.event_schedule['end_time'] - self.event_schedule['start_time'] < dt.timedelta(0)
-        if negative_times.any():
-            bad_event = self.event_schedule.loc[negative_times.idxmax()]
-            raise EquipmentException('{} has event with end time before start time. '
-                                     'Event details: \n{}'.format(self.name, bad_event))
-        overlap = (self.event_schedule['start_time'] - self.event_schedule['end_time'].shift()) < dt.timedelta(0)
-        if overlap.any():
-            bad_index = overlap.idxmax()
-            bad_events = self.event_schedule.loc[bad_index - 1: bad_index + 1]
-            raise EquipmentException('{} event overlap. Event details: \n{}'.format(self.name, bad_events))
-
-        if kwargs.get('verbosity', 1) >= 7:
+        if kwargs.get('verbosity', 1) >= 7 and self.output_path is not None:
             # save event schedule
-            save_to_csv(self.event_schedule, '{}_{}_events.csv'.format(kwargs['house_name'], self.name), **kwargs)
+            if self.main_sim_name:
+                file_name = os.path.join(self.output_path, f'{self.main_sim_name}_{self.name}_events.csv')
+            else:
+                file_name = os.path.join(self.output_path, f'{self.name}_events.csv')
+            self.event_schedule.to_csv(file_name, index=True)
 
-    def import_probabilities(self, equipment_pdf_file=None, equipment_event_file=None, n_header=1, n_index=1,
-                             input_path=default_input_path, **kwargs):
+    def import_probabilities(self, equipment_pdf_file=None, equipment_event_file=None, n_header=1, n_index=1, **kwargs):
         if equipment_pdf_file is not None:
             # assumes each column is a pdf, uses pandas format for multi-index and multi-column csv files
-            if not os.path.isabs(equipment_pdf_file):
-                equipment_pdf_file = os.path.join(input_path, self.name, equipment_pdf_file)
-            pdf = pd.read_csv(equipment_pdf_file, header=list(range(n_header)), index_col=list(range(n_index)))
+            pdf = load_csv(equipment_pdf_file, sub_folder=self.name, header=list(range(n_header)),
+                            index_col=list(range(n_index)))
 
             # convert pdf to cdf (and normalize)
             cdf = pdf.cumsum() / pdf.sum()
@@ -76,24 +53,56 @@ class EventBasedLoad(Equipment):
         elif equipment_event_file is not None:
             raise NotImplementedError
         else:
-            raise EquipmentException('Must specify a PDF or Event file for {}.'.format(self.name))
+            raise Exception('Must specify a PDF or Event file for {}.'.format(self.name))
 
-    def reset_time(self):
-        super().reset_time()
-        self.event_index = 0
+    def initialize_schedule(self, **kwargs):
+        schedule = super().initialize_schedule(**kwargs)
+
+        # import pdf, convert to cumulative density function (cdf) and normalize to 1
+        probabilities, event_data = self.import_probabilities(**kwargs)
+
+        # generate all events
+        self.event_schedule = self.generate_all_events(probabilities, event_data, schedule, **kwargs)
+        self.event_schedule = self.event_schedule.reset_index(drop=True)
+
+        # for start and end times to be on the simulation time
+        self.event_schedule.loc[:, 'start_time'] = self.event_schedule.loc[:, 'start_time'].dt.round(self.time_res)
+        self.event_schedule.loc[:, 'end_time'] = self.event_schedule.loc[:, 'end_time'].dt.round(self.time_res)
         self.event_start = self.event_schedule.loc[self.event_index, 'start_time']
         self.event_end = self.event_schedule.loc[self.event_index, 'end_time']
 
-    def generate_all_events(self, probabilities, event_data, **kwargs):
+        # check that end time is at or after start time, and events do not overlap
+        negative_times = self.event_schedule['end_time'] - self.event_schedule['start_time'] < dt.timedelta(0)
+        if negative_times.any():
+            bad_event = self.event_schedule.loc[negative_times.idxmax()]
+            raise Exception('{} has event with end time before start time. '
+                                     'Event details: \n{}'.format(self.name, bad_event))
+        overlap = (self.event_schedule['start_time'] - self.event_schedule['end_time'].shift()) < dt.timedelta(0)
+        if overlap.any():
+            bad_index = overlap.idxmax()
+            bad_events = self.event_schedule.loc[bad_index - 1: bad_index + 1]
+            raise Exception('{} event overlap. Event details: \n{}'.format(self.name, bad_events))
+
+        return schedule
+
+    def reset_time(self, start_time=None, **kwargs):
+        super().reset_time(start_time, **kwargs)
+        self.event_index = 0
+        self.in_event = False
+        self.event_start = self.event_schedule.loc[self.event_index, 'start_time']
+        self.event_end = self.event_schedule.loc[self.event_index, 'end_time']
+
+    def generate_all_events(self, probabilities, event_data, eq_schedule, **kwargs):
         # create event schedule with all event info
         raise NotImplementedError
 
     def start_event(self):
         # optional function that runs when starting an event
-        pass
+        self.in_event = True
 
     def end_event(self):
         # function that runs when ending an event
+        self.in_event = False
         self.event_index += 1
 
         if self.event_index == len(self.event_schedule):
@@ -116,29 +125,35 @@ class EventBasedLoad(Equipment):
     #     # function to set next event start and end time
     #     raise NotImplementedError
 
-    def update_external_control(self, schedule, ext_control_args):
+    def update_external_control(self, control_signal):
         # If Delay=dt.timedelta, extend start time by that time
-        # If Delay=True, delay for self.ext_time_res
-        # If Delay=int, delay for int * self.ext_time_res
-        delay = ext_control_args.get('Delay', False)
+        # If Delay=True, delay for self.time_res
+        # If Delay=int, delay for int * self.time_res
+        if 'Delay' in control_signal:
+            delay = control_signal['Delay']
 
-        if delay and self.mode == 'On':
-            self.warn('Ignoring delay signal, event has already started.')
-            delay = False
-        if isinstance(delay, (int, bool)):
-            delay = self.time_res * delay
-        if not isinstance(delay, dt.timedelta):
-            raise EquipmentException('Unknown delay for {}: {}'.format(self.name, delay))
+            if delay and self.mode == 'On':
+                self.warn('Ignoring delay signal, event has already started.')
+                delay = False
+            if isinstance(delay, (int, bool)):
+                delay = self.time_res * delay
+            if not isinstance(delay, dt.timedelta):
+                raise Exception(f'Unknown delay for {self.name}: {delay}')
 
-        if delay:
-            # self.event_schedule.loc[self.event_index, 'start_time'] += delay
-            # self.event_schedule.loc[self.event_index, 'end_time'] += delay
-            self.event_start += delay
-            self.event_end += delay
+            if delay:
+                if self.delay_event_end:
+                    self.event_end += delay
+                else:
+                    # ensure that start time doesn't exceed end time
+                    if self.event_start + delay > self.event_end:
+                        self.warn('Event is delayed beyond event end time. Ignoring event.')
+                        delay = self.event_end - self.event_start
 
-        return self.update_internal_control(schedule)
+                self.event_start += delay
 
-    def update_internal_control(self, schedule):
+        return self.update_internal_control()
+
+    def update_internal_control(self):
         if self.current_time < self.event_start:
             # waiting for next event to start
             return 'Off'
@@ -151,15 +166,13 @@ class EventBasedLoad(Equipment):
             self.end_event()
             return 'Off'
 
-    def calculate_power_and_heat(self, schedule):
+    def calculate_power_and_heat(self):
         if self.mode == 'On':
             power = self.event_schedule.loc[self.event_index, 'power']
         else:
             power = 0
 
         self.electric_kw = power
-        self.sensible_gain = power * self.sensible_gain_fraction
-        self.latent_gain = power * self.latent_gain_fraction
 
 
 class DailyLoad(EventBasedLoad):
@@ -168,21 +181,22 @@ class DailyLoad(EventBasedLoad):
     resolution. Uses the same PDF for all days.
     """
 
-    def __init__(self, max_power=1, default_duration=dt.timedelta(hours=1), **kwargs):
-        self.default_duration = default_duration  # as timedelta, if None, duration should be in cdf
-        if self.default_duration % kwargs['time_res'] != dt.timedelta(0):
-            new_duration = self.default_duration // self.time_res * self.time_res
+    def __init__(self, max_power=1, event_duration=dt.timedelta(hours=1), **kwargs):
+        self.event_duration = event_duration  # as timedelta, if None, duration should be in cdf
+        if self.event_duration % kwargs['time_res'] != dt.timedelta(0):
+            new_duration = self.event_duration // self.time_res * self.time_res
             self.warn('Changing default duration ({}) to align with simulation time.'
-                      'New duration: {}'.format(self.default_duration, new_duration))
-            self.default_duration = new_duration
+                      'New duration: {}'.format(self.event_duration, new_duration))
+            self.event_duration = new_duration
 
         self.max_power = max_power  # in kW
 
         super().__init__(**kwargs)
 
-    def generate_all_events(self, probabilities, event_data, **kwargs):
+    def generate_all_events(self, probabilities, event_data, eq_schedule, **kwargs):
         # number of events = days of simulation, 1 event per day, plus 1 to be inclusive of end day
-        dates = pd.date_range(self.start_time.date(), kwargs['end_time'].date(), freq=dt.timedelta(days=1))
+        end_time = self.start_time + self.duration - self.time_res
+        dates = pd.date_range(self.start_time.date(), end_time.date(), freq=dt.timedelta(days=1))
         n_events = len(dates)
 
         # randomly pick parameters for next event
@@ -195,7 +209,7 @@ class DailyLoad(EventBasedLoad):
         df_events['start_time'] += pd.Series(np.random.random(n_events) * dt.timedelta(hours=1))
 
         # add end time, power
-        df_events['end_time'] = df_events['start_time'] + self.default_duration
+        df_events['end_time'] = df_events['start_time'] + self.event_duration
         df_events['power'] = self.max_power
 
         return df_events

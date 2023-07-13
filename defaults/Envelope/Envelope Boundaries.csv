@@ -1,0 +1,32 @@
+Boundary Name,Boundary Label,Exterior Zone Label,Interior Zone Label
+Exterior Wall,EW,EXT,LIV
+Roof,RF,EXT,LIV
+Floor,FL,GND,LIV
+Window,WD,EXT,LIV
+Door,DR,EXT,LIV
+Raised Floor,IF,EXT,LIV
+Interior Wall,IW,LIV,LIV
+Indoor Furniture,IM,LIV,LIV
+Foundation Wall,FW,GND,FND
+Rim Joist,RJ,EXT,FND
+Foundation Ceiling,FC,FND,LIV
+Foundation Floor,FF,GND,FND
+Foundation Furniture,FM,FND,FND
+Attic Wall,AW,EXT,ATC
+Attic Roof,AR,EXT,ATC
+Attic Floor,AF,ATC,LIV
+Attic Furniture,AM,ATC,ATC
+Garage Wall,GW,EXT,GAR
+Garage Attached Wall,GA,GAR,LIV
+Garage Roof,GR,EXT,GAR
+Garage Ceiling,GC,ATC,GAR
+Garage Interior Ceiling,GI,ATC,GAR
+Garage Floor,GF,GND,GAR
+Garage Furniture,GM,GAR,GAR
+Adjacent Wall,JW,LIV,LIV
+Adjacent Ceiling,JC,LIV,LIV
+Adjacent Floor,JL,LIV,LIV
+Adjacent Foundation Wall,JF,FND,FND
+Adjacent Rim Joist,JJ,FND,FND
+Adjacent Attic Wall,JA,ATC,ATC
+Adjacent Garage Wall,JG,GAR,GAR

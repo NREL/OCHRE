@@ -5,12 +5,16 @@ import string
 from pandas.plotting import register_matplotlib_converters
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.cm as cm
 
+default_colors = cm.get_cmap('tab10').colors  # discrete color map with 10 colors
 register_matplotlib_converters()
 locator = mdates.AutoDateLocator()
-formatter = mdates.ConciseDateFormatter(locator, offset_formats=['', '', '%b', '%b-%d', '%b-%d', '%b-%d %H:%M'])
-formatter2 = mdates.ConciseDateFormatter(locator, show_offset=False)
+formatter = mdates.ConciseDateFormatter(locator, show_offset=False)
+formatter2 = mdates.ConciseDateFormatter(locator, offset_formats=['', '', '%b', '%b-%d', '%b-%d', '%b-%d %H:%M'])
 formatter3 = mdates.ConciseDateFormatter(locator)
+
+# TODO: option to reverse order of plot lines, so first color stays on top, remains visible
 
 all_power_colors = {
     'PV': 'yellow',
@@ -18,9 +22,9 @@ all_power_colors = {
     'Battery': 'c',
     'Other': 'grey',
     'EV': 'm',
-    'Water Heating': 'g',
     'HVAC Heating': 'r',
     'HVAC Cooling': 'b',
+    'Water Heating': 'g',
 }
 zones = {
     'Indoor': 'k',
@@ -31,7 +35,7 @@ zones = {
     'Outdoor': 'y',
     'Ground': 'brown',
 }
-zone_data = [('Temperature - {} (C)'.format(zone), zone + ' Temp', color, False, 1) for zone, color in zones.items()]
+zone_data = [('Temperature - {} (C)'.format(zone), zone + ' Temp', color) for zone, color in zones.items()]
 ls_list = ['-', '--', ':', '-.']
 
 
@@ -54,7 +58,7 @@ def plot_daily_profile(df_raw, column, plot_average=True, plot_singles=True, plo
     time_res = df.index[1] - df.index[0]
     # use arbitrary date for plotting
     times = pd.date_range(dt.datetime(2019, 1, 1), dt.datetime(2019, 1, 2),
-                          freq=time_res, closed='left').to_pydatetime()
+                          freq=time_res, inclusive='left').to_pydatetime()
 
     fig, ax = plt.subplots()
 
@@ -92,6 +96,14 @@ def plot_daily_profile(df_raw, column, plot_average=True, plot_singles=True, plo
 
 def plot_power_stack(df, add_gas=False, **kwargs):
     # plots power columns in stacked line plot
+    gas_cols = {key: color for key, color in all_power_colors.items() if key +
+                ' Gas Power (therms/hour)' in df.columns and df[key + ' Gas Power (therms/hour)'].sum() != 0}
+    if add_gas and not gas_cols:
+        # no gas outputs, don't add gas plot
+        add_gas = False
+        if 'gridspec_kw' in kwargs:
+            kwargs.pop('gridspec_kw')
+
     if add_gas:
         fig, (ax1, ax2) = plt.subplots(2, 1, sharex='all', **kwargs)
     else:
@@ -119,8 +131,6 @@ def plot_power_stack(df, add_gas=False, **kwargs):
 
     # stacked gas power plot
     if add_gas:
-        gas_cols = {key: color for key, color in all_power_colors.items() if key +
-                    ' Gas Power (therms/hour)' in df.columns and df[key + ' Gas Power (therms/hour)'].sum() != 0}
         df_gas = df.loc[:, [key + ' Gas Power (therms/hour)' for key in gas_cols]]
         ax2.stackplot(df_gas.index, df_gas.clip(lower=0).values.T, colors=gas_cols.values(), labels=gas_cols.keys())
         # ax1.stackplot(df_gas.index, df_gas.clip(upper=0).loc[:, ::-1].values.T, colors=list(gas_cols.values())[::-1])
@@ -150,83 +160,175 @@ def plot_power_stack(df, add_gas=False, **kwargs):
     return fig
 
 
-def make_comparison_plot(dfs_to_plot, plot_info=None, add_diff=None, **kwargs):
-    # dfs_to_plot is a dict of {df_label: df}, where df is a time series DataFrame
-    # plot_info is list of tuples: (col_name, col_label, color, twin axis, multiplier).
-    #  - if None, defaults to all columns in dfs_to_plot[0]
-    # add_diff adds a line showing the difference between the first and second df in dfs_to_plot
-    if plot_info is None:
-        df = list(dfs_to_plot.values())[0]
-        plot_info = [(col_name, col_name, None, False, 1) for i, col_name in enumerate(df.columns)]
+def parse_plot_data(data, df=None):
+    # data includes info for a single curve. Options include:
+    #  - Tuple: (series, label, color, axis_left, axis_num, ls, mult)
+    #  - Dict with same keys as above
+    # df is optional DataFrame, should have data as a column name
+    data_defaults = {'series': None,
+                     'label': None,
+                     'color': None,
+                     'axis_left': True,
+                     'axis_num': 0,
+                     'ls': None,
+                     'mult': 1}
 
-    ls_diff = ls_list[len(dfs_to_plot)]
+    out = data_defaults.copy()
+    if isinstance(data, (str, pd.Series)):
+        data = (data,)
+    if isinstance(data, tuple):
+        data = dict(zip(list(data_defaults.keys())[:len(data)], data))
+    out.update(data)
+
+    if isinstance(out['series'], str):
+        if df is None or out['series'] not in df:
+            return {}
+        out['series'] = df[out['series']]
+
+    if out['label'] is None:
+        out['label'] = out['series'].name
+    return out
+
+
+def plot_time_series_detailed(*plot_data, df_plot=None, step=None, colors=default_colors, **kwargs):
+    # need: series with time index (or df with column name), label, axis #, twin axis, color, ls,
+    # plot_data is a list of tuples or dicts with info for each line. See parse_plot_data for details
+    # colors is a list of valid colors, used if color in plot data is an int
+    if not plot_data:
+        return None, (None, None)
+
+    df = pd.DataFrame([parse_plot_data(data, df_plot) for data in plot_data])
+
+    n = df['axis_num'].max() + 1
+    fig, axes_left = plt.subplots(n, 1, sharex='all', **kwargs)
+    if n == 1:
+        axes_left = [axes_left]
+    axes_right = [ax.twinx() if (~ df.loc[df['axis_num'] == i, 'axis_left']).any() else None
+                  for i, ax in enumerate(axes_left)]
+
+    for _, row in df.iterrows():
+        ax = axes_left[row['axis_num']] if row['axis_left'] else axes_right[row['axis_num']]
+        s = row['series']
+        c = row['color'] if not isinstance(row['color'], int) else colors[row['color'] % len(colors)]
+        if s is not None:
+            if step is None:
+                time_res = s.index[1] - s.index[0]
+                use_step = time_res >= dt.timedelta(minutes=15)
+            else:
+                use_step = step
+            if use_step:
+                ax.step(s.index, s * row['mult'], color=c, ls=row['ls'], label=row['label'], where='post')
+            else:
+                ax.plot(s.index, s * row['mult'], color=c, ls=row['ls'], label=row['label'])
+
+    for ax in axes_left:
+        ax.legend(loc='upper left')
+    for ax in axes_right:
+        if ax is not None:
+            ax.legend(loc='upper right')
+    axes_left[-1].xaxis.set_major_formatter(formatter)
+
+    if len(axes_left) == 1:
+        axes_left = axes_left[0]
+        axes_right = axes_right[0]
+
+    return fig, (axes_left, axes_right)
+
+
+def multi_comparison_plot(dfs_to_plot, plot_info=None, add_diff=None, update_ls=True, **kwargs):
+    # creates a plot to compare multiple time series results across multiple data sets
+    # dfs_to_plot is a dict of {df_label: df}, where df is a time series DataFrame
+    # plot_info is list of column names, tuples, or dicts, see parse_plot_data for details
+    #  - if None, defaults to all column names in first df from dfs_to_plot
+    # add_diff adds a line showing the difference between the first and second df in dfs_to_plot
+    # update_ls modifies the line style for each df. If False, will plot each comparison on separate axes
+    # step=True plots the data as a step function. Defaults to False
+    # Additional kwargs sent to plt.subplots
+    if isinstance(dfs_to_plot, pd.DataFrame):
+        dfs_to_plot = {'': dfs_to_plot}
+    df_first = list(dfs_to_plot.values())[0]
+    if plot_info is None:
+        plot_info = df_first.columns.to_list()
+
     if add_diff is None:
         add_diff = []
 
-    # remove data that doesn't exist in all of the dfs
-    plot_info = [dat for dat in plot_info
-                 if any([dat[0] in df and df[dat[0]].sum() != 0 for df in dfs_to_plot.values()])]
-    if not plot_info:
-        return None, (None, None)
+    plot_data = []
+    for i, info in enumerate(plot_info):
+        for j, (name, df) in enumerate(dfs_to_plot.items()):
+            data = parse_plot_data(info, df)
+            if not data:
+                continue
 
-    fig, ax1 = plt.subplots(**kwargs)
-    if any([dat[3] for dat in plot_info]):
-        ax2 = ax1.twinx()
-    else:
-        ax2 = None
+            # update label
+            if name:
+                data['label'] += f', {name}'
 
-    for (col_name, col_label, color, is_twin, mult) in plot_info:
-        ax = ax2 if is_twin else ax1
-        for i, (df_label, df) in enumerate(dfs_to_plot.items()):
-            if col_name in df:
-                label = col_label + ', ' + df_label if df_label else col_label
-                ax.plot(df[col_name] * mult, color=color, ls=ls_list[i], label=label)
-        if col_name in add_diff:
+            # update axis or ls
+            if update_ls:
+                data['ls'] = ls_list[j] if j < len(ls_list) else ls_list[0]
+                # update color so all are the same
+                if data['color'] is None:
+                    data['color'] = i
+            else:
+                data['axis_num'] = i
+
+            plot_data.append(data)
+
+        # Add difference between first 2 dfs
+        data = parse_plot_data(info, df_first)
+        col_name = data.get('label')
+        if col_name is not None and col_name in add_diff:
             dfs_list = list(dfs_to_plot.values())
-            diff = (dfs_list[0][col_name] - dfs_list[1][col_name]) * mult
-            ax.plot(diff, color=color, ls=ls_diff, label=col_label + ', Diff')
+            if len(dfs_list) >= 2 and col_name in dfs_list[0] and col_name in dfs_list[1]:
+                data['series'] = (dfs_list[0][col_name] - dfs_list[1][col_name])
+                data['label'] += ', Diff'
+                if update_ls:
+                    n = len(dfs_to_plot)
+                    data['ls'] = ls_list[n] if n < len(ls_list) else ls_list[0]
+                    # update color so all are the same
+                    if data['color'] is None:
+                        data['color'] = i
+                else:
+                    data['axis_num'] = i
+                plot_data.append(data)
 
-    ax1.legend(loc='upper left')
-    if ax2 is not None:
-        ax2.legend(loc='upper right')
-    ax1.xaxis.set_major_formatter(formatter)
-    return fig, (ax1, ax2)
+    return plot_time_series_detailed(*plot_data, **kwargs)
 
 
 def plot_time_series(df, **kwargs):
     # df is a time series DataFrame
-    return make_comparison_plot({'': df}, **kwargs)
+    return multi_comparison_plot({'': df}, **kwargs)
 
 
-def plot_external(dfs_to_plot, raw_weather=None):
+def plot_external(dfs_to_plot, **kwargs):
     # plot irradiance: DNI, DHI, GHI
     plot_info = [
-        ('DNI (W/m^2)', 'DNI', 'b', False, 1),
-        ('DHI (W/m^2)', 'DHI', 'r', False, 1),
-        ('GHI (W/m^2)', 'GHI', 'g', False, 1),
+        ('DNI (W/m^2)', 'DNI'),
+        ('DHI (W/m^2)', 'DHI'),
+        ('GHI (W/m^2)', 'GHI'),
     ]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info)
-    if ax1 is not None and raw_weather is not None:
-        ax1.plot(raw_weather['directNormalIrradianceWsqm'], 'c', label='DNI, Raw EPW')
-        ax1.plot(raw_weather['diffuseHorizontalRadiationWsqm'], 'm', label='DHI, Raw EPW')
-        ax1.plot(raw_weather['downwardSolarRadiationWsqm'], 'y', label='GHI, Raw EPW')
-        ax1.set_ylabel('Irradiance (W/m$^2$)')
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
+    if ax1 is not None:
+        ax1.set_ylabel(r'Irradiance (W/m$^2$)')
 
     # outdoor temperature, wind speed, humidity, and pressure
     plot_info = [
-        ('Temperature - Outdoor (C)', 'Ambient Temp', 'b', False, 1),
-        ('Ambient Relative Humidity (-)', 'Rel. Humidity', 'm', True, 1),
-        ('Ambient Humidity Ratio (-)', 'Humidity Ratio', 'm', True, 100),
-        ('Wind Speed (m/s)', 'Wind Speed', 'y', True, 1 / 10),
-        ('Ambient Pressure (kPa)', 'Pressure', 'g', True, 1 / 100),
+        ('Temperature - Outdoor (C)', 'Ambient Temp', 'b', True, 0),
+        ('Ambient Relative Humidity (-)', 'Rel. Humidity', 'm', False, 0),
+        ('Ambient Humidity Ratio (-)', 'Humidity Ratio', 'r', False, 0, None, 100),
+        ('Wind Speed (m/s)', 'Wind Speed', 'c', True, 1),
+        ('Ambient Pressure (kPa)', 'Pressure', 'g', False, 1),
     ]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info)
-    if ax1 is not None:
-        if raw_weather is not None:
-            ax1.plot(raw_weather.index, raw_weather['surfaceTemperatureCelsius'], 'b:', label='Ambient Temp, Raw EPW')
-            ax2.plot(raw_weather.index, raw_weather['windSpeed'], 'g:', label='Wind Speed, Raw EPW')
-        ax1.set_ylabel(r'Temperature ($^\circ$C)')
-        ax2.set_ylabel('Rel. Humidity (-), Humidity Ratio (x100), Speed (m/s/10), Pressure (bar)')
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
+    if ax1[0] is not None:
+        ax1[0].set_ylabel(r'Temperature ($^\circ$C)')
+    if ax2[0] is not None:
+        ax2[0].set_ylabel('Rel. Humidity (-), Humidity Ratio (x100)')
+    if ax1[1] is not None:
+        ax1[1].set_ylabel('Speed (m/s)')
+    if ax2[1] is not None:
+        ax2[1].set_ylabel('Pressure (kPa)')
 
     # plot wall and roof irradiance
     # if df is not None and eplus is not None:
@@ -257,38 +359,107 @@ def plot_external(dfs_to_plot, raw_weather=None):
     # plt.plot(df.index, df['Solar Azimuth'], 'b', label='Solar Azimuth')
     # plt.legend()
 
+    return fig
 
-def plot_envelope(dfs_to_plot):
-    # Plot internal temperatures, HVAC delivered, heat gains, window transmittance
+
+def plot_envelope(dfs_to_plot, **kwargs):
+    # Basic envelope plots
+
+    # plot HVAC delivered heat and temperatures
     plot_info = zone_data + [
-        ('Humidity Ratio - Indoor (-)', 'Humidity Ratio', 'b', True, 100),
-        ('Relative Humidity - Indoor (-)', 'Indoor RH', 'c', True, 1),
-        # ('Ambient Relative Humidity (-)', 'Outdoor RH', 'm', True, 1),
+        ('HVAC Heating Delivered (kW)', 'Heating Delivered', 'r', False),
+        ('HVAC Cooling Delivered (kW)', 'Cooling Delivered', 'b', False),
     ]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info)
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, add_diff=['HVAC Heating Delivered (kW)',
+                                                                              'HVAC Cooling Delivered (kW)'], **kwargs)
     if ax1 is not None:
         ax1.set_ylabel(r'Temperature ($^\circ$C)')
+    if ax2 is not None:
+        ax2.set_ylabel('Heat Delivered (kW)')
+
+    # plot all component loads
+    plot_info = [
+        ('Forced Ventilation Heat Gain - Indoor (W)', 'Forced Ventilation', 'lightgreen'),
+        ('Natural Ventilation Heat Gain - Indoor (W)', 'Natural Ventilation', 'darkgreen'),
+        ('Infiltration Heat Gain - Indoor (W)', 'Infiltration', 'm'),
+        ('Internal Heat Gain - Indoor (W)', 'Internal Gains', 'c'),
+        ('HVAC Heating Duct Losses (W)', 'Ducts (Heating)', 'r'),
+        ('HVAC Cooling Duct Losses (W)', 'Ducts (Cooling)', 'b'),
+        # ('HVAC Heating Delivered (kW)', 'Heating Delivered', 'r', False),
+        # ('HVAC Cooling Delivered (kW)', 'Cooling Delivered', 'b', False),
+        # ('Temperature - Indoor (C)', 'Indoor Temp', 'k')
+        # ('Temperature - Outdoor (C)', 'Ambient Temp', 'k', True, 1),
+        # ('Wind Speed (m/s)', 'Wind Speed', 'r', False, 1),
+    ]
+    fig, (ax1, _) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
+    if ax1 is not None:
+        ax1.set_ylabel('Component Load (W)')
+
+    # plot infiltration and ventilation flow rates with ambient temp and wind speed
+    plot_info = [('Forced Ventilation Flow Rate - Indoor (m^3/s)', 'Forced Ventilation', 'b'),
+                 ('Natural Ventilation Flow Rate - Indoor (m^3/s)', 'Natural Ventilation', 'c'),
+                 *[(f'Infiltration Flow Rate - {zone} (m^3/s)', zone + ' Infiltration', color)
+                   for zone, color in zones.items()],
+                 ('Temperature - Outdoor (C)', 'Ambient Temp', 'k', True, 1),
+                 ('Wind Speed (m/s)', 'Wind Speed', 'r', False, 1),
+                 ]
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
+    if ax1 is not None:
+        ax1[0].set_ylabel('Flow Rate (m$^3$/s)')
+        ax1[1].set_ylabel(r'Temperature ($^\circ$C)')
+    if ax2[1] is not None:
+        ax2[1].set_ylabel('Wind Speed (m/s)')
+
+    return fig
+
+def plot_envelope_detailed(dfs_to_plot, **kwargs):
+    # Detailed envelope plots
+
+    # Plot internal temperatures, and humidity
+    plot_info = zone_data + [
+        ('Humidity Ratio - Indoor (-)', 'Humidity Ratio', 'b', False, 0, None, 100),
+        ('Relative Humidity - Indoor (-)', 'Indoor RH', 'c', False),
+        # ('Ambient Relative Humidity (-)', 'Outdoor RH', 'm', True, 1),
+    ]
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
+    if ax1 is not None:
+        ax1.set_ylabel(r'Temperature ($^\circ$C)')
+    if ax2 is not None:
         ax2.set_ylabel('Relative Humidity (-) and Humidity Ratio (kg/kg x100)')
 
-    # plot living space heat injections from boundaries and infiltration
-    df = dfs_to_plot.get('OCHRE, exact', dfs_to_plot['OCHRE'])
-    heats = [col for col in df.columns if 'Convection from' in col] + ['Indoor Infiltration Heat Gain (W)']
-    if 'H_LIV' in df:
-        df['Other Injected Heat Gains (W)'] = df['H_LIV'] - (
-                df['Indoor Infiltration Heat Gain (W)'] +
-                df['HVAC Heating Delivered (kW)'] * 1000 -
-                df['HVAC Cooling Delivered (kW)'] * 1000
-        )
-        heats.append('Other Injected Heat Gains (W)')
-    fig, ax3 = plt.subplots()
-    df.loc[:, heats].plot(ax=ax3, legend=True)
-    ax3.set_ylabel('Power (W)')
+    # plot living space heat injections from boundaries, infiltration, occupants, and HVAC
+    df = dfs_to_plot.get('OCHRE, exact', list(dfs_to_plot.values())[0])
+    for zone in zones.keys():
+        convection_heat_cols = [col for col in df.columns if ('Convection from' in col and f'to {zone}' in col)]
+        plot_info = [(col,) for col in convection_heat_cols]
+        # (series, label, color, axis_left, axis_num, ls, mult)
+        if convection_heat_cols:
+            plot_info.append((df.loc[:, convection_heat_cols].sum(axis=1), f'Net Convection Heat Gain - {zone} (W)'))
+        if zone == 'Indoor' and ('HVAC Heating Delivered (kW)' in df.columns or
+                                 'HVAC Cooling Delivered (kW)' in df.columns):
+            df[f'HVAC Heat Gain - {zone} (W)'] = (df.get('HVAC Heating Delivered (kW)', 0) -
+                                                  df.get('HVAC Cooling Delivered (kW)', 0)) * 1000
+        injection_heat_cols = [col for col in [
+            f'Occupancy Heat Gain - {zone} (W)',
+            f'Infiltration Heat Gain - {zone} (W)',
+            f'Radiation Heat Gain - {zone} (W)',
+            f'HVAC Heat Gain - {zone} (W)',
+        ] if col in df.columns]
+        plot_info.extend([(col,) for col in injection_heat_cols])
+        if f'Net Sensible Heat Gain - {zone} (W)' in df.columns:
+            net = df[f'Net Sensible Heat Gain - {zone} (W)']
+            other = net - df.loc[:, injection_heat_cols].sum(axis=1)
+            plot_info.append((other, f'Other Injected Heat Gain - {zone} (W)'))
+            plot_info.append((net, f'Net Injected Heat Gain - {zone} (W)'))
+        if plot_info:
+            fig, (ax1, ax2) = plot_time_series_detailed(*plot_info, df_plot=df)
+            ax1.set_ylabel(f'{zone} Heat Gain (W)')
 
     # plot solar transmitted through windows (in W)
     plot_info = [
-        ('solar_WD', 'Window Transmitted Solar', 'g', False, 1),
+        ('Window Transmitted Solar Gain (W)', 'Window Transmitted Solar', 'g'),
     ]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info)
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
     if ax1 is not None:
         ax1.set_ylabel('Solar Power (W)')
 
@@ -299,126 +470,132 @@ def plot_envelope(dfs_to_plot):
         df.loc[:, temps].plot(ax=ax5, legend=True)
         ax5.set_ylabel(r'Temperature ($^\circ$C)')
 
-    # plot infiltration and ventilation flow rates
-    plot_info = [('Indoor Ventilation Flow Rate (m^3/s)', 'Ventilation', 'b', False, 1)] + [
-        (zone + ' Infiltration Flow Rate (m^3/s)', zone + ' Infiltration', color, False, 1)
-        for zone, color in zones.items()
-    ]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info)
-    if ax1 is not None:
-        ax1.set_ylabel('Flow Rate (m$^3$/s')
+    return fig
 
 
-def plot_hvac(dfs_to_plot):
-    # plot HVAC delivered heat and temperatures
-    plot_info = zone_data + [
-        ('HVAC Heating Delivered (kW)', 'Heating Delivered', 'r', True, 1),
-        ('HVAC Cooling Delivered (kW)', 'Cooling Delivered', 'b', True, 1),
-    ]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info, add_diff=['HVAC Heating Delivered (kW)',
-                                                                             'HVAC Cooling Delivered (kW)'])
-    if ax1 is not None:
-        ax1.set_ylabel(r'Temperature ($^\circ$C)')
-    if ax2 is not None:
-        ax2.set_ylabel('Power (kW)')
-
+def plot_hvac(dfs_to_plot, **kwargs):
     # plot HVAC COP and SHR, Humidity Ratio, Temperatures
-    plot_info = [('HVAC Heating COP (-)', 'Heating COP', 'r', False, 1),
-                 ('HVAC Cooling COP (-)', 'Cooling COP', 'b', False, 1),
-                 ('HVAC Cooling SHR (-)', 'Cooling SHR', 'g', False, 1),
-                 ('HVAC Heating Speed (-)', 'Heating Speed', 'm', False, 1),
-                 ('HVAC Cooling Speed (-)', 'Cooling Speed', 'c', False, 1),
-                 # ('HVAC Heating EIR Ratio (-)', 'Heating EIR Ratio', 'm', False, 1),
-                 # ('HVAC Heating Capacity Ratio (-)', 'Heating Capacity Ratio', 'orange', False, 1),
-                 # ('HVAC Cooling EIR Ratio (-)', 'Cooling EIR Ratio', 'c', False, 1),
-                 # ('HVAC Cooling Capacity Ratio (-)', 'Cooling Capacity Ratio', 'purple', False, 1),
-                 ('Relative Humidity - Indoor (-)', 'Relative Humidity', 'k', True, 1),
-                 ('Humidity Ratio - Indoor (-)', 'Humidity Ratio', 'grey', True, 100),
+    plot_info = [('HVAC Heating COP (-)', 'Heating COP', 'r', True),
+                 ('HVAC Cooling COP (-)', 'Cooling COP', 'b', True),
+                 ('HVAC Cooling SHR (-)', 'Cooling SHR', 'g', True),
+                 ('HVAC Heating Speed (-)', 'Heating Speed', 'm', True),
+                 ('HVAC Cooling Speed (-)', 'Cooling Speed', 'c', True),
+                 # ('HVAC Heating EIR Ratio (-)', 'Heating EIR Ratio', 'm', False),
+                 # ('HVAC Heating Capacity Ratio (-)', 'Heating Capacity Ratio', 'orange', False),
+                 # ('HVAC Cooling EIR Ratio (-)', 'Cooling EIR Ratio', 'c', False),
+                 # ('HVAC Cooling Capacity Ratio (-)', 'Cooling Capacity Ratio', 'purple', False),
+                 ('Relative Humidity - Indoor (-)', 'Relative Humidity', 'k', False),
+                 ('Humidity Ratio - Indoor (-)', 'Humidity Ratio', 'grey', False, 0, None, 100),
                  ]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info)
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
     if ax1 is not None:
         ax1.set_ylabel('COP or SHR (unitless)')
     if ax2 is not None:
         ax2.set_ylabel('Relative Humidity (-) and Humidity Ratio (kg/kg x100)')
 
     # plot HVAC-specific powers, electric only
-    plot_info = [('HVAC Heating Main Power (kW)', 'Heating Main', 'r', False, 1),
-                 ('HVAC Heating ER Power (kW)', 'Heating ER', 'orange', False, 1),
-                 ('HVAC Heating Fan Power (kW)', 'Heating Fan', 'm', False, 1),
-                 ('HVAC Cooling Main Power (kW)', 'Cooling Main', 'b', False, 1),
-                 ('HVAC Cooling Fan Power (kW)', 'Cooling Fan', 'c', False, 1),
+    plot_info = [('HVAC Heating Main Power (kW)', 'Heating Main', 'r'),
+                 ('HVAC Heating ER Power (kW)', 'Heating ER', 'orange'),
+                 ('HVAC Heating Fan Power (kW)', 'Heating Fan', 'm'),
+                 ('HVAC Cooling Main Power (kW)', 'Cooling Main', 'b'),
+                 ('HVAC Cooling Fan Power (kW)', 'Cooling Fan', 'c'),
                  ]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info)
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
     if ax1 is not None:
         ax1.set_ylabel('Power (kW)')
 
+    return fig
 
-def plot_wh(dfs_to_plot):
+
+def plot_wh(dfs_to_plot, **kwargs):
     # plot water heater delivered heat, power, flow rate if they exist
-    plot_info = [('Hot Water Delivered (kW)', 'Delivered Heat', 'c', False, 1),
-                 ('Hot Water Delivered (L/min)', 'Flow Rate', 'b', False, 1),
-                 ('Water Heating Delivered (kW)', 'WH Heat', 'r', False, 1),
+    plot_info = [('Hot Water Delivered (kW)', 'Delivered Heat', 'c'),
+                 ('Water Heating Delivered (kW)', 'WH Heat', 'r'),
+                 ('Hot Water Delivered (L/min)', 'Flow Rate', 'b', False),
                  ('Hot Water Outlet Temperature (C)', 'Outlet Temp', 'g', True, 1),
                  ]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info)
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
     if ax1 is not None:
-        ax1.set_ylabel('Hot Water Delivered (kW and L/min)')
-        ax2.set_ylabel('Temperature ($^\circ$C)')
+        ax1[0].set_ylabel('Hot Water Delivered (kW)')
+        ax2[0].set_ylabel('Hot Water Delivered (L/min)')
+        ax1[1].set_ylabel('Temperature ($^\circ$C)')
 
     # plot water heater power and COP
-    plot_info = [('Water Heating Electric Power (kW)', 'Electric Power', 'm', False, 1),
-                 ('Water Heating Gas Power (therms/hour)', 'Gas Power', 'purple', False, 1),
-                 ('Water Heating COP (-)', 'COP', 'g', True, 1),
+    plot_info = [('Water Heating Electric Power (kW)', 'Electric Power', 'm'),
+                 ('Water Heating Gas Power (therms/hour)', 'Gas Power', 'purple'),
+                 ('Water Heating COP (-)', 'COP', 'g', False),
                  ]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info)
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
     if ax1 is not None:
-        ax1.set_ylabel('Power (kW or therms/hour) and Flow Rate (L/min)')
+        ax1.set_ylabel('Power (kW or therms/hour)')
     if ax2 is not None:
         ax2.set_ylabel('COP (-)')
 
     # plot water heater model temperatures
-    df = dfs_to_plot.get('OCHRE, exact', dfs_to_plot['OCHRE'])
+    df = dfs_to_plot.get('OCHRE, exact', list(dfs_to_plot.values())[0])
     wh_temps = [col for col in df.columns if col in ['T_WH' + str(i) for i in range(1, 13)]]
     if wh_temps:
         fig, ax = plt.subplots()
         df.loc[:, wh_temps].plot(ax=ax, legend=True)
         ax.set_ylabel(r'Temperature ($^\circ$C)')
 
+    return fig
 
-def plot_powers(dfs_to_plot):
+
+def plot_end_use_powers(dfs_to_plot, **kwargs):
     # plot total and individual powers
-    power_colors = [('Total', 'k'), ('HVAC Heating', 'r'), ('HVAC Cooling', 'b'), ('Water Heating', 'm'),
-                    ('EV', 'g'), ('PV', 'y'), ('Battery', 'c'), ('Other', 'purple')]
-    plot_info = [(end_use + ' Electric Power (kW)', end_use + ' Power', color, False, 1) for end_use, color in
-                 power_colors]
-    plot_info += [(end_use + ' Gas Power (therms/hour)', end_use + ' Power', color, True, 1)
-                  for end_use, color in power_colors]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info)
+    power_colors = all_power_colors.copy()
+    power_colors['Total'] = 'k'
+    plot_info = [(end_use + ' Electric Power (kW)', end_use, color) for end_use, color in
+                 power_colors.items()]
+    plot_info += [(end_use + ' Gas Power (therms/hour)', end_use, color, True, 1)
+                  for end_use, color in power_colors.items()]
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
     if ax1 is not None:
-        ax1.set_ylabel('Electric Power (kW)')
-        if ax2 is not None:
-            ax2.set_ylabel('Gas Power (therms/hour)')
+        ax1[0].set_ylabel('Electric Power (kW)')
+        if ax1[1] is not None:
+            ax1[1].set_ylabel('Gas Power (therms/hour)')
+
+    return fig
 
 
-def plot_monthly_powers(dfs_to_plot):
+def plot_all_powers(dfs_to_plot, **kwargs):
+    # plot individual equipment powers
+    for fuel_text, axis in zip([' Electric Power (kW)', ' Gas Power (therms/hour)'], [True, False]):
+        cols = list({col for df in dfs_to_plot.values() for col in df.columns if fuel_text in col})
+        labels = {col.replace(fuel_text, ''): col for col in cols}
+        labels.pop('Total', None)
+        labels.pop('Other', None)
+        plot_info = [(col, label, None, axis) for label, col in labels.items()]
+        fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
+        if ax1 is not None:
+            ax1.set_ylabel(fuel_text[1:])
+
+
+def plot_monthly_powers(dfs_to_plot, add_gas=False, **kwargs):
     # aggregate power columns to energy by month
     def agg_monthly(df):
         hours = (df.index[1] - df.index[0]).total_seconds() / 3600
-        df = df.loc[:, [col for col in df.columns if ' Electric Power (kW)' in col]] * hours
-        df.columns = [col.replace(' Electric Power (kW)', ' Electric Energy (kWh)') for col in df.columns]
-        df = df.resample('MS').sum()
+        keep_cols = [col for col in df.columns if ' Electric Power (kW)' in col]
+        if add_gas:
+            keep_cols += [col for col in df.columns if ' Gas Power (therms/hour)' in col]
+        df = df.loc[:, keep_cols]
+        df = df.resample('MS').sum() * hours
         return df
 
     dfs_to_plot = {key: agg_monthly(val) for key, val in dfs_to_plot.items()}
 
-    power_colors = [('Total', 'k'), ('HVAC Heating', 'r'), ('HVAC Cooling', 'b'), ('Water Heating', 'm'),
-                    ('EV', 'g'), ('PV', 'y'), ('Battery', 'c'), ('Other', 'purple')]
-    plot_info = [(end_use + ' Electric Energy (kWh)', end_use, color, False, 1) for end_use, color in
-                 power_colors]
-    # plot_info += [(end_use + ' Gas Power (therms/hour)', end_use + ' Power', color, True, 1)
-    #               for end_use, color in power_colors]
-    fig, (ax1, ax2) = make_comparison_plot(dfs_to_plot, plot_info)
+    power_colors = all_power_colors.copy()
+    power_colors['Total'] = 'k'
+    plot_info = [(end_use + ' Electric Power (kW)', end_use, color)
+                 for end_use, color in power_colors.items()]
+    if add_gas:
+        plot_info += [(end_use + ' Gas Power (therms/hour)', end_use, color, False)
+                      for end_use, color in power_colors.items()]
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, step=True, **kwargs)
     if ax1 is not None:
         ax1.set_ylabel('Monthly Energy Usage (kWh)')
-        # if ax2 is not None:
-        #     ax2.set_ylabel('Gas Power (therms/hour)')
+    if ax2 is not None:
+        ax2.set_ylabel('Gas Energy Usage (therms)')
+
+    return fig

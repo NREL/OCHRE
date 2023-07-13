@@ -4,7 +4,7 @@ import datetime as dt
 from PySAM.PySSC import PySSC
 
 from ochre.Equipment import ScheduledLoad
-from ochre.FileIO import default_sam_weather_file
+from ochre.utils.schedule import default_sam_weather_file
 
 
 class PV(ScheduledLoad):
@@ -18,127 +18,138 @@ class PV(ScheduledLoad):
     """
     name = 'PV'
     end_use = 'PV'
+    zone_name = None
 
     def __init__(self, use_sam=None, capacity=None, tilt=None, orientation=None, include_inverter=True, **kwargs):
         if use_sam is None:
             use_sam = 'equipment_schedule_file' not in kwargs
+
         if use_sam:
             # Create PV schedule using SAM - requires capacity, tilt, orientation, and inverter efficiency
             if capacity is None:
-                raise Exception('Must specify {} capacity when using SAM'.format(self.name))
+                raise Exception('Must specify {} capacity (in kW) when using SAM'.format(self.name))
             if tilt is None:
                 tilt = kwargs['roof pitch']
             if orientation is None:
-                orientation = (kwargs.get('building orientation', 180) + 180) % 360  # BeOpt: 180=South; OCHRE: 0=South
+                orientation = kwargs.get('building orientation', 0) % 360
                 if 90 < orientation <= 270:
-                    # use back roof when closer to due south (orientation always within 90 deg of south
+                    # use back roof when closer to due south (orientation always within 90 deg of south)
                     orientation = (orientation + 180) % 360
 
             inverter_efficiency = kwargs.get('inverter_efficiency') if include_inverter else 100  # in %
             schedule = run_sam(tilt=tilt, orientation=orientation, inv_efficiency=inverter_efficiency, **kwargs)
 
-            # Note: defining schedule as positive=consuming power, units are kW
+            # Note: defining schedule as positive=consuming power
             schedule = schedule['Power_AC'] if include_inverter else schedule['Power_DC']
-            schedule *= capacity
-        else:
-            schedule = None
+            schedule *= capacity  # normalize with capacity, in kW
+            schedule = schedule.to_frame(self.name + ' (kW)')
+            kwargs['schedule'] = schedule
 
-        super().__init__(zone=None, equipment_schedule=schedule, **kwargs)
+        super().__init__(**kwargs)
 
         # check that schedule is negative
-        if abs(self.schedule.min()) < abs(self.schedule.max()):
+        if abs(self.schedule[self.electric_name].min()) < abs(self.schedule[self.electric_name].max()):
             self.warn('Schedule should be negative (i.e. generating power).',
                       'Reversing schedule so that PV power is negative/generating')
             self.schedule = -self.schedule
             self.reset_time()
 
-        self.capacity = capacity if capacity is not None else -self.schedule.min()  # in kW, DC
-        self.p_set_point = 0  # positive = consuming power
-        self.q_set_point = 0  # positive = consuming power
+        self.capacity = capacity if capacity is not None else -self.schedule[self.electric_name].min()  # in kW, DC
+        self.q_set_point = 0  # in kW, positive = consuming power
 
         # Inverter constraints, if included; if not, assume no limits and 100% efficiency
         self.include_inverter = include_inverter
         self.inverter_priority = kwargs.get('inverter_priority', 'Var')
         self.inverter_capacity = kwargs.get('inverter_capacity', self.capacity)  # in kVA, AC
         self.inverter_min_pf = kwargs.get('inverter_min_pf', 0.8)
-        self.inverter_min_pf_factor = ((1 / self.inverter_min_pf ** 2) - 1) ** 0.5
+        if self.inverter_min_pf is not None:
+            self.inverter_min_pf_factor = ((1 / self.inverter_min_pf ** 2) - 1) ** 0.5
+        else:
+            self.inverter_min_pf_factor = None
 
-    def update_external_control(self, schedule, ext_control_args):
+    def update_external_control(self, control_signal):
         # External PV control options:
         # - P/Q Setpoint: set P and Q directly from external controller (assumes positive = consuming)
         # - P Curtailment: set P by specifying curtailment in kW or %
         # - Power Factor: set Q based on P setpoint (internal or external) and given power factor
         # - Priority: set inverter_priority to 'Watt' or 'Var'
 
-        self.update_internal_control(schedule)
+        self.update_internal_control()
 
         # Update P from external control
-        if 'P Setpoint' in ext_control_args:
-            p_set = ext_control_args['P Setpoint']
+        if 'P Setpoint' in control_signal:
+            p_set = control_signal['P Setpoint']
             if p_set > 0:
                 self.warn('Setpoint should be negative (i.e. generating power). Reversing sign to be negative.')
                 p_set *= -1
-            if p_set < self.p_set_point - 0.1:
-                # Print warning if setpoint is significantly larger than max power
-                self.warn('Setpoint ({}) is larger than max power ({})'.format(p_set, self.p_set_point))
+            # if p_set < self.p_set_point - 0.1:
+            #     # Print warning if setpoint is significantly larger than max power
+            #     self.warn('Setpoint ({}) is larger than max power ({})'.format(p_set, self.p_set_point))
             self.p_set_point = max(self.p_set_point, p_set)
-        elif 'P Curtailment (kW)' in ext_control_args:
-            p_curt = np.clip(ext_control_args['P Curtailment (kW)'], 0, -self.p_set_point)
+        elif 'P Curtailment (kW)' in control_signal:
+            p_curt = min(max(control_signal['P Curtailment (kW)'], 0), -self.p_set_point)
             self.p_set_point += p_curt
-        elif 'P Curtailment (%)' in ext_control_args:
-            pct_curt = np.clip(ext_control_args['P Curtailment (%)'], 0, 100)
+        elif 'P Curtailment (%)' in control_signal:
+            pct_curt = min(max(control_signal['P Curtailment (%)'], 0), 100)
             self.p_set_point *= 1 - pct_curt / 100
 
         # Update Q from external control
-        if 'Q Setpoint' in ext_control_args:
-            self.q_set_point = ext_control_args['Q Setpoint']
-        elif 'Power Factor' in ext_control_args:
+        if 'Q Setpoint' in control_signal:
+            self.q_set_point = control_signal['Q Setpoint']
+        elif 'Power Factor' in control_signal:
             # Note: power factor should be negative for generating P/consuming Q
-            pf = ext_control_args['Power Factor']
+            pf = control_signal['Power Factor']
             self.q_set_point = ((1 / pf ** 2) - 1) ** 0.5 * self.p_set_point * (pf / abs(pf))
 
-        if 'Priority' in ext_control_args:
-            priority = ext_control_args['Priority']
+        if 'Priority' in control_signal:
+            priority = control_signal['Priority']
             if priority in ['Watt', 'Var', 'CPF']:
                 self.inverter_priority = priority
             else:
-                self.warn('Invalid priority type ({})')
+                self.warn(f'Invalid priority type: {priority}')
 
         return 'On' if self.p_set_point != 0 else 'Off'
 
-    def update_internal_control(self, schedule):
+    def update_internal_control(self):
         # Set to maximum P, Q=0
-        super().update_internal_control(schedule)
-        self.p_set_point = min(self.power, 0)
+        super().update_internal_control()
+        self.p_set_point = min(self.p_set_point, 0)
         self.q_set_point = 0
-        return 'On' if self.p_set_point != 0 else 'Off'
+        return 'On' if self.p_set_point < 0 else 'Off'
 
-    def calculate_power_and_heat(self, schedule):
-        # Note: no heat gains
+    def calculate_power_and_heat(self):
+        super().calculate_power_and_heat()
 
         # determine power from set point
-        p = self.p_set_point
+        p = self.electric_kw
         q = self.q_set_point
-        if self.include_inverter:
+        s = (p ** 2 + q ** 2) ** 0.5
+        if self.include_inverter and s > self.inverter_capacity:
             if self.inverter_priority == 'Watt':
                 p = -min(-p, self.inverter_capacity)  # Note: P <= 0
                 max_q_capacity = (self.inverter_capacity ** 2 - p ** 2) ** 0.5
-                max_q_pf = self.inverter_min_pf_factor * -p
-                q = min(abs(q), max_q_capacity, max_q_pf)
+                if self.inverter_min_pf is not None:
+                    max_q_pf = self.inverter_min_pf_factor * -p
+                    q = min(abs(q), max_q_capacity, max_q_pf)
+                else:
+                    q = min(abs(q), max_q_capacity)
                 q = q if self.q_set_point >= 0 else -q
             elif self.inverter_priority == 'Var':
-                max_q_capacity = self.inverter_min_pf_factor * self.inverter_min_pf * self.inverter_capacity
-                max_q_pf = self.inverter_min_pf_factor * -p
-                q = min(abs(q), max_q_capacity, max_q_pf)
+                if self.inverter_min_pf is not None:
+                    max_q_capacity = self.inverter_min_pf_factor * self.inverter_min_pf * self.inverter_capacity
+                    max_q_pf = self.inverter_min_pf_factor * -p
+                    q = min(abs(q), max_q_capacity, max_q_pf)
+                else:
+                    max_q_capacity = self.inverter_capacity
+                    q = min(abs(q), max_q_capacity)
                 q = q if self.q_set_point >= 0 else -q
                 max_p_capacity = (self.inverter_capacity ** 2 - q ** 2) ** 0.5
                 p = -min(-p, max_p_capacity)
             elif self.inverter_priority == 'CPF':
-                kva_ratio = (self.p_set_point ** 2 + self.q_set_point ** 2) ** 0.5 / self.inverter_capacity
-                if kva_ratio > 1:
-                    # Reduce P and Q by the same ratio
-                    p /= kva_ratio
-                    q /= kva_ratio
+                # Reduce P and Q by the same ratio
+                kva_ratio = s / self.inverter_capacity
+                p /= kva_ratio
+                q /= kva_ratio
             else:
                 raise Exception('Unknown {} inverter priority mode: {}'.format(self.name, self.inverter_priority))
 
@@ -146,20 +157,17 @@ class PV(ScheduledLoad):
         self.electric_kw = p
         self.reactive_kvar = q
 
-    def generate_results(self, verbosity, to_ext=False):
-        results = super().generate_results(verbosity, to_ext)
-        if to_ext:
-            return {self.name: {'Mode': self.mode}}
-        else:
-            if verbosity >= 6:
-                results.update({self.name + ' P Setpoint (kW)': self.p_set_point,
-                                self.name + ' Q Setpoint (kW)': self.q_set_point})
+    def generate_results(self):
+        results = super().generate_results()
+        if self.verbosity >= 6:
+            results[f'{self.end_use} P Setpoint (kW)'] = self.p_set_point
+            results[f'{self.end_use} Q Setpoint (kW)'] = self.q_set_point
         return results
 
 
 # FUTURE: try pvlib package directly, might be faster and easier to implement than SAM
-def run_sam(tilt=0, orientation=180, capacity=5, strings=2, modules=20, inv_efficiency=None,
-            per_kw=True, sam_weather_file=None, start_time=None, end_time=None, **kwargs):
+def run_sam(tilt=0, orientation=0, capacity=5, strings=2, modules=20, inv_efficiency=None,
+            per_kw=True, sam_weather_file=None, start_time=None, duration=None, **kwargs):
     """
     Runs the System Advisory Model (SAM) PV model with standard parameters. Adjustable parameters include weather data;
     panel capacity, tilt, and orientation; number of panels and strings; and inverter efficiency. This code was
@@ -175,7 +183,7 @@ def run_sam(tilt=0, orientation=180, capacity=5, strings=2, modules=20, inv_effi
     the resulting PV schedule by the expected capacity.
 
     :param tilt: PV array tilt angle, in degrees (0 = horizontal)
-    :param orientation: PV array orientation angle, in degrees (180 = south)
+    :param orientation: PV array orientation angle, in degrees (0=south, west-of-south=positive)
     :param capacity: PV system capacity, in kW
     :param strings: Number of strings
     :param modules: number of modules
@@ -183,7 +191,7 @@ def run_sam(tilt=0, orientation=180, capacity=5, strings=2, modules=20, inv_effi
     :param per_kw: boolean, if True (default), return the PV schedule as a fraction of the PV capacity.
     :param sam_weather_file: file name of the weather file, must be in a SAM readable format.
     :param start_time: starting time of the simulation
-    :param end_time: ending time of the simulation
+    :param duration: duration of the simulation
     :param kwargs: not used
     :return: a pandas DataFrame of the PV schedule with 3 columns:
      - Irradiance: solar irradiance on the PV array, in W/m^2
@@ -191,7 +199,7 @@ def run_sam(tilt=0, orientation=180, capacity=5, strings=2, modules=20, inv_effi
      - Power_DC: DC electrical power, in kW (negative for generating)
     """
     if sam_weather_file is None:
-        sam_weather_file = default_sam_weather_file.format(kwargs['house_name'])
+        sam_weather_file = default_sam_weather_file.format(kwargs['main_sim_name'])
 
     # Initialize SAM
     ssc = PySSC()
@@ -211,7 +219,7 @@ def run_sam(tilt=0, orientation=180, capacity=5, strings=2, modules=20, inv_effi
     ssc.data_set_number(data, b'subarray1_nstrings', strings)
     ssc.data_set_number(data, b'subarray1_modules_per_string', modules // strings)
     ssc.data_set_number(data, b'subarray1_tilt', tilt)
-    ssc.data_set_number(data, b'subarray1_azimuth', orientation % 360)
+    ssc.data_set_number(data, b'subarray1_azimuth', (orientation + 180) % 360)
     ssc.data_set_number(data, b'subarray1_track_mode', 0)
     ssc.data_set_number(data, b'subarray1_shade_mode', 0)
     subarray1_soiling = [5] * 12
@@ -321,15 +329,16 @@ def run_sam(tilt=0, orientation=180, capacity=5, strings=2, modules=20, inv_effi
 
     # Note: Irradiance is positive, power is negative (for generation)
     df = pd.DataFrame({'Irradiance': irr,
-                       'Power_AC': -power_ac,
-                       'Power_DC': -power_dc}, index=times)
+                       'Power_AC': -power_ac,  # in kW or per unit
+                       'Power_DC': -power_dc,  # in kW or per unit
+                       }, index=times)
 
     # resample to times in range
     if start_time is not None:
         df = df.loc[df.index >= start_time]
-    if end_time is not None:
+    if duration is not None:
         if kwargs.get('initialization_time') is not None:
-            # update end_time to include duration of initialization
-            end_time = max(end_time, start_time + kwargs['initialization_time'])
-        df = df.loc[df.index < end_time]
+            # update duration to include duration of initialization
+            duration = max(duration, kwargs['initialization_time'])
+        df = df.loc[df.index < start_time + duration]
     return df
