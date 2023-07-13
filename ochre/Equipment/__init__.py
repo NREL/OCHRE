@@ -1,51 +1,88 @@
-from .Equipment import Equipment, EquipmentException
-from .ScheduledLoad import ScheduledLoad
+from .Equipment import Equipment
+from .ScheduledLoad import ScheduledLoad, LightingLoad
 from .EventBasedLoad import EventBasedLoad, DailyLoad
-from .HVAC import *
-from .WaterHeater import *
+from .HVAC import HVAC, Heater, ElectricFurnace, ElectricBaseboard, ElectricBoiler, GasFurnace, GasBoiler,\
+    HeatPumpHeater, ASHPHeater, MinisplitAHSPHeater, Cooler, AirConditioner, ASHPCooler, RoomAC, MinisplitAHSPCooler
+from .WaterHeater import WaterHeater, ElectricResistanceWaterHeater, HeatPumpWaterHeater, GasWaterHeater, \
+    TanklessWaterHeater, GasTanklessWaterHeater
 from .Generator import Generator, GasGenerator, GasFuelCell
 from .PV import PV
 from .Battery import Battery
 from .EV import ElectricVehicle, ScheduledEV
-
 # from .WetAppliance import WetAppliance
-ALL_EQUIPMENT = [
-    # HVAC Heating
-    Heater, ElectricFurnace, ElectricBaseboard, ElectricBoiler, GasFurnace, GasBoiler, HeatPumpHeater, ASHPHeater,
-    MinisplitAHSPHeater,
-
-    # HVAC Cooling
-    Cooler, AirConditioner, ASHPCooler, RoomAC, MinisplitAHSPCooler,
-
-    # Water Heating
-    ElectricResistanceWaterHeater, HeatPumpWaterHeater, GasWaterHeater,
-    TanklessWaterHeater, GasTanklessWaterHeater,
-
-    # EV
-    ElectricVehicle,
-    ScheduledEV,
-
-    # DERs
-    PV, Battery, Generator, GasGenerator, GasFuelCell
-]
-
-scheduled_load_names = ['Lighting', 'Exterior Lighting', 'Garage Lighting', 'Basement Lighting',
-                        'Range', 'Dishwasher', 'Refrigerator', 'Clothes Washer', 'Clothes Dryer',
-                        'MELs', 'Basement MELs', 'Ventilation Fan']
 
 EQUIPMENT_BY_NAME = {
+    # 'HVAC Heating'
+    **{equipment.name: equipment for equipment in [
+        Heater, 
+        ElectricFurnace, 
+        ElectricBaseboard, 
+        ElectricBoiler, 
+        GasFurnace, 
+        GasBoiler, 
+        HeatPumpHeater, 
+        ASHPHeater,
+        MinisplitAHSPHeater,
+    ]},
+
+    # 'HVAC Cooling'
+    **{equipment.name: equipment for equipment in [
+        Cooler, 
+        AirConditioner,
+          ASHPCooler, 
+          RoomAC, 
+          MinisplitAHSPCooler
+    ]},
+
+    # 'Water Heating'
+    **{equipment.name: equipment for equipment in [
+        ElectricResistanceWaterHeater, 
+        HeatPumpWaterHeater, 
+        GasWaterHeater, 
+        TanklessWaterHeater, 
+        GasTanklessWaterHeater,
+    ]},
+
+    # 'EV'
+    ElectricVehicle.name: ElectricVehicle,
     'Electric Vehicle': ElectricVehicle,
-    **{equipment.name: equipment for equipment in ALL_EQUIPMENT},
-    **{name: ScheduledLoad for name in scheduled_load_names}
-    # Wet appliances
-    # 'Clothes Washer Ctrl': WetAppliance,
-    # 'Clothes Dryer Ctrl': WetAppliance,
-    # 'Dishwasher Ctrl': WetAppliance,
+    ScheduledEV.name: ScheduledEV,
+
+    # 'PV'
+    PV.name: PV,
+
+    # 'Battery'
+    Battery.name: Battery,
+    
+    # 'Gas Generator'
+    GasGenerator.name: GasGenerator,
+    GasFuelCell.name: GasFuelCell,
+    
+    # 'Lighting'
+    'Indoor Lighting': LightingLoad,
+    'Exterior Lighting': LightingLoad,
+    'Basement Lighting': LightingLoad,
+    'Garage Lighting': LightingLoad,
+
+    # 'Other'
+    'Clothes Washer': ScheduledLoad,
+    'Clothes Dryer': ScheduledLoad,
+    'Dishwasher': ScheduledLoad,
+    'Refrigerator': ScheduledLoad,
+    'Cooking Range': ScheduledLoad,
+    'MELs': ScheduledLoad,
+    # 'Basement MELs',  # not modeled
+    'TV': ScheduledLoad,
+    'Well Pump': ScheduledLoad,
+    'Pool Pump': ScheduledLoad,
+    'Pool Heater': ScheduledLoad,
+    'Hot Tub Pump': ScheduledLoad,
+    'Hot Tub Heater': ScheduledLoad,
+    'Gas Grill': ScheduledLoad,
+    'Gas Fireplace': ScheduledLoad,
+    'Gas Lighting': ScheduledLoad,
+    'Ceiling Fan': ScheduledLoad,
+    'Ventilation Fan': ScheduledLoad,
 }
 
-ALL_END_USES = ['HVAC Heating', 'HVAC Cooling', 'Water Heating', 'EV', 'PV', 'Gas Generator', 'Battery', 'Other']
-assert all([e.end_use in ALL_END_USES for e in ALL_EQUIPMENT])
-
-EQUIPMENT_BY_END_USE = {
-    end_use: [name for name, e in EQUIPMENT_BY_NAME.items() if e.end_use == end_use] for end_use in ALL_END_USES
-}
+ALL_END_USES = {cls.end_use for cls in EQUIPMENT_BY_NAME.values()}
