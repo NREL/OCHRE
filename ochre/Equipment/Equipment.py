@@ -1,31 +1,27 @@
-import os
 import pandas as pd
-import math
 import datetime as dt
+import numpy as np
 
-from ochre.FileIO import default_input_path, default_output_path
-
-
-class EquipmentException(Exception):
-    pass
+from ochre import Simulator
+from ochre.utils import load_csv
 
 
-class Equipment:
+class Equipment(Simulator):
     name = 'Generic Equipment'
     end_use = 'Other'
-    folder_name = None
     is_electric = True
     is_gas = False
     modes = ['On', 'Off']  # On and Off assumed as default modes
+    zone_name = 'Indoor'
 
-    def __init__(self, start_time, time_res, name=None, zip_model=None, zone='LIV', ext_time_res=None, **kwargs):
+    def __init__(self, zone_name=None, envelope_model=None, ext_time_res=None, save_ebm_results=False, **kwargs):
         """
         Base class for all equipment in a dwelling.
         All equipment must have:
          - A set of modes (default is ['On', 'Off'])
          - Fuel variables (by default, is_electric=True, is_gas=False)
          - A control algorithm to determine the mode (update_internal_control)
-         - A method to determine the power output (calculate_power) and heat output (calculate_heat)
+         - A method to determine the power and heat outputs (calculate_power_and_heat)
         Optional features for equipment include:
          - A control algorithm to use for external control (update_external_control)
          - A ZIP model for voltage-dependent real and reactive power
@@ -34,28 +30,36 @@ class Equipment:
          - The dwelling schedule (or from a player file)
          - Any other information from the dwelling (passed through house_args)
         """
-        if name is not None:
-            self.name = name
+        if zone_name is not None:
+            self.zone_name = zone_name
 
-        self.start_time = start_time
-        self.current_time = start_time
-        self.time_res = time_res
+        # If envelope model exists, save the zone
+        if envelope_model is not None:
+            self.zone = envelope_model.zones.get(self.zone_name)
+        else:
+            self.zone = None
+
+        super().__init__(**kwargs)
 
         # General parameters
-        self.parameters = self.initialize_parameters(**kwargs) if 'parameter_file' in kwargs else {}
-        self.zone = zone
+        self.parameters = self.initialize_parameters(**kwargs)
+        self.results_name = self.end_use if self.end_use != 'Other' else self.name
+        self.save_ebm_results = save_ebm_results
 
         # Power parameters
         self.electric_kw = 0  # in kW
         self.reactive_kvar = 0  # in kVAR
         self.gas_therms_per_hour = 0  # in therms/hour
-        if zip_model is not None and self.name in zip_model:
-            self.zip_data = zip_model[self.name]
-            self.zip_data['pf_mult'] = math.tan(math.acos(self.zip_data['pf']))
+        if 'Zp' in kwargs:
+            self.zip_data = (
+                np.array([kwargs['Zp'], kwargs['Ip'], kwargs['Pp']]),  # real ZIP parameters
+                np.array([kwargs['Zq'], kwargs['Iq'], kwargs['Pq']]),  # reactive ZIP parameters
+                np.tan(np.arccos(kwargs['pf']))  # power factor multiplier (+ for capacitative, - for inductive)
+            )
         else:
             self.zip_data = None
 
-        # Heat parameters - if a number, it is injected into self.zone. Can be a dict of {zone_label: gain}
+        # Sensible and latent heat parameters
         self.sensible_gain = 0  # in W
         self.latent_gain = 0  # in W
 
@@ -65,98 +69,38 @@ class Equipment:
         # self.tot_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
         self.mode_cycles = {mode: 0 for mode in self.modes}
 
+        # Minimum On/Off Times
+        on_time = kwargs.get(self.end_use + ' Minimum On Time', 0)
+        off_time = kwargs.get(self.end_use + ' Minimum Off Time', 0)
+        self.min_time_in_mode = {mode: dt.timedelta(minutes=on_time) for mode in self.modes}
+        self.min_time_in_mode['Off'] = dt.timedelta(minutes=off_time)
+
         self.ext_time_res = ext_time_res
         self.ext_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
         self.duty_cycle_by_mode = {mode: 0 for mode in self.modes}  # fraction of time per mode, should sum to 1
         self.duty_cycle_by_mode['Off'] = 1
 
-    def initialize_parameters(self, parameter_file, name_col='Name', val_col='Value', input_path=default_input_path,
-                              **kwargs):
-        # assumes a parameters file with columns for name and value
-        folder_name = self.folder_name if self.folder_name is not None else self.name
-        if not os.path.isabs(parameter_file):
-            parameter_file = os.path.join(input_path, folder_name, parameter_file)
-        if not os.path.exists(parameter_file):
-            self.print('WARNING: Cannot find parameter file. '
-                       'Using default OCHRE file instead of {}'.format(parameter_file))
-            parameter_file = os.path.join(default_input_path, folder_name, parameter_file)
+    def initialize_parameters(self, parameter_file=None, name_col='Name', value_col='Value', **kwargs):
+        if parameter_file is None:
+            return {}
 
-        df = pd.read_csv(parameter_file, index_col=name_col)
-        if val_col is None:
+        # assumes a parameters file with columns for name and value
+        df = load_csv(parameter_file, sub_folder=self.end_use, index_col=name_col)
+        if value_col is None:
             return df
         else:
-            parameters = df[val_col].to_dict()
+            parameters = df[value_col].to_dict()
 
             # update parameters from kwargs (overrides the parameters file values)
             parameters.update({key: val for key, val in kwargs.items() if key in parameters})
             return parameters
-
-    def reset_time(self):
-        self.current_time = self.start_time
-        self.mode = 'Off'
-        self.time_in_mode = dt.timedelta(minutes=0)
-        self.mode_cycles = {mode: 0 for mode in self.modes}
-        self.ext_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
-        # self.tot_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
-
-    def update(self, voltage, schedule, ext_control_args):
-        # run equipment controller to determine mode
-        if ext_control_args:
-            mode = self.update_external_control(schedule, ext_control_args)
-        else:
-            mode = self.update_internal_control(schedule)
-
-        if mode is None or mode == self.mode:
-            self.time_in_mode += self.time_res
-        else:
-            if mode not in self.modes:
-                raise EquipmentException(
-                    "Can't set {} mode to {}. Valid modes are: {}".format(self.name, mode, self.modes))
-            self.mode = mode
-            self.time_in_mode = self.time_res
-            self.mode_cycles[self.mode] += 1
-        if ext_control_args:
-            self.ext_mode_counters[self.mode] += self.time_res
-        # self.tot_mode_counters[self.mode] += self.time_res
-
-        # calculate electric and gas power
-        self.calculate_power_and_heat(schedule)
-        if self.zip_data:
-            # Update electric real/reactive power with ZIP model
-            self.run_zip(voltage)
-
-    def update_external_control(self, schedule, ext_control_args):
-        # Overwrite if external control might exist
-        raise EquipmentException('Must define external control algorithm for {}'.format(self.name))
-
-    def update_internal_control(self, schedule):
-        # Returns the equipment mode; can return None if the mode doesn't change
-        # Overwrite if internal control exists
-        raise NotImplementedError()
-
-    def calculate_power_and_heat(self, schedule):
-        raise NotImplementedError()
-
-    def generate_results(self, verbosity, to_ext=False):
-        # Saves results for OCHRE and for the external controller. By default, saves the mode and powers
-        if to_ext:
-            return {}
-        else:
-            if verbosity >= 6:
-                return {self.name + ' Mode': self.mode}
-            else:
-                return {}
-
-    def update_model(self, schedule):
-        # Update time
-        self.current_time += self.time_res
 
     def update_duty_cycles(self, *duty_cycles):
         duty_cycles = list(duty_cycles)
         if len(duty_cycles) == len(self.modes) - 1:
             duty_cycles.append(1 - sum(duty_cycles))
         if len(duty_cycles) != len(self.modes):
-            raise EquipmentException('Error parsing duty cycles. Expected a list of length equal or 1 less than ' +
+            raise Exception('Error parsing duty cycles. Expected a list of length equal or 1 less than ' +
                                      'the number of modes ({}): {}'.format(len(self.modes), duty_cycles))
 
         self.duty_cycle_by_mode = dict(zip(self.modes, duty_cycles))
@@ -172,7 +116,7 @@ class Equipment:
         :return: list of mode names in order of priority
         """
         if self.ext_time_res is None:
-            raise EquipmentException('External control time resolution is not defined for {}.'.format(self.name))
+            raise Exception('External control time resolution is not defined for {}.'.format(self.name))
         if duty_cycles:
             self.update_duty_cycles(*duty_cycles)
 
@@ -196,81 +140,139 @@ class Equipment:
 
         return modes_with_time
 
+    def update_external_control(self, control_signal):
+        # Overwrite if external control might exist
+        raise Exception('Must define external control algorithm for {}'.format(self.name))
+
+    def update_internal_control(self):
+        # Returns the equipment mode; can return None if the mode doesn't change
+        # Overwrite if internal control exists
+        raise NotImplementedError()
+
+    def calculate_power_and_heat(self):
+        raise NotImplementedError()
+
+    def add_gains_to_zone(self):
+        if self.zone is None:
+            return
+        
+        self.zone.internal_sens_gain += self.sensible_gain
+        self.zone.internal_latent_gain += self.latent_gain
+
     def run_zip(self, v, v0=1):
+        if v == 0:
+            self.electric_kw = 0
+
         if self.electric_kw == 0:
             self.reactive_kvar = 0
             return
-
-        # pf_mult = 1 for inductive load, -1 for capacitive
+        if not self.zip_data:
+            return
+        
         if v == v0:
-            self.reactive_kvar = self.electric_kw * self.zip_data['pf_mult']
+            pf_mult = self.zip_data[2]
+            self.reactive_kvar = self.electric_kw * pf_mult
         else:
-            self.reactive_kvar = self.electric_kw * self.zip_data['pf_mult'] * (self.zip_data['Zq'] * (v / v0) ** 2 +
-                                                                                self.zip_data['Iq'] * (v / v0) +
-                                                                                self.zip_data['Pq'])
-            self.electric_kw = self.electric_kw * (self.zip_data['Zp'] * (v / v0) ** 2 +
-                                                   self.zip_data['Ip'] * (v / v0) +
-                                                   self.zip_data['Pp'])
+            zip_p, zip_q, pf_mult = self.zip_data
+            v_quadratic = np.array([(v / v0) ** 2, v / v0, 1])
 
-    def simulate(self, schedule=None, duration=None, voltage=1, equip_from_ext=None, verbosity=7, name=None,
-                 output_path=default_output_path):
-        # function to run individual equipment, without dwelling
-        if schedule is None and duration is None:
-            raise EquipmentException('Must specify schedule or duration to simulate equipment')
-        if equip_from_ext is None:
-            equip_from_ext = {}
+            self.reactive_kvar = self.electric_kw * pf_mult * zip_p.dot(v_quadratic)
+            self.electric_kw = self.electric_kw * zip_q.dot(v_quadratic)
 
-        if schedule is None:
-            times = pd.date_range(self.start_time, freq=self.time_res, end=self.start_time + duration, closed='left')
-            schedule = pd.DataFrame({'NA': [0] * len(times)}, index=times)
-        elif duration is not None:
-            # shorten schedule if necessary
-            assert isinstance(schedule.index, pd.DatetimeIndex)
-            assert schedule.index[0] == self.start_time
-            schedule = schedule.loc[schedule.index < self.start_time + duration]
+    def update_model(self, control_signal=None):
+        # run equipment controller to determine mode
+        if control_signal:
+            mode = self.update_external_control(control_signal)
         else:
-            duration = schedule.index[-1] - self.start_time + self.time_res
+            mode = self.update_internal_control()
 
-        # update simulation name for output file
-        if name is None:
-            name = self.name
+        if mode is not None and self.time_in_mode < self.min_time_in_mode[self.mode]:
+            # Don't change mode if minimum on/off time isn't met
+            mode = self.mode
 
-        print('Running {} Simulation for {}'.format(name, duration))
-        all_results = []
-        try:
-            for current_schedule in schedule.itertuples():
-                self.update(voltage, current_schedule._asdict(), equip_from_ext)
+        # Get voltage, if disconnected then set mode to off
+        voltage = self.current_schedule.get('Voltage (-)', 1)
+        if voltage == 0:
+            mode = 'Off'
 
-                results = {}
-                if self.is_electric:
-                    results[self.name + ' Electric Power (kW)'] = self.electric_kw
-                    results[self.name + ' Reactive Power (kVAR)'] = self.reactive_kvar
-                if self.is_gas:
-                    results[self.name + ' Gas Power (therms/hour)'] = self.gas_therms_per_hour
-                results.update(self.generate_results(verbosity))
-                all_results.append(results)
+        if mode is None or mode == self.mode:
+            self.time_in_mode += self.time_res
+        else:
+            if mode not in self.modes:
+                raise Exception(
+                    "Can't set {} mode to {}. Valid modes are: {}".format(self.name, mode, self.modes))
+            self.mode = mode
+            self.time_in_mode = self.time_res
+            self.mode_cycles[self.mode] += 1
 
-                # Update model (e.g. WH tank) after results
-                self.update_model(schedule)
+        if control_signal:
+            self.ext_mode_counters[self.mode] += self.time_res
 
-        except Exception as e:
-            print('ERROR: {} Simulation failed at time {}'.format(name, self.current_time))
+        # calculate electric and gas power and heat gains
+        heat_data = self.calculate_power_and_heat()
 
-            # save results before raising error
-            df = pd.DataFrame(all_results, index=schedule.index)
-            results_file = os.path.join(output_path, name + '.csv')
-            df.to_csv(results_file)
-            raise e
+        # Run update for subsimulators (e.g., water tank, battery thermal model)
+        super().update_model(heat_data)
 
-        # save results and return data frame
-        df = pd.DataFrame(all_results, index=schedule.index)
-        results_file = os.path.join(output_path, name + '.csv')
-        df.to_csv(results_file)
-        print('{} Simulation Complete, results saved to {}'.format(name, results_file))
-        return df
+        # Add heat gains to zone
+        self.add_gains_to_zone()
+        
+        # Update electric real/reactive power with ZIP model
+        self.run_zip(voltage)
 
-    def print(self, *msg):
-        print('{} - {} at {}:'.format(dt.datetime.now(), self.name, self.current_time), *msg)
+    def make_equivalent_battery_model(self):
+        # returns a dictionary of equivalent battery model parameters
+        # model definition:
+        #  - Continuous time model: E_dot = eta*P - eta_d*P_d - P_b
+        #  - Constraints:           E_min <= E <= E_max, 0 <= P <= P_max, E(t=0)=E_0
+        #  - Discharge Constraints: 0 <= P_d <= P_d,max, P * P_d = 0 (i.e. no simultaneous charge/discharge) 
+        # where:
+        #  - E = energy state (kWh)
+        #  - E_min, E_max = energy state constraints (kWh)
+        #  - E_0 = initial energy state (kWh)
+        #  - P = total power, consuming/charging (kW)
+        #  - P_max = maximum power, consuming/charging (kW)
+        #  - eta = efficiency, consuming/charging (-)
+        #  - P_b = baseline power, a disturbance that may be stochastic, time-varying, and dependent on E (kW)
+        #  - P_d = power, generating/discharging (kW) (only for devices that can generate power)
+        #  - P_d,max = maximum power, generating/discharging (kW) (only for devices that can generate power)
+        #  - eta_d = efficiency, generating/discharging (-) (only for devices that can generate power)
+        return {
+            f'{self.results_name} EBM Energy (kWh)': None,
+            f'{self.results_name} EBM Min Energy (kWh)': 0,
+            f'{self.results_name} EBM Max Energy (kWh)': None,
+            f'{self.results_name} EBM Max Power (kW)': None,
+            f'{self.results_name} EBM Efficiency (-)': 1,
+            # f'{self.results_name} EBM Baseline Power (kW)': 0,
+            # f'{self.results_name} EBM Max Discharge Power (kW)': 0,
+            # f'{self.results_name} EBM Discharge Efficiency (-)': 1,
+        }
 
-    def warn(self, *msg):
-        self.print('WARNING,', *msg)
+    def generate_results(self):
+        results = super().generate_results()
+
+        # Note: end use power is included in Dwelling.generate_results
+        # Note: individual equipment powers are included in ScheduledLoad.generate_results
+        if self.main_simulator:
+            if self.is_electric:
+                results[f'{self.results_name} Electric Power (kW)'] = self.electric_kw
+                results[f'{self.results_name} Reactive Power (kVAR)'] = self.reactive_kvar
+            if self.is_gas:
+                results[f'{self.results_name} Gas Power (therms/hour)'] = self.gas_therms_per_hour
+
+        if self.verbosity >= 6:
+            results[f'{self.results_name} Mode'] = self.mode
+
+        return results
+
+    def reset_time(self, start_time=None, mode=None, **kwargs):
+        # TODO: option to remove equipment mode, set initial state
+        super().reset_time(start_time=start_time, **kwargs)
+
+        if mode is not None:
+            self.mode = mode
+
+        self.time_in_mode = dt.timedelta(minutes=0)
+        self.mode_cycles = {mode: 0 for mode in self.modes}
+        self.ext_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
+        # self.tot_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}

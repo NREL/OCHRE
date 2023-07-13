@@ -1,0 +1,497 @@
+{
+    "Location": {
+        "Weather Station": "G3700570",
+        "Loc": "LOCATION",
+        "City": "Denver Intl Ap",
+        "State-prov": "CO",
+        "Country": "USA",
+        "Data_type": "TMY3",
+        "Wmo_code": "725650",
+        "Latitude": 39.83,
+        "Longitude": -104.65,
+        "Tz": -7.0,
+        "Altitude": 1650.0,
+        "Timezone": -7.0,
+        "Average Wind Speed (m/s)": 3.9165296803649667,
+        "Average Ambient Temperature (C)": 10.875342465753533,
+        "Average Ground Temperature (C)": 10.82050131197014
+    },
+    "Occupancy": {
+        "Number of Occupants (-)": 2.0,
+        "Number of Bedrooms (-)": 4
+    },
+    "Boundaries": {
+        "Exterior Wall": {
+            "Area (m^2)": [
+                66.434963904,
+                36.910377792,
+                49.953964608,
+                44.22184703999999
+            ],
+            "Azimuth (deg)": [
+                270,
+                0,
+                90,
+                180
+            ],
+            "Finish Type": "none",
+            "Exterior Solar Absorptivity (-)": 0.7,
+            "Exterior Emissivity (-)": 0.9,
+            "Construction Type": "StructuralBrick",
+            "Boundary R Value": 13.3
+        },
+        "Attic Wall": {
+            "Area (m^2)": [
+                10.646688383999999,
+                10.646688383999999,
+                6.689018879999999
+            ],
+            "Azimuth (deg)": [
+                0,
+                180,
+                90
+            ],
+            "Finish Type": "wood siding",
+            "Exterior Solar Absorptivity (-)": 0.7,
+            "Exterior Emissivity (-)": 0.9,
+            "Construction Type": "WoodStud",
+            "Boundary R Value": 4.0
+        },
+        "Garage Attached Wall": {
+            "Area (m^2)": [
+                17.83738368,
+                8.91869184
+            ],
+            "Azimuth (deg)": [
+                90,
+                0
+            ],
+            "Construction Type": "StructuralBrick",
+            "Boundary R Value": 13.3
+        },
+        "Garage Wall": {
+            "Area (m^2)": [
+                17.83738368,
+                17.83738368,
+                8.91869184
+            ],
+            "Azimuth (deg)": [
+                0,
+                90,
+                180
+            ],
+            "Finish Type": "none",
+            "Exterior Solar Absorptivity (-)": 0.7,
+            "Exterior Emissivity (-)": 0.9,
+            "Construction Type": "StructuralBrick",
+            "Boundary R Value": 4.0
+        },
+        "Window": {
+            "Area (m^2)": [
+                8.101145087999999,
+                11.371332095999998,
+                9.708367679999999,
+                14.585777279999999
+            ],
+            "Azimuth (deg)": [
+                0,
+                90,
+                180,
+                270
+            ],
+            "U Factor (W/m^2-K)": 0.49,
+            "SHGC (-)": 0.56,
+            "Shading Fraction (-)": 0.7
+        },
+        "Foundation Wall": {
+            "Area (m^2)": [
+                47.255131296
+            ],
+            "Azimuth (deg)": [
+                270
+            ],
+            "Construction Type": "Crawlspace",
+            "Insulation Details": "Uninsulated",
+            "Height (m)": 1.2191999999999998
+        },
+        "Attic Floor": {
+            "Area (m^2)": [
+                180.09254303999998
+            ],
+            "Boundary R Value": 31.6
+        },
+        "Foundation Ceiling": {
+            "Area (m^2)": [
+                126.58039199999999
+            ],
+            "Boundary R Value": 17.8
+        },
+        "Garage Interior Ceiling": {
+            "Area (m^2)": [
+                53.51215103999999
+            ],
+            "Boundary R Value": 17.8
+        },
+        "Foundation Floor": {
+            "Area (m^2)": [
+                126.58039199999999
+            ],
+            "Insulation Details": "Uninsulated"
+        },
+        "Garage Floor": {
+            "Area (m^2)": [
+                53.51215103999999
+            ],
+            "Insulation Details": "Uninsulated"
+        },
+        "Attic Roof": {
+            "Area (m^2)": [
+                85.72163500799999,
+                22.436084159999997,
+                22.436084159999997,
+                70.76424556799999
+            ],
+            "Azimuth (deg)": [
+                270,
+                0,
+                180,
+                90
+            ],
+            "Tilt (deg)": 26.56505117707799,
+            "Finish Type": "wood shingles or shakes",
+            "Exterior Solar Absorptivity (-)": 0.85,
+            "Exterior Emissivity (-)": 0.9,
+            "Boundary R Value": 2.3,
+            "Radiant Barrier": false
+        },
+        "Rim Joist": {
+            "Area (m^2)": [
+                3.9019276799999996,
+                2.164640832,
+                3.9019276799999996,
+                2.164640832
+            ],
+            "Azimuth (deg)": [
+                270,
+                0,
+                90,
+                180
+            ],
+            "Finish Type": "none",
+            "Exterior Solar Absorptivity (-)": 0.7,
+            "Exterior Emissivity (-)": 0.9,
+            "Boundary R Value": 2.5
+        },
+        "Door": {
+            "Area (m^2)": [
+                1.8580607999999998
+            ],
+            "Azimuth (deg)": [
+                90
+            ],
+            "Boundary R Value": 5.0
+        },
+        "Interior Wall": {
+            "Area (m^2)": [
+                306.67293503999997
+            ],
+            "Insulation Level": "Standard"
+        },
+        "Indoor Furniture": {
+            "Area (m^2)": [
+                122.669174016
+            ],
+            "Insulation Level": "Standard"
+        },
+        "Foundation Furniture": {
+            "Area (m^2)": [
+                50.6321568
+            ],
+            "Insulation Level": "Standard"
+        },
+        "Garage Furniture": {
+            "Area (m^2)": [
+                5.351215104
+            ],
+            "Insulation Level": "Standard"
+        }
+    },
+    "Zones": {
+        "Indoor Zone": {
+            "Zone Area (m^2)": 306.67293503999997,
+            "Volume (m^3)": 747.7912848015359,
+            "Ventilation Type": null,
+            "Ventilation Rate (cfm)": 0,
+            "erv sensible effectiveness": 0,
+            "erv latent effectiveness": 0,
+            "Infiltration Method": "ASHRAE",
+            "inf_f_t": 0.6325427368098038,
+            "inf_C_i": 18575.584095420505,
+            "inf_n_i": 0.65,
+            "inf_stack_coef": 0.0016457234797716306,
+            "inf_wind_coef": 0.0009875911737948458,
+            "ws_S_wo": 0.7,
+            "inf_Y_i": 0,
+            "inf_S_wflue": 0,
+            "ELA stack coefficient (L/s/cm^4/K)": 0.000179287717125998,
+            "ELA wind coefficient (L/s/cm^4/(m/s))": 0.0001506030635210884
+        },
+        "Attic Zone": {
+            "Zone Area (m^2)": 180.09254303999998,
+            "Volume (m^3)": 227.86213640114227,
+            "Infiltration Method": "ELA",
+            "ELA (cm^2)": 5110.704462441599,
+            "ELA stack coefficient (L/s/cm^4/K)": 0.00016036635643592068,
+            "ELA wind coefficient (L/s/cm^4/(m/s))": 6.978369048130002e-05
+        },
+        "Foundation Zone": {
+            "Zone Type": "Crawlspace",
+            "Zone Area (m^2)": 126.58039199999999,
+            "Volume (m^3)": 154.32681392639998,
+            "Infiltration Method": "ELA",
+            "ELA (cm^2)": 8439.11473464,
+            "ELA stack coefficient (L/s/cm^4/K)": 4.48219292814995e-05,
+            "ELA wind coefficient (L/s/cm^4/(m/s))": 8.64987456620941e-05
+        },
+        "Garage Zone": {
+            "Zone Area (m^2)": 53.51215103999999,
+            "Volume (m^3)": 130.48402909593597,
+            "Infiltration Method": "ACH",
+            "Air Changes (1/hour)": 15.0
+        }
+    },
+    "Equipment": {
+        "HVAC Heating": {
+            "Equipment Name": "air-to-air",
+            "Fuel": "Electricity",
+            "Capacity (W)": 16580.20504,
+            "EIR (-)": 0.44313521512836046,
+            "Rated Efficiency": "7.7 HSPF",
+            "SHR (-)": null,
+            "Conditioned Space Fraction (-)": 1.0,
+            "Number of Speeds (-)": 1,
+            "Airflow Rate (cfm)": 1502.0,
+            "Fan Power (W/cfm)": 0.5,
+            "Weekday Setpoints (C)": [
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057
+            ],
+            "Weekend Setpoints (C)": [
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057
+            ],
+            "Supplemental Heater EIR (-)": 1.0,
+            "Supplemental Heater Capacity (W)": 70695.0,
+            "Supplemental Heater Cut-in Temperature (C)": null,
+            "Ducts": {
+                "Conditioned Area (ft^2)": 3301.0,
+                "Conditioned Volume (ft^3)": 26408.0,
+                "Roof Radiant Barrier": false,
+                "Zone": "Foundation",
+                "Exact Location": "crawlspace - vented",
+                "Supply Leakage (-)": 0.133,
+                "Supply Area (ft^2)": 501.3393750000001,
+                "Supply R Value": 6.0,
+                "Return Leakage (-)": 0.067,
+                "Return Area (ft^2)": 185.68125,
+                "Return R Value": 6.0
+            }
+        },
+        "HVAC Cooling": {
+            "Equipment Name": "air-to-air",
+            "Fuel": "Electricity",
+            "Capacity (W)": 16580.20504,
+            "EIR (-)": 0.262472396652952,
+            "Rated Efficiency": "13.0 SEER",
+            "SHR (-)": 0.73,
+            "Conditioned Space Fraction (-)": 1.0,
+            "Number of Speeds (-)": 1,
+            "Airflow Rate (cfm)": 2032.0,
+            "Fan Power (W/cfm)": 0.5,
+            "Weekday Setpoints (C)": [
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                20.000000000000057
+            ],
+            "Weekend Setpoints (C)": [
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                20.000000000000057,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                21.111111111111143,
+                20.000000000000057
+            ],
+            "Ducts": {
+                "Conditioned Area (ft^2)": 3301.0,
+                "Conditioned Volume (ft^3)": 26408.0,
+                "Roof Radiant Barrier": false,
+                "Zone": "Foundation",
+                "Exact Location": "crawlspace - vented",
+                "Supply Leakage (-)": 0.133,
+                "Supply Area (ft^2)": 501.3393750000001,
+                "Supply R Value": 6.0,
+                "Return Leakage (-)": 0.067,
+                "Return Area (ft^2)": 185.68125,
+                "Return R Value": 6.0
+            }
+        },
+        "Water Heating": {
+            "Equipment Name": "storage water heater",
+            "Fuel": "Electricity",
+            "Zone": "Indoor",
+            "Setpoint Temperature (C)": 51.666666666666686,
+            "UA (W/K)": 1.1635681296899638,
+            "Efficiency (-)": 1.0,
+            "Energy Factor (-)": 0.92,
+            "Tank Volume (L)": 170.34353027999995,
+            "Tank Height (m)": 1.2191999999999998,
+            "Capacity (W)": 5500.065542222223,
+            "Fixture Average Water Draw (L/day)": 548.0320480387376
+        },
+        "Clothes Washer": {
+            "Annual Electric Energy (kWh)": 38.82973294353187,
+            "Average Water Draw (L/day)": 5.2676143309255865,
+            "Convective Gain Fraction (-)": 0.2700000000000001,
+            "Radiative Gain Fraction (-)": 0,
+            "Latent Gain Fraction (-)": 0.030000000000000027
+        },
+        "Clothes Dryer": {
+            "Annual Electric Energy (kWh)": 664.7402990562096,
+            "Annual Gas Energy (therms)": 0.0,
+            "Convective Gain Fraction (-)": 0.13500000000000004,
+            "Radiative Gain Fraction (-)": 0,
+            "Latent Gain Fraction (-)": 0.015000000000000013
+        },
+        "Dishwasher": {
+            "Annual Electric Energy (kWh)": 160.82276326635832,
+            "Average Water Draw (L/day)": 11.917900706294166,
+            "Convective Gain Fraction (-)": 0.3,
+            "Radiative Gain Fraction (-)": 0,
+            "Latent Gain Fraction (-)": 0.29999999999999993
+        },
+        "Cooking Range": {
+            "Annual Electric Energy (kWh)": 584.4,
+            "Annual Gas Energy (therms)": 0.0,
+            "Convective Gain Fraction (-)": 0.7200000000000001,
+            "Radiative Gain Fraction (-)": 0,
+            "Latent Gain Fraction (-)": 0.0799999999999999
+        },
+        "Refrigerator": {
+            "Annual Electric Energy (kWh)": 434.0,
+            "Convective Gain Fraction (-)": 1.0,
+            "Radiative Gain Fraction (-)": 0,
+            "Latent Gain Fraction (-)": 0.0
+        },
+        "Lighting": {
+            "Annual Electric Energy (kWh)": 3321.7097297297296
+        },
+        "Exterior Lighting": {
+            "Annual Electric Energy (kWh)": 265.05
+        },
+        "Garage Lighting": {
+            "Annual Electric Energy (kWh)": 100.0
+        },
+        "MELs": {
+            "Annual Electric Energy (kWh)": {
+                "other": 5789.9956,
+                "ceiling fan": 163.2645
+            },
+            "Convective Gain Fraction (-)": 0.9044953214794026,
+            "Radiative Gain Fraction (-)": 0,
+            "Latent Gain Fraction (-)": 0.020424087904373608
+        }
+    },
+    "start_time": "2018-01-01 00:00:00",
+    "time_res": "0:10:00",
+    "duration": "3 days, 0:00:00",
+    "initialization_time": "1 day, 0:00:00",
+    "schedule_input_file": "C:\\Users\\mblonsky\\Github\\ochre\\defaults\\Input Files\\sample_resstock_schedule.csv",
+    "weather_file": "C:\\Users\\mblonsky\\Github\\ochre\\defaults\\Weather\\USA_CO_Denver.Intl.AP.725650_TMY3.epw",
+    "verbosity": 3,
+    "output_to_parquet": true,
+    "main_sim_name": "OCHRE Test House",
+    "output_path": "C:\\Users\\mblonsky\\Github\\ochre\\defaults\\Input Files"
+}

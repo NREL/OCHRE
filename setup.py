@@ -9,12 +9,21 @@ except ImportError:
 
 requirements = [
     'numpy',
-    'pandas',
+    'pandas>=1.4.0',
     'scipy',
-    'psychrolib',
-    'numba',
+    'matplotlib',
+    'pint',
+    'pvlib',
     'NREL-PySAM',
+    'psychrolib',
+    'numba',  # required for psychrolib
+    'xmltodict',
+    'pyarrow',
+    'fastparquet',
     'rainflow',
+    'pytz',
+    'python-dateutil',
+    # 'h5py',
 ]
 
 
@@ -41,8 +50,9 @@ setup(name='ochre',
       description='A residential energy model with controllable equipment and DERs for building-to-grid co-simulation',
       author='Jeff Maguire',
       author_email='Jeff.Maguire@nrel.gov',
-      url='https://github.com/NREL/OCHRE',
-      packages=['ochre', 'ochre.Equipment', 'ochre.Models'],
+      url='https://github.nrel.gov/Customer-Modeling/ochre',
+      packages=['ochre', 'ochre.utils', 'ochre.Equipment', 'ochre.Models'],
+      python_requires='>=3.9',
       install_requires=requirements,
-      # package_data={'ochre': []},
+      package_data={'ochre': ['../defaults/*', '../defaults/*/*']},
       )

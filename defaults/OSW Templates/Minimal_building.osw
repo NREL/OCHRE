@@ -1,0 +1,144 @@
+{
+  "run_directory": "run",
+  "measure_paths": [
+    ".."
+  ],
+  "steps": [
+    {
+      "arguments": {
+        "air_leakage_house_pressure": 50,
+        "air_leakage_units": "ACH",
+        "air_leakage_value": 0.0001,
+        "bathroom_fans_quantity": "0.0",
+        "bathroom_fans_hours_in_operation": "0.0",
+        "ceiling_assembly_r": 500,
+        "ceiling_fan_present": "false",
+        "cooking_range_oven_usage_multiplier": "0.0",
+        "cooling_system_cooling_capacity": "auto",
+        "cooling_system_cooling_compressor_type": "single stage",
+        "cooling_system_cooling_efficiency": 13.0,
+        "cooling_system_cooling_efficiency_type": "SEER",
+        "cooling_system_type": "central air conditioner",
+        "dishwasher_efficiency": "0.0",
+        "dishwasher_usage_multiplier": 0.0,
+        "door_area": 0.0,
+        "door_rvalue": 4.4,
+        "ducts_leakage_units": "CFM25",
+        "ducts_return_insulation_r": 1000.0,
+        "ducts_return_leakage_to_outside_value": 0.0,
+        "ducts_return_location": "living space",
+        "ducts_return_surface_area": "0.1",
+        "ducts_supply_insulation_r": 4.0,
+        "ducts_supply_leakage_to_outside_value": 0.0,
+        "ducts_supply_location": "living space",
+        "ducts_supply_surface_area": "0.1",
+        "extra_refrigerator_usage_multiplier": "0.0",
+        "floor_over_foundation_assembly_r": 500,
+        "floor_over_garage_assembly_r": 1000,
+        "foundation_wall_insulation_r": 1000,
+        "geometry_attic_type": "UnventedAttic",
+        "geometry_average_ceiling_height": 8.0,
+        "geometry_eaves_depth": 0,
+        "geometry_foundation_type": "Ambient",
+        "geometry_foundation_height": 8,
+        "geometry_garage_width": 0.0,
+        "geometry_unit_num_floors_above_grade": 1,
+        "geometry_rim_joist_height": 0.0,
+        "geometry_roof_pitch": "6:12",
+        "geometry_roof_type": "gable",
+        "geometry_unit_aspect_ratio": 1.5,
+        "geometry_unit_cfa": 2700.0,
+        "geometry_unit_num_bedrooms": 3,
+        "geometry_unit_num_occupants": "1",
+        "geometry_unit_orientation": 180.0,
+        "geometry_unit_type": "single-family detached",
+        "heating_system_fuel": "electricity",
+        "heating_system_heating_capacity": "auto",
+        "heating_system_heating_efficiency": 1.00,
+        "heating_system_type": "ElectricResistance",
+        "hpxml_path": "../workflow/built.xml",
+        "hvac_control_cooling_weekday_setpoint": "76",
+        "hvac_control_cooling_weekend_setpoint": "76",
+        "hvac_control_heating_weekday_setpoint": "71",
+        "hvac_control_heating_weekend_setpoint": "71",
+        "kitchen_fans_quantity": "0.0",
+        "kitchen_fans_hours_in_operation": "0.0",
+        "lighting_present": "false",
+        "misc_plug_loads_television_present":"false",
+        "misc_plug_loads_other_annual_kwh":"0.0",
+        "misc_plug_loads_other_usage_multiplier":"0.0",
+        "refrigerator_rated_annual_kwh":"0.0",
+        "rim_joist_assembly_r": 23.0,
+        "roof_assembly_r": 2.3,
+        "slab_perimeter_insulation_r": 100,
+        "slab_perimeter_depth": 1,
+        "slab_under_insulation_r": 500,
+        "slab_under_width": 999,
+        "wall_assembly_r": 500,
+        "water_heater_efficiency": 1.00,
+        "water_heater_efficiency_type": "EnergyFactor",
+        "water_heater_fuel_type": "electricity",
+        "water_heater_tank_volume": "0.0",
+        "water_heater_type": "none",
+        "weather_station_epw_filepath": "USA_CO_Denver.Intl.AP.725650_TMY3.epw",
+        "window_area_back": 0.0,
+        "window_area_front": 0.0,
+        "window_area_left": 0.0,
+        "window_area_right": 0.0,
+        "window_aspect_ratio": 1.333,
+        "window_back_wwr": 0,
+        "window_front_wwr": 0,
+        "window_left_wwr": 0,
+        "window_right_wwr": 0,
+        "window_shgc": 0.45,
+        "window_ufactor": 0.33
+      },
+      "measure_dir_name": "BuildResidentialHPXML"
+    },
+    {
+      "arguments": {
+        "hpxml_path": "../workflow/built.xml",
+        "schedules_type": "stochastic",
+        "output_csv_path": "../stochastic.csv",
+        "hpxml_output_path": "../workflow/built-stochastic-schedules.xml"
+      },
+      "measure_dir_name": "BuildResidentialScheduleFile"
+    },
+    {
+      "arguments": {
+        "hpxml_path": "../workflow/built-stochastic-schedules.xml",
+        "output_dir": "../workflow/run",
+        "debug": false,
+        "add_component_loads": false,
+        "skip_validation": false
+      },
+      "measure_dir_name": "HPXMLtoOpenStudio"
+    },
+    {
+      "arguments": {
+        "output_format": "csv",
+        "timeseries_frequency": "hourly",
+        "include_timeseries_fuel_consumptions": true,
+        "include_timeseries_end_use_consumptions": true,
+        "include_timeseries_hot_water_uses": true,
+        "include_timeseries_total_loads": true,
+        "include_timeseries_component_loads": true,
+        "include_timeseries_zone_temperatures": true,
+        "include_timeseries_airflows": true,
+        "include_timeseries_weather": true
+      },
+      "measure_dir_name": "ReportSimulationOutput"
+    },
+    {
+      "arguments": {
+        "output_format": "csv"
+      },
+      "measure_dir_name": "ReportHPXMLOutput"
+    }
+  ],
+  "run_options": {
+    "fast": true,
+    "skip_expand_objects": true,
+    "skip_energyplus_preprocess": true
+  }
+}

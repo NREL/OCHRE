@@ -1,97 +1,135 @@
 import os
 import datetime as dt
-import cProfile
-import time
+import pandas as pd
 
-from ochre import Dwelling
-# from ochre.FileIO import default_input_path, default_output_path
+from ochre import Dwelling, Analysis, CreateFigures
+from ochre.utils import default_input_path
 
 # Test script to run single Dwelling
 
-simulation_name = 'REopt-HPWH'
-properties_name = 'test_case'
-weather_name = 'CO_FORT-COLLINS-LOVELAND-AP_724769S_18'
+pd.set_option('display.precision', 3)      # precision in print statements
+pd.set_option('expand_frame_repr', False)  # Keeps results on 1 line
+pd.set_option('display.max_rows', 30)      # Shows up to 30 rows of data
+# pd.set_option('max_columns', None)       # Prints all columns
 
-ochre_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
-docs_path = os.path.join(os.path.expanduser('~'), 'Documents', 'OCHRE')
+weather_path = os.path.join(os.path.expanduser('~'), 'NREL', 'Team OCHRE - General', 'Weather', 'BuildStock_TMY3_FIPS')
+teams_path = os.path.join(os.path.expanduser('~'), 'NREL', 'Team OCHRE - Validation', 'Multifamily', 'national_100',
+                          'up00', 'bldg0000016')
 
 dwelling_args = {
+    # 'name': 'OCHRE_Test_House'  # simulation name
+
     # Timing parameters
     'start_time': dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
-    'time_res': dt.timedelta(minutes=60),
-    'duration': dt.timedelta(days=365),
-    'initialization_time': dt.timedelta(days=7),
+    'time_res': dt.timedelta(minutes=10),         # time resolution of the simulation
+    'duration': dt.timedelta(days=3),             # duration of the simulation
+    'initialization_time': dt.timedelta(days=1),  # used to create realistic starting temperature
+    'time_zone': None,                            # option to specify daylight savings, in development
 
-    # Input parameters
-    # 'input_path': default_input_path,
-    # 'output_path': default_output_path,
-    'properties_file': properties_name + '_rc_model.properties',
-    'schedule_file': properties_name + '_schedule.properties',
-    'weather_file': weather_name + '.epw',
-    # 'water_draw_file': 'DHW_2bed_unit5_1min.csv',
+    # Input parameters - Sample building (uses HPXML file and time series schedule file)
+    'hpxml_file': os.path.join(default_input_path, 'Input Files', 'sample_resstock_properties.xml'),
+    'schedule_input_file': os.path.join(default_input_path, 'Input Files', 'sample_resstock_schedule.csv'),
 
+    # Input parameters - weather (note weather_path can be used when Weather Station is specified in HPXML file)
+    # 'weather_path': weather_path,
+    'weather_file': os.path.join(default_input_path, 'Weather', 'USA_CO_Denver.Intl.AP.725650_TMY3.epw'),
+    # 'weather_file': os.path.join(default_input_path, 'Weather', 'FortCollins_NSRDB.csv'),
+    
     # Output parameters
-    'save_results': True,
-    'export_res': dt.timedelta(days=61),
-    'verbosity': 9,  # verbosity of results file (1-9)
+    'verbosity': 6,                         # verbosity of time series files (0-9)
+    # 'metrics_verbosity': 6,               # verbosity of metrics file (0-9), default=6
+    # 'save_results': False,                # saves results to files. Defaults to True if verbosity > 0
+    # 'output_path': os.getcwd(),           # defaults to hpxml_file path
+    # 'save_args_to_json': True,            # includes data from this dictionary in the json file
+    'output_to_parquet': True,              # saves time series files as parquet files (False saves as csv files)
+    # 'save_schedule_columns': [],          # list of time series inputs to save to schedule file
+    # 'export_res': dt.timedelta(days=61),  # time resolution for saving files, to reduce memory requirements
 
-    # Other parameters
-    'assume_equipment': True,
-    'uncontrolled_equipment': ['Lighting', 'Exterior Lighting', 'Range', 'Dishwasher', 'Refrigerator',
-                               'Clothes Washer', 'Clothes Dryer', 'MELs'],
-    # 'ext_time_res': dt.timedelta(minutes=15),
+    # Envelope parameters
+    # 'Envelope': {
+    #     'save_results': True,  # Saves detailed envelope inputs and states
+    #     'linearize_infiltration': True,
+    #     'external_radiation_method': 'linear',
+    #     'internal_radiation_method': 'linear',
+    #     'reduced_states': 7,
+    # },
     # 'save_matrices': True,
-    # 'show_eir_shr': True,
-}
 
-# Note: most equipment assumed from properties file
-equipment = {
-    'Air Source Heat Pump': {
-        # 'use_ideal_capacity': True,
+    # Equipment parameters
+    'Equipment': {
+        # HVAC equipment
+        # Note: dictionary key can be end use (e.g., HVAC Heating) or specific equipment name (e.g., Gas Furnace)
+        # 'HVAC Heating': {
+        #     # 'use_ideal_capacity': True,
+        #     # 'show_eir_shr': True,
+        # },
+        # 'Air Conditioner': {
+        #     'speed_type': 'Double',
+        # },
+        # 'Gas Furnace': {
+        #     'heating capacity (W)': 6000,
+        #     # 'supplemental heating capacity (W)': 6000,
+        # },
+
+        # Water heating equipment
+        # Note: dictionary key can be end use (Water Heating) or specific equipment name (e.g., Gas Water Heater)
+        # 'Water Heating': {
+        #     'water_nodes': 1,
+        #     'rc_params': {'R_WH1_AMB': 1,
+        #                 'C_WH1': 1e6},
+        #     'Water Tank': {
+        #         'save_results': True,
+        #     },
+        #     'save_ebm_results': True,
+        # },
+        # 'Heat Pump Water Heater': {
+        #     'HPWH COP': 4.5,
+        #     # 'hp_only_mode': True
+        # },
+        # 'Electric Resistance Water Heater': {
+        #     'use_ideal_capacity': True,
+        # },
+        
+        # Other equipment
+        # 'EV': {
+        #     'vehicle_type': 'PHEV',
+        #     'charging_level': 'Level 1',
+        #     'mileage': 50,
+        # },
+        # 'PV': {
+        #     'capacity': 5,
+        #     'tilt': 20,
+        #     'azimuth': 180,
+        # },
+        # 'Battery': {
+        #     'capacity_kwh': 6,
+        #     'capacity': 3,
+        #     'soc_init': 0.5,
+        #     'zone': 'Indoor',
+        #     # 'control_type': 'Schedule',
+        #     'verbosity': 6,
+        # },
     },
-    # 'Air Conditioner': {
-    #     'speed_type': 'Double'
-    # },
-    # 'Gas Furnace': {
-    #     'heating capacity (W)': 6000,
-    #     # 'supplemental heating capacity (W)': 6000,
-    # },
-    'Heat Pump Water Heater': {
-        'EF': 2.35,
-        # 'hp_only_mode': True
-    },
-    # 'Electric Resistance Water Heater': {
-    #     'use_ideal_capacity': True,
-    # },
-    # 'EV': {
-    #     'vehicle_type': 'PHEV',
-    #     'charging_level': 'Level 1',
-    #     'mileage': 50,
-    # },
-    # 'PV': {
-    #     'capacity': 5,
-    #     # 'tilt': 20,
-    #     # 'azimuth': 180,
-    # },
-    # 'Battery': {
-    #     'capacity_kwh': 6,
-    #     'capacity_kw': 3,
-    #     'control_type': 'Self-Consumption'
-    # },
+
+    # 'modify_hpxml_dict': {},  # Directly modifies values from HPXML input file
+    # 'schedule': {},  # Directly modifies columns from OCHRE schedule file (dict or pandas.DataFrame)
 }
 
 if __name__ == '__main__':
     # Initialization
-    t_start = time.time()
-    dwelling = Dwelling(simulation_name, equipment, **dwelling_args)
-    # cProfile.run("dwelling = Dwelling('Test House', equipment, **default_args)", sort='cumulative')
-    t_1 = time.time()
+    dwelling = Dwelling(**dwelling_args)
 
     # Simulation
-    # df, metrics = dwelling.simulate()
-    cProfile.run('dwelling.simulate()', sort='cumulative')
-    t_2 = time.time()
+    df, metrics, hourly = dwelling.simulate()
 
-    print('time to initialize: {}'.format(t_1 - t_start))
-    print('time to simulate: {}'.format(t_2 - t_1))
-    print('time to for both: {}'.format(t_2 - t_start))
+    # Load results from previous run
+    # output_path = dwelling_args.get('output_path', os.path.dirname(dwelling_args['hpxml_file']))
+    # df, metrics, hourly = Analysis.load_ochre(output_path, simulation_name)
+
+    # Plot results
+    data = {'': df}
+    CreateFigures.plot_all_powers(data)
+    CreateFigures.plot_power_stack(df)
+    # CreateFigures.plot_envelope(data)
+    # CreateFigures.plot_hvac(data)
+    CreateFigures.plt.show()

@@ -3,12 +3,17 @@
 .DS_Store
 
 .idea/
+.vscode/
+.env
 __pycache__/
 src/
 build/
 dist/
 *.egg-info/
+*.code-workspace
+environment.yml
 
+defaults/Input Files/OCHRE Test House*
 outputs/
 test/outputs/
 ochre/Models/SAM_weather_*.csv

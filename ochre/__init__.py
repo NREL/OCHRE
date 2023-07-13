@@ -1,6 +1,6 @@
-__version__ = "0.3.2"
+__version__ = "0.8.1"
 
+from .Simulator import Simulator
 from .Equipment import *
+from .Models import Envelope
 from .Dwelling import Dwelling
-
-default_year = 2019
