@@ -21,8 +21,8 @@ if os.environ.get('NREL_CLUSTER') == 'eagle':
 elif os.name == 'nt':
     weather_path = os.path.join(os.path.expanduser('~'), 'NREL', 'Team OCHRE - General', 'Weather', 
                                 'BuildStock_TMY3_FIPS')
-    os_exec_path = r'C:\openstudio-3.5.0\bin\openstudio.exe'
-    ep_exec_path = r'C:\openstudio-3.5.0\EnergyPlus\energyplus.exe'
+    os_exec_path = r'C:\openstudio-3.6.0\bin\openstudio.exe'
+    ep_exec_path = r'C:\openstudio-3.6.0\EnergyPlus\energyplus.exe'
 else:
     weather_path = os.path.join(os.path.expanduser('~'), 'NREL', 'Team OCHRE - Documents', 'General', 'Weather',
                                 'BuildStock_TMY3_FIPS')
@@ -67,7 +67,7 @@ def add_idf_detailed_outputs(idf_file_in, idf_file_out='modified.idf', schedule_
         if any([s in line for s in idf_output_files_to_include]):
             # Add eio, rdd, and csv files as outputs
             idf[i] = line.replace('No', 'Yes')
-        if '/var/simdata/openstudio/generated_files/schedules' in line:
+        if '/var/simdata/openstudio/run' in line:
             # Replace with schedule file location
             idf[i] = f'  {schedule_input_file}, !- File Name\n'
 
