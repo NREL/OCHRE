@@ -447,9 +447,11 @@ def get_slab_insulation(floor, name=None):
     return insulation
 
 
-def calculate_ashrae_infiltration_params(indoor_infiltration, construction, site, has_flue_or_chimney):
-    ach = indoor_infiltration['BuildingAirLeakage']['AirLeakage']
-    infiltration_height = convert(indoor_infiltration['InfiltrationHeight'], 'ft', 'm')
+def calculate_ashrae_infiltration_params(indoor_inf, construction, site, has_flue_or_chimney=None):
+    assert indoor_inf['HousePressure'] == 50
+    assert indoor_inf['BuildingAirLeakage']['UnitofMeasure'] in ['ACH']  # only allow ACH50, not ACHnatural
+    ach = indoor_inf['BuildingAirLeakage']['AirLeakage']
+    infiltration_height = convert(indoor_inf['InfiltrationHeight'], 'ft', 'm')
 
     # get shelter coefficient based on site shielding
     # see ResStock airflow.get_aim2_shelter_coefficient

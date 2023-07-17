@@ -136,7 +136,7 @@ class Dwelling(Simulator):
             if len(eq) > 1:
                 if end_use in ['HVAC Heating', 'HVAC Cooling', 'Water Heating']:
                     raise Exception(f'More than 1 equipment defined for {end_use}: {eq}')
-                elif end_use != 'Other':
+                elif end_use not in ['Lighting', 'Other']:
                     self.warn(f'More than 1 equipment defined for {end_use}: {eq}')
 
         for name, eq in self.equipment.items():

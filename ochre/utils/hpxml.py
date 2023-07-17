@@ -302,7 +302,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     all_windows = get_boundaries_by_zones(enclosure.get('Windows', {}))
     windows = all_windows.pop(('Indoor', 'Outdoor'), {})
     assert not all_windows  # verifies that all boundaries are accounted for
-    
+
     # Get doors
     all_doors = get_boundaries_by_zones(enclosure.get('Doors', {}))
     doors = all_doors.pop(('Indoor', 'Outdoor'), {})
@@ -311,8 +311,10 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     # subtract window and door area from walls
     for opening in {**windows, **doors}.values():
         azimuth = opening['Azimuth']
-        wall = [wall for wall in ext_walls.values() if wall['Azimuth'] == azimuth][0]
-        wall['Area'] -= opening['Area']
+        walls = [wall for wall in ext_walls.values() if wall['Azimuth'] == azimuth]
+        if walls:
+            wall = walls[0]
+            wall['Area'] -= opening['Area']
 
     boundaries = {
         'Exterior Wall': ext_walls,
@@ -360,7 +362,6 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
         if bd_name == 'Garage Attached Wall':
             boundaries[bd_name]['Finish Type'] = boundaries['Exterior Wall']['Finish Type']
 
-
     # Get main floor area - should have only 1 main floor boundary option
     main_floor_options = ['Floor', 'Foundation Floor', 'Raised Floor', 'Adjacent Floor']
     main_floor_areas = [area for floor_option in main_floor_options
@@ -395,19 +396,15 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     return boundaries, construction_dict
 
 
-def add_indoor_infiltration(hpxml, construction, equipment):
-    # indoor infiltration parameters
+def parse_indoor_infiltration(hpxml, construction, equipment):
+    # get infiltration data from HPXML
     enclosure = hpxml['Enclosure']
+    indoor_infiltration = enclosure['AirInfiltration']
+    inf = indoor_infiltration['AirInfiltrationMeasurement']
     site = hpxml['BuildingSummary']['Site']
     
-    # get infiltration data from HPXML
-    assert len(enclosure['AirInfiltration']) == 1
-    indoor_infiltration = list(enclosure['AirInfiltration'].values())[0]
-    assert indoor_infiltration['BuildingAirLeakage']['UnitofMeasure'] in ['ACH']  # only allow ACH50, not ACHnatural
-    assert indoor_infiltration['HousePressure'] == 50
-
     # Check if house has a flue or chimney
-    has_flue_or_chimney = hpxml['BuildingSummary']['BuildingConstruction'].get('extension', {}).get('HasFlueOrChimney')
+    has_flue_or_chimney = indoor_infiltration.get('extension', {}).get('HasFlueOrChimney')
     if has_flue_or_chimney is None:
         heater = equipment.get('HVAC Heating', {})
         gas_heater = heater.get('Fuel', 'Electricity') != 'Electricity' and (1 / heater.get('EIR (-)', 1)) < 0.89
@@ -415,8 +412,7 @@ def add_indoor_infiltration(hpxml, construction, equipment):
         gas_wh = wh.get('Fuel', 'Electricity') != 'Electricity' and wh.get('Energy Factor (-)', 1) < 0.63
         has_flue_or_chimney = gas_heater or gas_wh
 
-    return utils_envelope.calculate_ashrae_infiltration_params(indoor_infiltration, construction, site,
-                                                               has_flue_or_chimney)
+    return utils_envelope.calculate_ashrae_infiltration_params(inf, construction, site, has_flue_or_chimney)
 
 
 def parse_hpxml_zones(hpxml, boundaries, construction):
@@ -467,7 +463,7 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
         attic = attics[0]
 
         # Get gable wall areas for attic and (possibly) garage
-        attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) + 
+        attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
                             boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', []))
         if not has_garage and len(attic_wall_areas) == 2:
             assert abs(attic_wall_areas[1] - attic_wall_areas[0]) < 0.2  # computational errors possible
@@ -682,6 +678,12 @@ def parse_hvac(hvac_type, hvac_all):
 
     # Main HVAC parameters
     name = hvac['HeatPumpType'] if has_heat_pump else hvac[f'{hvac_type}SystemType']
+    if isinstance(name, dict):
+        # HVAC heating has different structure, ignroring pilot light for now
+        assert len(name) == 1
+        name, data = list(name.items())[0]
+        # pilot = data.get('PilotLight', False)
+        # pilot_rate = data.get('extension', {}).get('PilotLightBtuh', 500)
     fuel = hvac['HeatPumpFuel'] if has_heat_pump else hvac.get(f'{hvac_type}SystemFuel')
     capacity = convert(hvac[f'{hvac_type}Capacity'], 'Btu/hour', 'W')
     space_fraction = hvac.get(f'Fraction{hvac_type[:-3]}LoadServed', 1.0)
@@ -730,7 +732,7 @@ def parse_hvac(hvac_type, hvac_all):
         # see also ANSI/RESNET/ICC 301-2019 Equation 4.4-5
         aux_power = hvac.get('ElectricAuxiliaryEnergy', 0) / 2080 * 1000  # converts kWh/year to W
     elif 'FanPowerWattsPerCFM' in hvac_ext:
-        # Note: air flow rate is only used for non-dymanic HVAC models with fans, e.g., furnaces 
+        # Note: air flow rate is only used for non-dymanic HVAC models with fans, e.g., furnaces
         # airflow_cfm = hvac_ext.get(f'{hvac_type}AirflowCFM', 0)
         cfm_per_ton = 350 if is_heater else 312
         power_per_cfm = hvac_ext.get('FanPowerWattsPerCFM', 0)
@@ -838,7 +840,8 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     is_electric = water_heater['FuelType'] == 'electricity'
     energy_factor = water_heater.get('EnergyFactor')
     uniform_energy_factor = water_heater.get('UniformEnergyFactor')
-    n_bedrooms = construction['Number of Bedrooms, Adjusted (-)']
+    n_beds = construction['Number of Bedrooms (-)']
+    n_beds_adj = construction['Number of Bedrooms, Adjusted (-)']
 
     # For tank water heaters only (HPWH does not include some of these)
     volume_gal = water_heater.get('TankVolume')  # in gallons
@@ -969,14 +972,14 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
         cop = 1.174536058 * uniform_energy_factor  # Based on simulation of the UEF test procedure at varying COPs
         wh['HPWH COP (-)'] = cop
     if water_heater_type == 'instantaneous water heater' and wh['Fuel'] != 'Electricity':
-        on_time_frac = [0.0269, 0.0333, 0.0397, 0.0462, 0.0529][n_bedrooms - 1]
+        on_time_frac = [0.0269, 0.0333, 0.0397, 0.0462, 0.0529][n_beds - 1]
         wh['Parasitic Power (W)'] = 5 + 60 * on_time_frac
 
     # Add water draw parameters (clothes washer and dishwasher added later)
     # From ResStock, ANSI/RESNET 301-2014 Addendum A-2015, Amendment on Domestic Hot Water (DHW) Systems
     assert water_heater['FractionDHWLoadServed'] == 1
     extension = water.get('extension', {})
-    fixture_usage_ref = 14.6 + 10.0 * n_bedrooms  # in gal/day
+    fixture_usage_ref = 14.6 + 10.0 * n_beds_adj  # in gal/day
     fixture_eff = 0.95 if list(water.get('WaterFixture', {}).values())[0].get('LowFlow', False) else 1.0
     fixture_multiplier = extension.get('WaterFixturesUsageMultiplier')
     fixture_gal_per_day = fixture_eff * fixture_usage_ref * fixture_multiplier
@@ -1009,7 +1012,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
         distribution_factor = 1.0
         p_ratio = 1.0
         wd_eff = 1.0
-    ref_w_gpd = 9.8 * (n_bedrooms ** 0.43)
+    ref_w_gpd = 9.8 * (n_beds_adj ** 0.43)
     o_frac = 0.25
     o_cd_eff = 0.0
     o_w_gpd = ref_w_gpd * o_frac * (1.0 - o_cd_eff)
@@ -1254,26 +1257,35 @@ def parse_lighting(location, df_lights, floor_area, extension=None):
     if extension is None:
         extension = {}
 
-    fractions = df_lights.loc[df_lights['Location'] == location, 'FractionofUnitsInLocation'].to_dict()
-    f_led = fractions['LightEmittingDiode']
-    f_flr = fractions['CompactFluorescent'] + fractions['FluorescentTube']
-    f_inc = 1 - f_led - f_flr
-    area_ft2 = convert(floor_area, 'm^2', 'ft^2')
-    e_led = 15 / 90
-    e_flr = 15 / 60
-    e_inc = 15 / 15
+    if 'LightingType' in df_lights:
+        # Fractions of each lighting type specified
+        fractions = df_lights.set_index('LightingType')['FractionofUnitsInLocation'].to_dict()
 
-    if location == 'interior':
-        int_adj = f_inc * e_inc + f_flr * e_flr + f_led * e_led
-        annual_kwh = (0.9 / 0.925 * (455.0 + 0.8 * area_ft2) * int_adj) + (0.1 * (455.0 + 0.8 * area_ft2))
-    elif location == 'exterior':
-        ext_adj = f_inc * e_inc + f_flr * e_flr + f_led * e_led
-        annual_kwh = (100.0 + 0.05 * area_ft2) * ext_adj
-    elif location == 'garage':
-        grg_adj = f_inc * e_inc + f_flr * e_flr + f_led * e_led
-        annual_kwh = 100.0 * grg_adj
+        f_led = fractions['LightEmittingDiode']
+        f_flr = fractions['CompactFluorescent'] + fractions['FluorescentTube']
+        f_inc = 1 - f_led - f_flr
+        area_ft2 = convert(floor_area, 'm^2', 'ft^2')
+        e_led = 15 / 90
+        e_flr = 15 / 60
+        e_inc = 15 / 15
+
+        if location == 'interior':
+            int_adj = f_inc * e_inc + f_flr * e_flr + f_led * e_led
+            annual_kwh = (0.9 / 0.925 * (455.0 + 0.8 * area_ft2) * int_adj) + (0.1 * (455.0 + 0.8 * area_ft2))
+        elif location == 'exterior':
+            ext_adj = f_inc * e_inc + f_flr * e_flr + f_led * e_led
+            annual_kwh = (100.0 + 0.05 * area_ft2) * ext_adj
+        elif location == 'garage':
+            grg_adj = f_inc * e_inc + f_flr * e_flr + f_led * e_led
+            annual_kwh = 100.0 * grg_adj
+        else:
+            raise Exception(f'Unknown lighting location: {location}')
+        
     else:
-        raise Exception(f'Unknown lighting location: {location}')
+        # Annual kWh specified
+        load = df_lights['Load']
+        assert load['Units'] == 'kWh/year'
+        annual_kwh = load['Value']
 
     # TODO: get default fractions/multipliers for lighting
     lights = {
@@ -1336,6 +1348,7 @@ def parse_mels(mel_dict, is_gas=False):
         mels[ochre_name] = parse_mel(mel, load_name, is_gas=is_gas)
 
     return mels
+
 
 def parse_ev(ev):
     # create EV equipment from MEL info
@@ -1440,19 +1453,23 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     lighting = hpxml.get('Lighting', {})
     lighting_group = lighting.get('LightingGroup')
     if lighting_group is not None:
-        assert len(lighting_group) == 9
-        df_lights = pd.DataFrame(lighting_group).T.set_index('LightingType')
+        df_lights_all = pd.DataFrame(lighting_group).T
         extension = lighting.get('extension', {})
-        equipment['Indoor Lighting'] = parse_lighting('interior', df_lights, construction['Indoor Floor Area (m^2)'], 
-                                                      extension)
-        equipment['Exterior Lighting'] = parse_lighting('exterior', df_lights, construction['Indoor Floor Area (m^2)'],
-                                                        extension)
-        if construction['Garage Floor Area (m^2)'] > 0:
-            equipment['Garage Lighting'] = parse_lighting('garage', df_lights, construction['Garage Floor Area (m^2)'],
-                                                          extension)
-        if construction['Foundation Type'] == 'Finished Basement':
-            equipment['Basement Lighting'] = parse_lighting('interior', df_lights, construction['First Floor Area (m^2)'],
-                                                            extension)
+        for loc, df_lights in df_lights_all.groupby('Location'):
+            if loc == 'interior':
+                equipment['Indoor Lighting'] = parse_lighting(loc, df_lights,
+                                                              construction['Indoor Floor Area (m^2)'], extension)
+                if construction['Foundation Type'] == 'Finished Basement':
+                    equipment['Basement Lighting'] = parse_lighting(loc, df_lights, 
+                                                                    construction['First Floor Area (m^2)'], extension)
+            elif loc == 'exterior':
+                equipment['Exterior Lighting'] = parse_lighting(loc, df_lights,
+                                                                construction['Indoor Floor Area (m^2)'], extension)
+            elif loc == 'garage' and construction['Garage Floor Area (m^2)'] > 0:
+                equipment['Garage Lighting'] = parse_lighting(loc, df_lights, 
+                                                              construction['Garage Floor Area (m^2)'], extension)
+            else:
+                raise IOError(f'Unused lighting location: {loc}')
 
     # Get plug loads and fuel loads, some strange behavior depending on number of MELs/MGLs
     misc_loads = hpxml.get('MiscLoads', {})
@@ -1525,7 +1542,7 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
 
     # update indoor zone infiltration (depends on equipment)
     # TODO: move to Envelope.init to get weather information (for air density)
-    zones['Indoor'].update(add_indoor_infiltration(hpxml, construction, equipment_dict))
+    zones['Indoor'].update(parse_indoor_infiltration(hpxml, construction, equipment_dict))
 
     # combine all HPXML properties
     properties = {
