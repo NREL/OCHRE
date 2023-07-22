@@ -451,7 +451,8 @@ def calculate_ashrae_infiltration_params(indoor_inf, construction, site, has_flu
     assert indoor_inf['HousePressure'] == 50
     assert indoor_inf['BuildingAirLeakage']['UnitofMeasure'] in ['ACH']  # only allow ACH50, not ACHnatural
     ach = indoor_inf['BuildingAirLeakage']['AirLeakage']
-    infiltration_height = convert(indoor_inf['InfiltrationHeight'], 'ft', 'm')
+    infiltration_height_ft = indoor_inf['InfiltrationHeight']
+    infiltration_height = convert(infiltration_height_ft, 'ft', 'm')
 
     # get shelter coefficient based on site shielding
     # see ResStock airflow.get_aim2_shelter_coefficient
@@ -545,7 +546,7 @@ def calculate_ashrae_infiltration_params(indoor_inf, construction, site, has_flu
     else:
         f_i = 0  # Additive flue function (eq. 12)
     f_s = ((1 + n_i * r_i) / (n_i + 1)) * (0.5 - 0.5 * m_i ** 1.2) ** (n_i + 1) + f_i
-    stack_coef = f_s * (convert(outside_air_density * g * infiltration_height, 'pounds/ft/s^2', 'inch_H2O_39F') /
+    stack_coef = f_s * (convert(outside_air_density * g * infiltration_height_ft, 'pounds/ft/s^2', 'inch_H2O_39F') /
                         (assumed_indoor_temp + 460)) ** n_i  # inH2O^n/R^n
     inf_Cs = stack_coef * convert(1, 'inch_H2O_39F/degR', 'Pa/K') ** n_i
 

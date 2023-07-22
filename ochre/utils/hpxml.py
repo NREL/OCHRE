@@ -404,8 +404,9 @@ def parse_indoor_infiltration(hpxml, construction, equipment):
     site = hpxml['BuildingSummary']['Site']
     
     # Check if house has a flue or chimney
-    has_flue_or_chimney = indoor_infiltration.get('extension', {}).get('HasFlueOrChimney')
+    has_flue_or_chimney = indoor_infiltration.get('extension', {}).get('HasFlueOrChimneyInConditionedSpace')
     if has_flue_or_chimney is None:
+        # TODO: equipment has to be in conditioned space (indoor or conditioned basement)
         heater = equipment.get('HVAC Heating', {})
         gas_heater = heater.get('Fuel', 'Electricity') != 'Electricity' and (1 / heater.get('EIR (-)', 1)) < 0.89
         wh = equipment.get('Water Heating', {})
@@ -633,9 +634,9 @@ def parse_hpxml_envelope(hpxml, occupancy, **house_args):
     house_type = construction['House Type']
     n_occupants = occupancy['Number of Occupants (-)']
     if house_type in ['single-family detached', 'manufactured home']:
-        n_bedrooms_adj = -0.68 + 1.09 * n_occupants
+        n_bedrooms_adj = max(-0.68 + 1.09 * n_occupants, 0)
     elif house_type in ['single-family attached', 'apartment unit']:
-        n_bedrooms_adj = -1.47 + 1.69 * n_occupants
+        n_bedrooms_adj = max(-1.47 + 1.69 * n_occupants, 0)
     else:
         raise Exception(f'Unknown house type: {house_type}')
     construction['Number of Bedrooms, Adjusted (-)'] = n_bedrooms_adj

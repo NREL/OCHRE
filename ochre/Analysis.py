@@ -294,7 +294,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
         ]
         for result_name, metric_name in component_load_names:
             if result_name in results:
-                metrics[metric_name] = -results[result_name].sum() * hr_per_step
+                metrics[metric_name] = -results[result_name].sum() * hr_per_step / 1000
 
     # HVAC metrics
     if metrics_verbosity >= 4:
