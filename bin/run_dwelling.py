@@ -12,15 +12,11 @@ pd.set_option('expand_frame_repr', False)  # Keeps results on 1 line
 pd.set_option('display.max_rows', 30)      # Shows up to 30 rows of data
 # pd.set_option('max_columns', None)       # Prints all columns
 
-weather_path = os.path.join(os.path.expanduser('~'), 'NREL', 'Team OCHRE - General', 'Weather', 'BuildStock_TMY3_FIPS')
-teams_path = os.path.join(os.path.expanduser('~'), 'NREL', 'Team OCHRE - Validation', 'Multifamily', 'national_100',
-                          'up00', 'bldg0000016')
-
 dwelling_args = {
     # 'name': 'OCHRE_Test_House'  # simulation name
 
     # Timing parameters
-    'start_time': dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+    'start_time': dt.datetime(2018, 7, 1, 0, 0),  # year, month, day, hour, minute
     'time_res': dt.timedelta(minutes=10),         # time resolution of the simulation
     'duration': dt.timedelta(days=3),             # duration of the simulation
     'initialization_time': dt.timedelta(days=1),  # used to create realistic starting temperature
@@ -32,9 +28,9 @@ dwelling_args = {
 
     # Input parameters - weather (note weather_path can be used when Weather Station is specified in HPXML file)
     # 'weather_path': weather_path,
-    'weather_file': os.path.join(default_input_path, 'Weather', 'USA_CO_Denver.Intl.AP.725650_TMY3.epw'),
+    'weather_file': os.path.join(default_input_path, 'Input Files', 'sample_resstock_weather.epw'),
     # 'weather_file': os.path.join(default_input_path, 'Weather', 'FortCollins_NSRDB.csv'),
-    
+
     # Output parameters
     'verbosity': 6,                         # verbosity of time series files (0-9)
     # 'metrics_verbosity': 6,               # verbosity of metrics file (0-9), default=6
@@ -89,7 +85,7 @@ dwelling_args = {
         # 'Electric Resistance Water Heater': {
         #     'use_ideal_capacity': True,
         # },
-        
+
         # Other equipment
         # 'EV': {
         #     'vehicle_type': 'PHEV',

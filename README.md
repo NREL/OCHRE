@@ -14,7 +14,7 @@ Note that OCHRE requires Python version 3.9 or higher
 For a stand-alone installation, OCHRE can be installed using `pip` from the command line:
 
 ```
-pip install git+https://github.nrel.gov/Customer-Modeling/ochre.git@dev
+pip install git+https://github.com/NREL/OCHRE
 ```
 
 Alternatively, you can download the repo and run the `setup.py` file:
@@ -29,7 +29,7 @@ project and include the following lines:
 ```
 dependencies:
   - pip:
-    - git+https://github.nrel.gov/Customer-Modeling/ochre
+    - git+https://github.com/NREL/OCHRE
 ```
 
 
