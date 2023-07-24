@@ -328,7 +328,7 @@ class Zone:
                 t_base = convert(73, 'degF', 'degC')
             # max_oa_rh = 0.7 # Note: removing check for max RH
             run_nat_vent = (w_amb < max_oa_hr) and (t_zone > t_ext) and (t_zone > t_base)
-            if run_nat_vent:
+            if run_nat_vent and self.open_window_area is not None:
                 area = self.open_window_area * 0.6
                 nat_vent_area = convert(area, 'ft^2', 'cm^2')
                 max_nat_flow = convert(20 * self.volume, 'm^3/hr', 'm^3/s')  # max 20 ACH
