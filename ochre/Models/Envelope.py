@@ -1022,7 +1022,7 @@ class Envelope(RCModel):
 
         # add internal gains
         # take directly from outputs
-        pass
+        return {}
 
     def generate_results(self):
         # Note: most results are included in Dwelling/HVAC. Only inputs and states are saved to self.results

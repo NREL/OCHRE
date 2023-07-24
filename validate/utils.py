@@ -12,12 +12,12 @@ from ochre.utils import default_input_path, import_hpxml
 # test_suite_output_path = os.path.join(test_suite_path, 'outputs')
 metrics_criteria_file = os.path.join(os.path.dirname(__file__), 'metrics_criteria.csv')
 df_criteria = pd.read_csv(metrics_criteria_file, index_col='Metric')
-df_criteria = df_criteria.drop(columns=['Metric Category', 'Metric Verbosity', 'Description'])
+df_criteria = df_criteria.drop(columns=['Metric Category', 'Metric Verbosity', 'Include in Docs', 'Description'])
 
 if os.environ.get('NREL_CLUSTER') == 'eagle':
     weather_path = '/projects/novametrics/weather'
-    os_exec_path = None  # TODO: get executables on eagle
-    ep_exec_path = '/shared-projects/EnergyPlus/v22.1.0/build/Products/energyplus'
+    os_exec_path = None  # TODO: get executable on eagle
+    ep_exec_path = '/shared-projects/EnergyPlus/v23.1.0/build/Products/energyplus'
 elif os.name == 'nt':
     weather_path = os.path.join(os.path.expanduser('~'), 'NREL', 'Team OCHRE - General', 'Weather', 
                                 'BuildStock_TMY3_FIPS')
@@ -26,7 +26,7 @@ elif os.name == 'nt':
 else:
     weather_path = os.path.join(os.path.expanduser('~'), 'NREL', 'Team OCHRE - Documents', 'General', 'Weather',
                                 'BuildStock_TMY3_FIPS')
-    os_exec_path = '/Applications/OpenStudio-3.4.0/bin/openstudio'
+    os_exec_path = '/Applications/OpenStudio-3.6.0/bin/openstudio'
     ep_exec_path = '/Applications/EnergyPlus/bin'
 
 # os_workflow_path = '/OpenStudio-HPXML/workflow'
@@ -248,7 +248,7 @@ def pass_fail_metrics(folder, simulation_name=None, show_metrics=True, keep_comp
     if show_metrics:
         print('')
         print(f'{simulation_name} Test: {msg}')
-        print(compare_metrics)
+        print(compare_metrics.round(3))
         print('')
 
     mod_time = dt.datetime.fromtimestamp(os.path.getmtime(comparison_file))
