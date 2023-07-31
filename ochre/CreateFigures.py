@@ -561,12 +561,12 @@ def plot_end_use_powers(dfs_to_plot, **kwargs):
 
 def plot_all_powers(dfs_to_plot, **kwargs):
     # plot individual equipment powers
-    for fuel_text, axis in zip([' Electric Power (kW)', ' Gas Power (therms/hour)'], [True, False]):
+    for fuel_text in [' Electric Power (kW)', ' Gas Power (therms/hour)']:
         cols = list({col for df in dfs_to_plot.values() for col in df.columns if fuel_text in col})
         labels = {col.replace(fuel_text, ''): col for col in cols}
         labels.pop('Total', None)
         labels.pop('Other', None)
-        plot_info = [(col, label, None, axis) for label, col in labels.items()]
+        plot_info = [(col, label, None) for label, col in labels.items()]
         fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
         if ax1 is not None:
             ax1.set_ylabel(fuel_text[1:])

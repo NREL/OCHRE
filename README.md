@@ -43,7 +43,7 @@ Below is a simple example of simulating a dwelling:
 import datetime as dt
 from ochre import Dwelling
 house = Dwelling(simulation_name, 
-                 start_time=dt.datetime(2018, 5, 1, 0, 0),
+                 start_time=dt.datetime(2018, 1, 1, 0, 0),
                  time_res=dt.timedelta(minutes=10),       
                  duration=dt.timedelta(days=3),
                  properties_file='sample_resstock_house.xml',
