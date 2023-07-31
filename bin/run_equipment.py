@@ -219,7 +219,7 @@ def run_equipment_from_house_model():
 
     # If necessary, update equipment schedule
     assert equipment.schedule is None
-    equipment.schedule = pd.DataFrame({'Zone Temperature (C)': 20}, index=dwelling.envelope.schedule.index)
+    equipment.model.schedule['Zone Temperature (C)'] = 20
     equipment.reset_time()
 
     # Simulate equipment
@@ -227,9 +227,11 @@ def run_equipment_from_house_model():
 
 
 if __name__ == '__main__':
-    # run_battery()
+    # Choose a scenario to run:
+    
+    run_battery()
     # run_battery_controlled()
-    run_water_heater()
-    run_hvac()
+    # run_water_heater()
+    # run_hvac()
     # run_ev()
     # run_equipment_from_house_model()
