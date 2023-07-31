@@ -50,6 +50,8 @@ setup(name='ochre',
       description='A residential energy model with controllable equipment and DERs for building-to-grid co-simulation',
       author='Jeff Maguire',
       author_email='Jeff.Maguire@nrel.gov',
+      maintainer='Michael Blonsky',
+      maintainer_email='Michael.Blonsky@nrel.gov'
       url='https://github.com/NREL/OCHRE',
       packages=['ochre', 'ochre.utils', 'ochre.Equipment', 'ochre.Models'],
       python_requires='>=3.9',

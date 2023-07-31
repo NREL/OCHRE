@@ -10,7 +10,7 @@ from ochre import Dwelling, Analysis
 
 # Script to run multiple simulations. Assumes each simulation has a unique folder with all required inputs
 
-# Download weather files from: https://data.nrel.gov/submissions/156
+# Download weather files from: https://data.nrel.gov/submissions/156 or https://energyplus.net/weather
 weather_path = os.path.join('path', 'to', 'weather_files')
 
 dwelling_args = {
