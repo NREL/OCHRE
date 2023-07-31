@@ -284,7 +284,8 @@ class Zone:
         # get window area in zone, for natural ventilation
         # fractions based on operable windows, open window area fraction, and % of windows actually open
         window_area = sum([s.area for s in self.surfaces if s.boundary_name == 'Window'])
-        self.open_window_area = window_area * 0.67 * 0.5 * 0.2  # in m^2
+        if window_area > 0:
+            self.open_window_area = window_area * 0.67 * 0.5 * 0.2  # in m^2
 
     def update_infiltration(self, t_ext, t_zone, wind_speed, density, w_amb=0, h_limit=None, vent_cfm=0, t_base=None):
         # Calculates flow rate and heat gain from infiltration and ventilation (forced and natural)
