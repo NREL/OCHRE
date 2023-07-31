@@ -12,28 +12,19 @@ OCHRE equipment using multiple control methods.
 Below is a simple example that will create a battery model and discharge
 it at 5 kW.
 
-\``\`
-
-battery = Battery(capacity_kwh=10, # energy capacity = 10 kWh
-
-capacity=5, # power capacity = 5 kW
-
-soc_init=1, # Initial SOC=100%
-
-start_time=dt.datetime(2018, 1, 1, 0, 0),
-
-time_res=dt.timedelta(minutes=15),
-
-duration=dt.timedelta(days=1),
-
-)
-
-control_signal = {'P Setpoint': -5} # Discharge at 5 kW
-
-status = battery.update(control_signal) # Run for 1 time step with
-control signal
-
-\``\`
+.. code-block:: python
+    battery = Battery(capacity_kwh=10, # energy capacity = 10 kWh
+    capacity=5, # power capacity = 5 kW
+    soc_init=1, # Initial SOC=100%
+    start_time=dt.datetime(2018, 1, 1, 0, 0),
+    time_res=dt.timedelta(minutes=15),
+    duration=dt.timedelta(days=1),
+    )
+    
+    control_signal = {'P Setpoint': -5} # Discharge at 5 kW
+    
+    status = battery.update(control_signal) # Run for 1 time step with
+    control signal
 
 The following table lists the control signals available to OCHRE
 equipment, by end use.
@@ -169,11 +160,8 @@ the grid voltage.
 
 The following code sends a voltage of 0.97 p.u. to a Dwelling model:
 
-\``\`
-
-status = dwelling.update(ext_model_args={‘Voltage (-)’: 0.97})
-
-\``\`
+.. code-block:: python
+    status = dwelling.update(ext_model_args={‘Voltage (-)’: 0.97})
 
 External model signals can also modify any time series schedule values
 including weather and occupancy variables. The names and units of these
@@ -184,10 +172,10 @@ simulation; see notebooks/… for more details.
 Status Variables
 ----------------
 
-The \`update\` function for equipment and dwellings returns a Python
+The ``update`` function for equipment and dwellings returns a Python
 dictionary with status variables that can be sent to the external
 controller. These status variables are equivalent to the Time Series
-Outputs described in Outputs and Analysis. Note that the \`verbosity\`
+Outputs described in Outputs and Analysis. Note that the ``verbosity``
 applies to the status variables in the same way as the outputs.
 
 Example Use Case – Dwelling

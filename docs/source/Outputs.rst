@@ -4,8 +4,8 @@ Outputs and Analysis
 At the end of any OCHRE simulation, time series outputs are saved. These
 time series outputs are used to calculate metrics that describe the
 simulation results. The set of time series outputs depends on the
-\`verbosity\` of the simulation, and the set of metrics depends on the
-\`metrics_verbosity\`. The tables below describe the Dwelling and
+``verbosity``` of the simulation, and the set of metrics depends on the
+``metrics_verbosity``. The tables below describe the Dwelling and
 Equipment-specific outputs and metrics that are reported.
 
 Dwelling Time Series Outputs
@@ -398,64 +398,43 @@ results over the simulation period (generally a year in most use cases).
 Data Analysis
 -------------
 
-The \`Analysis\` module has useful data analysis functions for OCHRE
+The ``Analysis`` module has useful data analysis functions for OCHRE
 output data:
 
-\``\`
+.. code-block:: python
+    from ochre import Analysis
+    
+    # load existing ochre simulation data
+    df, metrics, df_hourly = Analysis.load_ochre(folder)
+    # calculate metrics from a pandas DataFrame
+    metrics = Analysis.calculate_metrics(df)
 
-from ochre import Analysis
 
-# load existing ochre simulation data
-
-df, metrics, df_hourly = Analysis.load_ochre(folder)
-
-# calculate metrics from a pandas DataFrame
-
-metrics = Analysis.calculate_metrics(df)
-
-\``\`
 
 Some analysis functions are useful for analyzing or combining results
 from multiple OCHRE simulations:
 
-\``\`
-
-# Combine OCHRE metrics files from multiple simulations (in subfolders
-of path)
-
-df_metrics = Analysis.combine_metrics_files(path=path)
-
-# Combine 1 output column from multiple OCHRE simulations into a single
-DataFrame
-
-results_files = Analysis.find_files_from_ending(path, ‘ochre.csv’)
-
-df_powers = Analysis.combine_time_series_column(results_files, 'Total
-Electric Power (kW)')
-
-\``\`
+.. code-block:: python
+    # Combine OCHRE metrics files from multiple simulations (in subfolders of path)
+    df_metrics = Analysis.combine_metrics_files(path=path)
+    
+    # Combine 1 output column from multiple OCHRE simulations into a single DataFrame
+    results_files = Analysis.find_files_from_ending(path, ‘ochre.csv’)
+    df_powers = Analysis.combine_time_series_column(results_files, 'Total Electric Power (kW)')
 
 Data Visualization
 ------------------
 
-The \`CreateFigures\` module has useful visualization functions for
+The ``CreateFigures`` module has useful visualization functions for
 OCHRE output data:
 
-\``\`
-
-from ochre import Analysis, CreateFigures
-
-df, metrics, df_hourly = Analysis.load_ochre(folder)
-
-# Create standard HVAC output plots
-
-CreateFigures.plot_hvac(df)
-
-# Create stacked plot of power by end use
-
-CreateFigures.plot_power_stack(df)
-
-\``\`
+.. code-block:: python
+    from ochre import Analysis, CreateFigures
+    df, metrics, df_hourly = Analysis.load_ochre(folder)
+    # Create standard HVAC output plots
+    CreateFigures.plot_hvac(df)
+    # Create stacked plot of power by end use
+    CreateFigures.plot_power_stack(df)
 
 Many functions work on any generic pandas DataFrame with a
 DateTimeIndex.

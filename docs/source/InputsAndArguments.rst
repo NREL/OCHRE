@@ -120,15 +120,11 @@ Dwelling Arguments
 
 A Dwelling model can be initialized using:
 
-\``\`
+.. code-block:: python
+   from OCHRE import Dwelling
+   house = Dwelling(\**dwelling_args)
 
-from OCHRE import Dwelling
-
-house = Dwelling(\**dwelling_args)
-
-\``\`
-
-where \`dwelling_args\` is a Python dictionary of Dwelling arguments.
+where ``dwelling_args`` is a Python dictionary of Dwelling arguments.
 
 The table below lists the required arguments for creating a Dwelling
 model.
@@ -293,15 +289,14 @@ Equipment-specific Arguments
 An Equipment model can be initialized in a very similar way to a
 Dwelling. For example, to initialize a battery:
 
-\``\`
 
-from OCHRE import Battery
 
-equipment = Battery(name, \**equipment_args)
+.. code-block:: python
+   from OCHRE import Battery
+   equipment = Battery(name, \**equipment_args)
 
-\``\`
 
-where \` equipment_args\` is a Python dictionary of Equipment arguments.
+where equipment_args is a Python dictionary of Equipment arguments.
 A full set of the equipment classes available are listed in this
 section, by end use.
 
