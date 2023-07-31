@@ -32,8 +32,7 @@ equipment, by end use.
 +----------+-----------+-----+---------------------------------------+
 | End Use  | Control   | Un  | Description                           |
 | or       | Command   | its |                                       |
-| E        |           |     |                                       |
-| quipment |           |     |                                       |
+| Equipment|           |     |                                       |
 | Name     |           |     |                                       |
 +==========+===========+=====+=======================================+
 | HVAC     | Load      | un  | 1 (no effect) or 0 (forces equipment  |
