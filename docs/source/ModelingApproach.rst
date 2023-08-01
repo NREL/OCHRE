@@ -60,7 +60,7 @@ sky temperature. An example of how surfaces are split into a
 corresponding RC network is shown below.
 
 .. image:: https://github.com/NREL/OCHRE/blob/documentation/docs/source/images/Wall_RC_Network.png
-  :width: 500
+  :width: 800
   :alt: Schematic of how RC networks are generated for each surface
 
 The full RC network for the building is generated dynamically depending
