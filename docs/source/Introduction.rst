@@ -73,11 +73,11 @@ Below is a simple example to simulate a dwelling:
 
 This will return 3 variables:
 
-\* ``df``: a Pandas DataFrame with 10 minute resolution
+\- ``df``: a Pandas DataFrame with 10 minute resolution
 
-\* ``metrics``: a dictionary of energy metrics
+\- ``metrics``: a dictionary of energy metrics
 
-\* ``hourly``: a Pandas DataFrame with 1 hour resolution (``verbosity >= 3``
+\- ``hourly``: a Pandas DataFrame with 1 hour resolution (``verbosity >= 3``
 only)
 
 OCHRE can also be used to model a specific piece of equipment so long as
@@ -88,22 +88,22 @@ temperature, and mains temperature are defined.
 For more examples, see the following python scripts in the ``bin``
 folder:
 
-\- Run a single dwelling: ``bin/run_dwelling.py``
+\- Run a single dwelling: https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py
 
-\- Run a single piece of equipment: ``bin/run_equipment.py``
+\- Run a single piece of equipment: https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py
 
-\- Run a dwelling with an external controller: ``bin/run_external_control.py``
+\- Run a dwelling with an external controller: https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py
 
-\- Run multiple dwellings: ``bin/run_multiple.py``
+\- Run multiple dwellings: https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py
 
-\- Run a fleet of equipment: ``bin/run_fleet.py``
+\- Run a fleet of equipment: https://github.com/NREL/OCHRE/blob/main/bin/run_fleet.py
 
 License
 -------
 
 This project is available under a BSD-3-like license, which is a free,
 open-source, and permissive license. For more information, check out the license file:
-<https://github.nrel.gov/Customer-Modeling/ochre/blob/main/LICENSE>
+https://github.com/NREL/OCHRE/blob/main/LICENSE
 
 Citation and Publications
 -------------------------
