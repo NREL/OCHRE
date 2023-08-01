@@ -34,7 +34,7 @@ dwelling_args = {
     'verbosity': 6,                         # verbosity of time series files (0-9)
     # 'metrics_verbosity': 6,               # verbosity of metrics file (0-9), default=6
     # 'save_results': False,                # saves results to files. Defaults to True if verbosity > 0
-    # 'output_path': os.getcwd(),           # defaults to hpxml_file path
+    'output_path': os.getcwd(),           # defaults to hpxml_file path
     # 'save_args_to_json': True,            # includes data from this dictionary in the json file
     'output_to_parquet': True,              # saves time series files as parquet files (False saves as csv files)
     # 'save_schedule_columns': [],          # list of time series inputs to save to schedule file
