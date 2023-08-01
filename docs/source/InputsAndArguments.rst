@@ -121,6 +121,7 @@ Dwelling Arguments
 A Dwelling model can be initialized using:
 
 .. code-block:: python
+
    from OCHRE import Dwelling
    house = Dwelling(\**dwelling_args)
 
@@ -129,159 +130,55 @@ where ``dwelling_args`` is a Python dictionary of Dwelling arguments.
 The table below lists the required arguments for creating a Dwelling
 model.
 
-+--------------+---------+---------------------------------------------+
-| **Argument   | **A     | **Description**                             |
-| Name**       | rgument |                                             |
-|              | Type**  |                                             |
-+==============+=========+=============================================+
-| start_time   | dat     | Simulation start time                       |
-|              | etime.d |                                             |
-|              | atetime |                                             |
-+--------------+---------+---------------------------------------------+
-| time_res     | date    | Simulation time resolution                  |
-|              | time.ti |                                             |
-|              | medelta |                                             |
-+--------------+---------+---------------------------------------------+
-| duration     | date    | Simulation duration                         |
-|              | time.ti |                                             |
-|              | medelta |                                             |
-+--------------+---------+---------------------------------------------+
-| hpxml_file   | string  | Path to HPXML file                          |
-+--------------+---------+---------------------------------------------+
-| weather_file | string  | weather_file: Path to weather file          |
-| or           |         |                                             |
-| weather_path |         |                                             |
-+--------------+---------+---------------------------------------------+
-|              |         | weather_path: Path to directory of weather  |
-|              |         | files. The file name can be read from       |
-|              |         | “Weather Station” in the HPXML file.        |
-+--------------+---------+---------------------------------------------+
+=======================  =========================  ========================================================================= 
+**Argument Name**        **Argument Type**          **Description**     
+=======================  =========================  ========================================================================= 
+``start_time``           ``datetime.datetime``      Simulation start time
+``time_res``             ``datetime.timedelta``     Simulation timestep
+``duration``             ``datetime.timedelta``     Simulation duration
+``hpxml_file``           string                     Path to hpxml file
+``weather_file``         string                     Path to weather file
+``weather_path``         string                     Path to directory of weather files [#]_
+=======================  =========================  =========================================================================
 
-The table below lists the optional arguments for creating a Dwelling
-model.
+.. [#] If ``weather_path`` is used, ``weather_file`` will be read from the HPXML file. Useful if 
+       running a batch of files with different weather files (ie from ResStock)
 
-+------+-----+---------+----------------------------------------------+
-| **   | *   | **      | **Description**                              |
-| Argu | *Ar | Default |                                              |
-| ment | gum | Value** |                                              |
-| Na   | ent |         |                                              |
-| me** | Typ |         |                                              |
-|      | e** |         |                                              |
-+======+=====+=========+==============================================+
-| name | str | OCHRE   | Name of the simulation                       |
-|      | ing |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| sch  | str | None    | Path to schedule input file                  |
-| edul | ing |         |                                              |
-| e_in |     |         |                                              |
-| put_ |     |         |                                              |
-| file |     |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| ini  | dat | None    | Runs a "warm up" simulation to improve       |
-| tial | eti | (no     | initial temperature values                   |
-| izat | me. | i       |                                              |
-| ion_ | tim | nitiali |                                              |
-| time | ede | zation) |                                              |
-|      | lta |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| t    | str | None    | Use "DST" for local U.S. time zone with      |
-| ime_ | ing | (no     | daylight savings, "noDST" for local U.S.     |
-| zone |     | time    | time zone without daylight savings, or any   |
-|      |     | zone    | time zone in pytz.all_timezones              |
-|      |     | m       |                                              |
-|      |     | odeled) |                                              |
-+------+-----+---------+----------------------------------------------+
-| v    | int | 1       | Verbosity of the outputs, from 0-9. See      |
-| erbo |     |         | Outputs and Analysis for details             |
-| sity |     |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| m    | int | 6       | Verbosity of the output metrics, from 0-9.   |
-| etri |     |         | See Dwelling and Equipment Metrics for       |
-| cs_v |     |         | details                                      |
-| erbo |     |         |                                              |
-| sity |     |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| out  | str | HPXML   | Path to saved output files                   |
-| put_ | ing | or      |                                              |
-| path |     | eq      |                                              |
-|      |     | uipment |                                              |
-|      |     | s       |                                              |
-|      |     | chedule |                                              |
-|      |     | file    |                                              |
-|      |     | di      |                                              |
-|      |     | rectory |                                              |
-+------+-----+---------+----------------------------------------------+
-| o    | b   | FALSE   | Save time series files as parquet files      |
-| utpu | ool |         | (False saves as csv files)                   |
-| t_to | ean |         |                                              |
-| _par |     |         |                                              |
-| quet |     |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| ex   | dat | None    | Time resolution to save results to files     |
-| port | eti | (no     |                                              |
-| _res | me. | inter   |                                              |
-|      | tim | mediate |                                              |
-|      | ede | data    |                                              |
-|      | lta | export) |                                              |
-+------+-----+---------+----------------------------------------------+
-| save | b   | True if | Save results files, including time series    |
-| _res | ool | ve      | files, metrics file, schedule output file,   |
-| ults | ean | rbosity | and status file                              |
-|      |     | > 0     |                                              |
-+------+-----+---------+----------------------------------------------+
-| s    | b   | FALSE   | Save all input arguments to json file,       |
-| ave_ | ool |         | including user defined arguments. If False   |
-| args | ean |         | and verbosity >= 3, the json file will only  |
-| _to_ |     |         | include HPXML properties.                    |
-| json |     |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| sav  | b   | True if | Save status file to indicate whether the     |
-| e_st | ool | save_   | simulation is complete or failed             |
-| atus | ean | results |                                              |
-|      |     | is True |                                              |
-+------+-----+---------+----------------------------------------------+
-| s    | l   | Empty   | List of time series inputs to save to        |
-| ave_ | ist | list    | schedule output file                         |
-| sche |     |         |                                              |
-| dule |     |         |                                              |
-| _col |     |         |                                              |
-| umns |     |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| sche | p   | None    | Schedule with equipment or weather data that |
-| dule | and |         | overrides the schedule_input_file and the    |
-|      | as. |         | equipment_schedule_file. Not required for    |
-|      | Dat |         | Dwelling and some equipment                  |
-|      | aFr |         |                                              |
-|      | ame |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| ext_ | dat | None    | Time resolution for external controller.     |
-| time | eti |         | Required if using Duty Cycle control         |
-| _res | me. |         |                                              |
-|      | tim |         |                                              |
-|      | ede |         |                                              |
-|      | lta |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| seed | int | HPXML   | Random seed for setting initial temperatures |
-|      | or  | or      | and EV event data                            |
-|      | str | eq      |                                              |
-|      | ing | uipment |                                              |
-|      |     | s       |                                              |
-|      |     | chedule |                                              |
-|      |     | file    |                                              |
-+------+-----+---------+----------------------------------------------+
-| m    | d   | Empty   | Dictionary that directly modifies values     |
-| odif | ict | dict    | from HPXML file                              |
-| y_hp |     |         |                                              |
-| xml_ |     |         |                                              |
-| dict |     |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| E    | d   | Empty   | Includes Equipment-specific arguments        |
-| quip | ict | dict    |                                              |
-| ment |     |         |                                              |
-+------+-----+---------+----------------------------------------------+
-| Enve | d   | Empty   | Includes arguments for the building Envelope |
-| lope | ict | dict    |                                              |
-+------+-----+---------+----------------------------------------------+
+The table below lists the optional arguments for creating a ``Dwelling`` model.
+
+==========================  =========================  ==============================   ================================================================================================================================================================= 
+**Argument Name**           **Argument Type**          **Default Value**                **Description**     
+==========================  =========================  ==============================   ================================================================================================================================================================= 
+``name``                    string                     None                             Name of the simulation
+``schedule_input_file``     string                     None                             Path to schedule input file
+``initialization_time``     ``datetime.timedelta``     None                             Length of "warm up" simulation for initial conditions [#]_
+``time_zone``               string                     None [#]_                        Use ``DST`` for local U.S. time zone with daylight savings, ``noDST`` for local U.S. time zone without [#]_
+``verbosity``               int                        1                                Verbosity of the outputs, from 0-9. See `Outputs and Analysis <https://github.com/NREL/OCHRE/blob/documentation/docs/source/Outputs.rst>`__ for details.                 
+``metrics_verbosity``       int                        1                                Verbosity of metrics, from 0-9. See `Dwelling Metrics <https://github.com/NREL/OCHRE/blob/documentation/docs/source/Outputs.rst#dwelling-metrics>`__ for details.
+``output_path``             string                     [#]_                             Path to saved output files            
+``output_to_parquet``       boolean                    False                            Save time series data as parquet (instead of .csv)            
+``export_res``              ``datetime.timedelta``     None [#]_                        Time resolution to save results                             
+``save_results``            boolean                    ``TRUE`` if ``verbosity > 0``    Save results, including time series, metrics, status, and schedule outputs
+``save_args_to_json``       boolean                    ``FALSE``                        Save all input arguments to .json file, including user defined arguments. [#]_           
+``save_status``             boolean                    ``TRUE`` [#]_                    Save status file for is simulation completed or failed       
+``save_schedule_columns``   list                       Empty list                       List of time series inputs to save to schedule outputs file                   
+``schedule``                pandas.DataFrame           None                             Schedule with equipment and weather data that overrides the ``schedule_input_file`` and the ``equipment_schedule_file``. Not required for ``Dwelling``                          
+``ext_time_res``            datetime.timedelta         None                             Time resolution for external controller. Required for Duty Cycle control.                         
+``seed``                    int or string              HPXML or schedule file           Random seed for initial temperatures and EV event data                                           
+``modify_hpxml_dict``       dict                       empty dict                       Dictionary that directly modifies values from HPXML file
+``Equipment``               dict                       empty dict                       Includes equipment specific arguments
+``Envelope``                dict                       empty dict                       Includes envelope specific arguments
+==========================  =========================  ================================ ==================================================================================================================================================================
+
+.. [#] While not required, a warm up period **is recommended**. The warm up gets more accurate initial conditions
+       for the simulation by running a few prior days. Warm up is particularly helpful for simulation with a 
+       shorter ``duration``
+.. [#] ``None`` means no time zone is modeled or considered.
+.. [#] Can also accept any time zone in ``pyzt.all_timezones``
+.. [#] Default location is same as HPXML file
+.. [#] Default is time step for time series data
+.. [#] If ``False`` and ``verbosity > 3``, .json will only include HPXML properties
+.. [#] If ``verbosity > 0``, else ``FALSE``
 
 Equipment-specific Arguments
 ----------------------------
@@ -458,52 +355,23 @@ HVAC Heating and Cooling
 
 OCHRE includes models for the following HVAC equipment:
 
-+------------+---------------------+----------------+----------------+
-| End Use    | Equipment Class     | Equipment Name | Description    |
-+============+=====================+================+================+
-| HVAC       | ElectricFurnace     | Electric       |                |
-| Heating    |                     | Furnace        |                |
-+------------+---------------------+----------------+----------------+
-| HVAC       | ElectricBaseboard   | Electric       |                |
-| Heating    |                     | Baseboard      |                |
-+------------+---------------------+----------------+----------------+
-| HVAC       | ElectricBoiler      | Electric       |                |
-| Heating    |                     | Boiler         |                |
-+------------+---------------------+----------------+----------------+
-| HVAC       | GasFurnace          | Gas Furnace    |                |
-| Heating    |                     |                |                |
-+------------+---------------------+----------------+----------------+
-| HVAC       | GasBoiler           | Gas Boiler     |                |
-| Heating    |                     |                |                |
-+------------+---------------------+----------------+----------------+
-| HVAC       | HeatPumpHeater      | Heat Pump      | Air Source     |
-| Heating    |                     | Heater         | Heat Pump with |
-|            |                     |                | no electric    |
-|            |                     |                | resistance     |
-|            |                     |                | backup         |
-+------------+---------------------+----------------+----------------+
-| HVAC       | ASHPHeater          | ASHP Heater    | Air Source     |
-| Heating    |                     |                | Heat Pump,     |
-|            |                     |                | heating only   |
-+------------+---------------------+----------------+----------------+
-| HVAC       | MSHPHeater          | MSHP Heater    | Minisplit Heat |
-| Heating    |                     |                | Pump, heating  |
-|            |                     |                | only           |
-+------------+---------------------+----------------+----------------+
-| HVAC       | AirConditioner      | Air            | Central air    |
-| Cooling    |                     | Conditioner    | conditioner    |
-+------------+---------------------+----------------+----------------+
-| HVAC       | RoomAC              | Room AC        | Room air       |
-| Cooling    |                     |                | conditioner    |
-+------------+---------------------+----------------+----------------+
-| HVAC       | ASHPCooler          | ASHP Cooler    | Air Source     |
-| Cooling    |                     |                | Heat Pump,     |
-|            |                     |                | cooling only   |
-+------------+---------------------+----------------+----------------+
-| HVAC       | MSHPCooler          | MSHP Cooler    | Minisplit Heat |
-| Cooling    |                     |                | Pump, cooling  |
-|            |                     |                | only           |
-+------------+---------------------+----------------+----------------+
++---------+-------------------+--------------------+-----------------------------------------------------------+
+| End Use | Equipment Class   | Equipment Name     | Description                                               |
++=========+===================+====================+===========================================================+
+| Heating | ElectricFurnace   | Electric Furnace   |                                                           |
+| Heating | ElectricBaseboard | Electric Baseboard |                                                           |
+| Heating | ElectricBoiler    | Electric Boiler    |                                                           |
+| Heating | GasFurnace        | Gas Furnace        |                                                           |
+| Heating | GasBoiler         | Gas Boiler         |                                                           |
+| Heating | HeatPumpHeater    | Heat Pump Heater   | Air Source Heat Pump  with no electric resistance backup  |
+| Heating | ASHPHeater        | ASHP Heater        | Air Source Heat Pump, heating only                        |
+| Heating | MSHPHeater        | MSHP Heater        | Minisplit Heat Pump, heating only                         |
+| Cooling | AirConditioner    | Air Conditioner    | Central air conditioner                                   |
+| Cooling | RoomAC            | Room AC            | Room air conditioner                                      |
+| Cooling | ASHPCooler        | ASHP Cooler        | Air Source Heat Pump, cooling only                        |
+| Cooling | MSHPCooler        | MSHP Cooler        | Minisplit Heat Pump, cooling only                         |
++---------+-------------------+--------------------+-----------------------------------------------------------+
+
 
 The table below shows the required and optional equipment-specific
 arguments for HVAC equipment.
