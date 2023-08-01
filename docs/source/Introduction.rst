@@ -24,33 +24,25 @@ Installation
 For a stand-alone installation, OCHRE can be installed using \`pip\`
 from the command line:
 
-\``\`
+.. code-block:: python
 
-pip install git+https://github.com/NREL/OCHRE.git
-
-\``\`
+    pip install git+https://github.com/NREL/OCHRE.git
 
 Alternatively, you can download the repo and run the \`setup.py\` file:
 
-\``\`
+.. code-block:: python
 
-python setup.py install
-
-\``\`
+    python setup.py install
 
 To embed OCHRE in a co-simulation using a conda environment, create an
-\`environment.yml\` file in the co-simulation project and include the
+``environment.yml`` file in the co-simulation project and include the
 following lines:
 
-\``\`
+.. code-block:: python
 
-dependencies:
-
-- pip:
-
-- git+https:// github.com/NREL/OCHRE
-
-\``\`
+    dependencies:
+    - pip:
+    - git+https:// github.com/NREL/OCHRE
 
 Usage
 -----
@@ -61,40 +53,23 @@ then simulated. A set of input parameters must be defined.
 
 Below is a simple example to simulate a dwelling:
 
-\``\`
+.. code-block:: python
 
-import os
+    import os
+    import datetime as dt
+    from ochre import Dwelling
+    from ochre.utils import default_input_path # for using sample files
+    house = Dwelling(
+    start_time=dt.datetime(2018, 5, 1, 0, 0),
+    time_res=dt.timedelta(minutes=10),
+    duration=dt.timedelta(days=3),
+    hpxml_file =os.path.join(default_input_path, 'Input Files','sample_resstock_properties.xml'),
+    schedule_input_file=os.path.join(default_input_path, 'Input Files','sample_resstock_schedule.csv'),
+    weather_file=os.path.join(default_input_path, 'Weather','USA_CO_Denver.Intl.AP.725650_TMY3.epw'),
+    verbosity=3,
+    )
+    df, metrics, hourly = dwelling.simulate()
 
-import datetime as dt
-
-from ochre import Dwelling
-
-from ochre.utils import default_input_path # for using sample files
-
-house = Dwelling(
-
-start_time=dt.datetime(2018, 5, 1, 0, 0),
-
-time_res=dt.timedelta(minutes=10),
-
-duration=dt.timedelta(days=3),
-
-hpxml_file =os.path.join(default_input_path, 'Input Files',
-'sample_resstock_properties.xml'),
-
-schedule_input_file=os.path.join(default_input_path, 'Input Files',
-'sample_resstock_schedule.csv'),
-
-weather_file=os.path.join(default_input_path, 'Weather',
-'USA_CO_Denver.Intl.AP.725650_TMY3.epw'),
-
-verbosity=3,
-
-)
-
-df, metrics, hourly = dwelling.simulate()
-
-\``\`
 
 This will return 3 variables:
 
