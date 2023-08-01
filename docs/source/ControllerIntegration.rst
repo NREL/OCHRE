@@ -33,7 +33,7 @@ equipment, by end use.
 HVAC Heating or HVAC Cooling
 ----------------------------
 ================================  ==========  ========================================================================= 
-Control Command                   Units       Description     
+**Control Command**               **Units**   **Description**     
 ================================  ==========  ========================================================================= 
 Load Fraction                     unitless    1 (no effect) or 0 (force equipment off)
 Setpoint                          C           Sets temperature setpoint for one timestep (then reverts to schedule)
@@ -48,7 +48,7 @@ Disable Speed X                   unitless    Disables low (X=1) or high (X=2) s
 Water Heating
 -----------------------------
 ================================  ==========  ========================================================================= 
-Control Command                   Units       Description     
+**Control Command**               **Units**   **Description**     
 ================================  ==========  ========================================================================= 
 Load Fraction                     unitless    1 (no effect) or 0 (force equipment off)
 Setpoint                          C           Sets temperature setpoint for one timestep. [#]_
@@ -70,7 +70,7 @@ Electric Vehicle (EV)
 -----------------------------
 
 ================================  ==========  ========================================================================================================= 
-Control Command                   Units       Description     
+**Control Command**               **Units**   **Description**     
 ================================  ==========  =========================================================================================================
 Delay                             unitless    Delay EV chage for a given time. Value can either be ``datetime.timedelta`` or integer for # of timesteps
 P Setpoint                        kW          Set real AC power setpoint
@@ -81,7 +81,7 @@ Photovoltaics (PV)
 -----------------------------
 
 ================================  ==========  ========================================================================================================= 
-Control Command                   Units       Description     
+**Control Command**               **Units**   **Description**     
 ================================  ==========  =========================================================================================================
 P Setpoint                        kW          Sets real AC power setpoint
 P Curtailment (kW)                kW          Set real power setpoint by specifying absolute curtailment
@@ -97,7 +97,7 @@ Battery
 -----------------------------
 
 ================================  ==========  ========================================================================================================= 
-Control Command                   Units       Description     
+**Control Command**               **Units**   **Description**     
 ================================  ==========  =========================================================================================================
 P Setpoint                        kW          Sets AC power setpoint
 SOC Rate                          1/hour      Set AC power setpoint based on SOC rate, battery capacity, and efficiency
@@ -111,7 +111,7 @@ Parameters                        N/A         Dictionary of updated control para
 Lighting and Other
 -----------------------------
 ================================  ============  ============================================================================ 
-Control Command                   Units         Description                                                                 
+**Control Command**               **Units**     **Description**                                                                 
 ================================  ============  ============================================================================
 Load Fraction                     unitless      Adjust the scheduled power consumption. Can apply to both electric and gas  
 P Setpoint                        kW            Set electric power setpoint                                                 
