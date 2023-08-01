@@ -1,9 +1,9 @@
-.. OpenStudio-HPXML documentation master file, created by
+.. OCHRE documentation master file, created by
    sphinx-quickstart on Mon Jul 31 17:43:55 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-OpenStudio-HPXML documentation
+OCHRE documentation
 ==============================
 
 .. toctree::
