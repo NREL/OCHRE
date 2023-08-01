@@ -111,6 +111,8 @@ Ligthing and Other
 -----------------------------
 
 These options can apply to a wide variety of devices but are generally most useful for backup generation.
+
+
 ================================  ==========  ============================================================================ 
 Control Command                   Units       Description     
 ================================  ==========  ============================================================================
