@@ -374,18 +374,27 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     if 'Garage Floor' in boundaries:
         garage_floor_area = boundaries['Garage Floor']['Area (m^2)'][0]
         attached_wall_lengths = [area / ceiling_height for area in boundaries['Garage Attached Wall']['Area (m^2)']]
-        if len(attached_wall_lengths) == 2:
+        if len(attached_wall_lengths) == 1:
+            garage_area_in_main = 0
+        elif len(attached_wall_lengths) == 2:
             # at least part of garage is included in the main house footprint (note, house may not have 2nd floor)
             garage_area_in_main = attached_wall_lengths[0] * attached_wall_lengths[1]
-            assert 0.2 < garage_area_in_main / garage_floor_area < 0.8  # should be close to 50%
+            assert 0.1 < garage_area_in_main / garage_floor_area < 0.9  # should be close to 50% for ResStock cases
         else:
+            # TODO: Incorporate complex garage geometries, see BEopt examples
+            print('WARNING: Garage area calculation is incorrect. Likely due to complex garage geometry.')
             garage_area_in_main = 0
         second_floor_area = first_floor_area + garage_area_in_main
     else:
         garage_floor_area = 0
         second_floor_area = first_floor_area
-    assert abs(conditioned_floor_area - (first_floor_area * total_floors + garage_floor_area * (indoor_floors - 1))) < 0.1
-    indoor_floor_area = first_floor_area * indoor_floors + garage_floor_area * (indoor_floors - 1)
+    conditioned_floor_check = first_floor_area * total_floors + garage_floor_area * (indoor_floors - 1)
+    if abs(conditioned_floor_area - conditioned_floor_check) < 0.1:
+        indoor_floor_area = first_floor_area * indoor_floors + garage_floor_area * (indoor_floors - 1)
+    else:
+        # TODO: Incorporate complex garage geometries, see BEopt examples
+        print('WARNING: Indoor floor area calculation is incorrect. Likely due to complex garage geometry.')
+        indoor_floor_area = conditioned_floor_area - first_floor_area * (total_floors - indoor_floors)
     construction_dict.update({
         'First Floor Area (m^2)': first_floor_area,
         'Second Floor Area (m^2)': second_floor_area,
@@ -1466,11 +1475,14 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
             elif loc == 'exterior':
                 equipment['Exterior Lighting'] = parse_lighting(loc, df_lights,
                                                                 construction['Indoor Floor Area (m^2)'], extension)
-            elif loc == 'garage' and construction['Garage Floor Area (m^2)'] > 0:
-                equipment['Garage Lighting'] = parse_lighting(loc, df_lights, 
-                                                              construction['Garage Floor Area (m^2)'], extension)
+            elif loc == 'garage':
+                if construction['Garage Floor Area (m^2)'] > 0:
+                    equipment['Garage Lighting'] = parse_lighting(loc, df_lights, 
+                                                                construction['Garage Floor Area (m^2)'], extension)
+                else:
+                    print('WARNING: Skipping garage lighting, since no garage is modeled.')
             else:
-                raise IOError(f'Unused lighting location: {loc}')
+                raise IOError(f'Unknown lighting location: {loc}')
 
     # Get plug loads and fuel loads, some strange behavior depending on number of MELs/MGLs
     misc_loads = hpxml.get('MiscLoads', {})
