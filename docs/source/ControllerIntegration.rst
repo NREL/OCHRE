@@ -13,7 +13,7 @@ Below is a simple example that will create a battery model and discharge
 it at 5 kW.
 
 .. code-block:: python
-    
+
     battery = Battery(capacity_kwh=10, # energy capacity = 10 kWh
     capacity=5, # power capacity = 5 kW
     soc_init=1, # Initial SOC=100%
@@ -111,13 +111,13 @@ Ligthing and Other
 -----------------------------
 
 These options can apply to a wide variety of devices but are generally most useful for backup generation.
-================================  ==========  ========================================================================================================= 
+================================  ==========  ============================================================================ 
 Control Command                   Units       Description     
-================================  ==========  =========================================================================================================
+================================  ==========  ============================================================================
 Load Fraction                     unitless    Adjust the scheduled power consumption. Can apply to both electric and gas.
 P Setpoint                        kW          Set electric power setpoint
 Gas Setpoint                      therms/hour Set gas power setpoint
-=================================  ==========  =========================================================================================================
+================================  ==========  ============================================================================
 
 External Model Signals
 
