@@ -41,8 +41,8 @@ following lines:
 .. code-block:: python
 
     dependencies:
-    - pip:
-    - git+https:// github.com/NREL/OCHRE
+     - pip:
+     - git+https:// github.com/NREL/OCHRE
 
 Usage
 -----
@@ -59,19 +59,18 @@ Below is a simple example to simulate a dwelling:
     import datetime as dt
     from ochre import Dwelling
     from ochre.utils import default_input_path # for using sample files
+
     house = Dwelling(
-    start_time=dt.datetime(2018, 5, 1, 0, 0),
-    time_res=dt.timedelta(minutes=10),
-    duration=dt.timedelta(days=3),
-    hpxml_file =os.path.join(default_input_path, 'Input Files','sample_resstock_properties.xml'),
-    schedule_input_file=os.path.join(default_input_path, 'Input Files','sample_resstock_schedule.csv'),
-    weather_file=os.path.join(default_input_path, 'Weather','USA_CO_Denver.Intl.AP.725650_TMY3.epw'),
-    verbosity=3,
+        start_time=dt.datetime(2018, 5, 1, 0, 0),
+        time_res=dt.timedelta(minutes=10),
+        duration=dt.timedelta(days=3),
+        hpxml_file =os.path.join(default_input_path, 'Input Files','sample_resstock_properties.xml'),
+        schedule_input_file=os.path.join(default_input_path, 'Input Files','sample_resstock_schedule.csv'),
+        weather_file=os.path.join(default_input_path, 'Weather','USA_CO_Denver.Intl.AP.725650_TMY3.epw'),
+        verbosity=3,
     )
 
-    df, metrics, hourly = dwelling.simulate()
-
-The variable name must be ``house`` or ``dwelling``
+    df, metrics, hourly = house.simulate()
 
 This will return 3 variables:
 
@@ -103,7 +102,7 @@ License
 -------
 
 This project is available under a BSD-3-like license, which is a free,
-open-source, and permissive license. For more information, check out the `license file <https://github.com/NREL/OCHRE/blob/main/LICENSE>`__
+open-source, and permissive license. For more information, check out the `license file <https://github.com/NREL/OCHRE/blob/main/LICENSE>`__.
 
 
 Citation and Publications
