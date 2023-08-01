@@ -5,8 +5,7 @@ from ochre import Analysis, CreateFigures, Dwelling
 # Script to compare OCHRE and E+ outputs for generic model. Assumes both models have been run in the same folder
 
 # File locations
-main_path = os.path.join(os.path.expanduser('~'), 'NREL', 'Team OCHRE - Validation', 'Multifamily', 'national_100', 
-                         'up00', 'bldg0000001')
+main_path = os.path.join('path', 'to', 'ochre_folder')
 eplus_file = os.path.join(main_path, 'results_timeseries.csv')
 simulation_name = 'ochre'  # name for OCHRE files
 

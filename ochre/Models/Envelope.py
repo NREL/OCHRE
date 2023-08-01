@@ -284,7 +284,8 @@ class Zone:
         # get window area in zone, for natural ventilation
         # fractions based on operable windows, open window area fraction, and % of windows actually open
         window_area = sum([s.area for s in self.surfaces if s.boundary_name == 'Window'])
-        self.open_window_area = window_area * 0.67 * 0.5 * 0.2  # in m^2
+        if window_area > 0:
+            self.open_window_area = window_area * 0.67 * 0.5 * 0.2  # in m^2
 
     def update_infiltration(self, t_ext, t_zone, wind_speed, density, w_amb=0, h_limit=None, vent_cfm=0, t_base=None):
         # Calculates flow rate and heat gain from infiltration and ventilation (forced and natural)
@@ -328,7 +329,7 @@ class Zone:
                 t_base = convert(73, 'degF', 'degC')
             # max_oa_rh = 0.7 # Note: removing check for max RH
             run_nat_vent = (w_amb < max_oa_hr) and (t_zone > t_ext) and (t_zone > t_base)
-            if run_nat_vent:
+            if run_nat_vent and self.open_window_area is not None:
                 area = self.open_window_area * 0.6
                 nat_vent_area = convert(area, 'ft^2', 'cm^2')
                 max_nat_flow = convert(20 * self.volume, 'm^3/hr', 'm^3/s')  # max 20 ACH
@@ -1022,7 +1023,7 @@ class Envelope(RCModel):
 
         # add internal gains
         # take directly from outputs
-        pass
+        return {}
 
     def generate_results(self):
         # Note: most results are included in Dwelling/HVAC. Only inputs and states are saved to self.results

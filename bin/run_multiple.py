@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import time
 import datetime as dt
@@ -9,7 +10,9 @@ from ochre import Dwelling, Analysis
 
 # Script to run multiple simulations. Assumes each simulation has a unique folder with all required inputs
 
-weather_path = os.path.join(os.path.expanduser('~'), 'NREL', 'Team OCHRE - General', 'Weather', 'BuildStock_TMY3_FIPS')
+# Download weather files from: https://data.nrel.gov/submissions/156 or https://energyplus.net/weather
+weather_path = os.path.join('path', 'to', 'weather_files')
+
 dwelling_args = {
     # Timing parameters
     'start_time': dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
@@ -50,7 +53,7 @@ def run_multiple_hpc(main_folder, overwrite='False', n_max=None, *args):
 
         # run srun command
         # TODO: for small runs (n<18?), might be best to remove --exclusive, or increase cpus and mem
-        python_exec = '/home/mblonsky/.conda/envs/perform/bin/python'
+        python_exec = shutil.which("python")
         cmd = ['srun', '--nodes=1', '--ntasks=1', '--exclusive', '-Q', '-o', log_file,
                python_exec, '-u', __file__, 'single', ochre_folder, *args
                ]
