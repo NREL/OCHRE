@@ -146,29 +146,29 @@ model.
 
 The table below lists the optional arguments for creating a ``Dwelling`` model.
 
-==========================  =========================  ==============================   ================================================================================================================================================================= 
-**Argument Name**           **Argument Type**          **Default Value**                **Description**     
-==========================  =========================  ==============================   ================================================================================================================================================================= 
-``name``                    string                     None                             Name of the simulation
-``schedule_input_file``     string                     None                             Path to schedule input file
-``initialization_time``     ``datetime.timedelta``     None                             Length of "warm up" simulation for initial conditions [#]_
-``time_zone``               string                     None [#]_                        Use ``DST`` for local U.S. time zone with daylight savings, ``noDST`` for local U.S. time zone without [#]_
-``verbosity``               int                        1                                Verbosity of the outputs, from 0-9. See `Outputs and Analysis <https://github.com/NREL/OCHRE/blob/documentation/docs/source/Outputs.rst>`__ for details.                 
-``metrics_verbosity``       int                        1                                Verbosity of metrics, from 0-9. See `Dwelling Metrics <https://github.com/NREL/OCHRE/blob/documentation/docs/source/Outputs.rst#dwelling-metrics>`__ for details.
-``output_path``             string                     [#]_                             Path to saved output files            
-``output_to_parquet``       boolean                    False                            Save time series data as parquet (instead of .csv)            
-``export_res``              ``datetime.timedelta``     None [#]_                        Time resolution to save results                             
-``save_results``            boolean                    ``TRUE`` if ``verbosity > 0``    Save results, including time series, metrics, status, and schedule outputs
-``save_args_to_json``       boolean                    ``FALSE``                        Save all input arguments to .json file, including user defined arguments. [#]_           
-``save_status``             boolean                    ``TRUE`` [#]_                    Save status file for is simulation completed or failed       
-``save_schedule_columns``   list                       Empty list                       List of time series inputs to save to schedule outputs file                   
-``schedule``                pandas.DataFrame           None                             Schedule with equipment and weather data that overrides the ``schedule_input_file`` and the ``equipment_schedule_file``. Not required for ``Dwelling``                          
-``ext_time_res``            datetime.timedelta         None                             Time resolution for external controller. Required for Duty Cycle control.                         
-``seed``                    int or string              HPXML or schedule file           Random seed for initial temperatures and EV event data                                           
-``modify_hpxml_dict``       dict                       empty dict                       Dictionary that directly modifies values from HPXML file
-``Equipment``               dict                       empty dict                       Includes equipment specific arguments
-``Envelope``                dict                       empty dict                       Includes envelope specific arguments
-==========================  =========================  ================================ ==================================================================================================================================================================
+==========================  =========================  ==============================  ================================================================================================================================================================= 
+**Argument Name**           **Argument Type**          **Default Value**               **Description**     
+==========================  =========================  ==============================  ================================================================================================================================================================= 
+``name``                    string                     None                            Name of the simulation
+``schedule_input_file``     string                     None                            Path to schedule input file
+``initialization_time``     ``datetime.timedelta``     None                            Length of "warm up" simulation for initial conditions [#]_
+``time_zone``               string                     None [#]_                       Use ``DST`` for local U.S. time zone with daylight savings, ``noDST`` for local U.S. time zone without [#]_
+``verbosity``               int                        1                               Verbosity of the outputs, from 0-9. See `Outputs and Analysis <https://github.com/NREL/OCHRE/blob/documentation/docs/source/Outputs.rst>`__ for details.                 
+``metrics_verbosity``       int                        1                               Verbosity of metrics, from 0-9. See `Dwelling Metrics <https://github.com/NREL/OCHRE/blob/documentation/docs/source/Outputs.rst#dwelling-metrics>`__ for details.
+``output_path``             string                     [#]_                            Path to saved output files            
+``output_to_parquet``       boolean                    False                           Save time series data as parquet (instead of .csv)            
+``export_res``              ``datetime.timedelta``     None [#]_                       Time resolution to save results                             
+``save_results``            boolean                    ``TRUE`` if ``verbosity > 0``   Save results, including time series, metrics, status, and schedule outputs
+``save_args_to_json``       boolean                    ``FALSE``                       Save all input arguments to .json file, including user defined arguments. [#]_           
+``save_status``             boolean                    ``TRUE`` [#]_                   Save status file for is simulation completed or failed       
+``save_schedule_columns``   list                       Empty list                      List of time series inputs to save to schedule outputs file                   
+``schedule``                pandas.DataFrame           None                            Schedule with equipment and weather data that overrides the ``schedule_input_file`` and the ``equipment_schedule_file``. Not required for ``Dwelling``                          
+``ext_time_res``            datetime.timedelta         None                            Time resolution for external controller. Required for Duty Cycle control.                         
+``seed``                    int or string              HPXML or schedule file          Random seed for initial temperatures and EV event data                                           
+``modify_hpxml_dict``       dict                       empty dict                      Dictionary that directly modifies values from HPXML file
+``Equipment``               dict                       empty dict                      Includes equipment specific arguments
+``Envelope``                dict                       empty dict                      Includes envelope specific arguments
+==========================  =========================  ==============================  ==================================================================================================================================================================
 
 .. [#] While not required, a warm up period **is recommended**. The warm up gets more accurate initial conditions
        for the simulation by running a few prior days. Warm up is particularly helpful for simulation with a 
