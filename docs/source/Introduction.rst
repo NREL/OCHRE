@@ -74,11 +74,11 @@ Below is a simple example to simulate a dwelling:
 
 This will return 3 variables:
 
-\- ``df``: a Pandas DataFrame with 10 minute resolution
+- ``df``: a Pandas DataFrame with 10 minute resolution
 
-\- ``metrics``: a dictionary of energy metrics
+- ``metrics``: a dictionary of energy metrics
 
-\- ``hourly``: a Pandas DataFrame with 1 hour resolution (``verbosity >= 3`` only)
+- ``hourly``: a Pandas DataFrame with 1 hour resolution (``verbosity >= 3`` only)
 
 OCHRE can also be used to model a specific piece of equipment so long as
 the boundary conditions are appropriately defined. For example, a water
@@ -88,15 +88,15 @@ temperature, and mains temperature are defined.
 For more examples, see the following python scripts in the ``bin``
 folder:
 
-\- Run a single dwelling: `run_dwelling <https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__
+- Run a single dwelling: `run_dwelling <https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__
 
-\- Run a single piece of equipment: `run_equipment <https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__
+- Run a single piece of equipment: `run_equipment <https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__
 
-\- Run a dwelling with an external controller: `run_external_control <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__
+- Run a dwelling with an external controller: `run_external_control <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__
 
-\- Run multiple dwellings: `run_multiple <https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py>`__
+- Run multiple dwellings: `run_multiple <https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py>`__
 
-\- Run a fleet of equipment: `run_fleet <https://github.com/NREL/OCHRE/blob/main/bin/run_fleet.py>`__
+- Run a fleet of equipment: `run_fleet <https://github.com/NREL/OCHRE/blob/main/bin/run_fleet.py>`__
 
 License
 -------
