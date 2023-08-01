@@ -110,9 +110,6 @@ Parameters                        N/A         Dictionary of updated control para
 Ligthing and Other
 -----------------------------
 
-These options can apply to a wide variety of devices but are generally most useful for backup generation.
-
-
 ================================  ==========  ============================================================================ 
 Control Command                   Units       Description     
 ================================  ==========  ============================================================================
@@ -122,6 +119,7 @@ Gas Setpoint                      therms/hour Set gas power setpoint
 ================================  ==========  ============================================================================
 
 External Model Signals
+------------------------------
 
 OCHRE can also integrate with external models that modify default
 schedule values and other settings.
