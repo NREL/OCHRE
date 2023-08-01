@@ -59,9 +59,9 @@ External surface radiation incorporates the ambient temperature and the
 sky temperature. An example of how surfaces are split into a
 corresponding RC network is shown below.
 
-https://github.com/NREL/OCHRE/blob/documentation/docs/source/images/Wall_RC_Network.png
-
-Figure : Schematic of how RC networks are generated for each surface
+.. image:: https://github.com/NREL/OCHRE/blob/documentation/docs/source/images/Wall_RC_Network.png
+  :width: 500
+  :alt: Schematic of how RC networks are generated for each surface
 
 The full RC network for the building is generated dynamically depending
 on what features are included in the building. The most basic example is
@@ -74,15 +74,14 @@ an attic, crawlspace/basement, and garage are all included in the
 building, as well as a high-level overview of the heat transfer pathways
 assumed in this case.
 
-https://github.com/NREL/OCHRE/blob/documentation/docs/source/images/RC_network.png
+.. image:: https://github.com/NREL/OCHRE/blob/documentation/docs/source/images/RC_network.png
+  :width: 500
+  :alt: The full RC network for a building. Each rectangle represents the RC network shown in Figure 1
 
-Figure : The full RC network for a building. Each rectangle represents
-the RC network shown in Figure 1
 
-https://github.com/NREL/OCHRE/blob/documentation/docs/source/images/Heat_Transfer_Pathways.png
-
-Figure : Schematic of a home with all optional zones and heat transfer
-pathways
+.. image:: https://github.com/NREL/OCHRE/blob/documentation/docs/source/images/Heat_Transfer_Pathways.png
+  :width: 500
+  :alt: Schematic of a home with all optional zones and heat transfer pathways
 
 OCHRE includes the capability to model multifamily buildings using a
 unit by unit based approach. Each unit is modeled as a separate dwelling
