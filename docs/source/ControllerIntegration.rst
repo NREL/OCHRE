@@ -61,7 +61,8 @@ ER Duty Cycle                     unitless    Sets the electric resistance duty 
 .. [#] Sending {'Setpoint': None} will reset the setpoint to the default schedule. Note that a 10 F (5.56 C)
        decrease in setpoint corresponds to a CTA-2045 'Load Shed' command. A 10 F increase corresponds to an
        'Advanced Load Add' command (only available in B version of standard).
-.. [#] Decreasing the deadband to about 2 C corresponds to a CTA 'Load Add' command.
+.. [#] Decreasing the deadband to about 2 C corresponds to a CTA 'Load Add' command. A typical deadband for
+       gas and electric water heaters is 10 F (5.56 C).
 .. [#] Most, but not all HPWHs have backup electric resistance. 120 V HPWHs (coming soon in OCHRE) do not
          have backup ER heaters.
 
