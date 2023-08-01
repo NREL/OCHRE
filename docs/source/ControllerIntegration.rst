@@ -107,16 +107,16 @@ Parameters                        N/A         Dictionary of updated control para
 .. [#] 'Self-Consumption' mode, sometimes referred to as minimizing grid import, only applies for homes with PV and a battery.
          This strategy will charge the battery when PV production is larger than electricty consumption and vice versa.
 
-Ligthing and Other
+Lighting and Other
 -----------------------------
-
 ================================  ============  ============================================================================ 
-Control Command                   Units         Description     
+Control Command                   Units         Description                                                                 
 ================================  ============  ============================================================================
-Load Fraction                     unitless      Adjust the scheduled power consumption. Can apply to both electric and gas.
-P Setpoint                        kW            Set electric power setpoint
-Gas Setpoint                      therms/hour   Set gas power setpoint
+Load Fraction                     unitless      Adjust the scheduled power consumption. Can apply to both electric and gas  
+P Setpoint                        kW            Set electric power setpoint                                                 
+Gas Setpoint                      therms/hour   Set gas power setpoint [#]_                                                   
 ================================  ============  ============================================================================
+.. [#] Most useful for modeling backup gas generators
 
 External Model Signals
 ------------------------------
