@@ -104,6 +104,11 @@ Attic Wall,"WoodStud, wood siding, Est. R-3.1",,,OSB SHEATHING 0.5 IN.,0.0127,0.
 Attic Wall,"WoodStud, wood siding, Est. R-3.1",,,WALL STUD AND CAVITY,0.1397,0.728,139.054,,0.1919,22.7328605968244,,1170.238
 Door,R-2.1,,,DOOR MATERIAL,0.0445,0.206,512.64,,0.2153,27.6995975904,,1214.23
 Door,R-5.0,,,DOOR MATERIAL,0.0445,0.061,512.64,,0.726,27.6995975904,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, R-11",,,ALUMINUM SIDING,0.0095,0.089,177.822,,0.1065,1.76828419575,,1046.75
+Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, R-11",,,WALL RIGID INS,0.0231,0.029,32.04,,0.7867,0.8986807645199999,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, R-11",,,CONCRETE BLOCK,0.2032,0.193,1794.881,,1.052,308.556614241392,,846.01
+Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, R-11",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, R-15",,,ALUMINUM SIDING,0.0095,0.089,177.822,,0.1065,1.76828419575,,1046.75
 Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, R-15",,,WALL RIGID INS,0.0366,0.029,32.04,,1.243,1.42388380872,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, aluminum siding, 6-in Hollow, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
@@ -133,11 +138,20 @@ Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-15",,,WALL R
 Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-15",,,CONCRETE BLOCK,0.2032,0.193,1794.881,,1.054,308.556614241392,,846.01
 Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-15",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-19",,,ASBESTOS SIDING,0.0063,0.606,1899.972,,0.01048,12.028236339168002,,1004.88
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-19",,,WALL RIGID INS,0.0518,0.029,32.04,,1.76,2.01522353256,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-19",,,CONCRETE BLOCK,0.2032,0.193,1794.881,,1.056,308.556614241392,,846.01
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-7",,,ASBESTOS SIDING,0.0063,0.606,1899.972,,0.01048,12.028236339168002,,1004.88
 Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-7",,,WALL RIGID INS,0.0105,0.029,32.04,,0.3575,0.4084912565999999,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-7",,,CONCRETE BLOCK,0.2032,0.194,1794.881,,1.049,308.556614241392,,846.01
 Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, Uninsulated",,,ASBESTOS SIDING,0.0025,0.606,1899.972,,0.004192,4.773109658400001,,1004.88
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, Uninsulated",,,WALL RIGID INS,0.0127,0.029,32.04,,0.4311,0.4940799008399999,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, Uninsulated",,,CONCRETE BLOCK,0.1524,0.745,1892.443,,0.2044,241.80758636145725,,838.421
+Exterior Wall,"ConcreteMasonryUnit, asbestos siding, 6-in Hollow, Uninsulated",,,GYPSUM BOARD,0.0025,0.16,801.0,,0.01585,1.6768935,,837.4
 Exterior Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-11",,,BRICK VENEER,0.1016,0.793,1762.2,,0.1281,142.4313093456,,795.53
 Exterior Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-11",,,WALL RIGID INS,0.023,0.029,32.04,,0.7826,0.8947903716,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
@@ -177,6 +191,11 @@ Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-19"
 Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-19",,,CONCRETE BLOCK,0.2032,0.193,1794.881,,1.056,308.556614241392,,846.01
 Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-7",,,COMPOSITE SHINGLE SIDING,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-7",,,WALL RIGID INS,0.0097,0.029,32.04,,0.329,0.37736811324,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-7",,,CONCRETE BLOCK,0.2032,0.194,1794.881,,1.049,308.556614241392,,846.01
+Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, Uninsulated",,,COMPOSITE SHINGLE SIDING,0.0025,0.163,1121.4,,0.01561,4.108389075,,1465.45
 Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, Uninsulated",,,WALL RIGID INS,0.0123,0.029,32.04,,0.4197,0.47851832916,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, composite shingle siding, 6-in Hollow, Uninsulated",,,CONCRETE BLOCK,0.1524,0.745,1892.443,,0.2044,241.80758636145725,,838.421
@@ -201,14 +220,29 @@ Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, R-7",,,WAL
 Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, R-7",,,CONCRETE BLOCK,0.2032,0.194,1794.881,,1.049,308.556614241392,,846.01
 Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, Uninsulated",,,FIBER CEMENT SIDING,0.0025,0.258,347.634,,0.009837,0.8733261348,,1004.88
+Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, Uninsulated",,,WALL RIGID INS,0.0105,0.029,32.04,,0.3553,0.4084912565999999,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, Uninsulated",,,CONCRETE BLOCK,0.1524,0.746,1892.443,,0.2042,241.80758636145725,,838.421
+Exterior Wall,"ConcreteMasonryUnit, fiber cement siding, 6-in Hollow, Uninsulated",,,GYPSUM BOARD,0.0025,0.16,801.0,,0.01585,1.6768935,,837.4
 Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-11",,,WALL RIGID INS,0.0232,0.029,32.04,,0.7881,0.9025711574399998,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-11",,,CONCRETE BLOCK,0.2032,0.193,1794.881,,1.052,308.556614241392,,846.01
 Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-11",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-15",,,WALL RIGID INS,0.0366,0.029,32.04,,1.244,1.42388380872,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-15",,,CONCRETE BLOCK,0.2032,0.193,1794.881,,1.054,308.556614241392,,846.01
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-15",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-19",,,WALL RIGID INS,0.049,0.029,32.04,,1.665,1.9062925308,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-19",,,CONCRETE BLOCK,0.2032,0.193,1794.881,,1.055,308.556614241392,,846.01
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-7",,,WALL RIGID INS,0.0077,0.029,32.04,,0.2632,0.29956025484,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-7",,,CONCRETE BLOCK,0.2032,0.194,1794.881,,1.048,308.556614241392,,846.01
 Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, Uninsulated",,,WALL RIGID INS,0.0097,0.029,32.04,,0.33,0.37736811324,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, Uninsulated",,,CONCRETE BLOCK,0.1524,0.747,1892.443,,0.2041,241.80758636145725,,838.421
+Exterior Wall,"ConcreteMasonryUnit, none, 6-in Hollow, Uninsulated",,,GYPSUM BOARD,0.0025,0.16,801.0,,0.01585,1.6768935,,837.4
 Exterior Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-11",,,STUCCO,0.0254,0.649,1281.6,,0.03913,28.622559772799992,,879.27
 Exterior Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-11",,,WALL RIGID INS,0.0231,0.029,32.04,,0.784,0.8986807645199999,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
@@ -272,6 +306,11 @@ Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-19",,,WALL RIGID
 Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-19",,,CONCRETE BLOCK,0.2032,0.192,1794.881,,1.056,308.556614241392,,846.01
 Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-7",,,WOOD SIDING,0.0254,0.102,544.68,,0.248,16.219450537919997,,1172.36
+Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-7",,,WALL RIGID INS,0.0076,0.029,32.04,,0.2599,0.29566986192,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-7",,,CONCRETE BLOCK,0.2032,0.194,1794.881,,1.05,308.556614241392,,846.01
+Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, Uninsulated",,,WOOD SIDING,0.0025,0.102,544.68,,0.0248,1.596402612,,1172.36
 Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, Uninsulated",,,WALL RIGID INS,0.0162,0.029,32.04,,0.5509,0.63024365304,,1214.23
 Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, Uninsulated",,,CONCRETE BLOCK,0.1524,0.744,1892.443,,0.2049,241.80758636145725,,838.421
@@ -279,6 +318,11 @@ Exterior Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, Uninsulated",,,GYP
 Exterior Wall,Minimal,,Minimal,WOOD SIDING,0.0025,0.102,544.68,1172.36,0.0248,1.596402612,Fully_minimal (Denver),
 Exterior Wall,Minimal,,Minimal,WALL STUD AND CAVITY,0.0889,0.001,50.327,1063.81,87.85,4.759560726,Fully_minimal (Denver),
 Exterior Wall,Minimal,,Minimal,GYPSUM BOARD,0.0025,0.16,801.0,837.4,0.0159,1.6768935,Fully_minimal (Denver),
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-11",,,ALUMINUM SIDING,0.0095,0.089,177.822,,0.1065,1.76828419575,,1046.75
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-11",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-11",,,WALL LAYER,0.2032,0.859,1762.2,,0.2366,284.8626186912,,795.53
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-11",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-15",,,ALUMINUM SIDING,0.0095,0.089,177.822,,0.1065,1.76828419575,,1046.75
 Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-15",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
@@ -289,6 +333,10 @@ Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-19",,,WALL RI
 Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-19",,,WALL LAYER,0.2032,0.182,1762.2,,1.117,284.8626186912,,795.53
 Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-7",,,ALUMINUM SIDING,0.0095,0.089,177.822,,0.1065,1.76828419575,,1046.75
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-7",,,WALL LAYER,0.2032,0.138,1762.2,,1.469,284.8626186912,,795.53
+Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, Uninsulated",,,ALUMINUM SIDING,0.0095,0.089,177.822,,0.1065,1.76828419575,,1046.75
 Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, Uninsulated",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, Uninsulated",,,WALL LAYER,0.2032,0.392,1762.2,,0.5183,284.8626186912,,795.53
@@ -321,11 +369,20 @@ Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-11",
 Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-11",,,WALL LAYER,0.2032,0.668,1762.2,,0.304,284.8626186912,,795.53
 Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-11",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-15",,,COMPOSITE SHINGLE SIDING,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-15",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-15",,,WALL LAYER,0.2032,0.267,1762.2,,0.7619,284.8626186912,,795.53
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-15",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-19",,,COMPOSITE SHINGLE SIDING,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
 Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-19",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-19",,,WALL LAYER,0.2032,0.172,1762.2,,1.184,284.8626186912,,795.53
 Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-7",,,COMPOSITE SHINGLE SIDING,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-7",,,WALL LAYER,0.2032,0.132,1762.2,,1.537,284.8626186912,,795.53
+Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, Uninsulated",,,COMPOSITE SHINGLE SIDING,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
 Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, Uninsulated",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"StructuralBrick, composite shingle siding, 12-in, 3-wythe, Uninsulated",,,WALL LAYER,0.2032,0.347,1762.2,,0.5858,284.8626186912,,795.53
@@ -349,10 +406,18 @@ Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, R-7",,,FIBE
 Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, R-7",,,WALL LAYER,0.2032,0.138,1762.2,,1.468,284.8626186912,,795.53
 Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, Uninsulated",,,FIBER CEMENT SIDING,0.0095,0.258,347.634,,0.03689,3.31863931224,,1004.88
+Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, Uninsulated",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, Uninsulated",,,WALL LAYER,0.2032,0.393,1762.2,,0.5175,284.8626186912,,795.53
+Exterior Wall,"StructuralBrick, fiber cement siding, 12-in, 3-wythe, Uninsulated",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-11",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-11",,,WALL LAYER,0.2032,0.856,1762.2,,0.2374,284.8626186912,,795.53
 Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-11",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-15",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-15",,,WALL LAYER,0.2032,0.292,1762.2,,0.6952,284.8626186912,,795.53
+Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-15",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-19",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"StructuralBrick, none, 12-in, 3-wythe, R-19",,,WALL LAYER,0.2032,0.182,1762.2,,1.118,284.8626186912,,795.53
@@ -405,6 +470,10 @@ Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, R-7",,,VINYL SIDIN
 Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, R-7",,,WALL LAYER,0.2032,0.138,1762.2,,1.469,284.8626186912,,795.53
 Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, Uninsulated",,,VINYL SIDING,0.0095,0.089,177.822,,0.1065,1.76828419575,,1046.75
+Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, Uninsulated",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, Uninsulated",,,WALL LAYER,0.2032,0.392,1762.2,,0.5183,284.8626186912,,795.53
+Exterior Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, Uninsulated",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-11",,,WOOD SIDING,0.0254,0.102,544.68,,0.248,16.219450537919997,,1172.36
 Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-11",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
@@ -415,6 +484,11 @@ Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-15",,,WALL RIGID 
 Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-15",,,WALL LAYER,0.2032,0.293,1762.2,,0.6937,284.8626186912,,795.53
 Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-15",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-19",,,WOOD SIDING,0.0254,0.102,544.68,,0.248,16.219450537919997,,1172.36
+Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-19",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-19",,,WALL LAYER,0.2032,0.182,1762.2,,1.116,284.8626186912,,795.53
+Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-7",,,WOOD SIDING,0.0254,0.102,544.68,,0.248,16.219450537919997,,1172.36
 Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Exterior Wall,"StructuralBrick, wood siding, 12-in, 3-wythe, R-7",,,WALL LAYER,0.2032,0.138,1762.2,,1.469,284.8626186912,,795.53
@@ -742,22 +816,50 @@ Garage Attached Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-15",,,WA
 Garage Attached Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-15",,,CONCRETE BLOCK,0.2032,0.193,1794.881,,1.054,308.556614241392,,846.01
 Garage Attached Wall,"ConcreteMasonryUnit, brick veneer, 6-in Hollow, R-15",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-11",,,WALL RIGID INS,0.0207,0.029,32.04,,0.703,0.80531133444,,1214.23
+Garage Attached Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-11",,,CONCRETE BLOCK,0.2032,0.193,1794.881,,1.052,308.556614241392,,846.01
+Garage Attached Wall,"ConcreteMasonryUnit, none, 6-in Hollow, R-11",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-11",,,WALL RIGID INS,0.0217,0.029,32.04,,0.738,0.84421526364,,1214.23
 Garage Attached Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-11",,,CONCRETE BLOCK,0.2032,0.193,1794.881,,1.052,308.556614241392,,846.01
 Garage Attached Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-11",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-7",,,WALL RIGID INS,0.0063,0.029,32.04,,0.2131,0.24509475396,,1214.23
+Garage Attached Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-7",,,CONCRETE BLOCK,0.2032,0.194,1794.881,,1.049,308.556614241392,,846.01
+Garage Attached Wall,"ConcreteMasonryUnit, stucco, 6-in Hollow, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"ConcreteMasonryUnit, vinyl siding, 6-in Hollow, R-19",,,WALL RIGID INS,0.0496,0.029,32.04,,1.685,1.92963488832,,1214.23
+Garage Attached Wall,"ConcreteMasonryUnit, vinyl siding, 6-in Hollow, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"ConcreteMasonryUnit, vinyl siding, 6-in Hollow, R-19",,,CONCRETE BLOCK,0.2032,0.193,1794.881,,1.056,308.556614241392,,846.01
+Garage Attached Wall,"ConcreteMasonryUnit, vinyl siding, 6-in Hollow, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-19",,,WALL RIGID INS,0.0537,0.029,32.04,,1.826,2.08914099804,,1214.23
 Garage Attached Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-19",,,CONCRETE BLOCK,0.2032,0.192,1794.881,,1.056,308.556614241392,,846.01
 Garage Attached Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, Uninsulated",,,WALL RIGID INS,0.0144,0.029,32.04,,0.4907,0.5602165804799999,,1214.23
+Garage Attached Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, Uninsulated",,,CONCRETE BLOCK,0.1524,0.744,1892.443,,0.2049,241.80758636145725,,838.421
+Garage Attached Wall,"ConcreteMasonryUnit, wood siding, 6-in Hollow, Uninsulated",,,GYPSUM BOARD,0.0025,0.16,801.0,,0.01585,1.6768935,,837.4
+Garage Attached Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, Uninsulated",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, Uninsulated",,,WALL LAYER,0.2032,0.376,1762.2,,0.5398,284.8626186912,,795.53
+Garage Attached Wall,"StructuralBrick, aluminum siding, 12-in, 3-wythe, Uninsulated",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"StructuralBrick, asbestos siding, 12-in, 3-wythe, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"StructuralBrick, asbestos siding, 12-in, 3-wythe, R-7",,,WALL LAYER,0.2032,0.136,1762.2,,1.491,284.8626186912,,795.53
+Garage Attached Wall,"StructuralBrick, asbestos siding, 12-in, 3-wythe, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-11",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-11",,,WALL LAYER,0.2032,1.334,1762.2,,0.1524,284.8626186912,,795.53
 Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-11",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-15",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-15",,,WALL LAYER,0.2032,0.333,1762.2,,0.6102,284.8626186912,,795.53
+Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-15",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-19",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-19",,,WALL LAYER,0.2032,0.197,1762.2,,1.033,284.8626186912,,795.53
 Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-7",,,WALL LAYER,0.2032,0.147,1762.2,,1.385,284.8626186912,,795.53
+Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, Uninsulated",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, Uninsulated",,,WALL LAYER,0.2032,0.468,1762.2,,0.4341,284.8626186912,,795.53
 Garage Attached Wall,"StructuralBrick, none, 12-in, 3-wythe, Uninsulated",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
@@ -765,15 +867,33 @@ Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-11",,,WALL RIGI
 Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-11",,,WALL LAYER,0.2032,1.083,1762.2,,0.1876,284.8626186912,,795.53
 Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-11",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-15",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-15",,,WALL LAYER,0.2032,0.315,1762.2,,0.6454,284.8626186912,,795.53
+Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-15",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-7",,,WALL LAYER,0.2032,0.143,1762.2,,1.42,284.8626186912,,795.53
 Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, Uninsulated",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, Uninsulated",,,WALL LAYER,0.2032,0.433,1762.2,,0.4693,284.8626186912,,795.53
 Garage Attached Wall,"StructuralBrick, stucco, 12-in, 3-wythe, Uninsulated",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, R-7",,,WALL LAYER,0.2032,0.136,1762.2,,1.491,284.8626186912,,795.53
+Garage Attached Wall,"StructuralBrick, vinyl siding, 12-in, 3-wythe, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"WoodStud, aluminum siding, R-19",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Garage Attached Wall,"WoodStud, aluminum siding, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"WoodStud, aluminum siding, R-19",,,WALL STUD AND CAVITY,0.1397,0.223,139.054,,0.6278,22.7328605968244,,1170.238
+Garage Attached Wall,"WoodStud, aluminum siding, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"WoodStud, asbestos siding, R-19",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Garage Attached Wall,"WoodStud, asbestos siding, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"WoodStud, asbestos siding, R-19",,,WALL STUD AND CAVITY,0.1397,0.223,139.054,,0.6278,22.7328605968244,,1170.238
+Garage Attached Wall,"WoodStud, asbestos siding, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"WoodStud, brick veneer, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"WoodStud, brick veneer, R-11",,,WALL STUD AND CAVITY,0.1397,0.093,139.054,,1.508,22.7328605968244,,1170.238
 Garage Attached Wall,"WoodStud, brick veneer, R-11",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"WoodStud, brick veneer, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"WoodStud, brick veneer, R-15",,,WALL STUD AND CAVITY,0.1397,0.077,139.054,,1.825,22.7328605968244,,1170.238
+Garage Attached Wall,"WoodStud, brick veneer, R-15",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"WoodStud, brick veneer, R-19",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Garage Attached Wall,"WoodStud, brick veneer, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"WoodStud, brick veneer, R-19",,,WALL STUD AND CAVITY,0.1397,0.216,139.054,,0.6454,22.7328605968244,,1170.238
@@ -798,9 +918,19 @@ Garage Attached Wall,"WoodStud, stucco, R-19",,,WALL RIGID INS,0.0518,0.029,32.0
 Garage Attached Wall,"WoodStud, stucco, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"WoodStud, stucco, R-19",,,WALL STUD AND CAVITY,0.1397,0.251,139.054,,0.5574,22.7328605968244,,1170.238
 Garage Attached Wall,"WoodStud, stucco, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"WoodStud, stucco, Uninsulated",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"WoodStud, stucco, Uninsulated",,,WALL STUD AND CAVITY,0.1397,0.681,139.054,,0.2052,22.7328605968244,,1170.238
+Garage Attached Wall,"WoodStud, stucco, Uninsulated",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"WoodStud, vinyl siding, R-11",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"WoodStud, vinyl siding, R-11",,,WALL STUD AND CAVITY,0.1397,0.094,139.054,,1.491,22.7328605968244,,1170.238
 Garage Attached Wall,"WoodStud, vinyl siding, R-11",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"WoodStud, vinyl siding, R-15",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"WoodStud, vinyl siding, R-15",,,WALL STUD AND CAVITY,0.1397,0.077,139.054,,1.808,22.7328605968244,,1170.238
+Garage Attached Wall,"WoodStud, vinyl siding, R-15",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"WoodStud, vinyl siding, R-19",,,WALL RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Garage Attached Wall,"WoodStud, vinyl siding, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"WoodStud, vinyl siding, R-19",,,WALL STUD AND CAVITY,0.1397,0.223,139.054,,0.6278,22.7328605968244,,1170.238
+Garage Attached Wall,"WoodStud, vinyl siding, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"WoodStud, vinyl siding, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"WoodStud, vinyl siding, R-7",,,WALL STUD AND CAVITY,0.1397,0.116,139.054,,1.209,22.7328605968244,,1170.238
 Garage Attached Wall,"WoodStud, vinyl siding, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
@@ -818,6 +948,9 @@ Garage Attached Wall,"WoodStud, wood siding, R-19",,,WALL RIGID INS,0.0518,0.029
 Garage Attached Wall,"WoodStud, wood siding, R-19",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"WoodStud, wood siding, R-19",,,WALL STUD AND CAVITY,0.1397,0.182,139.054,,0.7687,22.7328605968244,,1170.238
 Garage Attached Wall,"WoodStud, wood siding, R-19",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Garage Attached Wall,"WoodStud, wood siding, R-7",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Attached Wall,"WoodStud, wood siding, R-7",,,WALL STUD AND CAVITY,0.1397,0.104,139.054,,1.35,22.7328605968244,,1170.238
+Garage Attached Wall,"WoodStud, wood siding, R-7",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Attached Wall,"WoodStud, wood siding, Uninsulated",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Attached Wall,"WoodStud, wood siding, Uninsulated",,,WALL STUD AND CAVITY,0.1397,0.335,139.054,,0.4165,22.7328605968244,,1170.238
 Garage Attached Wall,"WoodStud, wood siding, Uninsulated",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
@@ -858,6 +991,10 @@ Garage Interior Ceiling,Ceiling R-19,,,FLOOR STUD AND CAVITY,0.1397,0.097,92.355
 Garage Interior Ceiling,Ceiling R-19,,,FLOOR RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Garage Interior Ceiling,Ceiling R-19,,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Garage Interior Ceiling,Ceiling R-19,,,FLOOR COVERING,0.0127,0.043,54.468,,0.293,0.926825745024,,1339.84
+Garage Interior Ceiling,Ceiling R-30,,,FLOOR STUD AND CAVITY,0.1397,0.135,92.355,,1.032,14.704582619859,,1139.714
+Garage Interior Ceiling,Ceiling R-30,,,FLOOR RIGID INS,0.1036,0.029,32.04,,3.522,4.03044706512,,1214.23
+Garage Interior Ceiling,Ceiling R-30,,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Garage Interior Ceiling,Ceiling R-30,,,FLOOR COVERING,0.0127,0.043,54.468,,0.293,0.926825745024,,1339.84
 Garage Interior Ceiling,Ceiling R-38,,,FLOOR STUD AND CAVITY,0.1397,1.204,92.355,,0.116,14.704582619859,,1139.714
 Garage Interior Ceiling,Ceiling R-38,,,FLOOR RIGID INS,0.1554,0.029,32.04,,5.282,6.04567059768,,1214.23
 Garage Interior Ceiling,Ceiling R-38,,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
@@ -871,17 +1008,37 @@ Garage Wall,"ConcreteMasonryUnit, asbestos siding",,,CONCRETE BLOCK,0.1524,0.747
 Garage Wall,"ConcreteMasonryUnit, brick veneer",,,BRICK VENEER,0.0025,0.793,1762.2,,0.003202,3.5047074150000004,,795.53
 Garage Wall,"ConcreteMasonryUnit, brick veneer",,,WALL RIGID INS,0.0101,0.029,32.04,,0.3427,0.3929296849199999,,1214.23
 Garage Wall,"ConcreteMasonryUnit, brick veneer",,,CONCRETE BLOCK,0.1524,0.747,1892.443,,0.2041,241.80758636145725,,838.421
+Garage Wall,"ConcreteMasonryUnit, none",,,WALL RIGID INS,0.0102,0.029,32.04,,0.3459,0.39682007784,,1214.23
+Garage Wall,"ConcreteMasonryUnit, none",,,CONCRETE BLOCK,0.1524,0.747,1892.443,,0.2041,241.80758636145725,,838.421
 Garage Wall,"ConcreteMasonryUnit, stucco",,,STUCCO,0.0025,0.649,1281.6,,0.003913,2.8171810799999992,,879.27
 Garage Wall,"ConcreteMasonryUnit, stucco",,,WALL RIGID INS,0.0101,0.029,32.04,,0.3419,0.3929296849199999,,1214.23
 Garage Wall,"ConcreteMasonryUnit, stucco",,,CONCRETE BLOCK,0.1524,0.747,1892.443,,0.2041,241.80758636145725,,838.421
+Garage Wall,"ConcreteMasonryUnit, vinyl siding",,,VINYL SIDING,0.0025,0.089,177.822,,0.0284,0.46533794625,,1046.75
+Garage Wall,"ConcreteMasonryUnit, vinyl siding",,,WALL RIGID INS,0.0093,0.029,32.04,,0.3175,0.36180654156,,1214.23
+Garage Wall,"ConcreteMasonryUnit, vinyl siding",,,CONCRETE BLOCK,0.1524,0.747,1892.443,,0.2041,241.80758636145725,,838.421
 Garage Wall,"ConcreteMasonryUnit, wood siding",,,WOOD SIDING,0.0025,0.102,544.68,,0.0248,1.596402612,,1172.36
 Garage Wall,"ConcreteMasonryUnit, wood siding",,,WALL RIGID INS,0.0094,0.029,32.04,,0.3211,0.3656969344799999,,1214.23
 Garage Wall,"ConcreteMasonryUnit, wood siding",,,CONCRETE BLOCK,0.1524,0.747,1892.443,,0.2041,241.80758636145725,,838.421
+Garage Wall,"StructuralBrick, aluminum siding",,,ALUMINUM SIDING,0.0095,0.089,177.822,,0.1065,1.76828419575,,1046.75
+Garage Wall,"StructuralBrick, aluminum siding",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Wall,"StructuralBrick, aluminum siding",,,WALL LAYER,0.2032,0.609,1762.2,,0.3334,284.8626186912,,795.53
+Garage Wall,"StructuralBrick, asbestos siding",,,ASBESTOS SIDING,0.0063,0.606,1899.972,,0.01048,12.028236339168002,,1004.88
+Garage Wall,"StructuralBrick, asbestos siding",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Wall,"StructuralBrick, asbestos siding",,,WALL LAYER,0.2032,0.473,1762.2,,0.4294,284.8626186912,,795.53
 Garage Wall,"StructuralBrick, none",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Wall,"StructuralBrick, none",,,WALL LAYER,0.2032,0.462,1762.2,,0.4399,284.8626186912,,795.53
 Garage Wall,"StructuralBrick, stucco",,,STUCCO,0.0254,0.649,1281.6,,0.03913,28.622559772799992,,879.27
 Garage Wall,"StructuralBrick, stucco",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Wall,"StructuralBrick, stucco",,,WALL LAYER,0.2032,0.507,1762.2,,0.4008,284.8626186912,,795.53
+Garage Wall,"StructuralBrick, vinyl siding",,,VINYL SIDING,0.0095,0.089,177.822,,0.1065,1.76828419575,,1046.75
+Garage Wall,"StructuralBrick, vinyl siding",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Wall,"StructuralBrick, vinyl siding",,,WALL LAYER,0.2032,0.609,1762.2,,0.3334,284.8626186912,,795.53
+Garage Wall,"WoodStud, aluminum siding",,,ALUMINUM SIDING,0.0095,0.089,177.822,,0.1065,1.76828419575,,1046.75
+Garage Wall,"WoodStud, aluminum siding",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Wall,"WoodStud, aluminum siding",,,WALL STUD AND CAVITY,0.1397,0.419,139.054,,0.3334,22.7328605968244,,1170.238
+Garage Wall,"WoodStud, asbestos siding",,,ASBESTOS SIDING,0.0063,0.606,1899.972,,0.01048,12.028236339168002,,1004.88
+Garage Wall,"WoodStud, asbestos siding",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
+Garage Wall,"WoodStud, asbestos siding",,,WALL STUD AND CAVITY,0.1397,0.325,139.054,,0.4294,22.7328605968244,,1170.238
 Garage Wall,"WoodStud, brick veneer",,,BRICK VENEER,0.1016,0.793,1762.2,,0.1281,142.4313093456,,795.53
 Garage Wall,"WoodStud, brick veneer",,,OSB SHEATHING 0.5 IN.,0.0127,0.115,512.64,,0.11,7.905278413439999,,1214.23
 Garage Wall,"WoodStud, brick veneer",,,WALL STUD AND CAVITY,0.1397,0.448,139.054,,0.3119,22.7328605968244,,1170.238
@@ -943,6 +1100,10 @@ Rim Joist,"asbestos siding, R-10, Exterior",,,RIM JOIST STUD AND CAVITY,0.0508,0
 Rim Joist,"asbestos siding, R-13, Interior",,,ASBESTOS SIDING,0.0063,0.606,1899.972,,0.01048,12.028236339168002,,1004.88
 Rim Joist,"asbestos siding, R-13, Interior",,,OSB SHEATHING 2.0 IN.,0.0508,0.115,512.64,,0.44,31.621113653759995,,1214.23
 Rim Joist,"asbestos siding, R-13, Interior",,,RIM JOIST STUD AND CAVITY,0.0508,0.029,125.044,,1.781,7.390660497084799,,1163.474
+Rim Joist,"asbestos siding, R-15, Exterior",,,ASBESTOS SIDING,0.0063,0.606,1899.972,,0.01048,12.028236339168002,,1004.88
+Rim Joist,"asbestos siding, R-15, Exterior",,,RIM JOIST RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Rim Joist,"asbestos siding, R-15, Exterior",,,OSB SHEATHING 2.0 IN.,0.0508,0.115,512.64,,0.44,31.621113653759995,,1214.23
+Rim Joist,"asbestos siding, R-15, Exterior",,,RIM JOIST STUD AND CAVITY,0.0508,0.062,125.044,,0.8214,7.390660497084799,,1163.474
 Rim Joist,"asbestos siding, R-5, Exterior",,,ASBESTOS SIDING,0.0063,0.606,1899.972,,0.01048,12.028236339168002,,1004.88
 Rim Joist,"asbestos siding, R-5, Exterior",,,OSB SHEATHING 2.0 IN.,0.0508,0.115,512.64,,0.44,31.621113653759995,,1214.23
 Rim Joist,"asbestos siding, R-5, Exterior",,,RIM JOIST STUD AND CAVITY,0.0508,0.062,125.044,,0.8214,7.390660497084799,,1163.474
@@ -984,11 +1145,19 @@ Rim Joist,"fiber cement siding, R-10, Exterior",,,RIM JOIST STUD AND CAVITY,0.05
 Rim Joist,"fiber cement siding, R-13, Interior",,,FIBER CEMENT SIDING,0.0095,0.258,347.634,,0.03689,3.31863931224,,1004.88
 Rim Joist,"fiber cement siding, R-13, Interior",,,OSB SHEATHING 2.0 IN.,0.0508,0.115,512.64,,0.44,31.621113653759995,,1214.23
 Rim Joist,"fiber cement siding, R-13, Interior",,,RIM JOIST STUD AND CAVITY,0.0508,0.03,125.044,,1.684,7.390660497084799,,1163.474
+Rim Joist,"fiber cement siding, R-15, Exterior",,,FIBER CEMENT SIDING,0.0095,0.258,347.634,,0.03689,3.31863931224,,1004.88
+Rim Joist,"fiber cement siding, R-15, Exterior",,,RIM JOIST RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Rim Joist,"fiber cement siding, R-15, Exterior",,,OSB SHEATHING 2.0 IN.,0.0508,0.115,512.64,,0.44,31.621113653759995,,1214.23
+Rim Joist,"fiber cement siding, R-15, Exterior",,,RIM JOIST STUD AND CAVITY,0.0508,0.07,125.044,,0.7245,7.390660497084799,,1163.474
 Rim Joist,"fiber cement siding, R-5, Exterior",,,FIBER CEMENT SIDING,0.0095,0.258,347.634,,0.03689,3.31863931224,,1004.88
 Rim Joist,"fiber cement siding, R-5, Exterior",,,OSB SHEATHING 2.0 IN.,0.0508,0.115,512.64,,0.44,31.621113653759995,,1214.23
 Rim Joist,"fiber cement siding, R-5, Exterior",,,RIM JOIST STUD AND CAVITY,0.0508,0.07,125.044,,0.7245,7.390660497084799,,1163.474
 Rim Joist,"fiber cement siding, Uninsulated",,,FIBER CEMENT SIDING,0.0095,0.258,347.634,,0.03689,3.31863931224,,1004.88
 Rim Joist,"fiber cement siding, Uninsulated",,,RIM JOIST STUD AND CAVITY,0.0508,0.179,50.327,,0.2841,2.719748986196,,1063.81
+Rim Joist,"none, R-10, Exterior",,,OSB SHEATHING 2.0 IN.,0.0508,0.115,512.64,,0.44,31.621113653759995,,1214.23
+Rim Joist,"none, R-10, Exterior",,,RIM JOIST STUD AND CAVITY,0.0508,0.032,125.044,,1.607,7.390660497084799,,1163.474
+Rim Joist,"none, R-13, Interior",,,OSB SHEATHING 2.0 IN.,0.0508,0.115,512.64,,0.44,31.621113653759995,,1214.23
+Rim Joist,"none, R-13, Interior",,,RIM JOIST STUD AND CAVITY,0.0508,0.03,125.044,,1.686,7.390660497084799,,1163.474
 Rim Joist,"none, R-15, Exterior",,,RIM JOIST RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Rim Joist,"none, R-15, Exterior",,,OSB SHEATHING 2.0 IN.,0.0508,0.115,512.64,,0.44,31.621113653759995,,1214.23
 Rim Joist,"none, R-15, Exterior",,,RIM JOIST STUD AND CAVITY,0.0508,0.07,125.044,,0.7262,7.390660497084799,,1163.474
@@ -1053,11 +1222,21 @@ Roof,"asphalt or fiberglass shingles, Finished, R-13, Flat",,,ROOF RIGID INS,0.0
 Roof,"asphalt or fiberglass shingles, Finished, R-13, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"asphalt or fiberglass shingles, Finished, R-13, Flat",,,ROOF STUD AND CAVITY,0.2032,0.667,78.346,,0.3045,17.885394862819197,,1123.461
 Roof,"asphalt or fiberglass shingles, Finished, R-13, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"asphalt or fiberglass shingles, Finished, R-13, Pitched",,,ASPHALT OR FIBERGLASS SHINGLES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"asphalt or fiberglass shingles, Finished, R-13, Pitched",,,ROOF RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Roof,"asphalt or fiberglass shingles, Finished, R-13, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"asphalt or fiberglass shingles, Finished, R-13, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.648,78.346,,0.3136,17.885394862819197,,1123.461
+Roof,"asphalt or fiberglass shingles, Finished, R-13, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Roof,"asphalt or fiberglass shingles, Finished, R-19, Flat",,,ASPHALT OR FIBERGLASS SHINGLES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
 Roof,"asphalt or fiberglass shingles, Finished, R-19, Flat",,,ROOF RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Roof,"asphalt or fiberglass shingles, Finished, R-19, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"asphalt or fiberglass shingles, Finished, R-19, Flat",,,ROOF STUD AND CAVITY,0.2032,0.134,78.346,,1.519,17.885394862819197,,1123.461
 Roof,"asphalt or fiberglass shingles, Finished, R-19, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"asphalt or fiberglass shingles, Finished, R-19, Pitched",,,ASPHALT OR FIBERGLASS SHINGLES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"asphalt or fiberglass shingles, Finished, R-19, Pitched",,,ROOF RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Roof,"asphalt or fiberglass shingles, Finished, R-19, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"asphalt or fiberglass shingles, Finished, R-19, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.133,78.346,,1.529,17.885394862819197,,1123.461
+Roof,"asphalt or fiberglass shingles, Finished, R-19, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Roof,"asphalt or fiberglass shingles, Finished, R-30, Flat",,,ASPHALT OR FIBERGLASS SHINGLES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
 Roof,"asphalt or fiberglass shingles, Finished, R-30, Flat",,,ROOF RIGID INS,0.1036,0.029,32.04,,3.522,4.03044706512,,1214.23
 Roof,"asphalt or fiberglass shingles, Finished, R-30, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
@@ -1083,14 +1262,47 @@ Roof,"asphalt or fiberglass shingles, Finished, R-49, Flat",,,ROOF RIGID INS,0.1
 Roof,"asphalt or fiberglass shingles, Finished, R-49, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"asphalt or fiberglass shingles, Finished, R-49, Flat",,,ROOF STUD AND CAVITY,0.2032,0.047,78.346,,4.302,17.885394862819197,,1123.461
 Roof,"asphalt or fiberglass shingles, Finished, R-49, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"asphalt or fiberglass shingles, Finished, R-49, Pitched",,,ASPHALT OR FIBERGLASS SHINGLES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"asphalt or fiberglass shingles, Finished, R-49, Pitched",,,ROOF RIGID INS,0.1036,0.029,32.04,,3.522,4.03044706512,,1214.23
+Roof,"asphalt or fiberglass shingles, Finished, R-49, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"asphalt or fiberglass shingles, Finished, R-49, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.047,78.346,,4.311,17.885394862819197,,1123.461
+Roof,"asphalt or fiberglass shingles, Finished, R-49, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Roof,"asphalt or fiberglass shingles, Finished, R-7, Flat",,,ASPHALT OR FIBERGLASS SHINGLES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
 Roof,"asphalt or fiberglass shingles, Finished, R-7, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"asphalt or fiberglass shingles, Finished, R-7, Flat",,,ROOF STUD AND CAVITY,0.2032,0.151,78.346,,1.343,17.885394862819197,,1123.461
 Roof,"asphalt or fiberglass shingles, Finished, R-7, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"asphalt or fiberglass shingles, Finished, R-7, Pitched",,,ASPHALT OR FIBERGLASS SHINGLES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"asphalt or fiberglass shingles, Finished, R-7, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"asphalt or fiberglass shingles, Finished, R-7, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.15,78.346,,1.353,17.885394862819197,,1123.461
+Roof,"asphalt or fiberglass shingles, Finished, R-7, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Roof,"asphalt or fiberglass shingles, Finished, Uninsulated, Flat",,,ASPHALT OR FIBERGLASS SHINGLES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
 Roof,"asphalt or fiberglass shingles, Finished, Uninsulated, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"asphalt or fiberglass shingles, Finished, Uninsulated, Flat",,,ROOF STUD AND CAVITY,0.2032,1.022,78.346,,0.1989,17.885394862819197,,1123.461
 Roof,"asphalt or fiberglass shingles, Finished, Uninsulated, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"asphalt or fiberglass shingles, Finished, Uninsulated, Pitched",,,ASPHALT OR FIBERGLASS SHINGLES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"asphalt or fiberglass shingles, Finished, Uninsulated, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"asphalt or fiberglass shingles, Finished, Uninsulated, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.977,78.346,,0.208,17.885394862819197,,1123.461
+Roof,"asphalt or fiberglass shingles, Finished, Uninsulated, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"metal surfacing, Finished, R-13, Flat",,,METAL SURFACING,0.0005,50.04,7801.74,,1.015e-05,1.7966236959,,460.57
+Roof,"metal surfacing, Finished, R-13, Flat",,,ROOF RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Roof,"metal surfacing, Finished, R-13, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"metal surfacing, Finished, R-13, Flat",,,ROOF STUD AND CAVITY,0.2032,0.592,78.346,,0.3435,17.885394862819197,,1123.461
+Roof,"metal surfacing, Finished, R-13, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"metal surfacing, Finished, R-13, Pitched",,,METAL SURFACING,0.0005,50.04,7801.74,,1.015e-05,1.7966236959,,460.57
+Roof,"metal surfacing, Finished, R-13, Pitched",,,ROOF RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Roof,"metal surfacing, Finished, R-13, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"metal surfacing, Finished, R-13, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.576,78.346,,0.3527,17.885394862819197,,1123.461
+Roof,"metal surfacing, Finished, R-13, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"metal surfacing, Finished, R-19, Flat",,,METAL SURFACING,0.0005,50.04,7801.74,,1.015e-05,1.7966236959,,460.57
+Roof,"metal surfacing, Finished, R-19, Flat",,,ROOF RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Roof,"metal surfacing, Finished, R-19, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"metal surfacing, Finished, R-19, Flat",,,ROOF STUD AND CAVITY,0.2032,0.13,78.346,,1.559,17.885394862819197,,1123.461
+Roof,"metal surfacing, Finished, R-19, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"metal surfacing, Finished, R-19, Pitched",,,METAL SURFACING,0.0005,50.04,7801.74,,1.015e-05,1.7966236959,,460.57
+Roof,"metal surfacing, Finished, R-19, Pitched",,,ROOF RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Roof,"metal surfacing, Finished, R-19, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"metal surfacing, Finished, R-19, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.13,78.346,,1.568,17.885394862819197,,1123.461
+Roof,"metal surfacing, Finished, R-19, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Roof,"metal surfacing, Finished, R-30, Flat",,,METAL SURFACING,0.0005,50.04,7801.74,,1.015e-05,1.7966236959,,460.57
 Roof,"metal surfacing, Finished, R-30, Flat",,,ROOF RIGID INS,0.1036,0.029,32.04,,3.522,4.03044706512,,1214.23
 Roof,"metal surfacing, Finished, R-30, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
@@ -1116,6 +1328,19 @@ Roof,"metal surfacing, Finished, R-49, Flat",,,ROOF RIGID INS,0.1036,0.029,32.04
 Roof,"metal surfacing, Finished, R-49, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"metal surfacing, Finished, R-49, Flat",,,ROOF STUD AND CAVITY,0.2032,0.047,78.346,,4.341,17.885394862819197,,1123.461
 Roof,"metal surfacing, Finished, R-49, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"metal surfacing, Finished, R-49, Pitched",,,METAL SURFACING,0.0005,50.04,7801.74,,1.015e-05,1.7966236959,,460.57
+Roof,"metal surfacing, Finished, R-49, Pitched",,,ROOF RIGID INS,0.1036,0.029,32.04,,3.522,4.03044706512,,1214.23
+Roof,"metal surfacing, Finished, R-49, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"metal surfacing, Finished, R-49, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.047,78.346,,4.35,17.885394862819197,,1123.461
+Roof,"metal surfacing, Finished, R-49, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"metal surfacing, Finished, R-7, Flat",,,METAL SURFACING,0.0005,50.04,7801.74,,1.015e-05,1.7966236959,,460.57
+Roof,"metal surfacing, Finished, R-7, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"metal surfacing, Finished, R-7, Flat",,,ROOF STUD AND CAVITY,0.2032,0.147,78.346,,1.382,17.885394862819197,,1123.461
+Roof,"metal surfacing, Finished, R-7, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"metal surfacing, Finished, R-7, Pitched",,,METAL SURFACING,0.0005,50.04,7801.74,,1.015e-05,1.7966236959,,460.57
+Roof,"metal surfacing, Finished, R-7, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"metal surfacing, Finished, R-7, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.146,78.346,,1.392,17.885394862819197,,1123.461
+Roof,"metal surfacing, Finished, R-7, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Roof,"metal surfacing, Finished, Uninsulated, Flat",,,METAL SURFACING,0.0005,50.04,7801.74,,1.015e-05,1.7966236959,,460.57
 Roof,"metal surfacing, Finished, Uninsulated, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"metal surfacing, Finished, Uninsulated, Flat",,,ROOF STUD AND CAVITY,0.2032,0.854,78.346,,0.2379,17.885394862819197,,1123.461
@@ -1169,6 +1394,11 @@ Roof,"slate or tile shingles, Finished, R-49, Flat",,,ROOF RIGID INS,0.1036,0.02
 Roof,"slate or tile shingles, Finished, R-49, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"slate or tile shingles, Finished, R-49, Flat",,,ROOF STUD AND CAVITY,0.2032,0.047,78.346,,4.318,17.885394862819197,,1123.461
 Roof,"slate or tile shingles, Finished, R-49, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"slate or tile shingles, Finished, R-49, Pitched",,,SLATE OR TILE SHINGLES,0.0191,0.841,1899.972,,0.02265,29.0213022413484,,799.717
+Roof,"slate or tile shingles, Finished, R-49, Pitched",,,ROOF RIGID INS,0.1036,0.029,32.04,,3.522,4.03044706512,,1214.23
+Roof,"slate or tile shingles, Finished, R-49, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"slate or tile shingles, Finished, R-49, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.047,78.346,,4.327,17.885394862819197,,1123.461
+Roof,"slate or tile shingles, Finished, R-49, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Roof,"slate or tile shingles, Finished, R-7, Flat",,,SLATE OR TILE SHINGLES,0.0191,0.841,1899.972,,0.02265,29.0213022413484,,799.717
 Roof,"slate or tile shingles, Finished, R-7, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"slate or tile shingles, Finished, R-7, Flat",,,ROOF STUD AND CAVITY,0.2032,0.149,78.346,,1.36,17.885394862819197,,1123.461
@@ -1185,6 +1415,16 @@ Roof,"slate or tile shingles, Finished, Uninsulated, Pitched",,,SLATE OR TILE SH
 Roof,"slate or tile shingles, Finished, Uninsulated, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"slate or tile shingles, Finished, Uninsulated, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.906,78.346,,0.2244,17.885394862819197,,1123.461
 Roof,"slate or tile shingles, Finished, Uninsulated, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"wood shingles or shakes, Finished, R-13, Flat",,,WOOD SHINGLES OR SHAKES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"wood shingles or shakes, Finished, R-13, Flat",,,ROOF RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Roof,"wood shingles or shakes, Finished, R-13, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"wood shingles or shakes, Finished, R-13, Flat",,,ROOF STUD AND CAVITY,0.2032,0.667,78.346,,0.3045,17.885394862819197,,1123.461
+Roof,"wood shingles or shakes, Finished, R-13, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"wood shingles or shakes, Finished, R-19, Flat",,,WOOD SHINGLES OR SHAKES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"wood shingles or shakes, Finished, R-19, Flat",,,ROOF RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
+Roof,"wood shingles or shakes, Finished, R-19, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"wood shingles or shakes, Finished, R-19, Flat",,,ROOF STUD AND CAVITY,0.2032,0.134,78.346,,1.519,17.885394862819197,,1123.461
+Roof,"wood shingles or shakes, Finished, R-19, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Roof,"wood shingles or shakes, Finished, R-19, Pitched",,,WOOD SHINGLES OR SHAKES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
 Roof,"wood shingles or shakes, Finished, R-19, Pitched",,,ROOF RIGID INS,0.0518,0.029,32.04,,1.761,2.01522353256,,1214.23
 Roof,"wood shingles or shakes, Finished, R-19, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
@@ -1195,6 +1435,16 @@ Roof,"wood shingles or shakes, Finished, R-30, Flat",,,ROOF RIGID INS,0.1036,0.0
 Roof,"wood shingles or shakes, Finished, R-30, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"wood shingles or shakes, Finished, R-30, Flat",,,ROOF STUD AND CAVITY,0.2032,0.162,78.346,,1.255,17.885394862819197,,1123.461
 Roof,"wood shingles or shakes, Finished, R-30, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"wood shingles or shakes, Finished, R-30, Pitched",,,WOOD SHINGLES OR SHAKES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"wood shingles or shakes, Finished, R-30, Pitched",,,ROOF RIGID INS,0.1036,0.029,32.04,,3.522,4.03044706512,,1214.23
+Roof,"wood shingles or shakes, Finished, R-30, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"wood shingles or shakes, Finished, R-30, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.161,78.346,,1.264,17.885394862819197,,1123.461
+Roof,"wood shingles or shakes, Finished, R-30, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"wood shingles or shakes, Finished, R-38, Flat",,,WOOD SHINGLES OR SHAKES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"wood shingles or shakes, Finished, R-38, Flat",,,ROOF RIGID INS,0.1036,0.029,32.04,,3.522,4.03044706512,,1214.23
+Roof,"wood shingles or shakes, Finished, R-38, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"wood shingles or shakes, Finished, R-38, Flat",,,ROOF STUD AND CAVITY,0.2032,0.083,78.346,,2.453,17.885394862819197,,1123.461
+Roof,"wood shingles or shakes, Finished, R-38, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Roof,"wood shingles or shakes, Finished, R-38, Pitched",,,WOOD SHINGLES OR SHAKES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
 Roof,"wood shingles or shakes, Finished, R-38, Pitched",,,ROOF RIGID INS,0.1036,0.029,32.04,,3.522,4.03044706512,,1214.23
 Roof,"wood shingles or shakes, Finished, R-38, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
@@ -1205,11 +1455,24 @@ Roof,"wood shingles or shakes, Finished, R-49, Flat",,,ROOF RIGID INS,0.1036,0.0
 Roof,"wood shingles or shakes, Finished, R-49, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"wood shingles or shakes, Finished, R-49, Flat",,,ROOF STUD AND CAVITY,0.2032,0.047,78.346,,4.302,17.885394862819197,,1123.461
 Roof,"wood shingles or shakes, Finished, R-49, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"wood shingles or shakes, Finished, R-49, Pitched",,,WOOD SHINGLES OR SHAKES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"wood shingles or shakes, Finished, R-49, Pitched",,,ROOF RIGID INS,0.1036,0.029,32.04,,3.522,4.03044706512,,1214.23
+Roof,"wood shingles or shakes, Finished, R-49, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"wood shingles or shakes, Finished, R-49, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.047,78.346,,4.311,17.885394862819197,,1123.461
+Roof,"wood shingles or shakes, Finished, R-49, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Roof,"wood shingles or shakes, Finished, R-7, Flat",,,WOOD SHINGLES OR SHAKES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
 Roof,"wood shingles or shakes, Finished, R-7, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"wood shingles or shakes, Finished, R-7, Flat",,,ROOF STUD AND CAVITY,0.2032,0.151,78.346,,1.343,17.885394862819197,,1123.461
 Roof,"wood shingles or shakes, Finished, R-7, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"wood shingles or shakes, Finished, R-7, Pitched",,,WOOD SHINGLES OR SHAKES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"wood shingles or shakes, Finished, R-7, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"wood shingles or shakes, Finished, R-7, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.15,78.346,,1.353,17.885394862819197,,1123.461
+Roof,"wood shingles or shakes, Finished, R-7, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Roof,"wood shingles or shakes, Finished, Uninsulated, Flat",,,WOOD SHINGLES OR SHAKES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
 Roof,"wood shingles or shakes, Finished, Uninsulated, Flat",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
 Roof,"wood shingles or shakes, Finished, Uninsulated, Flat",,,ROOF STUD AND CAVITY,0.2032,1.022,78.346,,0.1989,17.885394862819197,,1123.461
 Roof,"wood shingles or shakes, Finished, Uninsulated, Flat",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
+Roof,"wood shingles or shakes, Finished, Uninsulated, Pitched",,,WOOD SHINGLES OR SHAKES,0.0063,0.163,1121.4,,0.03903,10.353140469,,1465.45
+Roof,"wood shingles or shakes, Finished, Uninsulated, Pitched",,,OSB SHEATHING 0.75 IN.,0.0191,0.115,512.64,,0.165,11.88904076352,,1214.23
+Roof,"wood shingles or shakes, Finished, Uninsulated, Pitched",,,ROOF STUD AND CAVITY,0.2032,0.977,78.346,,0.208,17.885394862819197,,1123.461
+Roof,"wood shingles or shakes, Finished, Uninsulated, Pitched",,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
