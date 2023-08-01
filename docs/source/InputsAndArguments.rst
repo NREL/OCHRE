@@ -47,9 +47,9 @@ as it more realistically models the on/off usage of these devices and
 therefore gets a better estimate of the power spikes associated with
 their usage.
 
-The schedule file is generated when using ResStock (named
-“schedules.csv”) or when using BEopt and selecting stochastic schedules
-for each end use (also named “schedules.csv”). The file contains all
+The schedule file (usually named “schedules.csv”) is generated when using ResStock 
+or when using BEopt and selecting stochastic schedules
+for each end use. The file contains all
 necessary times series schedule information for load profiles as well as
 hourly temperature setpoints for both thermostats and water heaters (if
 . See the `OS-HPXML
@@ -146,9 +146,9 @@ model.
 
 The table below lists the optional arguments for creating a ``Dwelling`` model.
 
-==========================  =========================  ==============================  ==================================================================================================================================================================== 
+==========================  =========================  ==============================  ====================================================================================================================================================================
 **Argument Name**           **Argument Type**          **Default Value**               **Description**                                                                                                                                                     
-==========================  =========================  ==============================  ==================================================================================================================================================================== 
+==========================  =========================  ==============================  ====================================================================================================================================================================
 ``name``                    string                     None                            Name of the simulation                                                                                                                                           
 ``schedule_input_file``     string                     None                            Path to schedule input file                                                                                                                                      
 ``initialization_time``     ``datetime.timedelta``     None                            Length of "warm up" simulation for initial conditions [#]_                                                                                                       
@@ -168,7 +168,7 @@ The table below lists the optional arguments for creating a ``Dwelling`` model.
 ``modify_hpxml_dict``       dict                       empty dict                      Dictionary that directly modifies values from HPXML file                                                                                                          
 ``Equipment``               dict                       empty dict                      Includes equipment specific arguments                                                                                                                             
 ``Envelope``                dict                       empty dict                      Includes envelope specific arguments                                                                                                                              
-==========================  =========================  ==============================  =====================================================================================================================================================================
+==========================  =========================  ==============================  ====================================================================================================================================================================
 
 .. [#] While not required, a warm up period **is recommended**. The warm up gets more accurate initial conditions
        for the simulation by running a few prior days. Warm up is particularly helpful for simulation with a 
