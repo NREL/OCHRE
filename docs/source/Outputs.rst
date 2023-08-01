@@ -197,7 +197,7 @@ Dwelling Metrics
 Metrics are calculated at the end of a simulation and summarize the
 results over the simulation period (generally a year in most use cases).
 
-+-----------------+--------+------------------------------------------------------------------+
++-----------------+--------------------------------+------------------------------------------+
 | Metric          | Minimul Metrics Verbosity      | Description                              |
 +=================+================================+==========================================+
 | Total Electric  | 1                              | Total dwelling real electric energy      |
