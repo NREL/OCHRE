@@ -110,13 +110,13 @@ Parameters                        N/A         Dictionary of updated control para
 Ligthing and Other
 -----------------------------
 
-================================  ==========  ============================================================================ 
-Control Command                   Units       Description     
-================================  ==========  ============================================================================
-Load Fraction                     unitless    Adjust the scheduled power consumption. Can apply to both electric and gas.
-P Setpoint                        kW          Set electric power setpoint
-Gas Setpoint                      therms/hour Set gas power setpoint
-================================  ==========  ============================================================================
+================================  ============  ============================================================================ 
+Control Command                   Units         Description     
+================================  ============  ============================================================================
+Load Fraction                     unitless      Adjust the scheduled power consumption. Can apply to both electric and gas.
+P Setpoint                        kW            Set electric power setpoint
+Gas Setpoint                      therms/hour   Set gas power setpoint
+================================  ============  ============================================================================
 
 External Model Signals
 ------------------------------
