@@ -68,8 +68,10 @@ Below is a simple example to simulate a dwelling:
     weather_file=os.path.join(default_input_path, 'Weather','USA_CO_Denver.Intl.AP.725650_TMY3.epw'),
     verbosity=3,
     )
+
     df, metrics, hourly = dwelling.simulate()
 
+The variable name must be ``house`` or ``dwelling``
 
 This will return 3 variables:
 
