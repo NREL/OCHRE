@@ -395,6 +395,7 @@ Some analysis functions are useful for analyzing or combining results
 from multiple OCHRE simulations:
 
 .. code-block:: python
+
     # Combine OCHRE metrics files from multiple simulations (in subfolders of path)
     df_metrics = Analysis.combine_metrics_files(path=path)
     
@@ -409,12 +410,13 @@ The ``CreateFigures`` module has useful visualization functions for
 OCHRE output data:
 
 .. code-block:: python
+
     from ochre import Analysis, CreateFigures
-    df, metrics, df_hourly = Analysis.load_ochre(folder)
-    # Create standard HVAC output plots
-    CreateFigures.plot_hvac(df)
-    # Create stacked plot of power by end use
-    CreateFigures.plot_power_stack(df)
+        df, metrics, df_hourly = Analysis.load_ochre(folder)
+        # Create standard HVAC output plots
+        CreateFigures.plot_hvac(df)
+        # Create stacked plot of power by end use
+        CreateFigures.plot_power_stack(df)
 
 Many functions work on any generic pandas DataFrame with a
 DateTimeIndex.
