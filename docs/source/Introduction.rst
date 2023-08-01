@@ -101,7 +101,7 @@ License
 -------
 
 This project is available under a BSD-3-like license, which is a free,
-open-source, and permissive license. For more information, check out the `license file <https://github.com/NREL/OCHRE/blob/main/LICENSE>`__:
+open-source, and permissive license. For more information, check out the `license file <https://github.com/NREL/OCHRE/blob/main/LICENSE>`__
 
 
 Citation and Publications
