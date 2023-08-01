@@ -129,33 +129,33 @@ where ``dwelling_args`` is a Python dictionary of Dwelling arguments.
 The table below lists the required arguments for creating a Dwelling
 model.
 
-+--------------+---------+---------------------------------------------+
-| **Argument   | **A     | **Description**                             |
-| Name**       | rgument |                                             |
-|              | Type**  |                                             |
-+==============+=========+=============================================+
-| start_time   | dat     | Simulation start time                       |
-|              | etime.d |                                             |
-|              | atetime |                                             |
-+--------------+---------+---------------------------------------------+
-| time_res     | date    | Simulation time resolution                  |
-|              | time.ti |                                             |
-|              | medelta |                                             |
-+--------------+---------+---------------------------------------------+
-| duration     | date    | Simulation duration                         |
-|              | time.ti |                                             |
-|              | medelta |                                             |
-+--------------+---------+---------------------------------------------+
-| hpxml_file   | string  | Path to HPXML file                          |
-+--------------+---------+---------------------------------------------+
-| weather_file | string  | weather_file: Path to weather file          |
-| or           |         |                                             |
-| weather_path |         |                                             |
-+--------------+---------+---------------------------------------------+
-|              |         | weather_path: Path to directory of weather  |
-|              |         | files. The file name can be read from       |
-|              |         | “Weather Station” in the HPXML file.        |
-+--------------+---------+---------------------------------------------+
++--------------+---------+--------------------------------------------+
+|  **Argument  |   **A   |              **Description**               |
+|    Name**    | rgument |                                            |
+|              | Type**  |                                            |
++==============+=========+============================================+
+| start_time   | dat     | Simulation start time                      |
+|              | etime.d |                                            |
+|              | atetime |                                            |
++--------------+---------+--------------------------------------------+
+| time_res     | date    | Simulation time resolution                 |
+|              | time.ti |                                            |
+|              | medelta |                                            |
++--------------+---------+--------------------------------------------+
+| duration     | date    | Simulation duration                        |
+|              | time.ti |                                            |
+|              | medelta |                                            |
++--------------+---------+--------------------------------------------+
+| hpxml_file   | string  | Path to HPXML file                         |
++--------------+---------+--------------------------------------------+
+| weather_file | string  | weather_file: Path to weather file         |
+| or           |         |                                            |
+| weather_path |         |                                            |
++--------------+---------+--------------------------------------------+
+|              |         | weather_path: Path to directory of weather |
+|              |         | files. The file name can be read from      |
+|              |         | “Weather Station” in the HPXML file.       |
++--------------+---------+--------------------------------------------+
 
 The table below lists the optional arguments for creating a Dwelling
 model.
