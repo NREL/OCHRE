@@ -77,8 +77,7 @@ This will return 3 variables:
 
 \- ``metrics``: a dictionary of energy metrics
 
-\- ``hourly``: a Pandas DataFrame with 1 hour resolution (``verbosity >= 3``
-only)
+\- ``hourly``: a Pandas DataFrame with 1 hour resolution (``verbosity >= 3`` only)
 
 OCHRE can also be used to model a specific piece of equipment so long as
 the boundary conditions are appropriately defined. For example, a water
@@ -88,22 +87,22 @@ temperature, and mains temperature are defined.
 For more examples, see the following python scripts in the ``bin``
 folder:
 
-\- Run a single dwelling: https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py
+\- Run a single dwelling: `run_dwelling <https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__
 
-\- Run a single piece of equipment: https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py
+\- Run a single piece of equipment: `run_equipment <https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__
 
-\- Run a dwelling with an external controller: https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py
+\- Run a dwelling with an external controller: `run_external_control <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__
 
-\- Run multiple dwellings: https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py
+\- Run multiple dwellings: `run_multiple <https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py>`__
 
-\- Run a fleet of equipment: https://github.com/NREL/OCHRE/blob/main/bin/run_fleet.py
+\- Run a fleet of equipment: `run_fleet <https://github.com/NREL/OCHRE/blob/main/bin/run_fleet.py>`__
 
 License
 -------
 
 This project is available under a BSD-3-like license, which is a free,
-open-source, and permissive license. For more information, check out the license file:
-https://github.com/NREL/OCHRE/blob/main/LICENSE
+open-source, and permissive license. For more information, check out the `license file <https://github.com/NREL/OCHRE/blob/main/LICENSE>`__:
+
 
 Citation and Publications
 -------------------------
