@@ -59,7 +59,7 @@ External surface radiation incorporates the ambient temperature and the
 sky temperature. An example of how surfaces are split into a
 corresponding RC network is shown below.
 
-|A picture containing diagram Description automatically generated|
+https://github.com/NREL/OCHRE/blob/documentation/docs/source/images/Wall_RC_Network.png
 
 Figure : Schematic of how RC networks are generated for each surface
 
@@ -74,12 +74,12 @@ an attic, crawlspace/basement, and garage are all included in the
 building, as well as a high-level overview of the heat transfer pathways
 assumed in this case.
 
-|Diagram, schematic Description automatically generated|
+https://github.com/NREL/OCHRE/blob/documentation/docs/source/images/RC_network.png
 
 Figure : The full RC network for a building. Each rectangle represents
 the RC network shown in Figure 1
 
-|image1|
+https://github.com/NREL/OCHRE/blob/documentation/docs/source/images/Heat_Transfer_Pathways.png
 
 Figure : Schematic of a home with all optional zones and heat transfer
 pathways
@@ -97,8 +97,8 @@ modeled explicitly with surface areas and material properties like any
 other surface and exchange heat through both convection and radiation.
 The heat capacity of the air is also modeled to determine the living
 zone temperature. However, a multiplier is generally applied to this
-capacitance. Numerous studies (see
-https://docs.google.com/spreadsheets/d/1ebSmvDFdXEXVRdvkzqMF1C9MwHrHCQKFF75QMkPgd7A/edit?pli=1#gid=0)
+capacitance. 
+`Numerous studies <https://docs.google.com/spreadsheets/d/1ebSmvDFdXEXVRdvkzqMF1C9MwHrHCQKFF75QMkPgd7A/edit?pli=1#gid=0>`__
 have shown that applying a multiplier to the air capacitance provides a
 much better match to experimental data when trying to model explicit
 cycling of the HVAC equipment conditioning the living space. This
@@ -394,13 +394,3 @@ current list of technologies not supported in OCHRE is:
 -  Solar water heaters
 
 -  Desuperheaters
-
-.. |A picture containing diagram Description automatically generated| image:: media/image1.png
-   :width: 4.57271in
-   :height: 1.80509in
-.. |Diagram, schematic Description automatically generated| image:: media/image2.png
-   :width: 2.87476in
-   :height: 4.27811in
-.. |image1| image:: media/image3.emf
-   :width: 4.59037in
-   :height: 3.80417in
