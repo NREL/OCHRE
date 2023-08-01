@@ -29,123 +29,94 @@ it at 5 kW.
 The following table lists the control signals available to OCHRE
 equipment, by end use.
 
-+----------+-----------+-----+---------------------------------------+
-| End Use  | Control   | Un  | Description                           |
-| or       | Command   | its |                                       |
-| Equipment|           |     |                                       |
-| Name     |           |     |                                       |
-+==========+===========+=====+=======================================+
-| HVAC     | Load      | un  | 1 (no effect) or 0 (forces equipment  |
-| Heating  | Fraction  | itl | off)                                  |
-| or HVAC  |           | ess |                                       |
-| Cooling  |           |     |                                       |
-+----------+-----------+-----+---------------------------------------+
-| HVAC     | Setpoint  | C   | Sets temperature setpoint for one     |
-| Heating  |           |     | timestep (then reverts back to        |
-| or HVAC  |           |     | schedule)                             |
-| Cooling  |           |     |                                       |
-+----------+-----------+-----+---------------------------------------+
-| HVAC     | Deadband  | C   | Sets temperature deadband (does not   |
-| Heating  |           |     | revert back unless deadband is in the |
-| or HVAC  |           |     | schedule)                             |
-| Cooling  |           |     |                                       |
-+----------+-----------+-----+---------------------------------------+
-| HVAC     | Duty      | un  | Sets the equipment duty cycle for     |
-| Heating  | Cycle     | itl | ext_time_res                          |
-| or HVAC  |           | ess |                                       |
-| Cooling  |           |     |                                       |
-+----------+-----------+-----+---------------------------------------+
-| HVAC     | Disable   | N/A | For 2 speed equipment, disables low   |
-| Heating  | Speed X   |     | (X=1) or high (X=2) speed if value is |
-| or HVAC  |           |     | True                                  |
-| Cooling  |           |     |                                       |
-+----------+-----------+-----+---------------------------------------+
-| Water    | Load      | un  | 1 (no effect) or 0 (forces equipment  |
-| Heating  | Fraction  | itl | off)                                  |
-|          |           | ess |                                       |
-+----------+-----------+-----+---------------------------------------+
-| Water    | Setpoint  | C   | Sets temperature setpoint. Sending    |
-| Heating  |           |     | {'Setpoint': None} will reset the     |
-|          |           |     | setpoint to the default schedule      |
-+----------+-----------+-----+---------------------------------------+
-| Water    | Deadband  | C   | Sets temperature deadband (does not   |
-| Heating  |           |     | reset)                                |
-+----------+-----------+-----+---------------------------------------+
-| Water    | Duty      | un  | Sets the equipment duty cycle for     |
-| Heating  | Cycle     | itl | ext_time_res                          |
-|          |           | ess |                                       |
-+----------+-----------+-----+---------------------------------------+
-| Water    | HP Duty   | un  | Sets the HPWH heat pump duty cycle    |
-| Heating  | Cycle     | itl | for ext_time_res                      |
-|          |           | ess |                                       |
-+----------+-----------+-----+---------------------------------------+
-| Water    | ER Duty   | un  | Sets the HPWH electric resistance     |
-| Heating  | Cycle     | itl | duty cycle for ext_time_res           |
-|          |           | ess |                                       |
-+----------+-----------+-----+---------------------------------------+
-| EV       | Delay     | N/A | Delays EV charge for a given time.    |
-|          |           |     | Value can be a datetime.timedelta or  |
-|          |           |     | an integer to specify the number of   |
-|          |           |     | time steps to delay                   |
-+----------+-----------+-----+---------------------------------------+
-| EV       | P         | kW  | Sets AC power setpoint                |
-|          | Setpoint  |     |                                       |
-+----------+-----------+-----+---------------------------------------+
-| EV       | SOC Rate  | 1/h | Sets AC power setpoint based on SOC   |
-|          |           | our | rate, EV capacity, and efficiency of  |
-|          |           |     | charging                              |
-+----------+-----------+-----+---------------------------------------+
-| PV       | P         | kW  | Sets real AC power setpoint           |
-|          | Setpoint  |     |                                       |
-+----------+-----------+-----+---------------------------------------+
-| PV       | P         | kW  | Sets real power setpoint by           |
-|          | Cu        |     | specifying absolute curtailment       |
-|          | rtailment |     |                                       |
-|          | (kW)      |     |                                       |
-+----------+-----------+-----+---------------------------------------+
-| PV       | P         | %   | Sets real power setpoint by           |
-|          | Cu        |     | specifying curtailment relative to    |
-|          | rtailment |     | maximum power point                   |
-|          | (%)       |     |                                       |
-+----------+-----------+-----+---------------------------------------+
-| PV       | Q         | k   | Sets reactive power setpoint          |
-|          | Setpoint  | VAR |                                       |
-+----------+-----------+-----+---------------------------------------+
-| PV       | Power     | un  | Sets reactive power setpoint based on |
-|          | Factor    | itl | power factor                          |
-|          |           | ess |                                       |
-+----------+-----------+-----+---------------------------------------+
-| PV       | Priority  | N/A | Changes internal controller priority  |
-|          |           |     | setting. Options are 'Watt', 'Var',   |
-|          |           |     | or 'CPF'                              |
-+----------+-----------+-----+---------------------------------------+
-| Battery  | P         | kW  | Sets AC power setpoint                |
-|          | Setpoint  |     |                                       |
-+----------+-----------+-----+---------------------------------------+
-| Battery  | SOC Rate  | 1/h | Sets AC power setpoint based on SOC   |
-|          |           | our | rate, battery capacity, and           |
-|          |           |     | efficiency                            |
-+----------+-----------+-----+---------------------------------------+
-| Battery  | Control   | N/A | Changes default control type. Options |
-|          | Type      |     | are 'Schedule', 'Self-Consumption',   |
-|          |           |     | and 'Off'                             |
-+----------+-----------+-----+---------------------------------------+
-| Battery  | P         | N/A | Dictionary of updated control         |
-|          | arameters |     | parameters. See battery input args    |
-|          |           |     | for details                           |
-+----------+-----------+-----+---------------------------------------+
-| Lighting | Load      | un  | Adjusts the scheduled power           |
-| or Other | Fraction  | itl | consumption. Applied to electric and  |
-|          |           | ess | gas power                             |
-+----------+-----------+-----+---------------------------------------+
-| Lighting | P         | kW  | Sets electric power setpoint          |
-| or Other | Setpoint  |     |                                       |
-+----------+-----------+-----+---------------------------------------+
-| Lighting | Gas       | th  | Sets gas power setpoint               |
-| or Other | Setpoint  | erm |                                       |
-|          |           | s/h |                                       |
-|          |           | our |                                       |
-+----------+-----------+-----+---------------------------------------+
+HVAC Heating or HVAC Cooling
+----------------------------
+  ================================  ==========  ========================================================================= 
+  Control Command                   Units       Description     
+  ================================  ==========  ========================================================================= 
+  Load Fraction                     unitless    1 (no effect) or 0 (force equipment off)
+  Setpoint                          C           Sets temperature setpoint for one timestep (then reverts to schedule)
+  Deadband                          C           Sets thermostat deadband (does not revert unless deadband is scheduled)
+  Duty Cycle                        unitless    Sets the equipment duty cycle for ``ext_time_res``
+  Disable Speed X                   unitless    Disables low (X=1) or high (X=2) speed if value is ``True`` [#]_
+  ================================  ==========  =========================================================================
+
+  .. [#] Only available for 2 speed equipment, either ASHP or AC. Variable speed equipment modulates between all speeds to
+         perfectly maintain setpoint ( deadband = 0 C)
+
+Water Heating
+-----------------------------
+  ================================  ==========  ========================================================================= 
+  Control Command                   Units       Description     
+  ================================  ==========  ========================================================================= 
+  Load Fraction                     unitless    1 (no effect) or 0 (force equipment off)
+  Setpoint                          C           Sets temperature setpoint for one timestep. [#]_
+  Deadband                          C           Sets temperature deadband (does not reset)
+  Duty Cycle                        unitless    Sets the equipment duty cycle for ``ext_time_res``
+  HP Duty Cycle                     unitless    Sets the heat pump duty cycle for a heat pump water heater
+  ER Duty Cycle                     unitless    Sets the electric resistance duty cycle for a heat pump water heater [#]_
+  ================================  ==========  =========================================================================
+
+  .. [#] Sending {'Setpoint': None} will reset the setpoint to the default schedule. Note that a 10 F (5.56 C)
+         decrease in setpoint corresponds to a CTA-2045 'Load Shed' command. A 10 F increase corresponds to an
+         'Advanced Load Add' command (only available in B version of standard).
+  .. [#] Decreasing the deadband to about 2 C corresponds to a CTA 'Load Add' command.
+  .. [#] Most, but not all HPWHs have backup electric resistance. 120 V HPWHs (coming soon in OCHRE) do not
+         have backup ER heaters.
+
+Electric Vehicle (EV)
+-----------------------------
+
+  ================================  ==========  ========================================================================================================= 
+  Control Command                   Units       Description     
+  ================================  ==========  =========================================================================================================
+  Delay                             unitless    Delay EV chage for a given time. Value can either be ``datetime.timedelta`` or integer for # of timesteps
+  P Setpoint                        kW          Set real AC power setpoint
+  SOC Rate                          1/hour      Set AC power setpoint based on SOC rate, EV capacity, and efficiency of charging
+  ================================  ==========  =========================================================================================================
+
+Photovoltaics (PV)
+-----------------------------
+
+  ================================  ==========  ========================================================================================================= 
+  Control Command                   Units       Description     
+  ================================  ==========  =========================================================================================================
+  P Setpoint                        kW          Sets real AC power setpoint
+  P Curtailment (kW)                kW          Set real power setpoint by specifying absolute curtailment
+  P Curtailment (%)                 %           Set real power setpoint by specifying curtailment relative to maximum power point
+  Q Setpoint                        kVar        Set reactive power setpoint
+  Power Factor                      unitless    Set reactive power setpoint based on power factor
+  Priority                          N/A         Changes internal controller priority setting. Options are ``Watt``, ``Var``, or ``CPF`` [#]_
+  ================================  ==========  =========================================================================================================
+
+  .. [#] CPF: Constant Power Factor
+
+Battery
+-----------------------------
+
+  ================================  ==========  ========================================================================================================= 
+  Control Command                   Units       Description     
+  ================================  ==========  =========================================================================================================
+  P Setpoint                        kW          Sets AC power setpoint
+  SOC Rate                          1/hour      Set AC power setpoint based on SOC rate, battery capacity, and efficiency
+  Control Type                      N/A         Change default control type. Supported options are ``Schedule``, ``Self-Consumption`` [#]_, and ``Off``
+  Parameters                        N/A         Dictionary of updated control parameters. See battery input arguments for details.
+  ==================================  ==========  =========================================================================================================
+
+  .. [#] 'Self-Consumption' mode, sometimes referred to as minimizing grid import, only applies for homes with PV and a battery.
+         This strategy will charge the battery when PV production is larger than electricty consumption and vice versa.
+
+Ligthing and Other
+-----------------------------
+
+These options can apply to a wide variety of devices but are generally most useful for backup generation.
+  ================================  ==========  ========================================================================================================= 
+  Control Command                   Units       Description     
+  ================================  ==========  =========================================================================================================
+  Load Fraction                     unitless    Adjust the scheduled power consumption. Can apply to both electric and gas.
+  P Setpoint                        kW          Set electric power setpoint
+  Gas Setpoint                      therms/hour Set gas power setpoint
+  =================================  ==========  =========================================================================================================
 
 External Model Signals
 
