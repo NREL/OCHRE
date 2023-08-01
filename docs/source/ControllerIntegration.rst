@@ -52,7 +52,7 @@ Control Command                   Units       Description
 ================================  ==========  ========================================================================= 
 Load Fraction                     unitless    1 (no effect) or 0 (force equipment off)
 Setpoint                          C           Sets temperature setpoint for one timestep. [#]_
-Deadband                          C           Sets temperature deadband (does not reset)
+Deadband                          C           Sets temperature deadband (does not reset) [#]_
 Duty Cycle                        unitless    Sets the equipment duty cycle for ``ext_time_res``
 HP Duty Cycle                     unitless    Sets the heat pump duty cycle for a heat pump water heater
 ER Duty Cycle                     unitless    Sets the electric resistance duty cycle for a heat pump water heater [#]_
@@ -155,14 +155,14 @@ Example Use Case – Dwelling
 
 The following code creates a Dwelling model and runs a simulation that
 controls the HVAC heating setpoint. For more details and examples, see
-bin/run_external_control.py and notebooks/…
+bin/run_external_control.py and notebooks/user_tutorial.ipynb
 
 Example Use Case – Equipment
 ----------------------------
 
 The following code creates a water heater model and runs a simulation
 that controls the water heater setpoint. For more details and examples,
-see bin/run_external_control.py and notebooks/…
+see bin/run_external_control.py and notebooks/user_tutorial.ipynb
 
 Co-simulation
 -------------
