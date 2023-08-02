@@ -59,7 +59,7 @@ External surface radiation incorporates the ambient temperature and the
 sky temperature. An example of how surfaces are split into a
 corresponding RC network is shown below.
 
-.. image:: https://github.com/NREL/OCHRE/blob/main/docs/source/images/Wall_RC_Network.png
+.. figure:: https://github.com/NREL/OCHRE/blob/main/docs/source/images/Wall_RC_Network.png
   :width: 800
   :alt: Schematic of how RC networks are generated for each surface
 
@@ -74,12 +74,12 @@ an attic, crawlspace/basement, and garage are all included in the
 building, as well as a high-level overview of the heat transfer pathways
 assumed in this case.
 
-.. image:: https://github.com/NREL/OCHRE/blob/main/docs/source/images/RC_network.png
+.. figure:: https://github.com/NREL/OCHRE/blob/main/docs/source/images/RC_network.png
   :width: 500
   :alt: The full RC network for a building. Each rectangle represents the RC network shown in Figure 1
 
 
-.. image:: https://github.com/NREL/OCHRE/blob/main/docs/source/images/Heat_Transfer_Pathways.png
+.. figure:: https://github.com/NREL/OCHRE/blob/main/docs/source/images/Heat_Transfer_Pathways.png
   :width: 500
   :alt: Schematic of a home with all optional zones and heat transfer pathways
 
