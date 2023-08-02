@@ -1,7 +1,9 @@
 # OCHRE: The Object-oriented Controllable High-resolution Residential Energy Model
 
 A high-fidelity, high-resolution residential building model with behind-the-meter DERs and flexible load models 
-that integrates with controllers and distribution models in building-to-grid co-simulation platforms.
+that integrates with controllers and distribution models in building-to-grid co-simulation platforms. 
+
+The full documentation for OCHRE can be found at https://ochre-docs-final.readthedocs.io/en/latest/
 
 Contact: jeff.maguire@nrel.gov, michael.blonsky@nrel.gov, killian.mckenna@nrel.gov
 
@@ -160,4 +162,3 @@ OCHRE integrates with the following models and tools:
 * EVIpro (for EV modeling)
 * Distribution models, e.g. OpenDSS, through co-simulation
 
-The full documentation for OCHRE can be found at https://ochre-docs-final.readthedocs.io/en/latest/
