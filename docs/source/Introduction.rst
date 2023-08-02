@@ -1,7 +1,7 @@
 Getting Started
 ===============
 
-.. figure:: https://github.com/NREL/OCHRE/blob/main/docs/source/images/OCHRE-Logo-Stacked-2Color.png
+.. image:: https://github.com/NREL/OCHRE/blob/main/docs/source/images/OCHRE-Logo-Stacked-2Color.png
   :width: 500
   :alt: OCHRE logo
 
