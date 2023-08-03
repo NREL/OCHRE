@@ -191,8 +191,7 @@ Dwelling. For example, to initialize a battery:
 .. code-block:: python
 
    from OCHRE import Battery
-   equipment = Battery(name, **equipment_args)
-
+   equipment = Battery(**equipment_args)
 
 where equipment_args is a Python dictionary of Equipment arguments.
 A full set of the equipment classes available are listed in this
