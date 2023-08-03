@@ -14,18 +14,17 @@ it at 5 kW.
 
 .. code-block:: python
 
-    battery = Battery(capacity_kwh=10, # energy capacity = 10 kWh
-    capacity=5, # power capacity = 5 kW
-    soc_init=1, # Initial SOC=100%
-    start_time=dt.datetime(2018, 1, 1, 0, 0),
-    time_res=dt.timedelta(minutes=15),
-    duration=dt.timedelta(days=1),
+    battery = Battery(
+        capacity_kwh=10,  # energy capacity = 10 kWh
+        capacity=5,       # power capacity = 5 kW
+        soc_init=0.5,     # Initial SOC = 50%
+        start_time=dt.datetime(2018, 1, 1, 0, 0),
+        time_res=dt.timedelta(minutes=15),
+        duration=dt.timedelta(days=1),
     )
     
-    control_signal = {'P Setpoint': -5} # Discharge at 5 kW
-    
-    status = battery.update(control_signal) # Run for 1 time step with
-    control signal
+    control_signal = {'P Setpoint': -5}      # Discharge at 5 kW
+    status = battery.update(control_signal)  # Run for 1 time step
 
 The following table lists the control signals available to OCHRE
 equipment, by end use.
