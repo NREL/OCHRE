@@ -475,17 +475,18 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
         # Get gable wall areas for attic and (possibly) garage
         attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
                             boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', []))
-        if not has_garage and len(attic_wall_areas) == 2:
+        if len(attic_wall_areas) == 2:
+            # standard gable roof with attic
             assert abs(attic_wall_areas[1] - attic_wall_areas[0]) < 0.2  # computational errors possible
             attic_gable_area = attic_wall_areas[0]
             garage_gable_area = 0
         elif has_garage and len(attic_wall_areas) == 3:
-            # 2 attic gables, 1 garage gable, garage gable has area that is 'more different'
+            # 2 attic gables plus 1 garage gable, garage gable has area that is 'more different'
             attic_gable_area = attic_wall_areas[1]
             low, med, high = tuple(sorted(attic_wall_areas))
             garage_gable_area = low if med - low > high - med else high
         else:
-            raise Exception('Unable to parse gable wall areas.')
+            raise Exception('Unable to calculate attic area, likely an issue with gable walls.')
 
         # Get attic properties
         roof_tilt = convert(boundaries['Attic Roof']['Tilt (deg)'], 'deg',
