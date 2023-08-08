@@ -754,7 +754,7 @@ class DynamicHVAC(HVAC):
             raise Exception('Unknown control type for {}: {}'.format(self.name, self.control_type))
 
         # Enforce minimum on times for speed
-        if self.time_in_speed < self.min_time_in_speed[prev_speed_idx]:
+        if self.time_in_speed < self.min_time_in_speed[prev_speed_idx - 1]:
             speed = prev_speed_idx
 
         # enforce speed disabling from external control
