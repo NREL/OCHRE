@@ -30,13 +30,13 @@ from the command line:
 
 .. code-block:: python
 
-    pip install git+https://github.com/NREL/OCHRE.git
+    pip install ochre-nrel
 
-Alternatively, you can download the repo and run the ``setup.py`` file:
+Alternatively, you can install a specific branch, for example:
 
 .. code-block:: python
 
-    python setup.py install
+    pip install git+https://github.com/NREL/OCHRE@dev
 
 To embed OCHRE in a co-simulation using a conda environment, create an
 ``environment.yml`` file in the co-simulation project and include the
@@ -46,7 +46,7 @@ following lines:
 
     dependencies:
      - pip:
-     - git+https:// github.com/NREL/OCHRE
+       - ochre-nrel
 
 Usage
 -----
@@ -92,21 +92,27 @@ temperature, and mains temperature are defined.
 For more examples, see the following python scripts in the ``bin``
 folder:
 
-- Run a single dwelling: `run_dwelling <https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__
+- Run a single dwelling: `run_dwelling
+  <https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__
 
-- Run a single piece of equipment: `run_equipment <https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__
+- Run a single piece of equipment: `run_equipment
+  <https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__
 
-- Run a dwelling with an external controller: `run_external_control <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__
+- Run a dwelling with an external controller: `run_external_control
+  <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__
 
-- Run multiple dwellings: `run_multiple <https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py>`__
+- Run multiple dwellings: `run_multiple
+  <https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py>`__
 
-- Run a fleet of equipment: `run_fleet <https://github.com/NREL/OCHRE/blob/main/bin/run_fleet.py>`__
+- Run a fleet of equipment: `run_fleet
+  <https://github.com/NREL/OCHRE/blob/main/bin/run_fleet.py>`__
 
 License
 -------
 
 This project is available under a BSD-3-like license, which is a free,
-open-source, and permissive license. For more information, check out the `license file <https://github.com/NREL/OCHRE/blob/main/LICENSE>`__.
+open-source, and permissive license. For more information, check out the
+`license file <https://github.com/NREL/OCHRE/blob/main/LICENSE>`__.
 
 
 Citation and Publications

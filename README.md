@@ -19,7 +19,7 @@ For a stand-alone installation, OCHRE can be installed using `pip` from the comm
 pip install ochre-nrel
 ```
 
-Alternatively, you can download a specific branch, for example:
+Alternatively, you can install a specific branch, for example:
 
 ```
 pip install git+https://github.com/NREL/OCHRE@dev
