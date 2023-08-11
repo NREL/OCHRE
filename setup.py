@@ -45,9 +45,9 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-setup(name='ochre',
+setup(name='ochre-nrel',
       version=find_version('ochre', '__init__.py'),
-      description='A residential energy model with controllable equipment and DERs for building-to-grid co-simulation',
+      description='A residential energy model with flexible loads and DERs for building-to-grid co-simulation',
       author='Jeff Maguire',
       author_email='Jeff.Maguire@nrel.gov',
       maintainer='Michael Blonsky',
