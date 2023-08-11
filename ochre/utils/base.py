@@ -36,7 +36,7 @@ def load_csv(file_name, sub_folder=None, **kwargs):
     return pd.read_csv(file_name, **kwargs)
 
 
-def convert_hpxml_element(obj):
+def convert_hpxml_element(obj, use_sys_id):
     # simplify HPXML elements, recursively
     if isinstance(obj, dict):
         if len(obj) == 0:
@@ -50,11 +50,11 @@ def convert_hpxml_element(obj):
             else:
                 # keep list, remove name of length-1 dictionary key
                 new_obj = first
-            return convert_hpxml_element(new_obj)
-        elif len(obj) == 1 and isinstance(first, dict) and 'SystemIdentifier' in first:
+            return convert_hpxml_element(new_obj, use_sys_id)
+        elif use_sys_id and len(obj) == 1 and isinstance(first, dict) and 'SystemIdentifier' in first:
             # rename dict key using 'SystemIdentifier'
             key = first['SystemIdentifier']['@id']
-            return {key: convert_hpxml_element(first)}
+            return {key: convert_hpxml_element(first, use_sys_id)}
         elif len(obj) == 1 and first is None:
             return list(obj.keys())[0]
         elif len(obj) == 1 and '@id' in obj:
@@ -62,16 +62,16 @@ def convert_hpxml_element(obj):
             return {}
         elif '#text' in obj.keys():
             # remove all ID information, keep only the text
-            return convert_hpxml_element(obj['#text'])
+            return convert_hpxml_element(obj['#text'], use_sys_id)
         else:
-            return {key: convert_hpxml_element(val) for key, val in obj.items()}
+            return {key: convert_hpxml_element(val, use_sys_id) for key, val in obj.items()}
 
     elif isinstance(obj, list):
         if len(obj) > 0 and isinstance(obj[0], dict) and 'SystemIdentifier' in obj[0]:
             # Convert list to dict with ids as keys
-            return {item['SystemIdentifier']['@id']: convert_hpxml_element(item) for item in obj}
+            return {item['SystemIdentifier']['@id']: convert_hpxml_element(item, use_sys_id) for item in obj}
         else:
-            return [convert_hpxml_element(item) for item in obj]
+            return [convert_hpxml_element(item, use_sys_id) for item in obj]
 
     elif isinstance(obj, str):
         if obj in ['true', 'false']:
@@ -90,7 +90,7 @@ def convert_hpxml_element(obj):
         raise Exception(f'Unknown HPXML object type ({type(obj)}: {obj}')
 
 
-def import_hpxml(hpxml_file, **house_args):
+def import_hpxml(hpxml_file, use_sys_id=False, **house_args):
     if not os.path.isabs(hpxml_file):
         hpxml_file = os.path.join(default_input_path, 'Input Files', hpxml_file)
 
@@ -103,7 +103,7 @@ def import_hpxml(hpxml_file, **house_args):
     assert version in ['4.0']
 
     # Keep only building details
-    hpxml = convert_hpxml_element(hpxml_original['HPXML']['Building']['BuildingDetails'])
+    hpxml = convert_hpxml_element(hpxml_original['HPXML']['Building']['BuildingDetails'], use_sys_id)
     hpxml = dict(hpxml)
 
     return hpxml

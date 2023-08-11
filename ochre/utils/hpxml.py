@@ -448,8 +448,10 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
     building_height = ceiling_height * construction['Indoor Floors']
     has_garage = garage_floor_area > 0
 
-    roof_tilt = convert(boundaries['Attic Roof']['Tilt (deg)'], 'deg',
-                        'rad')  # tan(roof_tilt) = height / (width / 2)
+    if 'Attic Roof' in boundaries:
+        roof_tilt = convert(boundaries['Attic Roof']['Tilt (deg)'], 'deg', 'rad')
+    else:
+        roof_tilt = None
     if 'Garage Roof' in boundaries:
         garage_tilt = convert(boundaries['Garage Roof']['Tilt (deg)'], 'deg', 'rad')
     else:
@@ -509,6 +511,7 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
             raise Exception('Unable to calculate attic area, likely an issue with gable walls.')
 
         # Get attic properties
+        # tan(roof_tilt) = height / (width / 2)
         attic_height = (attic_gable_area * math.tan(roof_tilt)) ** 0.5
         if third_gable_area > 0:
             # assumes a combined attic, add volume over garage and in between
