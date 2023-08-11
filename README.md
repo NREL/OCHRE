@@ -16,13 +16,13 @@ Note that OCHRE requires Python version 3.9 or higher
 For a stand-alone installation, OCHRE can be installed using `pip` from the command line:
 
 ```
-pip install git+https://github.com/NREL/OCHRE
+pip install ochre-nrel
 ```
 
-Alternatively, you can download the repo and run the `setup.py` file:
+Alternatively, you can download a specific branch, for example:
 
 ```
-python setup.py install
+pip install git+https://github.com/NREL/OCHRE@dev
 ```
 
 ### In Co-simulation
@@ -31,7 +31,7 @@ project and include the following lines:
 ```
 dependencies:
   - pip:
-    - git+https://github.com/NREL/OCHRE
+    - ochre-nrel
 ```
 
 
