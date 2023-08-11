@@ -435,6 +435,15 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
     building_height = ceiling_height * construction['Indoor Floors']
     has_garage = garage_floor_area > 0
 
+    if 'Attic Roof' in boundaries:
+        roof_tilt = convert(boundaries['Attic Roof']['Tilt (deg)'], 'deg', 'rad')
+    else:
+        roof_tilt = None
+    if 'Garage Roof' in boundaries:
+        garage_tilt = convert(boundaries['Garage Roof']['Tilt (deg)'], 'deg', 'rad')
+    else:
+        garage_tilt = roof_tilt
+
     # Indoor ventilation parameters - Whole ventilation fans only
     # Note: Indoor infiltration parameters depend on equipment, added in add_indoor_infiltration
     nat_ventilation_params = utils_envelope.calculate_ela_coefficients('Indoor', building_height)
@@ -488,14 +497,11 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
             raise Exception('Unable to parse gable wall areas.')
 
         # Get attic properties
-        roof_tilt = convert(boundaries['Attic Roof']['Tilt (deg)'], 'deg',
-                            'rad')  # tan(roof_tilt) = height / (width / 2)
+        # tan(roof_tilt) = height / (width / 2)
         attic_height = (attic_gable_area * math.tan(roof_tilt)) ** 0.5
         attic_volume = 1 / 2 * second_floor_area * attic_height  # volume = 1/2 l*w*h
         if garage_gable_area > 0:
             # assumes a combined attic, add volume over garage and in between
-            garage_tilt = convert(boundaries['Garage Roof']['Tilt (deg)'], 'deg', 'rad') \
-                if 'Garage Roof' in boundaries else roof_tilt
             garage_height = (garage_gable_area * math.tan(garage_tilt)) ** 0.5
             garage_width = 2 * garage_gable_area / garage_height
             # garage_length = garage_floor_area / garage_width
