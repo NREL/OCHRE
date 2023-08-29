@@ -73,7 +73,6 @@ class Dwelling(Simulator):
         # Load occupancy schedule and weather files
         schedule, location = load_schedule(properties, weather_station=weather_station, **house_args)
         properties['location'] = location
-        house_args['schedule'] = schedule
         self.start_time = self.start_time.replace(tzinfo=schedule.index.tzinfo)
 
         # Save HPXML properties to json file
@@ -98,11 +97,11 @@ class Dwelling(Simulator):
             self.print('Saved schedule to:', schedule_output_file)
 
         # Update args for initializing Envelope and Equipment
-        initial_schedule = schedule.loc[self.start_time].to_dict()
         sim_args = {
             **house_args,
             'start_time': self.start_time,  # updates time zone if necessary
-            'initial_schedule': initial_schedule,
+            'schedule': schedule,
+            'initial_schedule': schedule.loc[self.start_time].to_dict(),
             'main_sim_name': self.name,
             'output_path': self.output_path,
         }
@@ -117,7 +116,7 @@ class Dwelling(Simulator):
         sim_args['envelope_model'] = self.envelope
 
         # Add detailed equipment properties, including ZIP parameters
-        equipment_dict = update_equipment_properties(properties, **house_args)
+        equipment_dict = update_equipment_properties(properties, **sim_args)
 
         # Create all equipment
         self.equipment = {}
