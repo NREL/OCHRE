@@ -169,8 +169,8 @@ The table below lists the optional arguments for creating a ``Dwelling`` model.
 ``ext_time_res``            datetime.timedelta         None                            Time resolution for external controller. Required for Duty Cycle control.                                                                                            
 ``seed``                    int or string              HPXML or schedule file          Random seed for initial temperatures and EV event data                                                                                                               
 ``modify_hpxml_dict``       dict                       empty dict                      Dictionary that directly modifies values from HPXML file                                                                                                          
-``Equipment``               dict                       empty dict                      Includes equipment specific arguments                                                                                                                             
 ``Envelope``                dict                       empty dict                      Includes envelope specific arguments                                                                                                                              
+``Equipment``               dict                       empty dict                      Includes equipment specific arguments                                                                                                                             
 ==========================  =========================  ==============================  ====================================================================================================================================================================
 
 .. [#] While not required, a warm up period **is recommended**. The warm up gets more accurate initial conditions
@@ -182,6 +182,52 @@ The table below lists the optional arguments for creating a ``Dwelling`` model.
 .. [#] Default is time step for time series data
 .. [#] If ``False`` and ``verbosity > 3``, .json will only include HPXML properties
 .. [#] If ``verbosity > 0``, else ``FALSE``
+
+``Envelope`` arguments can be included to modify the default envelope model
+that is based on the HPXML file. The table below lists optional arguments for
+the ``Envelope`` dictionary.
+
++-------------------------------+------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| Argument Name                 | Argument Type          | Default Value                           | Description                                                                                               |
++===============================+========================+=========================================+===========================================================================================================+
+| ``initial_temp_setpoint``     | number                 | Random temperature within HVAC deadband | Initial temperature for Indoor zone. It is set before the initialization time                             |
++-------------------------------+------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| ``linearize_infiltration``    | boolean                | FALSE                                   | Linearizes infiltration heat pathways and incorporates in state space matrices                            |
++-------------------------------+------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| ``external_radiation_method`` | string                 | "full"                                  | Option to use detailed radiation method ("full"), linearized radiation ("linear"), or no radiation (None) |
++-------------------------------+------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| ``internal_radiation_method`` | string                 | "full"                                  | Option to use detailed radiation method ("full"), linearized radiation ("linear"), or no radiation (None) |
++-------------------------------+------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| ``reduced_states``            | integer                | None                                    | Number of states for envelope model reduction                                                             |
++-------------------------------+------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| ``reduced_min_accuracy``      | number                 | None                                    | Minimum accuracy to determine number of states for envelope model reduction                               |
++-------------------------------+------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| ``save_matrices``             | boolean                | FALSE                                   | Saves envelope state space matrices to files                                                              |
++-------------------------------+------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| ``save_matrices_time_res``    | ``datetime.timedelta`` | None                                    | Time resolution for discretizing saved matrices. If None, saves continuous time matrices                  |
++-------------------------------+------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| ``zones``                     | dict of dicts          | Empty dict                              | Includes arguments for individual zones                                                                   |
++-------------------------------+------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------+
+
+The ``zones`` dictionary keys can be from the list: ``['Indoor', 'Attic',
+'Garage', 'Foundation']``. The table below lists optional arguments for
+each zone dictionary.
+
++-----------------------------+---------------+----------------------------------+--------------------------------------------------------+
+| Argument Name               | Argument Type | Default Value                    | Description                                            |
++=============================+===============+==================================+========================================================+
+| ``enable_humidity``         | boolean       | True for Indoor zone, else False | If True, OCHRE models humidity in the given zone       |
++-----------------------------+---------------+----------------------------------+--------------------------------------------------------+
+| ``Thermal Mass Multiplier`` | number        | 7                                | Multiplier for zone's thermal mass (i.e., capacitance) |
++-----------------------------+---------------+----------------------------------+--------------------------------------------------------+
+| ``Volume (m^3)``            | number        | Taken from HPXML file            | Volume of the given zone                               |
++-----------------------------+---------------+----------------------------------+--------------------------------------------------------+
+
+We note that it is possible, though not recommended, to create an ``Envelope``
+object without initializing a ``Dwelling``. This can be done for very simple
+Envelope models. As an example, see the ``run_hvac`` function in
+`run_equipment.py
+<https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__.
 
 Equipment-specific Arguments
 ----------------------------
