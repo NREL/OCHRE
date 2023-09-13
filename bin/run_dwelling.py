@@ -36,7 +36,7 @@ dwelling_args = {
     # 'save_results': False,                # saves results to files. Defaults to True if verbosity > 0
     # 'output_path': os.getcwd(),           # defaults to hpxml_file path
     # 'save_args_to_json': True,            # includes data from this dictionary in the json file
-    'output_to_parquet': True,              # saves time series files as parquet files (False saves as csv files)
+    # 'output_to_parquet': True,            # saves time series files as parquet files (False saves as csv files)
     # 'save_schedule_columns': [],          # list of time series inputs to save to schedule file
     # 'export_res': dt.timedelta(days=61),  # time resolution for saving files, to reduce memory requirements
 
