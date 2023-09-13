@@ -27,7 +27,7 @@ dwelling_args = {
 
     # Output parameters
     'verbosity': 3,                         # verbosity of time series files (0-9)
-    'output_to_parquet': True,              # saves time series files as parquet files (False saves as csv files)
+    # 'output_to_parquet': True,            # saves time series files as parquet files (False saves as csv files)
 }
 
 

@@ -43,7 +43,7 @@ class Equipment(Simulator):
 
         # General parameters
         self.parameters = self.initialize_parameters(**kwargs)
-        self.results_name = self.end_use if self.end_use != 'Other' else self.name
+        self.results_name = self.end_use if self.end_use not in ['Lighting', 'Other'] else self.name
         self.save_ebm_results = save_ebm_results
 
         # Power parameters
