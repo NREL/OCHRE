@@ -98,6 +98,29 @@ def get_boundaries_by_zones(boundaries, default_int_zone='Indoor', default_ext_z
     return bd_by_zones
 
 
+def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
+    # for windows and doors, determine interior zone based on attached wall zone
+    ext_bd, gar_bd, attic_bd = {}, {}, {}
+    for name, boundary in boundaries.items():
+        boundary['Exterior Zone'] = 'Outdoor'
+        wall = boundary['AttachedToWall']['@idref']
+        if wall in ext_walls:
+            boundary['Interior Zone'] = 'Indoor'
+            ext_bd[name] = boundary
+            ext_walls[wall]['Area'] -= boundary['Area']
+        elif wall in gar_walls:
+            boundary['Interior Zone'] = 'Garage'
+            gar_bd[name] = boundary
+            gar_walls[wall]['Area'] -= boundary['Area']
+        elif wall in attic_walls:
+            boundary['Interior Zone'] = 'Attic'
+            attic_bd[name] = boundary
+            attic_walls[wall]['Area'] -= boundary['Area']
+        else:
+            raise IOError(f'Unknown attached wall for {name}: {wall}')
+    
+    return ext_bd, gar_bd, attic_bd
+
 def parse_hpxml_surface(bd_name, bd_data):
     out = {
         'Area (m^2)': convert(bd_data['Area'], 'ft^2', 'm^2'),
@@ -298,23 +321,16 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     adj_rim_joists = all_rim_joists.pop(('Foundation', 'Foundation'), {})
     assert not all_rim_joists  # verifies that all boundaries are accounted for
 
-    # Get windows
-    all_windows = get_boundaries_by_zones(enclosure.get('Windows', {}))
-    windows = all_windows.pop(('Indoor', 'Outdoor'), {})
-    assert not all_windows  # verifies that all boundaries are accounted for
-
-    # Get doors
-    all_doors = get_boundaries_by_zones(enclosure.get('Doors', {}))
-    doors = all_doors.pop(('Indoor', 'Outdoor'), {})
-    assert not all_doors  # verifies that all boundaries are accounted for
-
-    # subtract window and door area from walls
-    for opening in {**windows, **doors}.values():
-        azimuth = opening['Azimuth']
-        walls = [wall for wall in ext_walls.values() if wall['Azimuth'] == azimuth]
-        if walls:
-            wall = walls[0]
-            wall['Area'] -= opening['Area']
+    # Get windows (only accepts windows to indoor zone for now), and subtract wall area
+    all_windows = enclosure.get('Windows', {})
+    windows, gar_windows, attic_windows = get_boundaries_by_wall(all_windows, ext_walls, gar_walls, attic_walls)
+    assert not gar_windows
+    assert not attic_windows
+    
+    # Get doors (only accepts doors to indoor zone and garage), and subtract wall area
+    all_doors = enclosure.get('Doors', {})
+    doors, gar_doors, attic_doors = get_boundaries_by_wall(all_doors, ext_walls, gar_walls, attic_walls)
+    assert not attic_doors
 
     boundaries = {
         'Exterior Wall': ext_walls,
@@ -344,6 +360,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
         'Adjacent Rim Joist': adj_rim_joists,
         'Window': windows,
         'Door': doors,
+        'Garage Door': gar_doors,
 
     }
     boundaries = {key: val for key, val in boundaries.items() if len(val)}  # remove empty boundaries
