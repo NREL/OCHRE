@@ -1605,8 +1605,13 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
     # Parse occupancy
     occupancy = parse_hpxml_occupancy(hpxml)
 
-    # Parse envelope properties
+    # Parse envelope properties and merge with house_args
     boundaries, zones, construction = parse_hpxml_envelope(hpxml, occupancy, **house_args)
+    envelope = house_args.get('Envelope', {})
+    if 'boundaries' in envelope:
+        boundaries = nested_update(boundaries, house_args['Envelope'].pop('boundaries'))
+    if 'zones' in envelope:
+        zones = nested_update(zones, house_args['Envelope'].pop('zones'))
 
     # Parse equipment properties and merge with house_args
     equipment_dict = parse_hpxml_equipment(hpxml, occupancy, construction)

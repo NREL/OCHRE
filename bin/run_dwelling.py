@@ -47,8 +47,11 @@ dwelling_args = {
     #     'external_radiation_method': 'linear',
     #     'internal_radiation_method': 'linear',
     #     'reduced_states': 7,
+    #     'save_matrices': True,
+    #     'zones': {'Indoor': {
+    #         'enable_humidity': False,
+    #     }},
     # },
-    # 'save_matrices': True,
 
     # Equipment parameters
     'Equipment': {
