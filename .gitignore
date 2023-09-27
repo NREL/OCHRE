@@ -13,7 +13,7 @@ dist/
 *.code-workspace
 environment.yml
 
-defaults/Input Files/OCHRE Test House*
+defaults/Input Files/OCHRE*
 outputs/
 test/outputs/
 ochre/Models/SAM_weather_*.csv

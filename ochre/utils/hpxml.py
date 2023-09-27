@@ -98,12 +98,40 @@ def get_boundaries_by_zones(boundaries, default_int_zone='Indoor', default_ext_z
     return bd_by_zones
 
 
+def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
+    # for windows and doors, determine interior zone based on attached wall zone
+    ext_bd, gar_bd, attic_bd = {}, {}, {}
+    for name, boundary in boundaries.items():
+        boundary['Exterior Zone'] = 'Outdoor'
+        wall = boundary['AttachedToWall']['@idref']
+        if wall in ext_walls:
+            boundary['Interior Zone'] = 'Indoor'
+            ext_bd[name] = boundary
+            ext_walls[wall]['Area'] -= boundary['Area']
+        elif wall in gar_walls:
+            boundary['Interior Zone'] = 'Garage'
+            gar_bd[name] = boundary
+            gar_walls[wall]['Area'] -= boundary['Area']
+        elif wall in attic_walls:
+            boundary['Interior Zone'] = 'Attic'
+            attic_bd[name] = boundary
+            attic_walls[wall]['Area'] -= boundary['Area']
+        else:
+            raise IOError(f'Unknown attached wall for {name}: {wall}')
+    
+    return ext_bd, gar_bd, attic_bd
+
 def parse_hpxml_surface(bd_name, bd_data):
     out = {
-        'Area (m^2)': convert(bd_data['Area'], 'ft^2', 'm^2'),
         'Interior Zone': bd_data['Interior Zone'],
         'Exterior Zone': bd_data['Exterior Zone'],
+        'Area (m^2)': convert(bd_data['Area'], 'ft^2', 'm^2'),
     }
+
+    # Add azimuth if it exists
+    azimuth = bd_data.get('Azimuth')
+    if azimuth is not None:
+        out['Azimuth (deg)'] = azimuth
 
     # Add R value if it exists
     r_value = bd_data.get('Insulation', {}).get('AssemblyEffectiveRValue', bd_data.get('RValue'))
@@ -112,10 +140,6 @@ def parse_hpxml_surface(bd_name, bd_data):
 
     # Exterior boundary properties (roofs, walls, and rim joists). Not used for raised floors
     if bd_data.get('Exterior Zone') == 'Outdoor':
-        # TODO: get azimuth from Orientation, get absorptivity from color
-        azimuth = bd_data.get('Azimuth')
-        if azimuth is not None:
-            out['Azimuth (deg)'] = azimuth
         if 'SolarAbsorptance' in bd_data:
             out['Exterior Solar Absorptivity (-)'] = bd_data['SolarAbsorptance']
         if 'Emittance' in bd_data:
@@ -201,7 +225,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     # house_width = house_length * aspect_ratio
     ceiling_height = conditioned_volume / conditioned_floor_area
     if 'AverageCeilingHeight' in construction:
-        assert abs(convert(construction['AverageCeilingHeight'], 'ft', 'm') - ceiling_height < 0.1)
+        assert abs(convert(construction['AverageCeilingHeight'], 'ft', 'm') - ceiling_height) < 0.1
 
     # Get number of bedrooms and bathrooms
     n_beds = construction['NumberofBedrooms']
@@ -298,23 +322,16 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     adj_rim_joists = all_rim_joists.pop(('Foundation', 'Foundation'), {})
     assert not all_rim_joists  # verifies that all boundaries are accounted for
 
-    # Get windows
-    all_windows = get_boundaries_by_zones(enclosure.get('Windows', {}))
-    windows = all_windows.pop(('Indoor', 'Outdoor'), {})
-    assert not all_windows  # verifies that all boundaries are accounted for
-
-    # Get doors
-    all_doors = get_boundaries_by_zones(enclosure.get('Doors', {}))
-    doors = all_doors.pop(('Indoor', 'Outdoor'), {})
-    assert not all_doors  # verifies that all boundaries are accounted for
-
-    # subtract window and door area from walls
-    for opening in {**windows, **doors}.values():
-        azimuth = opening['Azimuth']
-        walls = [wall for wall in ext_walls.values() if wall['Azimuth'] == azimuth]
-        if walls:
-            wall = walls[0]
-            wall['Area'] -= opening['Area']
+    # Get windows (only accepts windows to indoor zone for now), and subtract wall area
+    all_windows = enclosure.get('Windows', {})
+    windows, gar_windows, attic_windows = get_boundaries_by_wall(all_windows, ext_walls, gar_walls, attic_walls)
+    assert not gar_windows
+    assert not attic_windows
+    
+    # Get doors (only accepts doors to indoor zone and garage), and subtract wall area
+    all_doors = enclosure.get('Doors', {})
+    doors, gar_doors, attic_doors = get_boundaries_by_wall(all_doors, ext_walls, gar_walls, attic_walls)
+    assert not attic_doors
 
     boundaries = {
         'Exterior Wall': ext_walls,
@@ -344,6 +361,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
         'Adjacent Rim Joist': adj_rim_joists,
         'Window': windows,
         'Door': doors,
+        'Garage Door': gar_doors,
 
     }
     boundaries = {key: val for key, val in boundaries.items() if len(val)}  # remove empty boundaries
@@ -371,38 +389,51 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     else:
         raise IOError(f'Unable to parse multiple floor areas: {main_floor_areas}')
 
-    attic_floor_area = first_floor_area  # may get updated later
+    # Get attic and top floor area - should have only 1 attic floor boundary option (plus maybe 'Garage Ceiling')
+    top_floor_options = ['Attic Floor', 'Roof', 'Adjacent Ceiling']
+    top_floor_areas = [area for floor_option in top_floor_options
+                        for area in boundaries.get(floor_option, {}).get('Area (m^2)', [])]
+    if len(top_floor_areas) == 1:
+        top_floor_area = top_floor_areas[0]  # area of first (lowest above grade) floor. Excludes garage
+    else:
+        raise IOError(f'Unable to parse multiple attic floor areas: {top_floor_areas}')
+    attic_floor_area = top_floor_area + sum(boundaries.get('Garage Ceiling', {}).get('Area (m^2)', []))
+
     if 'Garage Floor' in boundaries:
+        # get garage area and wall height
         garage_floor_area = boundaries['Garage Floor']['Area (m^2)'][0]
-        attached_wall_lengths = [area / ceiling_height for area in boundaries['Garage Attached Wall']['Area (m^2)']]
-        attached_wall_azimuths = [wall['Azimuth'] % 180 for wall in attached_walls.values()]
-        n_sides = len(set(attached_wall_azimuths))
-        if n_sides == 1:
+        garage_wall_ar = (boundaries['Garage Wall']['Area (m^2)'] + 
+                          boundaries.get('Adjacent Garage Wall', {}).get('Area (m^2)', []))
+        garage_wall_az = (boundaries['Garage Wall']['Azimuth (deg)'] + 
+                          boundaries.get('Adjacent Garage Wall', {}).get('Azimuth (deg)', []))
+        garage_wall_az = [az % 180 for az in garage_wall_az]
+        a1, a2 = tuple([max([ar for ar, az in zip(garage_wall_ar, garage_wall_az)
+                             if az == azimuth]) for azimuth in set(garage_wall_az)])
+        garage_wall_height = (a1 * a2 / garage_floor_area) ** 0.5
+
+        attached_wall_areas = boundaries['Garage Attached Wall']['Area (m^2)']
+        n_walls = len(attached_wall_areas)
+        if n_walls == 1:
             garage_area_in_main = 0
-            if total_floors == 1:
-                attic_floor_area += garage_floor_area
-        elif n_sides == 2:
-            # at least part of garage is included in the main house footprint
-            if len(attached_wall_lengths) == 2:
-                # usually for 1-story home or garage that is fully under the 2nd story
-                garage_area_in_main = attached_wall_lengths[0] * attached_wall_lengths[1]
-                attic_floor_area += garage_floor_area
-            elif len(attached_wall_lengths) == 3:
-                # usually for 2-story home with protruding garage. 2 regular walls + 1 gable wall
-                lengths = [max([l for l, a in zip(attached_wall_lengths, attached_wall_azimuths) if a == az])
-                           for az in set(attached_wall_azimuths)]
-                garage_area_in_main = lengths[0] * lengths[1]
-            assert 0 < garage_area_in_main / garage_floor_area < 1.001  # should be close to 50% for ResStock cases
+        elif n_walls == 2:
+            # usually for 1-story home or garage that is fully under the 2nd story
+            a1, a2 = tuple(attached_wall_areas)
+            garage_area_in_main = a1 * a2 / garage_wall_height ** 2
+        elif n_walls == 3:
+            # usually for 2-story home with protruding garage. 2 regular walls + 1 gable wall
+            attached_wall_azimuths = [az % 180 for az in boundaries['Garage Attached Wall']['Azimuth (deg)']]
+            a1, a2 = tuple([max([ar for ar, az in zip(attached_wall_areas, attached_wall_azimuths)
+                                    if az == azimuth]) for azimuth in set(attached_wall_azimuths)])
+            garage_area_in_main = a1 * a2 / garage_wall_height ** 2
         else:
-            # TODO: Incorporate complex garage geometries, see BEopt examples
-            print('WARNING: Garage area calculation is incorrect. Likely due to complex garage geometry.')
-            garage_area_in_main = 0
+            raise IOError('Invalid geometry. Cannot parse more than 3 garage walls.')
+        assert 0 < garage_area_in_main / garage_floor_area < 1.001  # should be close to 50% for ResStock cases
     else:
         garage_floor_area = 0
         garage_area_in_main = 0
 
     indoor_floor_area = conditioned_floor_area - first_floor_area * (total_floors - indoor_floors)
-    indoor_floor_check = first_floor_area + attic_floor_area * (indoor_floors - 1)
+    indoor_floor_check = first_floor_area + top_floor_area * (indoor_floors - 1)
     if abs(indoor_floor_check - indoor_floor_area) > 10:
         print(f'WARNING: Indoor floor area calculations do not agree: '
               f'{indoor_floor_area} m^2 and {indoor_floor_check} m^2')
@@ -1579,8 +1610,13 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
     # Parse occupancy
     occupancy = parse_hpxml_occupancy(hpxml)
 
-    # Parse envelope properties
+    # Parse envelope properties and merge with house_args
     boundaries, zones, construction = parse_hpxml_envelope(hpxml, occupancy, **house_args)
+    envelope = house_args.get('Envelope', {})
+    if 'boundaries' in envelope:
+        boundaries = nested_update(boundaries, house_args['Envelope'].pop('boundaries'))
+    if 'zones' in envelope:
+        zones = nested_update(zones, house_args['Envelope'].pop('zones'))
 
     # Parse equipment properties and merge with house_args
     equipment_dict = parse_hpxml_equipment(hpxml, occupancy, construction)
