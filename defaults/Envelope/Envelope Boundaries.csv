@@ -22,6 +22,7 @@ Garage Roof,GR,EXT,GAR
 Garage Ceiling,GC,ATC,GAR
 Garage Interior Ceiling,GI,ATC,GAR
 Garage Floor,GF,GND,GAR
+Garage Door,GD,EXT,GAR
 Garage Furniture,GM,GAR,GAR
 Adjacent Wall,JW,LIV,LIV
 Adjacent Ceiling,JC,LIV,LIV

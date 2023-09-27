@@ -246,6 +246,7 @@ Garage Attached Wall,"WoodStud, wood siding, R-19",wood siding,WoodStud,R-19,res
 Garage Attached Wall,"WoodStud, wood siding, R-7",wood siding,WoodStud,R-7,res3.1_national_300 - bldg0000210,8.73807325330871
 Garage Attached Wall,"WoodStud, wood siding, Uninsulated",wood siding,WoodStud,Uninsulated,res3.1_national_300 - bldg0000003,3.4391278013325257
 Garage Ceiling,Standard,,,,res3.1_national_300 - bldg0000003,0.5699086620495835
+Garage Door,R-5.0,,,,Copied from Door,4.122228
 Garage Floor,2ft R10 Exterior,,,2ft R10 Exterior,copied from Floor,8.350026906372001
 Garage Floor,"2ft R10 Perimeter, R5 Gap",,,2ft R10 Perimeter,copied from Floor,6.657035770547999
 Garage Floor,2ft R5 Exterior,,,2ft R5 Exterior,copied from Floor,6.882918392398
