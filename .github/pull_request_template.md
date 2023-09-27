@@ -1,3 +1,4 @@
-- [ ] Reference the issue your PR is fixing
-- [ ] Assign at least 1 reviewer for your PR
-- [ ] Update documentation on readthedocs as appropriate
+- [] Reference the issue your PR is fixing
+- [] Assign at least 1 reviewer for your PR
+- [] Update documentation as appropriate
+- [] Update changelog as appropriate
