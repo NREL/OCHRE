@@ -1,2 +1,5 @@
-- [ ] Reference the issue your PR is fixing
-- [ ] Assign at least 1 reviewer for your PR
+- [] Reference the issue your PR is fixing
+- [] Assign at least 1 reviewer for your PR
+- [] Test with run_dwelling.py or other script
+- [] Update documentation as appropriate
+- [] Update changelog as appropriate
