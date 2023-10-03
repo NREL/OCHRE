@@ -5,8 +5,8 @@ import pandas as pd
 
 from ochre import Dwelling, Battery, ElectricResistanceWaterHeater, AirConditioner, ElectricVehicle
 from ochre import CreateFigures
-from ochre.Models.Envelope import Envelope
-from bin.run_dwelling import dwelling_args
+#from ochre.Models.Envelope import Envelope
+#from bin.run_dwelling import dwelling_args
 
 
 # Test scripts to run single piece of equipment, examples include:
@@ -229,8 +229,8 @@ def run_equipment_from_house_model():
 if __name__ == '__main__':
     # Choose a scenario to run:
     
-    run_battery()
-    # run_battery_controlled()
+    #run_battery()
+    run_battery_controlled()
     # run_water_heater()
     # run_hvac()
     # run_ev()
