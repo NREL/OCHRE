@@ -2,6 +2,10 @@
 
 - Initial Beta Release
 
+### List of changes in dev
+
+- Removed requirement for HVAC setpoint schedule in HPXML file
+
 ### List of changes since v0.8.1 (private version)
 
 - Compatible with OS-HPXML 1.5.0 and 1.6.1 (includes ResStock 3.0, ResStock 3.1, and BEopt 3.0)
