@@ -4,7 +4,16 @@
 
 ### List of changes in dev
 
+- Fixed bug with air infiltration inputs (works with ResStock 3.0 and 3.1, and OS-HPXML 1.6.0)
+- Fixed bug with 2-speed HVAC control
+- Fixed bug with nested dictionary arguments for Envelope zones and boundaries
+- Fixed bug when setting ScheduledLoad power to 0
+- Fixed bug with Lighting end use power and total power figures
+- Fixed floor area check for garage geometry. 
 - Removed requirement for HVAC setpoint schedule in HPXML file
+- Added garage door boundary. Uses the same material as a regular door
+- Added check to explicitly not handle garage windows, attic windows, and attic doors
+- Added errors for unknown zones (mainly for foundation windows and doors)
 
 ### List of changes since v0.8.1 (private version)
 
