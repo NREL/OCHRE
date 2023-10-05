@@ -206,6 +206,8 @@ class HVAC(Equipment):
         #   - Note: Setpoint must be provided every timestep or it will revert back to the dwelling schedule
         # - Deadband: Updates heating (cooling) deadband temperature (in C)
         #   - Note: Deadband will not reset back to original value
+        # - Capacity: Sets HVAC capacity directly, only for variable speed equipment
+        # - Max Capacity: Sets HVAC max capacity directly, only recommended for variable speed equipment
         # - Duty Cycle: Forces HVAC on for fraction of external time step (as fraction [0,1])
         #   - If 0 < Duty Cycle < 1, the equipment will cycle once every 2 external time steps
         #   - For ASHP: Can supply HP and ER duty cycles
@@ -229,7 +231,21 @@ class HVAC(Equipment):
             self.speed_idx = 0
             return 'Off'
         elif load_fraction != 1:
-            raise Exception("{} can't handle non-integer load fractions".format(self.name))
+            raise Exception(f'{self.name} cannot handle non-integer load fractions')
+
+        capacity = control_signal.get('Capacity')
+        if capacity is not None:
+            if not self.use_ideal_capacity:
+                raise IOError(f'Cannot set {self.name} Capacity. '
+                               'Set `use_ideal_capacity` to True or control "Max Capacity".')
+
+            self.capacity = capacity
+            return 'On' if self.capacity > 0 else 'Off'
+
+        max_capacity = control_signal.get('Max Capacity')
+        if max_capacity is not None:
+            # TODO: set for only 1 time step or all? Will need to override biquadratics. 
+            self.capacity_max = max_capacity
 
         if any(['Duty Cycle' in key for key in control_signal]):
             return self.run_duty_cycle_control(control_signal)

@@ -7,6 +7,7 @@ from bin.run_dwelling import dwelling_args
 # Test script to run single Dwelling with constant external control signal
 
 dwelling_args.update({
+    'time_res': dt.timedelta(minutes=60),
     'ext_time_res': dt.timedelta(minutes=60),
 })
 
@@ -34,14 +35,15 @@ def run_constant_control_signal(control_signal):
 def get_hvac_controls(hour_of_day, occupancy, heating_setpoint, **unused_inputs):
     # Use some of the controller_inputs to determine setpoints (or other control signals)
     if 14 <= hour_of_day < 20:  # 2PM-8PM
-        if occupancy > 0:
-            heating_setpoint -= 1  # reduce setpoint by 1 degree C
-        else:
-            heating_setpoint -= 2  # reduce setpoint by 2 degrees C
+        heating_setpoint -= 1  # reduce setpoint by 1 degree C
+        # if occupancy > 0:
+        #     heating_setpoint -= 1  # reduce setpoint by 1 degree C
+        # else:
+        #     heating_setpoint -= 2  # reduce setpoint by 2 degrees C
 
     return {
-            # 'HVAC Heating': {'Duty Cycle': 1 if heating_on else 0},
             'HVAC Heating': {
+                # 'Capacity': 1000,
                 'Setpoint': heating_setpoint,
                 #  'Deadband': 2,
                 # 'Load Fraction': 0,  # Set to 0 for force heater off
