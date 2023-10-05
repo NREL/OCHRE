@@ -810,17 +810,6 @@ def parse_hvac(hvac_type, hvac_all):
     else:
         aux_power = hvac_ext.get('FanPowerWatts', 0)
 
-    # Get setpoints
-    controls = hvac_all['HVACControl']
-    if 'extension' in controls:
-        weekday_setpoints = controls['extension'][f'WeekdaySetpointTemps{hvac_type}Season']
-        weekend_setpoints = controls['extension'][f'WeekendSetpointTemps{hvac_type}Season']
-    else:
-        weekday_setpoints = [controls[f'SetpointTemp{hvac_type}Season']] * 24
-        weekend_setpoints = [controls[f'SetpointTemp{hvac_type}Season']] * 24
-    weekday_setpoints = convert(weekday_setpoints, 'degF', 'degC').tolist()
-    weekend_setpoints = convert(weekend_setpoints, 'degF', 'degC').tolist()
-
     out = {
         'Equipment Name': name,
         'Fuel': fuel.capitalize(),
@@ -831,9 +820,25 @@ def parse_hvac(hvac_type, hvac_all):
         'Conditioned Space Fraction (-)': space_fraction,
         'Number of Speeds (-)': number_of_speeds,
         'Rated Auxiliary Power (W)': aux_power,
-        'Weekday Setpoints (C)': weekday_setpoints,
-        'Weekend Setpoints (C)': weekend_setpoints,
     }
+
+    # Get HVAC setpoints, optional
+    controls = hvac_all['HVACControl']
+    extension = controls.get('extension', {})
+    if f'WeekdaySetpointTemps{hvac_type}Season' in extension:
+        weekday_setpoints = extension[f'WeekdaySetpointTemps{hvac_type}Season']
+        weekend_setpoints = extension[f'WeekendSetpointTemps{hvac_type}Season']
+        out.update({
+            'Weekday Setpoints (C)': convert(weekday_setpoints, 'degF', 'degC').tolist(),
+            'Weekend Setpoints (C)': convert(weekend_setpoints, 'degF', 'degC').tolist(),
+        })
+    elif f'SetpointTemp{hvac_type}Season' in controls:
+        weekday_setpoint = controls[f'SetpointTemp{hvac_type}Season']
+        weekend_setpoint = controls[f'SetpointTemp{hvac_type}Season']
+        out.update({
+            'Weekday Setpoints (C)': [convert(weekday_setpoint, 'degF', 'degC')] * 24,
+            'Weekend Setpoints (C)': [convert(weekend_setpoint, 'degF', 'degC')] * 24,
+        })
 
     if has_heat_pump and hvac_type == 'Heating':
         backup_capacity = heat_pump.get('BackupHeatingCapacity', 0)
