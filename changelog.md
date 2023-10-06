@@ -1,8 +1,6 @@
-## OCHRE V0.8.3-beta
+## OCHRE Changelog
 
-- Initial Beta Release
-
-### List of changes in dev
+### OCHRE v0.8.4-beta
 
 - Fixed bug with air infiltration inputs (works with ResStock 3.0 and 3.1, and OS-HPXML 1.6.0)
 - Fixed bug with 2-speed HVAC control
@@ -15,7 +13,7 @@
 - Added check to explicitly not handle garage windows, attic windows, and attic doors
 - Added errors for unknown zones (mainly for foundation windows and doors)
 
-### List of changes since v0.8.1 (private version)
+### OCHRE v0.8.3-beta (initial beta release)
 
 - Compatible with OS-HPXML 1.5.0 and 1.6.1 (includes ResStock 3.0, ResStock 3.1, and BEopt 3.0)
 - Incorporated adjusted number of bedrooms calculation
