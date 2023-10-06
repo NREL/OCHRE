@@ -98,12 +98,40 @@ def get_boundaries_by_zones(boundaries, default_int_zone='Indoor', default_ext_z
     return bd_by_zones
 
 
+def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
+    # for windows and doors, determine interior zone based on attached wall zone
+    ext_bd, gar_bd, attic_bd = {}, {}, {}
+    for name, boundary in boundaries.items():
+        boundary['Exterior Zone'] = 'Outdoor'
+        wall = boundary['AttachedToWall']['@idref']
+        if wall in ext_walls:
+            boundary['Interior Zone'] = 'Indoor'
+            ext_bd[name] = boundary
+            ext_walls[wall]['Area'] -= boundary['Area']
+        elif wall in gar_walls:
+            boundary['Interior Zone'] = 'Garage'
+            gar_bd[name] = boundary
+            gar_walls[wall]['Area'] -= boundary['Area']
+        elif wall in attic_walls:
+            boundary['Interior Zone'] = 'Attic'
+            attic_bd[name] = boundary
+            attic_walls[wall]['Area'] -= boundary['Area']
+        else:
+            raise IOError(f'Unknown attached wall for {name}: {wall}')
+    
+    return ext_bd, gar_bd, attic_bd
+
 def parse_hpxml_surface(bd_name, bd_data):
     out = {
-        'Area (m^2)': convert(bd_data['Area'], 'ft^2', 'm^2'),
         'Interior Zone': bd_data['Interior Zone'],
         'Exterior Zone': bd_data['Exterior Zone'],
+        'Area (m^2)': convert(bd_data['Area'], 'ft^2', 'm^2'),
     }
+
+    # Add azimuth if it exists
+    azimuth = bd_data.get('Azimuth')
+    if azimuth is not None:
+        out['Azimuth (deg)'] = azimuth
 
     # Add R value if it exists
     r_value = bd_data.get('Insulation', {}).get('AssemblyEffectiveRValue', bd_data.get('RValue'))
@@ -112,10 +140,6 @@ def parse_hpxml_surface(bd_name, bd_data):
 
     # Exterior boundary properties (roofs, walls, and rim joists). Not used for raised floors
     if bd_data.get('Exterior Zone') == 'Outdoor':
-        # TODO: get azimuth from Orientation, get absorptivity from color
-        azimuth = bd_data.get('Azimuth')
-        if azimuth is not None:
-            out['Azimuth (deg)'] = azimuth
         if 'SolarAbsorptance' in bd_data:
             out['Exterior Solar Absorptivity (-)'] = bd_data['SolarAbsorptance']
         if 'Emittance' in bd_data:
@@ -201,7 +225,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     # house_width = house_length * aspect_ratio
     ceiling_height = conditioned_volume / conditioned_floor_area
     if 'AverageCeilingHeight' in construction:
-        assert abs(convert(construction['AverageCeilingHeight'], 'ft', 'm') - ceiling_height < 0.1)
+        assert abs(convert(construction['AverageCeilingHeight'], 'ft', 'm') - ceiling_height) < 0.1
 
     # Get number of bedrooms and bathrooms
     n_beds = construction['NumberofBedrooms']
@@ -298,23 +322,16 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     adj_rim_joists = all_rim_joists.pop(('Foundation', 'Foundation'), {})
     assert not all_rim_joists  # verifies that all boundaries are accounted for
 
-    # Get windows
-    all_windows = get_boundaries_by_zones(enclosure.get('Windows', {}))
-    windows = all_windows.pop(('Indoor', 'Outdoor'), {})
-    assert not all_windows  # verifies that all boundaries are accounted for
-
-    # Get doors
-    all_doors = get_boundaries_by_zones(enclosure.get('Doors', {}))
-    doors = all_doors.pop(('Indoor', 'Outdoor'), {})
-    assert not all_doors  # verifies that all boundaries are accounted for
-
-    # subtract window and door area from walls
-    for opening in {**windows, **doors}.values():
-        azimuth = opening['Azimuth']
-        walls = [wall for wall in ext_walls.values() if wall['Azimuth'] == azimuth]
-        if walls:
-            wall = walls[0]
-            wall['Area'] -= opening['Area']
+    # Get windows (only accepts windows to indoor zone for now), and subtract wall area
+    all_windows = enclosure.get('Windows', {})
+    windows, gar_windows, attic_windows = get_boundaries_by_wall(all_windows, ext_walls, gar_walls, attic_walls)
+    assert not gar_windows
+    assert not attic_windows
+    
+    # Get doors (only accepts doors to indoor zone and garage), and subtract wall area
+    all_doors = enclosure.get('Doors', {})
+    doors, gar_doors, attic_doors = get_boundaries_by_wall(all_doors, ext_walls, gar_walls, attic_walls)
+    assert not attic_doors
 
     boundaries = {
         'Exterior Wall': ext_walls,
@@ -344,6 +361,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
         'Adjacent Rim Joist': adj_rim_joists,
         'Window': windows,
         'Door': doors,
+        'Garage Door': gar_doors,
 
     }
     boundaries = {key: val for key, val in boundaries.items() if len(val)}  # remove empty boundaries
@@ -371,34 +389,59 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     else:
         raise IOError(f'Unable to parse multiple floor areas: {main_floor_areas}')
 
+    # Get attic and top floor area - should have only 1 attic floor boundary option (plus maybe 'Garage Ceiling')
+    top_floor_options = ['Attic Floor', 'Roof', 'Adjacent Ceiling']
+    top_floor_areas = [area for floor_option in top_floor_options
+                        for area in boundaries.get(floor_option, {}).get('Area (m^2)', [])]
+    if len(top_floor_areas) == 1:
+        top_floor_area = top_floor_areas[0]  # area of first (lowest above grade) floor. Excludes garage
+    else:
+        raise IOError(f'Unable to parse multiple attic floor areas: {top_floor_areas}')
+    attic_floor_area = top_floor_area + sum(boundaries.get('Garage Ceiling', {}).get('Area (m^2)', []))
+
     if 'Garage Floor' in boundaries:
+        # get garage area and wall height
         garage_floor_area = boundaries['Garage Floor']['Area (m^2)'][0]
-        attached_wall_lengths = [area / ceiling_height for area in boundaries['Garage Attached Wall']['Area (m^2)']]
-        if len(attached_wall_lengths) == 1:
+        garage_wall_ar = (boundaries['Garage Wall']['Area (m^2)'] + 
+                          boundaries.get('Adjacent Garage Wall', {}).get('Area (m^2)', []))
+        garage_wall_az = (boundaries['Garage Wall']['Azimuth (deg)'] + 
+                          boundaries.get('Adjacent Garage Wall', {}).get('Azimuth (deg)', []))
+        garage_wall_az = [az % 180 for az in garage_wall_az]
+        a1, a2 = tuple([max([ar for ar, az in zip(garage_wall_ar, garage_wall_az)
+                             if az == azimuth]) for azimuth in set(garage_wall_az)])
+        garage_wall_height = (a1 * a2 / garage_floor_area) ** 0.5
+
+        attached_wall_areas = boundaries['Garage Attached Wall']['Area (m^2)']
+        n_walls = len(attached_wall_areas)
+        if n_walls == 1:
             garage_area_in_main = 0
-        elif len(attached_wall_lengths) == 2:
-            # at least part of garage is included in the main house footprint (note, house may not have 2nd floor)
-            garage_area_in_main = attached_wall_lengths[0] * attached_wall_lengths[1]
-            assert 0.1 < garage_area_in_main / garage_floor_area < 0.9  # should be close to 50% for ResStock cases
+        elif n_walls == 2:
+            # usually for 1-story home or garage that is fully under the 2nd story
+            a1, a2 = tuple(attached_wall_areas)
+            garage_area_in_main = a1 * a2 / garage_wall_height ** 2
+        elif n_walls == 3:
+            # usually for 2-story home with protruding garage. 2 regular walls + 1 gable wall
+            attached_wall_azimuths = [az % 180 for az in boundaries['Garage Attached Wall']['Azimuth (deg)']]
+            a1, a2 = tuple([max([ar for ar, az in zip(attached_wall_areas, attached_wall_azimuths)
+                                    if az == azimuth]) for azimuth in set(attached_wall_azimuths)])
+            garage_area_in_main = a1 * a2 / garage_wall_height ** 2
         else:
-            # TODO: Incorporate complex garage geometries, see BEopt examples
-            print('WARNING: Garage area calculation is incorrect. Likely due to complex garage geometry.')
-            garage_area_in_main = 0
-        second_floor_area = first_floor_area + garage_area_in_main
+            raise IOError('Invalid geometry. Cannot parse more than 3 garage walls.')
+        assert 0 < garage_area_in_main / garage_floor_area < 1.001  # should be close to 50% for ResStock cases
     else:
         garage_floor_area = 0
-        second_floor_area = first_floor_area
-    conditioned_floor_check = first_floor_area * total_floors + garage_floor_area * (indoor_floors - 1)
-    if abs(conditioned_floor_area - conditioned_floor_check) < 0.1:
-        indoor_floor_area = first_floor_area * indoor_floors + garage_floor_area * (indoor_floors - 1)
-    else:
-        # TODO: Incorporate complex garage geometries, see BEopt examples
-        print('WARNING: Indoor floor area calculation is incorrect. Likely due to complex garage geometry.')
-        indoor_floor_area = conditioned_floor_area - first_floor_area * (total_floors - indoor_floors)
+        garage_area_in_main = 0
+
+    indoor_floor_area = conditioned_floor_area - first_floor_area * (total_floors - indoor_floors)
+    indoor_floor_check = first_floor_area + top_floor_area * (indoor_floors - 1)
+    if abs(indoor_floor_check - indoor_floor_area) > 10:
+        print(f'WARNING: Indoor floor area calculations do not agree: '
+              f'{indoor_floor_area} m^2 and {indoor_floor_check} m^2')
     construction_dict.update({
         'First Floor Area (m^2)': first_floor_area,
-        'Second Floor Area (m^2)': second_floor_area,
+        'Attic Floor Area (m^2)': attic_floor_area,
         'Garage Floor Area (m^2)': garage_floor_area,
+        'Garage Protruded Area (m^2)': garage_floor_area - garage_area_in_main,  # area not in main rectangle
         'Indoor Floor Area (m^2)': indoor_floor_area,
     })
 
@@ -428,12 +471,22 @@ def parse_indoor_infiltration(hpxml, construction, equipment):
 def parse_hpxml_zones(hpxml, boundaries, construction):
     enclosure = hpxml['Enclosure']
     first_floor_area = construction['First Floor Area (m^2)']
-    second_floor_area = construction['Second Floor Area (m^2)']
+    attic_floor_area = construction['Attic Floor Area (m^2)']
     garage_floor_area = construction['Garage Floor Area (m^2)']
+    garage_protruded_area = construction['Garage Protruded Area (m^2)']
     indoor_floor_area = construction['Indoor Floor Area (m^2)']
     ceiling_height = construction['Ceiling Height (m)']
     building_height = ceiling_height * construction['Indoor Floors']
     has_garage = garage_floor_area > 0
+
+    if 'Attic Roof' in boundaries:
+        roof_tilt = convert(boundaries['Attic Roof']['Tilt (deg)'], 'deg', 'rad')
+    else:
+        roof_tilt = None
+    if 'Garage Roof' in boundaries:
+        garage_tilt = convert(boundaries['Garage Roof']['Tilt (deg)'], 'deg', 'rad')
+    else:
+        garage_tilt = roof_tilt
 
     # Indoor ventilation parameters - Whole ventilation fans only
     # Note: Indoor infiltration parameters depend on equipment, added in add_indoor_infiltration
@@ -475,36 +528,38 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
         # Get gable wall areas for attic and (possibly) garage
         attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
                             boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', []))
-        if not has_garage and len(attic_wall_areas) == 2:
+        if len(attic_wall_areas) == 2:
+            # standard gable roof with attic
             assert abs(attic_wall_areas[1] - attic_wall_areas[0]) < 0.2  # computational errors possible
             attic_gable_area = attic_wall_areas[0]
-            garage_gable_area = 0
+            third_gable_area = 0
         elif has_garage and len(attic_wall_areas) == 3:
-            # 2 attic gables, 1 garage gable, garage gable has area that is 'more different'
+            # 2 attic gables plus 1 garage gable, garage gable has area that is 'more different'
             attic_gable_area = attic_wall_areas[1]
             low, med, high = tuple(sorted(attic_wall_areas))
-            garage_gable_area = low if med - low > high - med else high
+            third_gable_area = low if med - low > high - med else high
         else:
-            raise Exception('Unable to parse gable wall areas.')
+            raise Exception('Unable to calculate attic area, likely an issue with gable walls.')
 
         # Get attic properties
-        roof_tilt = convert(boundaries['Attic Roof']['Tilt (deg)'], 'deg',
-                            'rad')  # tan(roof_tilt) = height / (width / 2)
+        # tan(roof_tilt) = height / (width / 2)
         attic_height = (attic_gable_area * math.tan(roof_tilt)) ** 0.5
-        attic_volume = 1 / 2 * second_floor_area * attic_height  # volume = 1/2 l*w*h
-        if garage_gable_area > 0:
+        if third_gable_area > 0:
             # assumes a combined attic, add volume over garage and in between
-            garage_tilt = convert(boundaries['Garage Roof']['Tilt (deg)'], 'deg', 'rad') \
-                if 'Garage Roof' in boundaries else roof_tilt
-            garage_height = (garage_gable_area * math.tan(garage_tilt)) ** 0.5
-            garage_width = 2 * garage_gable_area / garage_height
+            square_area = attic_floor_area - garage_protruded_area
+            garage_height = (third_gable_area * math.tan(garage_tilt)) ** 0.5
+            garage_width = 2 * third_gable_area / garage_height
             # garage_length = garage_floor_area / garage_width
-            garage_depth_in_house = garage_height * math.tan(roof_tilt)  # length from ext wall to roof connection point
-            attic_volume += (1 / 2 * garage_floor_area * garage_height +  # area over garage
-                             1 / 6 * garage_width * garage_depth_in_house * garage_height)  # pyramid between prisms
+            garage_depth_in_house = garage_height * math.tan(roof_tilt)  # length from attached wall to roof connection point
+            attic_volume = (1 / 2 * square_area * attic_height +                           # prism over square
+                            1 / 2 * garage_protruded_area * garage_height +                # prism over garage
+                            1 / 6 * garage_width * garage_depth_in_house * garage_height)  # pyramid between prisms
+        else:
+            attic_volume = 1 / 2 * attic_floor_area * attic_height  # volume = 1/2 l*w*h
+
         vented = attic.get('AtticType', {}).get('Attic', {}).get('Vented', True)
         zones['Attic'] = {
-            'Zone Area (m^2)': first_floor_area + garage_floor_area,
+            'Zone Area (m^2)': attic_floor_area,
             'Volume (m^3)': attic_volume,
             'Vented': vented,
         }
@@ -519,7 +574,7 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
             })
         elif inf_units == 'SLA':
             # Update ELA based on attic area
-            attic_ela = attic['VentilationRate']['Value'] * second_floor_area * 1e4  # m^2 to cm^2
+            attic_ela = attic['VentilationRate']['Value'] * attic_floor_area * 1e4  # m^2 to cm^2
             zones['Attic'].update({
                 'Infiltration Method': 'ELA',
                 'ELA (cm^2)': attic_ela,
@@ -583,7 +638,12 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
     if has_garage:
         # Note: garage roof space is included in attic for 1-story homes
         # FUTURE: convert to ELA? Can use 1sqft at 4.9 SLA = 1.2854145 CFM50, will need to convert ACH50 to ACH
-        garage_volume = garage_floor_area * ceiling_height
+        garage_volume = garage_floor_area * ceiling_height  # excluding garage attic space
+        garage_roof_areas = boundaries.get('Garage Roof', {}).get('Area (m^2)', [])
+        if len(garage_roof_areas) > 0:
+            # add garage roof space - should work for triangle roof or gable roof
+            garage_volume += 1/2 * math.atan(garage_tilt) * garage_protruded_area
+
         indoor_infiltration = list(enclosure['AirInfiltration'].values())[0]
         indoor_ach = indoor_infiltration['BuildingAirLeakage']['AirLeakage']  # ACH50
         zones['Garage'] = {
@@ -750,17 +810,6 @@ def parse_hvac(hvac_type, hvac_all):
     else:
         aux_power = hvac_ext.get('FanPowerWatts', 0)
 
-    # Get setpoints
-    controls = hvac_all['HVACControl']
-    if 'extension' in controls:
-        weekday_setpoints = controls['extension'][f'WeekdaySetpointTemps{hvac_type}Season']
-        weekend_setpoints = controls['extension'][f'WeekendSetpointTemps{hvac_type}Season']
-    else:
-        weekday_setpoints = [controls[f'SetpointTemp{hvac_type}Season']] * 24
-        weekend_setpoints = [controls[f'SetpointTemp{hvac_type}Season']] * 24
-    weekday_setpoints = convert(weekday_setpoints, 'degF', 'degC').tolist()
-    weekend_setpoints = convert(weekend_setpoints, 'degF', 'degC').tolist()
-
     out = {
         'Equipment Name': name,
         'Fuel': fuel.capitalize(),
@@ -771,9 +820,25 @@ def parse_hvac(hvac_type, hvac_all):
         'Conditioned Space Fraction (-)': space_fraction,
         'Number of Speeds (-)': number_of_speeds,
         'Rated Auxiliary Power (W)': aux_power,
-        'Weekday Setpoints (C)': weekday_setpoints,
-        'Weekend Setpoints (C)': weekend_setpoints,
     }
+
+    # Get HVAC setpoints, optional
+    controls = hvac_all['HVACControl']
+    extension = controls.get('extension', {})
+    if f'WeekdaySetpointTemps{hvac_type}Season' in extension:
+        weekday_setpoints = extension[f'WeekdaySetpointTemps{hvac_type}Season']
+        weekend_setpoints = extension[f'WeekendSetpointTemps{hvac_type}Season']
+        out.update({
+            'Weekday Setpoints (C)': convert(weekday_setpoints, 'degF', 'degC').tolist(),
+            'Weekend Setpoints (C)': convert(weekend_setpoints, 'degF', 'degC').tolist(),
+        })
+    elif f'SetpointTemp{hvac_type}Season' in controls:
+        weekday_setpoint = controls[f'SetpointTemp{hvac_type}Season']
+        weekend_setpoint = controls[f'SetpointTemp{hvac_type}Season']
+        out.update({
+            'Weekday Setpoints (C)': [convert(weekday_setpoint, 'degF', 'degC')] * 24,
+            'Weekend Setpoints (C)': [convert(weekend_setpoint, 'degF', 'degC')] * 24,
+        })
 
     if has_heat_pump and hvac_type == 'Heating':
         backup_capacity = heat_pump.get('BackupHeatingCapacity', 0)
@@ -1545,8 +1610,13 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
     # Parse occupancy
     occupancy = parse_hpxml_occupancy(hpxml)
 
-    # Parse envelope properties
+    # Parse envelope properties and merge with house_args
     boundaries, zones, construction = parse_hpxml_envelope(hpxml, occupancy, **house_args)
+    envelope = house_args.get('Envelope', {})
+    if 'boundaries' in envelope:
+        boundaries = nested_update(boundaries, house_args['Envelope'].pop('boundaries'))
+    if 'zones' in envelope:
+        zones = nested_update(zones, house_args['Envelope'].pop('zones'))
 
     # Parse equipment properties and merge with house_args
     equipment_dict = parse_hpxml_equipment(hpxml, occupancy, construction)

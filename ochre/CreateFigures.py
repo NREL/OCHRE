@@ -21,6 +21,7 @@ all_power_colors = {
     'Gas Generator': 'purple',
     'Battery': 'c',
     'Other': 'grey',
+    'Lighting': 'orange',
     'EV': 'm',
     'HVAC Heating': 'r',
     'HVAC Cooling': 'b',
@@ -566,6 +567,7 @@ def plot_all_powers(dfs_to_plot, **kwargs):
         labels = {col.replace(fuel_text, ''): col for col in cols}
         labels.pop('Total', None)
         labels.pop('Other', None)
+        labels.pop('Lighting', None)
         plot_info = [(col, label, None) for label, col in labels.items()]
         fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
         if ax1 is not None:

@@ -170,7 +170,7 @@ class Zone:
     def __init__(self, name, label, time_res, initial_schedule, **zone_args):
         self.name = name
         self.label = label
-        self.zone_type = zone_args.get('Zone Type', 'Default')
+        self.zone_type = zone_args.get('Zone Type', 'Default')  # used for basement heat fraction
         self.t_idx = None  # Index of envelope outputs for zone temperature
         self.h_idx = None  # Index of envelope inputs for zone heat gain
         self.temperature = None
@@ -232,6 +232,7 @@ class Zone:
             assert self.balanced_ventilation
 
         # Natural ventilation parameters - Indoor zone only
+        # TODO: why use ASHRAE for infiltration and ELA for natural ventilation?
         self.nat_vent_heat = 0  # in W
         self.nat_vent_flow = 0  # m^3/s
         self.nat_vent_stack_coeff = zone_args.get('ELA stack coefficient (L/s/cm^4/K)')
@@ -677,6 +678,7 @@ class Envelope(RCModel):
 
         # get HVAC Heating/Cooling deadbands and setpoints
         options = ['HVAC Heating', 'HVAC Cooling']
+        # TODO: Deadbands are broken. Need to decide whether to get from HPXML, dict, or schedule
         deadbands = [kwargs.get(option, {}).get('Deadband Temperature (C)', 1) for option in options]
         setpoints = [kwargs['initial_schedule'].get(f'{option} Setpoint (C)') for option in options]
         nones = sum([setpoint is None for setpoint in setpoints])
@@ -689,7 +691,7 @@ class Envelope(RCModel):
             s = [setpoint for setpoint in setpoints if setpoint is not None][0]
             setpoints = [s, s]
 
-        # Indoor initial condition depends on ambient temperature - use heating/cooling setpoint when </> 15 deg C
+        # Get initial Indoor temperature
         if isinstance(initial_temp_setpoint, (int, float)):
             indoor_temp = initial_temp_setpoint
         elif initial_temp_setpoint in options:
