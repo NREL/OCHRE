@@ -4,6 +4,7 @@ import json
 import pandas as pd
 import datetime as dt
 import numpy as np
+import numba  # required for array-based psychrolib
 import psychrolib
 from numpy.polynomial.polynomial import Polynomial
 
@@ -153,6 +154,7 @@ def load_eplus_file(file_name, eplus_format='ResStock', variable_names_file='Var
         else:
             df['HVAC Heating Main Power (kW)'] = gas_kw
 
+    # TODO: no longer used. Need verify if this is needed for OS-HPXML format
     if eplus_format == 'BEopt':
         # add HVAC COP and SHR (note, excludes fan power and duct losses) - BEopt only
         df['HVAC Heating COP (-)'] = replace_nans(
@@ -163,11 +165,11 @@ def load_eplus_file(file_name, eplus_format='ResStock', variable_names_file='Var
                                                   df['HVAC Cooling Capacity (kW)'])
 
         # calculate indoor wet bulb - BEopt only
-        df['Temperature - Indoor Wet Bulb (C)'] = [
-            psychrolib.GetTWetBulbFromRelHum(t, rh, p) for (t, rh, p) in zip(
-                df['Temperature - Indoor (C)'], df['Relative Humidity - Indoor (-)'],
-                convert(df['Weather|Atmospheric Pressure'].values, 'atm', 'Pa'))
-        ]
+        df['Temperature - Indoor Wet Bulb (C)'] = psychrolib.GetTWetBulbFromRelHum(
+            df['Temperature - Indoor (C)'].values,
+            df['Relative Humidity - Indoor (-)'],
+            convert(df['Weather|Atmospheric Pressure'].values, 'atm', 'Pa'),
+        )
 
         # add unmet HVAC loads - BEopt only
         df['Unmet HVAC Load (C)'] = df['Temperature - Indoor (C)'] - df['Temperature - Indoor (C)'].clip(
