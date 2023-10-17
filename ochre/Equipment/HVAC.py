@@ -172,7 +172,7 @@ class HVAC(Equipment):
         self.ext_ignore_thermostat = kwargs.get('ext_ignore_thermostat', False)
         self.setpoint_ramp_rate = kwargs.get('setpoint_ramp_rate')  # max setpoint ramp rate, in C/min
         self.temp_indoor_prev = self.temp_setpoint
-        self.duty_cycle_capacity = None  # Option to set capacity from duty cycle
+        self.ext_capacity = None  # Option to set capacity from duty cycle
 
         # Results options
         self.show_eir_shr = kwargs.get('show_eir_shr', False)
@@ -233,19 +233,19 @@ class HVAC(Equipment):
         elif load_fraction != 1:
             raise Exception(f'{self.name} cannot handle non-integer load fractions')
 
+        max_capacity = control_signal.get('Max Capacity')
+        if max_capacity is not None:
+            # TODO: set for only 1 time step or all? Will need to override biquadratics. 
+            self.capacity_max = max_capacity
+
         capacity = control_signal.get('Capacity')
         if capacity is not None:
             if not self.use_ideal_capacity:
                 raise IOError(f'Cannot set {self.name} Capacity. '
                                'Set `use_ideal_capacity` to True or control "Max Capacity".')
 
-            self.capacity = capacity
-            return 'On' if self.capacity > 0 else 'Off'
-
-        max_capacity = control_signal.get('Max Capacity')
-        if max_capacity is not None:
-            # TODO: set for only 1 time step or all? Will need to override biquadratics. 
-            self.capacity_max = max_capacity
+            self.ext_capacity = capacity
+            return 'On' if self.ext_capacity > 0 else 'Off'
 
         if any(['Duty Cycle' in key for key in control_signal]):
             return self.run_duty_cycle_control(control_signal)
@@ -268,11 +268,11 @@ class HVAC(Equipment):
 
         if self.use_ideal_capacity:
             # Set capacity to constant value based on duty cycle
-            self.duty_cycle_capacity = duty_cycles[0] * self.capacity_max
-            if self.duty_cycle_capacity < self.capacity_min:
-                self.duty_cycle_capacity = 0
+            self.ext_capacity = duty_cycles[0] * self.capacity_max
+            if self.ext_capacity < self.capacity_min:
+                self.ext_capacity = 0
 
-            mode = 'On' if self.duty_cycle_capacity > 0 else 'Off'
+            mode = 'On' if self.ext_capacity > 0 else 'Off'
 
         else:
             # Set mode based on duty cycle from external controller
@@ -294,7 +294,7 @@ class HVAC(Equipment):
         self.update_setpoint()
 
         if self.use_ideal_capacity:
-            self.duty_cycle_capacity = None
+            self.ext_capacity = None
 
             # run ideal capacity calculation here, just to determine mode and speed
             # FUTURE: capacity update is done twice per loop, could but updated to improve speed
@@ -372,8 +372,8 @@ class HVAC(Equipment):
             # Solve for capacity to meet setpoint
             self.capacity_ideal = self.solve_ideal_capacity()
 
-            if self.duty_cycle_capacity is not None:
-                capacity = self.duty_cycle_capacity
+            if self.ext_capacity is not None:
+                capacity = self.ext_capacity
             elif self.capacity_ideal < self.capacity_min:
                 # If capacity < capacity_min (or capacity is negative), force off
                 capacity = 0
@@ -1034,7 +1034,7 @@ class ASHPHeater(HeatPumpHeater):
         self.er_capacity_rated = kwargs['Supplemental Heater Capacity (W)']
         self.er_eir_rated = kwargs.get('Supplemental Heater EIR (-)', 1)
         self.er_capacity = 0
-        self.er_duty_cycle_capacity = None
+        self.er_ext_capacity = None
 
         # Update minimum time for ER element
         er_on_time = kwargs.get(self.end_use + ' Minimum ER On Time', 0)
@@ -1052,10 +1052,10 @@ class ASHPHeater(HeatPumpHeater):
 
             # determine ER mode and capacity
             assert isinstance(er_duty_cycle, (int, float)) and 0 <= er_duty_cycle <= 1
-            self.er_duty_cycle_capacity = er_duty_cycle * self.er_capacity_rated
+            self.er_ext_capacity = er_duty_cycle * self.er_capacity_rated
 
             # return mode based on HP and ER modes
-            if self.er_duty_cycle_capacity > 0:
+            if self.er_ext_capacity > 0:
                 if hp_mode == 'On':
                     return 'HP and ER On'
                 else:
@@ -1092,8 +1092,8 @@ class ASHPHeater(HeatPumpHeater):
         self.update_setpoint()
 
         if self.use_ideal_capacity:
-            self.duty_cycle_capacity = None
-            self.er_duty_cycle_capacity = None
+            self.ext_capacity = None
+            self.er_ext_capacity = None
 
             # Update capacity (and HP max capacity)
             self.capacity = HeatPumpHeater.update_capacity(self)
@@ -1154,8 +1154,8 @@ class ASHPHeater(HeatPumpHeater):
             hp_capacity = 0
 
         if 'ER' in self.mode:
-            if self.er_duty_cycle_capacity is not None:
-                er_capacity = self.er_duty_cycle_capacity
+            if self.er_ext_capacity is not None:
+                er_capacity = self.er_ext_capacity
             elif self.use_ideal_capacity:
                 # use total ideal capacity - calculated in HVAC.update_capacity
                 er_capacity = self.capacity_ideal - hp_capacity

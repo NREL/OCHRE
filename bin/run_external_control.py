@@ -20,13 +20,13 @@ example_control_signal = {
 }
 
 
-def run_constant_control_signal(control_signal):
+def run_constant_control_signal(control_signal=None):
     # Initialization
     dwelling = Dwelling(name='Test House with Controller', **dwelling_args)
 
     # Simulation
     for t in dwelling.sim_times:
-        assert dwelling.current_time == t
+        # assert dwelling.current_time == t
         house_status = dwelling.update(control_signal=control_signal)
 
     return dwelling.finalize()
@@ -43,8 +43,8 @@ def get_hvac_controls(hour_of_day, occupancy, heating_setpoint, **unused_inputs)
 
     return {
             'HVAC Heating': {
-                # 'Capacity': 1000,
-                'Setpoint': heating_setpoint,
+                'Capacity': 1000,
+                # 'Setpoint': heating_setpoint,
                 #  'Deadband': 2,
                 # 'Load Fraction': 0,  # Set to 0 for force heater off
                 # 'Duty Cycle': 0.5,  # Sets fraction of on-time explicitly
@@ -113,5 +113,5 @@ def run_controls_from_file(control_file):
 
 if __name__ == '__main__':
     # run_constant_control_signal(example_control_signal)
-    # run_controls_from_file(external_control_file='path/to/control_file.csv')
     run_with_hvac_controller()
+    # run_controls_from_file(external_control_file='path/to/control_file.csv')
