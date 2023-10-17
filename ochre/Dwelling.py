@@ -45,21 +45,23 @@ class Dwelling(Simulator):
         self.metrics_verbosity = metrics_verbosity
         _ = house_args.pop('save_results', None)  # remove save_results from args to prevent saving all Equipment files
         if self.output_path is not None:
-            # remove existing output files, and save file locations
+            # remove existing output files
+            for file_type in ['metrics', 'hourly', 'schedule']:
+                for extn in ['parquet', 'csv']:
+                    f = os.path.join(self.output_path, f'{self.name}_{file_type}.{extn}')
+                    if os.path.exists(f):
+                        self.print('Removing previous results file:', f)
+                        os.remove(f)
+
+            # save file locations
             extn = '.parquet' if self.output_to_parquet else '.csv'
             self.metrics_file = os.path.join(self.output_path, self.name + '_metrics.csv')
-            if os.path.exists(self.metrics_file):
-                os.remove(self.metrics_file)
             if self.verbosity >= 3:
                 self.hourly_output_file = os.path.join(self.output_path, self.name + '_hourly' + extn)
-                if os.path.exists(self.hourly_output_file):
-                    os.remove(self.hourly_output_file)
             else:
                 self.hourly_output_file = None
             if self.verbosity >= 7 or save_schedule_columns:
                 schedule_output_file = os.path.join(self.output_path, self.name + '_schedule' + extn)
-                if os.path.exists(schedule_output_file):
-                    os.remove(schedule_output_file)
             else:
                 schedule_output_file = None
         else:
