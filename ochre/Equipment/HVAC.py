@@ -172,7 +172,8 @@ class HVAC(Equipment):
         self.ext_ignore_thermostat = kwargs.get('ext_ignore_thermostat', False)
         self.setpoint_ramp_rate = kwargs.get('setpoint_ramp_rate')  # max setpoint ramp rate, in C/min
         self.temp_indoor_prev = self.temp_setpoint
-        self.ext_capacity = None  # Option to set capacity from duty cycle
+        self.ext_capacity = None  # Option to set capacity directly or from duty cycle
+        self.ext_capacity_frac = 1  # Option to limit max capacity, intended for variable speed only
 
         # Results options
         self.show_eir_shr = kwargs.get('show_eir_shr', False)
@@ -206,9 +207,9 @@ class HVAC(Equipment):
         #   - Note: Setpoint must be provided every timestep or it will revert back to the dwelling schedule
         # - Deadband: Updates heating (cooling) deadband temperature (in C)
         #   - Note: Deadband will not reset back to original value
-        # - Capacity: Sets HVAC capacity directly, only for variable speed equipment
-        # - Max Capacity: Sets HVAC max capacity directly, only recommended for variable speed equipment
-        # - Duty Cycle: Forces HVAC on for fraction of external time step (as fraction [0,1])
+        # - Capacity: Sets HVAC capacity directly, ideal capacity only
+        # - Max Capacity Fraction: Limits HVAC max capacity, ideal capacity only
+        # - Duty Cycle: Forces HVAC on for fraction of external time step (as fraction [0,1]), non-ideal capacity only
         #   - If 0 < Duty Cycle < 1, the equipment will cycle once every 2 external time steps
         #   - For ASHP: Can supply HP and ER duty cycles
         #   - Note: does not use clock on/off time
@@ -233,10 +234,9 @@ class HVAC(Equipment):
         elif load_fraction != 1:
             raise Exception(f'{self.name} cannot handle non-integer load fractions')
 
-        max_capacity = control_signal.get('Max Capacity')
-        if max_capacity is not None:
-            # TODO: set for only 1 time step or all? Will need to override biquadratics. 
-            self.capacity_max = max_capacity
+        capacity_frac = control_signal.get('Max Capacity Fraction')
+        if capacity_frac is not None:
+            self.ext_capacity_frac = capacity_frac
 
         capacity = control_signal.get('Capacity')
         if capacity is not None:
@@ -266,6 +266,9 @@ class HVAC(Equipment):
             duty_cycles = [duty_cycles]
         assert 0 <= sum(duty_cycles) <= 1
 
+        # TODO: remove option for using duty cycle with ideal capacity.
+        #  - Move option to using ext capacity fraction
+        #  - Keep capacity_min constraint from below
         if self.use_ideal_capacity:
             # Set capacity to constant value based on duty cycle
             self.ext_capacity = duty_cycles[0] * self.capacity_max
@@ -378,8 +381,9 @@ class HVAC(Equipment):
                 # If capacity < capacity_min (or capacity is negative), force off
                 capacity = 0
             else:
-                # Clip at maximum capacity. If ideal capacity is out of bounds, setpoint won't be met
-                capacity = min(self.capacity_ideal, self.capacity_max)
+                # Clip at maximum capacity, considering max capacity fraction
+                # If ideal capacity is out of bounds, setpoint won't be met
+                capacity = min(self.capacity_ideal, self.capacity_max * self.ext_capacity_frac)
 
             # set speed and return capacity
             self.speed_idx = capacity / self.capacity_max
@@ -718,14 +722,6 @@ class DynamicHVAC(HVAC):
 
         return super().update_external_control(control_signal)
 
-    def run_duty_cycle_control(self, control_signal):
-        if self.use_ideal_capacity:
-            # update max capacity using highest enabled speed
-            max_speed = np.nonzero(~ self.disable_speeds)[0][-1] + 1
-            self.capacity_max = self.calculate_biquadratic_param(param='cap', speed_idx=max_speed)
-
-        return super().run_duty_cycle_control(control_signal)
-
     def run_two_speed_control(self):
         mode = super().run_thermostat_control()  # Can be On, Off, or None
         if self.speed_idx == 0:
@@ -994,7 +990,7 @@ class HeatPumpHeater(DynamicHVAC, Heater):
             # Update actual capacity or max allowable capacity
             if self.use_ideal_capacity:
                 self.capacity_max = self.capacity_max * defrost_capacity_mult - q_defrost
-                capacity = min(capacity, self.capacity_max)
+                capacity = min(capacity, self.capacity_max * self.ext_capacity_frac)
             else:
                 capacity = capacity * defrost_capacity_mult - q_defrost
 
