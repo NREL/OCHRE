@@ -98,6 +98,29 @@ def get_boundaries_by_zones(boundaries, default_int_zone='Indoor', default_ext_z
     return bd_by_zones
 
 
+def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
+    # for windows and doors, determine interior zone based on attached wall zone
+    ext_bd, gar_bd, attic_bd = {}, {}, {}
+    for name, boundary in boundaries.items():
+        boundary['Exterior Zone'] = 'Outdoor'
+        wall = boundary['AttachedToWall']['@idref']
+        if wall in ext_walls:
+            boundary['Interior Zone'] = 'Indoor'
+            ext_bd[name] = boundary
+            ext_walls[wall]['Area'] -= boundary['Area']
+        elif wall in gar_walls:
+            boundary['Interior Zone'] = 'Garage'
+            gar_bd[name] = boundary
+            gar_walls[wall]['Area'] -= boundary['Area']
+        elif wall in attic_walls:
+            boundary['Interior Zone'] = 'Attic'
+            attic_bd[name] = boundary
+            attic_walls[wall]['Area'] -= boundary['Area']
+        else:
+            raise IOError(f'Unknown attached wall for {name}: {wall}')
+    
+    return ext_bd, gar_bd, attic_bd
+
 def parse_hpxml_surface(bd_name, bd_data):
     out = {
         'Interior Zone': bd_data['Interior Zone'],
@@ -299,23 +322,16 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     adj_rim_joists = all_rim_joists.pop(('Foundation', 'Foundation'), {})
     assert not all_rim_joists  # verifies that all boundaries are accounted for
 
-    # Get windows
-    all_windows = get_boundaries_by_zones(enclosure.get('Windows', {}))
-    windows = all_windows.pop(('Indoor', 'Outdoor'), {})
-    assert not all_windows  # verifies that all boundaries are accounted for
-
-    # Get doors
-    all_doors = get_boundaries_by_zones(enclosure.get('Doors', {}))
-    doors = all_doors.pop(('Indoor', 'Outdoor'), {})
-    assert not all_doors  # verifies that all boundaries are accounted for
-
-    # subtract window and door area from walls
-    for opening in {**windows, **doors}.values():
-        azimuth = opening['Azimuth']
-        walls = [wall for wall in ext_walls.values() if wall['Azimuth'] == azimuth]
-        if walls:
-            wall = walls[0]
-            wall['Area'] -= opening['Area']
+    # Get windows (only accepts windows to indoor zone for now), and subtract wall area
+    all_windows = enclosure.get('Windows', {})
+    windows, gar_windows, attic_windows = get_boundaries_by_wall(all_windows, ext_walls, gar_walls, attic_walls)
+    assert not gar_windows
+    assert not attic_windows
+    
+    # Get doors (only accepts doors to indoor zone and garage), and subtract wall area
+    all_doors = enclosure.get('Doors', {})
+    doors, gar_doors, attic_doors = get_boundaries_by_wall(all_doors, ext_walls, gar_walls, attic_walls)
+    assert not attic_doors
 
     boundaries = {
         'Exterior Wall': ext_walls,
@@ -345,6 +361,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
         'Adjacent Rim Joist': adj_rim_joists,
         'Window': windows,
         'Door': doors,
+        'Garage Door': gar_doors,
 
     }
     boundaries = {key: val for key, val in boundaries.items() if len(val)}  # remove empty boundaries
@@ -793,17 +810,6 @@ def parse_hvac(hvac_type, hvac_all):
     else:
         aux_power = hvac_ext.get('FanPowerWatts', 0)
 
-    # Get setpoints
-    controls = hvac_all['HVACControl']
-    if 'extension' in controls:
-        weekday_setpoints = controls['extension'][f'WeekdaySetpointTemps{hvac_type}Season']
-        weekend_setpoints = controls['extension'][f'WeekendSetpointTemps{hvac_type}Season']
-    else:
-        weekday_setpoints = [controls[f'SetpointTemp{hvac_type}Season']] * 24
-        weekend_setpoints = [controls[f'SetpointTemp{hvac_type}Season']] * 24
-    weekday_setpoints = convert(weekday_setpoints, 'degF', 'degC').tolist()
-    weekend_setpoints = convert(weekend_setpoints, 'degF', 'degC').tolist()
-
     out = {
         'Equipment Name': name,
         'Fuel': fuel.capitalize(),
@@ -814,9 +820,25 @@ def parse_hvac(hvac_type, hvac_all):
         'Conditioned Space Fraction (-)': space_fraction,
         'Number of Speeds (-)': number_of_speeds,
         'Rated Auxiliary Power (W)': aux_power,
-        'Weekday Setpoints (C)': weekday_setpoints,
-        'Weekend Setpoints (C)': weekend_setpoints,
     }
+
+    # Get HVAC setpoints, optional
+    controls = hvac_all['HVACControl']
+    extension = controls.get('extension', {})
+    if f'WeekdaySetpointTemps{hvac_type}Season' in extension:
+        weekday_setpoints = extension[f'WeekdaySetpointTemps{hvac_type}Season']
+        weekend_setpoints = extension[f'WeekendSetpointTemps{hvac_type}Season']
+        out.update({
+            'Weekday Setpoints (C)': convert(weekday_setpoints, 'degF', 'degC').tolist(),
+            'Weekend Setpoints (C)': convert(weekend_setpoints, 'degF', 'degC').tolist(),
+        })
+    elif f'SetpointTemp{hvac_type}Season' in controls:
+        weekday_setpoint = controls[f'SetpointTemp{hvac_type}Season']
+        weekend_setpoint = controls[f'SetpointTemp{hvac_type}Season']
+        out.update({
+            'Weekday Setpoints (C)': [convert(weekday_setpoint, 'degF', 'degC')] * 24,
+            'Weekend Setpoints (C)': [convert(weekend_setpoint, 'degF', 'degC')] * 24,
+        })
 
     if has_heat_pump and hvac_type == 'Heating':
         backup_capacity = heat_pump.get('BackupHeatingCapacity', 0)
@@ -1588,8 +1610,13 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
     # Parse occupancy
     occupancy = parse_hpxml_occupancy(hpxml)
 
-    # Parse envelope properties
+    # Parse envelope properties and merge with house_args
     boundaries, zones, construction = parse_hpxml_envelope(hpxml, occupancy, **house_args)
+    envelope = house_args.get('Envelope', {})
+    if 'boundaries' in envelope:
+        boundaries = nested_update(boundaries, house_args['Envelope'].pop('boundaries'))
+    if 'zones' in envelope:
+        zones = nested_update(zones, house_args['Envelope'].pop('zones'))
 
     # Parse equipment properties and merge with house_args
     equipment_dict = parse_hpxml_equipment(hpxml, occupancy, construction)

@@ -84,16 +84,16 @@ class ScheduledLoad(Equipment):
         self.update_internal_control()
 
         load_fraction = control_signal.get('Load Fraction')
-        if load_fraction:
+        if load_fraction is not None:
             self.p_set_point *= load_fraction
             self.gas_set_point *= load_fraction
 
         p_set_ext = control_signal.get('P Setpoint')
-        if p_set_ext:
+        if p_set_ext is not None:
             self.p_set_point = p_set_ext
 
         gas_set_ext = control_signal.get('Gas Setpoint')
-        if gas_set_ext:
+        if gas_set_ext is not None:
             self.gas_set_point = gas_set_ext
 
         return 'On' if self.p_set_point + self.gas_set_point != 0 else 'Off'

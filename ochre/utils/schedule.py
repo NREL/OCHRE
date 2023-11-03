@@ -6,6 +6,7 @@ import datetime as dt
 import collections.abc
 import xmltodict
 # import re
+import numba  # required for array-based psychrolib
 import psychrolib
 import pytz
 import pvlib

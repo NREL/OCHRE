@@ -85,8 +85,9 @@ def get_duct_info(ducts, zones, boundaries, construction, location, **kwargs):
 
 
 def update_equipment_properties(properties, schedule, zip_parameters_file='ZIP Parameters.csv', **kwargs):
-    # split heat pump equipment into heater and cooler
     all_equipment = properties['equipment']
+    
+    # split heat pump equipment into heater and cooler
     for heat_pump_name, short_name in [('Air Source Heat Pump', 'ASHP'),
                                        ('Minisplit Heat Pump', 'MSHP')]:
         if heat_pump_name in all_equipment:

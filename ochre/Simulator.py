@@ -79,16 +79,17 @@ class Simulator:
             self.output_path = os.path.abspath(self.output_path)
         os.makedirs(self.output_path, exist_ok=True)
 
-        # save result file path and remove existing results files
-        extn = '.parquet' if self.output_to_parquet else '.csv'
+        # save result file path 
         file_name = self.name if not self.main_sim_name else f'{self.name}_{self.main_sim_name}'
+        extn = '.parquet' if self.output_to_parquet else '.csv'
         self.results_file = os.path.join(self.output_path, file_name + extn)
-        if os.path.exists(self.results_file):
-            self.print('Removing previous results')
-            os.remove(self.results_file)
-            for f in os.listdir(self.output_path):
-                if self.name in f and '.parquet' in f:
-                    os.remove(os.path.join(self.output_path, f))
+
+        # Remove existing results files
+        for f in os.listdir(self.output_path):
+            if f == f'{file_name}.csv' or (self.name in f and '.parquet' in f):
+                self.print('Removing previous results file:', os.path.join(self.output_path, f))
+                os.remove(os.path.join(self.output_path, f))
+
 
         # remove existing status files
         statuses = ['failed', 'complete']

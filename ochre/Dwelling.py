@@ -45,21 +45,23 @@ class Dwelling(Simulator):
         self.metrics_verbosity = metrics_verbosity
         _ = house_args.pop('save_results', None)  # remove save_results from args to prevent saving all Equipment files
         if self.output_path is not None:
-            # remove existing output files, and save file locations
+            # remove existing output files
+            for file_type in ['metrics', 'hourly', 'schedule']:
+                for extn in ['parquet', 'csv']:
+                    f = os.path.join(self.output_path, f'{self.name}_{file_type}.{extn}')
+                    if os.path.exists(f):
+                        self.print('Removing previous results file:', f)
+                        os.remove(f)
+
+            # save file locations
             extn = '.parquet' if self.output_to_parquet else '.csv'
             self.metrics_file = os.path.join(self.output_path, self.name + '_metrics.csv')
-            if os.path.exists(self.metrics_file):
-                os.remove(self.metrics_file)
             if self.verbosity >= 3:
                 self.hourly_output_file = os.path.join(self.output_path, self.name + '_hourly' + extn)
-                if os.path.exists(self.hourly_output_file):
-                    os.remove(self.hourly_output_file)
             else:
                 self.hourly_output_file = None
             if self.verbosity >= 7 or save_schedule_columns:
                 schedule_output_file = os.path.join(self.output_path, self.name + '_schedule' + extn)
-                if os.path.exists(schedule_output_file):
-                    os.remove(schedule_output_file)
             else:
                 schedule_output_file = None
         else:
@@ -73,7 +75,6 @@ class Dwelling(Simulator):
         # Load occupancy schedule and weather files
         schedule, location = load_schedule(properties, weather_station=weather_station, **house_args)
         properties['location'] = location
-        house_args['schedule'] = schedule
         self.start_time = self.start_time.replace(tzinfo=schedule.index.tzinfo)
 
         # Save HPXML properties to json file
@@ -98,11 +99,11 @@ class Dwelling(Simulator):
             self.print('Saved schedule to:', schedule_output_file)
 
         # Update args for initializing Envelope and Equipment
-        initial_schedule = schedule.loc[self.start_time].to_dict()
         sim_args = {
             **house_args,
             'start_time': self.start_time,  # updates time zone if necessary
-            'initial_schedule': initial_schedule,
+            'schedule': schedule,
+            'initial_schedule': schedule.loc[self.start_time].to_dict(),
             'main_sim_name': self.name,
             'output_path': self.output_path,
         }
@@ -117,7 +118,7 @@ class Dwelling(Simulator):
         sim_args['envelope_model'] = self.envelope
 
         # Add detailed equipment properties, including ZIP parameters
-        equipment_dict = update_equipment_properties(properties, **house_args)
+        equipment_dict = update_equipment_properties(properties, **sim_args)
 
         # Create all equipment
         self.equipment = {}

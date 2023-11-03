@@ -955,6 +955,7 @@ Garage Attached Wall,"WoodStud, wood siding, Uninsulated",,,,OSB SHEATHING 0.5 I
 Garage Attached Wall,"WoodStud, wood siding, Uninsulated",,,,WALL STUD AND CAVITY,0.1397,0.335,139.054,,0.4165,22.7328605968244,,1170.238
 Garage Attached Wall,"WoodStud, wood siding, Uninsulated",,,,GYPSUM BOARD,0.0127,0.16,801.0,,0.07923,8.51861898,,837.4
 Garage Ceiling,Standard,,,,CEILING STUD AND CAVITY,0.1397,1.392,65.682,,0.1004,10.804163557136398,,1177.466
+Garage Door,R-5.0,,,,DOOR MATERIAL,0.0445,0.061,512.64,1214.23,0.726,27.69959759,Copied from Door,
 Garage Floor,2ft R10 Exterior,,,2ft R10 Exterior,Ficticious Insulating Layer,0.0,0.0,0.0,0.0,1.217110581,0.0,copied from Floor,
 Garage Floor,2ft R10 Exterior,,,2ft R10 Exterior,Soil,0.3048,1.731,1842.3,0.418752,0.176083189,235.1430836,copied from Floor,
 Garage Floor,2ft R10 Exterior,,,2ft R10 Exterior,Slab,0.1016,1.312675,2242.8,0.837504,0.077399204,190.8407635,copied from Floor,
