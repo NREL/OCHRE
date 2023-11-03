@@ -113,15 +113,14 @@ dwelling_args = {
 if __name__ == '__main__':
     # Initialization
     dwelling = Dwelling(**dwelling_args)
-    
+    '''
     setpoint = ['Water Heater Setpoint']
     schedules_df = pd.read_csv('C:/Users/jmaguire/Desktop/IBACOS/setpoint_schedules.csv', usecols=setpoint, parse_dates=True)
 
-    #print(schedules_df)
-    #print(schedules_df.keys())
+    print(schedules_df)
+    print(schedules_df.keys())
     
-    # Simulation
-    #df, metrics, hourly = dwelling.simulate()
+    
     
     control_signal = None
     
@@ -136,8 +135,10 @@ if __name__ == '__main__':
             control_signal = {'Water Heating': {'Setpoint': wh_setpoint}}  # in C
 
         dwelling.update(schedules_df=control_signal)
-        
-    dwelling.finalize
+    '''
+    
+    # Simulation
+    df, metrics, hourly = dwelling.simulate()
 
     # Load results from previous run
     # output_path = dwelling_args.get('output_path', os.path.dirname(dwelling_args['hpxml_file']))
