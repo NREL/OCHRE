@@ -3,7 +3,7 @@ import pandas as pd
 import datetime as dt
 import numpy as np
 
-from ochre.utils import load_csv
+from ochre.utils import OCHREException, load_csv
 from ochre.Equipment import Equipment
 
 
@@ -53,7 +53,7 @@ class EventBasedLoad(Equipment):
         elif equipment_event_file is not None:
             raise NotImplementedError
         else:
-            raise Exception('Must specify a PDF or Event file for {}.'.format(self.name))
+            raise OCHREException('Must specify a PDF or Event file for {}.'.format(self.name))
 
     def initialize_schedule(self, **kwargs):
         schedule = super().initialize_schedule(**kwargs)
@@ -75,13 +75,13 @@ class EventBasedLoad(Equipment):
         negative_times = self.event_schedule['end_time'] - self.event_schedule['start_time'] < dt.timedelta(0)
         if negative_times.any():
             bad_event = self.event_schedule.loc[negative_times.idxmax()]
-            raise Exception('{} has event with end time before start time. '
+            raise OCHREException('{} has event with end time before start time. '
                                      'Event details: \n{}'.format(self.name, bad_event))
         overlap = (self.event_schedule['start_time'] - self.event_schedule['end_time'].shift()) < dt.timedelta(0)
         if overlap.any():
             bad_index = overlap.idxmax()
             bad_events = self.event_schedule.loc[bad_index - 1: bad_index + 1]
-            raise Exception('{} event overlap. Event details: \n{}'.format(self.name, bad_events))
+            raise OCHREException('{} event overlap. Event details: \n{}'.format(self.name, bad_events))
 
         return schedule
 
@@ -138,7 +138,7 @@ class EventBasedLoad(Equipment):
             if isinstance(delay, (int, bool)):
                 delay = self.time_res * delay
             if not isinstance(delay, dt.timedelta):
-                raise Exception(f'Unknown delay for {self.name}: {delay}')
+                raise OCHREException(f'Unknown delay for {self.name}: {delay}')
 
             if delay:
                 if self.delay_event_end:

@@ -2,7 +2,7 @@ import datetime as dt
 import numpy as np
 import psychrolib
 
-from ochre.utils import convert, load_csv
+from ochre.utils import OCHREException, convert, load_csv
 from ochre.utils.units import kwh_to_therms
 import ochre.utils.equipment as utils_equipment
 from ochre.Equipment import Equipment
@@ -38,7 +38,7 @@ class HVAC(Equipment):
             self.is_heater = False
             self.hvac_mult = -1
         else:
-            raise Exception(f'HVAC type for {self.name} Equipment must be "Heating" or "Cooling".')
+            raise OCHREException(f'HVAC type for {self.name} Equipment must be "Heating" or "Cooling".')
 
         # Building envelope parameters - required for calculating ideal capacity
         # FUTURE: For now, require envelope model. In future, could use ext_model to provide all schedule values
@@ -115,7 +115,7 @@ class HVAC(Equipment):
         # check length of rated lists
         for speed_list in [self.capacity_list, self.eir_list, self.fan_power_list]:
             if len(speed_list) - 1 != self.n_speeds:
-                raise Exception(f'Number of speeds ({self.n_speeds}) does not match length of list'
+                raise OCHREException(f'Number of speeds ({self.n_speeds}) does not match length of list'
                                          f' ({len(speed_list) - 1})')
 
         # Duct location and distribution system efficiency (DSE)
@@ -229,7 +229,7 @@ class HVAC(Equipment):
             self.speed_idx = 0
             return 'Off'
         elif load_fraction != 1:
-            raise Exception("{} can't handle non-integer load fractions".format(self.name))
+            raise OCHREException(f"{self.name} can't handle non-integer load fractions")
 
         if any(['Duty Cycle' in key for key in control_signal]):
             return self.run_duty_cycle_control(control_signal)
@@ -640,7 +640,7 @@ class DynamicHVAC(HVAC):
                                         (df_speed['HVAC Efficiency'] == rated_efficiency) &
                                         (df_speed['Number of Speeds'] == self.n_speeds)]
             if not len(speed_params):
-                raise Exception(f'Cannot find multispeed parameters for {rated_efficiency} {self.name}')
+                raise OCHREException(f'Cannot find multispeed parameters for {rated_efficiency} {self.name}')
             assert len(speed_params) == 1
             speed_params = speed_params.iloc[0].to_dict()
             
@@ -655,7 +655,7 @@ class DynamicHVAC(HVAC):
 
     def initialize_biquad_params(self, **kwargs):
         if self.n_speeds not in SPEED_TYPES:
-            raise Exception('Unknown number of speeds ({}). Should be one of: {}'.format(self.n_speeds,
+            raise OCHREException('Unknown number of speeds ({}). Should be one of: {}'.format(self.n_speeds,
                                                                                                 SPEED_TYPES))
         speed_type = SPEED_TYPES[self.n_speeds]
 
@@ -663,7 +663,7 @@ class DynamicHVAC(HVAC):
         biquad_params = self.initialize_parameters(biquadratic_file, value_col=None, **kwargs)
         biquad_params = biquad_params.loc[:, [col for col in biquad_params if speed_type == col.split('_')[0]]]
         if len(biquad_params.columns) != self.n_speeds:
-            raise Exception(f'Number of speeds ({self.n_speeds}) does not match number of biquadratic '
+            raise OCHREException(f'Number of speeds ({self.n_speeds}) does not match number of biquadratic '
                                         f'equations ({len(biquad_params.columns)})')
         biquad_params = {idx + 1: {
             'eir_t': np.array([val[f'{x}_eir_t'] for x in 'abcdef'], dtype=float),
@@ -683,7 +683,7 @@ class DynamicHVAC(HVAC):
             for idx, (col, val) in enumerate(biquad_params.items())
         }
         if not biquad_params:
-            raise Exception(f'Biquadratic parameters not found for {speed_type} speed {self.name}.')
+            raise OCHREException(f'Biquadratic parameters not found for {speed_type} speed {self.name}.')
 
         if kwargs.get('Disable HVAC Part Load Factor', False):
             # for minimal tests, disable PLF
@@ -751,7 +751,7 @@ class DynamicHVAC(HVAC):
             else:
                 speed = 2
         else:
-            raise Exception('Unknown control type for {}: {}'.format(self.name, self.control_type))
+            raise OCHREException('Unknown control type for {}: {}'.format(self.name, self.control_type))
 
         # Enforce minimum on times for speed
         if self.time_in_speed < self.min_time_in_speed[prev_speed_idx - 1]:
@@ -771,7 +771,7 @@ class DynamicHVAC(HVAC):
 
     def run_thermostat_control(self, setpoint=None):
         if self.use_ideal_capacity:
-            raise Exception('Ideal capacity equipment should not be running a thermostat control.')
+            raise OCHREException('Ideal capacity equipment should not be running a thermostat control.')
 
         if self.n_speeds == 1:
             # Run regular thermostat control
@@ -779,7 +779,7 @@ class DynamicHVAC(HVAC):
         elif self.n_speeds == 2:
             return self.run_two_speed_control()
         else:
-            raise Exception('Incompatible number of speeds for dynamic equipment:', self.n_speeds)
+            raise OCHREException('Incompatible number of speeds for dynamic equipment:', self.n_speeds)
 
     def calculate_biquadratic_param(self, param, speed_idx, flow_fraction=1, part_load_ratio=1):
         # runs biquadratic equation for EIR or capacity given the speed index
@@ -791,7 +791,7 @@ class DynamicHVAC(HVAC):
         elif param == 'eir':
             rated = self.eir_list[speed_idx]
         else:
-            raise Exception('Unknown biquadratic parameter:', param)
+            raise OCHREException('Unknown biquadratic parameter:', param)
 
         if speed_idx == 0 or self.biquad_params is None:
             return rated
@@ -906,7 +906,7 @@ class RoomAC(AirConditioner):
 
     def __init__(self, **kwargs):
         if kwargs.get('speed_type', 'Single') != 'Single':
-            raise Exception('No model for multi-speed {}'.format(self.name))
+            raise OCHREException('No model for multi-speed {}'.format(self.name))
         super().__init__(**kwargs)
 
 
@@ -1181,7 +1181,7 @@ class ASHPHeater(HeatPumpHeater):
         elif self.mode == 'ER On':
             return self.er_eir_rated
         else:
-            raise Exception('Unknown mode for {}: {}'.format(self.name, self.mode))
+            raise OCHREException('Unknown mode for {}: {}'.format(self.name, self.mode))
 
     def calculate_power_and_heat(self):
         # Update ER capacity if off
