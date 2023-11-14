@@ -50,8 +50,10 @@ class ScheduledLoad(Equipment):
                             schedule_rename_columns=None, schedule_scale_factor=1, **kwargs):
         self.electric_name = f'{self.name} (kW)'
         self.gas_name = f'{self.name} (therms/hour)'
-
-        if equipment_schedule_file is not None:
+        input_cols = [self.electric_name, self.gas_name]
+        has_cols = schedule is not None and any([col in schedule.columns for col in input_cols])
+        
+        if not has_cols and equipment_schedule_file is not None:
             # load schedule from separate schedule file - used for scheduled PV and EV
             schedule = load_csv(equipment_schedule_file, sub_folder=self.end_use)
             schedule = schedule.loc[:, schedule_rename_columns]
@@ -64,7 +66,7 @@ class ScheduledLoad(Equipment):
         if schedule is None:
             raise Exception(f'Schedule required for {self.name}')
         
-        required_inputs = [name for name in [self.electric_name, self.gas_name] if name in schedule]
+        required_inputs = [name for name in input_cols if name in schedule]
         if not required_inputs:
             raise Exception(f'Cannot find any schedule columns for {self.name}')
 
