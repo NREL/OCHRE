@@ -1,7 +1,7 @@
 import math
 import pandas as pd
 
-from ochre.utils import convert, nested_update, import_hpxml
+from ochre.utils import OCHREException, convert, nested_update, import_hpxml
 from ochre.utils.units import pitch2deg
 import ochre.utils.envelope as utils_envelope
 
@@ -117,7 +117,7 @@ def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
             attic_bd[name] = boundary
             attic_walls[wall]['Area'] -= boundary['Area']
         else:
-            raise IOError(f'Unknown attached wall for {name}: {wall}')
+            raise OCHREException(f'Unknown attached wall for {name}: {wall}')
     
     return ext_bd, gar_bd, attic_bd
 
@@ -200,7 +200,7 @@ def parse_hpxml_boundary(bd_name, bd_data):
             out[key] = [bd[key] for bd in bd_data]
         else:
             if not all([bd[key] == val for bd in bd_data]):
-                raise Exception(f'{bd_name} {key} values in HPXML are not all equal: {[bd[key] for bd in bd_data]}')
+                raise OCHREException(f'{bd_name} {key} values in HPXML are not all equal: {[bd[key] for bd in bd_data]}')
 
     # Consolidate areas and azimuths (e.g. if multiple windows per wall)
     if 'Area (m^2)' in out and out.get('Azimuth (deg)') is not None:
@@ -255,7 +255,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
             # no foundation zone for slab or pier+beam foundations
             foundation_name = None
         else:
-            raise IOError(f'Unknown foundation type: {foundation_type}')
+            raise OCHREException(f'Unknown foundation type: {foundation_type}')
 
     construction_dict = {
         'Number of Bedrooms (-)': n_beds,
@@ -387,7 +387,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     if len(main_floor_areas) == 1:
         first_floor_area = main_floor_areas[0]  # area of first (lowest above grade) floor. Excludes garage
     else:
-        raise IOError(f'Unable to parse multiple floor areas: {main_floor_areas}')
+        raise OCHREException(f'Unable to parse multiple floor areas: {main_floor_areas}')
 
     # Get attic and top floor area - should have only 1 attic floor boundary option (plus maybe 'Garage Ceiling')
     top_floor_options = ['Attic Floor', 'Roof', 'Adjacent Ceiling']
@@ -396,7 +396,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     if len(top_floor_areas) == 1:
         top_floor_area = top_floor_areas[0]  # area of first (lowest above grade) floor. Excludes garage
     else:
-        raise IOError(f'Unable to parse multiple attic floor areas: {top_floor_areas}')
+        raise OCHREException(f'Unable to parse multiple attic floor areas: {top_floor_areas}')
     attic_floor_area = top_floor_area + sum(boundaries.get('Garage Ceiling', {}).get('Area (m^2)', []))
 
     if 'Garage Floor' in boundaries:
@@ -426,7 +426,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
                                     if az == azimuth]) for azimuth in set(attached_wall_azimuths)])
             garage_area_in_main = a1 * a2 / garage_wall_height ** 2
         else:
-            raise IOError('Invalid geometry. Cannot parse more than 3 garage walls.')
+            raise OCHREException('Invalid geometry. Cannot parse more than 3 garage walls.')
         assert 0 < garage_area_in_main / garage_floor_area < 1.001  # should be close to 50% for ResStock cases
     else:
         garage_floor_area = 0
@@ -539,7 +539,7 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
             low, med, high = tuple(sorted(attic_wall_areas))
             third_gable_area = low if med - low > high - med else high
         else:
-            raise Exception('Unable to calculate attic area, likely an issue with gable walls.')
+            raise OCHREException('Unable to calculate attic area, likely an issue with gable walls.')
 
         # Get attic properties
         # tan(roof_tilt) = height / (width / 2)
@@ -586,7 +586,7 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
                 'Air Changes (1/hour)': 0.1,
             })
         else:
-            raise Exception(f'Cannot parse Attic infiltration rate from properties: {attic}')
+            raise OCHREException(f'Cannot parse Attic infiltration rate from properties: {attic}')
 
     # Add foundation zone
     if construction['Foundation Type'] is not None:
@@ -707,7 +707,7 @@ def parse_hpxml_envelope(hpxml, occupancy, **house_args):
     elif house_type in ['single-family attached', 'apartment unit']:
         n_bedrooms_adj = max(-1.47 + 1.69 * n_occupants, 0)
     else:
-        raise Exception(f'Unknown house type: {house_type}')
+        raise OCHREException(f'Unknown house type: {house_type}')
     construction['Number of Bedrooms, Adjusted (-)'] = n_bedrooms_adj
 
     return boundaries, zones, construction
@@ -740,7 +740,7 @@ def parse_hvac(hvac_type, hvac_all):
     system = hvac_all.get('HVACPlant', {}).get(f'{hvac_type}System')
     heat_pump = hvac_all.get('HVACPlant', {}).get('HeatPump')
     if system and heat_pump:
-        raise IOError(f'HVAC {hvac_type} system and heat pump cannot both be specified.')
+        raise OCHREException(f'HVAC {hvac_type} system and heat pump cannot both be specified.')
     elif not system and not heat_pump:
         return None
     has_heat_pump = bool(heat_pump)
@@ -766,7 +766,7 @@ def parse_hvac(hvac_type, hvac_all):
     elif efficiency['Units'] in ['EER', 'SEER', 'HSPF']:
         eir = 1 / convert(efficiency['Value'], 'Btu/hour', 'W')
     else:
-        raise IOError(f'Unknown inputs for HVAC {hvac_type} efficiency: {efficiency}')
+        raise OCHREException(f'Unknown inputs for HVAC {hvac_type} efficiency: {efficiency}')
     efficiency_string = f"{efficiency['Value']} {efficiency['Units']}"
 
     # Get number of speeds
@@ -848,7 +848,7 @@ def parse_hvac(hvac_type, hvac_all):
             # assumes efficiency units are in Percent or AFUE
             out.update({
                 'Supplemental Heater EIR (-)': 1 / heat_pump.get('BackupAnnualHeatingEfficiency', {}).get('Value'),
-                'Supplemental Heater Capacity (W)': backup_capacity,
+                'Supplemental Heater Capacity (W)': convert(backup_capacity, 'Btu/hour', 'W')
                 'Supplemental Heater Cut-in Temperature (C)':
                     convert(heat_pump.get('BackupHeatingSwitchoverTemperature'), 'degF', 'degC'),
             })
@@ -937,7 +937,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
         volume = None
 
     if energy_factor is None and uniform_energy_factor is None:
-        raise Exception('Energy Factor or Uniform Energy Factor input required for Water Heater.')
+        raise OCHREException('Energy Factor or Uniform Energy Factor input required for Water Heater.')
 
     # calculate UA and eta_c for each water heater type
     if water_heater_type == 'instantaneous water heater':
@@ -1006,7 +1006,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
             eta_c = 1.0
 
     else:
-        raise Exception(f'Unknown water heater type: {water_heater_type}')
+        raise OCHREException(f'Unknown water heater type: {water_heater_type}')
 
     # Increase insulation from tank jacket (reduces UA)
     if tank_jacket_r:
@@ -1019,10 +1019,10 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     ua *= (1.0 - solar_fraction)
 
     if ua < 0.0:
-        raise Exception('A negative water heater standby loss coefficient (UA) was calculated.'
+        raise OCHREException('A negative water heater standby loss coefficient (UA) was calculated.'
                         ' Double check water heater inputs.')
     if eta_c > 1.0:
-        raise Exception('A water heater heat source (either burner or element) efficiency of > 1 has been calculated.'
+        raise OCHREException('A water heater heat source (either burner or element) efficiency of > 1 has been calculated.'
                         ' Double check water heater inputs.')
 
     wh = {
@@ -1069,7 +1069,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     distribution_type = distribution.get('SystemType', {})
     distribution_r = distribution.get('PipeInsulation', {}).get('PipeRValue', 0)
     if len(distribution_type) != 1:
-        raise IOError(f'Warning: Cannot handle multiple water distribution types: {distribution_type}')
+        raise OCHREException(f'Cannot handle multiple water distribution types: {distribution_type}')
     elif 'Standard' in distribution_type:
         distribution_factor = 0.9 if distribution_r >= 3 else 1.0
         total_sqft = convert(construction['Conditioned Floor Area (m^2)'], 'm^2', 'ft^2')
@@ -1152,7 +1152,7 @@ def parse_clothes_dryer(clothes_dryer, clothes_washer, n_bedrooms):
     elif fuel_type in ['propane', 'fuel oil']:
         print(f'WARNING: Converting clothes dryer fuel from {fuel_type} to natural gas.')
     else:
-        raise Exception(f'Invalid fuel type for clothes dryer: {fuel_type}')
+        raise OCHREException(f'Invalid fuel type for clothes dryer: {fuel_type}')
     is_electric = fuel_type == 'electricity'
     is_vented = clothes_dryer.get('Vented', True)
     multiplier = clothes_dryer.get('extension', {}).get('UsageMultiplier', 1)
@@ -1284,7 +1284,7 @@ def parse_cooking_range(range_dict, oven_dict, n_bedrooms):
     elif fuel_type in ['propane', 'fuel oil']:
         print(f'WARNING: Converting cooking range fuel from {fuel_type} to natural gas.')
     else:
-        raise Exception(f'Invalid fuel type for cooking range: {fuel_type}')
+        raise OCHREException(f'Invalid fuel type for cooking range: {fuel_type}')
     is_electric = fuel_type == 'electricity'
     is_induction = range_dict.get('IsInduction', False)
     is_convection = oven_dict.get('IsConvection', False)
@@ -1354,7 +1354,7 @@ def parse_lighting(location, df_lights, floor_area, extension=None):
             grg_adj = f_inc * e_inc + f_flr * e_flr + f_led * e_led
             annual_kwh = 100.0 * grg_adj
         else:
-            raise Exception(f'Unknown lighting location: {location}')
+            raise OCHREException(f'Unknown lighting location: {location}')
         
     else:
         # Annual kWh specified
@@ -1381,9 +1381,9 @@ def parse_mel(mel, load_name, is_gas=None):
     fuel_type = 'Gas' if is_gas else 'Electric'
     load_units = 'therm' if is_gas else 'kWh'
     if mel['Load']['Units'] != f'{load_units}/year':
-        raise Exception(f'Invalid load units for {load_name}:', mel['Load']['Units'])
+        raise OCHREException(f'Invalid load units for {load_name}:', mel['Load']['Units'])
     if is_gas and mel.get('FuelType', 'natural gas') != 'natural gas':
-        raise Exception(f'Invalid fuel type for MGL:', mel['FuelLoadType'])
+        raise OCHREException(f'Invalid fuel type for MGL:', mel['FuelLoadType'])
 
     # TODO: use default annual load values from OS-HPXML
     mel_load = mel['Load']['Value'] * mel.get('extension', {}).get('UsageMultiplier', 1)
@@ -1547,7 +1547,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
                 else:
                     print('WARNING: Skipping garage lighting, since no garage is modeled.')
             else:
-                raise IOError(f'Unknown lighting location: {loc}')
+                raise OCHREException(f'Unknown lighting location: {loc}')
 
     # Get plug loads and fuel loads, some strange behavior depending on number of MELs/MGLs
     misc_loads = hpxml.get('MiscLoads', {})

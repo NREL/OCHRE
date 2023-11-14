@@ -47,7 +47,7 @@ def find_version(*file_paths):
 
 setup(name='ochre-nrel',
       version=find_version('ochre', '__init__.py'),
-      description='A residential energy model with flexible loads and DERs for building-to-grid co-simulation',
+      description='A building energy modeling (BEM) tool designed to model residential DERs and flexible loads',
       author='Jeff Maguire',
       author_email='Jeff.Maguire@nrel.gov',
       maintainer='Michael Blonsky',

@@ -6,7 +6,7 @@ import pandas as pd
 import hashlib
 
 from ochre import __version__
-
+from ochre.utils import OCHREException
 
 class Simulator:
     name = 'OCHRE'
@@ -27,6 +27,8 @@ class Simulator:
         self.current_time = start_time
         self.time_res = time_res
         self.duration = duration
+        if self.duration < self.time_res:
+            raise OCHREException(f'Duration ({duration}) must be longer than time resolution ({time_res}).')
         self.initialization_time = initialization_time
         self.sim_times = pd.date_range(self.start_time, self.start_time + self.duration, freq=self.time_res,
                                        inclusive='left')
@@ -74,7 +76,7 @@ class Simulator:
             elif equipment_schedule_file is not None:
                 self.output_path = os.path.dirname(equipment_schedule_file)
             else:
-                raise IOError('Must specify output_path, or set save_results=False.')
+                raise OCHREException('Must specify output_path, or set save_results=False.')
         if not os.path.isabs(self.output_path):
             self.output_path = os.path.abspath(self.output_path)
         os.makedirs(self.output_path, exist_ok=True)
@@ -141,7 +143,7 @@ class Simulator:
             return None
 
         if not isinstance(schedule.index, pd.DatetimeIndex):
-            raise Exception(f'{self.name} schedule index must be a DateTime index, not {type(schedule.index)}.'
+            raise OCHREException(f'{self.name} schedule index must be a DateTime index, not {type(schedule.index)}.'
                             f' If loading schedule from a file, try setting index column to "Time".')
 
         # Check that all required inputs are in schedule, print warning if not
@@ -158,7 +160,7 @@ class Simulator:
 
         # Check that start time matches schedule
         if self.start_time < schedule.index[0]:
-            raise Exception(f'{self.name} start time ({self.start_time}) is before the schedule start time '
+            raise OCHREException(f'{self.name} start time ({self.start_time}) is before the schedule start time '
                                      f'({schedule.index[0]}).')
         elif self.start_time > schedule.index[0]:
             self.warn(f'Updating {self.name} schedule start time from {schedule.index[0]} to {self.start_time}.')
@@ -185,7 +187,7 @@ class Simulator:
         elif end_time + self.time_res < schedule.index[-1]:
             schedule = schedule.loc[:end_time + self.time_res]
         elif end_time > schedule.index[-1]:
-            raise Exception(f'{self.name} end time ({end_time}) is after the schedule end time '
+            raise OCHREException(f'{self.name} end time ({end_time}) is after the schedule end time '
                                      f'({schedule.index[-1]}).')
 
         return schedule

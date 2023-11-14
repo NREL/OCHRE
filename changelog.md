@@ -1,5 +1,9 @@
 ## OCHRE Changelog
 
+### Changes from PRs
+
+- Added OCHREException class to handle errors
+
 ### OCHRE v0.8.4-beta
 
 - Fixed bug with air infiltration inputs (works with ResStock 3.0 and 3.1, and OS-HPXML 1.6.0)

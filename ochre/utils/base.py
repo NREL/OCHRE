@@ -13,6 +13,9 @@ default_input_path = os.path.join(main_path, 'defaults')
 
 # TODO: add exception classes, print functions here
 
+class OCHREException(Exception):
+    pass
+
 
 def nested_update(d_old, d_new):
     # https://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
@@ -87,7 +90,7 @@ def convert_hpxml_element(obj, use_sys_id):
             return obj
 
     else:
-        raise Exception(f'Unknown HPXML object type ({type(obj)}: {obj}')
+        raise OCHREException(f'Unknown HPXML object type ({type(obj)}: {obj}')
 
 
 def import_hpxml(hpxml_file, use_sys_id=False, **house_args):

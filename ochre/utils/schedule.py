@@ -11,7 +11,7 @@ import psychrolib
 import pytz
 import pvlib
 
-from ochre.utils import main_path, default_input_path, load_csv, convert
+from ochre.utils import OCHREException, main_path, default_input_path, load_csv, convert
 from ochre.utils.envelope import calculate_solar_irradiance
 
 # List of variables and functions for loading and parsing schedule files
@@ -96,7 +96,7 @@ def set_annual_index(df, start_year, offset=None, timezone=None):
     end_time = dt.datetime(start_year + 1, 1, 1)
     duration = end_time - start_time  # 365 or 366 days
     if duration.days != 365:
-        raise Exception('Cannot parse data for a leap year.')
+        raise OCHREException('Cannot parse data for a leap year.')
     if n % 8760 == 0 and 525600 % n == 0:
         init_time_res = dt.timedelta(minutes=525600 // n)
         df.index = pd.date_range(start_time, end_time, freq=init_time_res, inclusive='left')
@@ -104,7 +104,7 @@ def set_annual_index(df, start_year, offset=None, timezone=None):
         init_time_res = dt.timedelta(minutes=525600 // (n - 1))
         df.index = pd.date_range(start_time, end_time, freq=init_time_res)
     else:
-        raise IOError(f'File length of {n} is incompatible for annual input')
+        raise OCHREException(f'File length of {n} is incompatible for annual input')
 
     # shift times by offset, update year and re-sort index if necessary
     if offset is not None:
@@ -168,7 +168,7 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
         # take weather file from HPXML Weather Station name
         weather_file = weather_station + '.epw'
     elif weather_file is None and weather_station is None:
-        raise Exception('Must define a weather file.')
+        raise OCHREException('Must define a weather file.')
 
     # get weather file path
     if not os.path.isabs(weather_file):
@@ -193,14 +193,14 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
         if df.index.tzinfo is None:
             weather_timezone = weather_metadata.get('timezone')
             if weather_timezone is None:
-                raise IOError('Timezone must be specified either in weather_metadata.')
+                raise OCHREException('Timezone must be specified either in weather_metadata.')
             tz = dt.timezone(dt.timedelta(hours=weather_timezone))
             df = df.tz_localize(tz)
 
         # check that lat/lon is in weather_metadata
         missing = [data for data in ['latitude', 'longitude'] if data not in weather_metadata]
         if missing:
-            raise IOError(f'Missing required location data (must be specified in house Location parameters): {missing}')
+            raise OCHREException(f'Missing required location data (must be specified in house Location parameters): {missing}')
         location = weather_metadata
     elif ext == '.epw':
         offset = dt.timedelta(minutes=30)
@@ -235,7 +235,7 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
         # Set sky temperature to NaN
         df['sky_temperature'] = np.nan
     else:
-        raise IOError(f'Unknown weather file extension: {ext}')
+        raise OCHREException(f'Unknown weather file extension: {ext}')
 
     # check for leap day
     if ((df.index.month == 2) & (df.index.day == 29)).any():
@@ -370,7 +370,7 @@ def convert_schedule_column(s_hpxml, ochre_name, properties, category='Power'):
             out = pd.concat([out, s_gas], axis=1)
 
         if out is None:
-            raise Exception(f'Could not determine max value for {s_hpxml.name} schedule ({ochre_name}).')
+            raise OCHREException(f'Could not determine max value for {s_hpxml.name} schedule ({ochre_name}).')
 
     elif category == 'Water':
         if ochre_name == 'Water Heating':
@@ -429,7 +429,7 @@ def import_occupancy_schedule(occupancy, equipment, start_time, schedule_input_f
                 # create a constant setpoint schedule
                 df_norm[hpxml_name] = ochre_dict['Setpoint Temperature (C)']
             else:
-                raise IOError(f'Must specify {ochre_name} setpoints in schedule input file or include parameters '
+                raise OCHREException(f'Must specify {ochre_name} setpoints in schedule input file or include parameters '
                               '"Weekday/Weekend Setpoints (C)" or "Setpoint Temperature (C)".')
 
         # Add occupancy/power/water draw simple schedules
@@ -469,7 +469,7 @@ def import_occupancy_schedule(occupancy, equipment, start_time, schedule_input_f
             # Schedule is not used in OCHRE
             continue
         else:
-            raise IOError(f'Unknown column in schedule file: {hpxml_name}')
+            raise OCHREException(f'Unknown column in schedule file: {hpxml_name}')
 
     schedule = pd.concat(schedule_data, axis=1)
 
@@ -510,7 +510,7 @@ def resample_and_reindex(df, time_res, start_time=None, duration=None, interpola
             # remove last time step before duplicating annual
             df = df.iloc[:-1]
         if len(df) % 8760 != 0:
-            raise Exception(f'Simulation spans multiple years ({start_year}-{end_year}). Must provide annual data.')
+            raise OCHREException(f'Simulation spans multiple years ({start_year}-{end_year}). Must provide annual data.')
 
         print(f'Simulation spans multiple years ({start_year}-{end_year}). Duplicating time series data.')
         df = pd.concat([df] * (end_year - start_year + 1), axis=0)
@@ -524,7 +524,7 @@ def resample_and_reindex(df, time_res, start_time=None, duration=None, interpola
         first_row.index -= 2 * init_time_res
         df = pd.concat([first_row, df], axis=0)
     else:
-        raise Exception(f'Start of input data ({df.index[0]}) is after the required start time ({start_time})')
+        raise OCHREException(f'Start of input data ({df.index[0]}) is after the required start time ({start_time})')
 
     if df.index[-1] >= end_time:
         pass
@@ -533,7 +533,7 @@ def resample_and_reindex(df, time_res, start_time=None, duration=None, interpola
         last_row.index += 2 * init_time_res
         df = pd.concat([df, last_row])
     else:
-        raise Exception(f'End of input data ({df.index[-1]}) is before the required end time ({end_time})')
+        raise OCHREException(f'End of input data ({df.index[-1]}) is before the required end time ({end_time})')
 
     # shorten df before resampling (improves speed)
     df = df.loc[start_time - 2 * init_time_res: end_time + 2 * init_time_res]
@@ -579,7 +579,7 @@ def load_schedule(properties, schedule=None, time_zone=None, **house_args):
     # Check that all columns are different
     duplicates = [col for col in df_weather.columns if col in df_occupancy.columns]
     if duplicates:
-        raise Exception(f'Duplicate column names found in weather and schedule inputs: {duplicates}')
+        raise OCHREException(f'Duplicate column names found in weather and schedule inputs: {duplicates}')
 
     # resample weather and occupancy schedules using simulation parameters
     weather_tz = df_weather.index.tzinfo
@@ -609,7 +609,7 @@ def load_schedule(properties, schedule=None, time_zone=None, **house_args):
         setpoint_diff = schedule['HVAC Cooling Setpoint (C)'] - schedule['HVAC Heating Setpoint (C)']
         if setpoint_diff.min() < 1:
             # if min(setpoint_diff) < 0:
-            #     raise Exception('ERROR: Cooling setpoint is equal or less than heating setpoint in schedule file')
+            #     raise OCHREException('ERROR: Cooling setpoint is equal or less than heating setpoint in schedule file')
             print('WARNING: Cooling setpoint is within 1C of heating setpoint in schedule file.'
                   ' Separating setpoints by at least 1C.')
             setpoint_avg = (schedule['HVAC Cooling Setpoint (C)'] + schedule['HVAC Heating Setpoint (C)']) / 2
@@ -621,7 +621,7 @@ def load_schedule(properties, schedule=None, time_zone=None, **house_args):
         check = schedule.drop(columns=['airmass', 'Sky Temperature (C)'])
         bad_cols = check.columns[check.isna().any()]
         first_na = check.isna().any(axis=1).idxmax()
-        raise Exception(f'Missing data found in schedule columns {bad_cols}. See time step {first_na}')
+        raise OCHREException(f'Missing data found in schedule columns {bad_cols}. See time step {first_na}')
 
     # update time zone, if specified
     if time_zone == 'DST':
@@ -640,7 +640,7 @@ def load_schedule(properties, schedule=None, time_zone=None, **house_args):
         # Use specified time zone
         time_zone = pytz.timezone(time_zone)
     elif time_zone is not None:
-        raise IOError(f'Unknown time zone parameter: {time_zone}')
+        raise OCHREException(f'Unknown time zone parameter: {time_zone}')
     schedule.index = schedule.index.tz_localize(time_zone)
 
     return schedule, location
