@@ -848,7 +848,7 @@ def parse_hvac(hvac_type, hvac_all):
             # assumes efficiency units are in Percent or AFUE
             out.update({
                 'Supplemental Heater EIR (-)': 1 / heat_pump.get('BackupAnnualHeatingEfficiency', {}).get('Value'),
-                'Supplemental Heater Capacity (W)': backup_capacity,
+                'Supplemental Heater Capacity (W)': convert(backup_capacity, 'Btu/hour', 'W')
                 'Supplemental Heater Cut-in Temperature (C)':
                     convert(heat_pump.get('BackupHeatingSwitchoverTemperature'), 'degF', 'degC'),
             })
