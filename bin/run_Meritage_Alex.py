@@ -18,13 +18,13 @@ dwelling_args = {
     # Timing parameters
     'start_time': dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
     'time_res': dt.timedelta(minutes=1),         # time resolution of the simulation
-    'duration': dt.timedelta(days=365),             # duration of the simulation
-    'initialization_time': dt.timedelta(days=3),  # used to create realistic starting temperature
+    'duration': dt.timedelta(days=1),             # duration of the simulation
+    'initialization_time': dt.timedelta(days=14),  # used to create realistic starting temperature
     'time_zone': None,                            # option to specify daylight savings, in development
 
     # Input parameters - Sample building (uses HPXML file and time series schedule file)
-    'hpxml_file': os.path.join('C:/Users/jmaguire/Desktop/IBACOS/OCHRE_Inputs/base_model','Meritage_Alexander.xml'),
-    'schedule_input_file': os.path.join('C:/Users/jmaguire/Desktop/IBACOS/OCHRE_Inputs/base_model','Meritage_Alexander_schedules.csv'),
+    'hpxml_file': os.path.join('C:/Users/jmaguire/Desktop/IBACOS/OCHRE_Inputs/Meritage','Meritage_Buchanan.xml'),
+    'schedule_input_file': os.path.join('C:/Users/jmaguire/Desktop/IBACOS/OCHRE_Inputs/Meritage','Meritage_Buchanan_schedules.csv'),
 
     # Input parameters - weather (note weather_path can be used when Weather Station is specified in HPXML file)
     # 'weather_path': weather_path,

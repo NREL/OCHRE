@@ -292,7 +292,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     ceilings = all_ceilings.pop(('Indoor', 'Attic'), {})
     fnd_ceilings = all_ceilings.pop(('Indoor', 'Foundation'), {})
     raised_floors = all_ceilings.pop(('Indoor', 'Outdoor'), {})
-    garage_ceilings = all_ceilings.pop(('Garage', 'Attic'), {})
+    garage_ceilings = all_ceilings.pop(('Attic', 'Garage'), {})
     garage_ceilings_int = all_ceilings.pop(('Indoor', 'Garage'), {})
     adj_ceilings = all_ceilings.pop(('Indoor', 'Indoor'), {})
     assert not all_ceilings  # verifies that all boundaries are accounted for
