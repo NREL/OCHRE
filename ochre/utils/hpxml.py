@@ -427,6 +427,8 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
             garage_area_in_main = a1 * a2 / garage_wall_height ** 2
         else:
             raise OCHREException('Invalid geometry. Cannot parse more than 3 garage walls.')
+        if garage_area_in_main > garage_floor_area:
+            garage_area_in_main = 0.5 * garage_floor_area #Fallback assumption of half protruding
         assert 0 < garage_area_in_main / garage_floor_area < 1.001  # should be close to 50% for ResStock cases
     else:
         garage_floor_area = 0
