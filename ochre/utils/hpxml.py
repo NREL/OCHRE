@@ -1608,6 +1608,8 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
 
     # Parse occupancy
     occupancy = parse_hpxml_occupancy(hpxml)
+    if 'Occupancy' in house_args:
+        occupancy = nested_update(occupancy, house_args.pop('Occupancy'))
 
     # Parse envelope properties and merge with house_args
     boundaries, zones, construction = parse_hpxml_envelope(hpxml, occupancy, **house_args)
