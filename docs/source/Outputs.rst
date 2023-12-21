@@ -114,9 +114,9 @@ Dwelling Level Outputs
 +----------------+-----------------------------------------+-----------------+
 | Other          | Pool Heater Electric Power              | kW              |
 +----------------+-----------------------------------------+-----------------+
-| Other          | Hot Tub Pump Electric Power             | kW              |
+| Other          | Spa Pump Electric Power                 | kW              |
 +----------------+-----------------------------------------+-----------------+
-| Other          | Hot Tub Heater Electric Power           | kW              |
+| Other          | Spa Heater Electric Power               | kW              |
 +----------------+-----------------------------------------+-----------------+
 | Other          | Ceiling Fan Electric Power              | kW              |
 +----------------+-----------------------------------------+-----------------+

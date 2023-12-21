@@ -664,9 +664,9 @@ lighting, and miscellaneous electric and gas loads:
 +----------+-------------------+-------------------+
 | Other    | ``ScheduledLoad`` | Pool Heater       |
 +----------+-------------------+-------------------+
-| Other    | ``ScheduledLoad`` | Hot Tub Pump      |
+| Other    | ``ScheduledLoad`` | Spa Pump          |
 +----------+-------------------+-------------------+
-| Other    | ``ScheduledLoad`` | Hot Tub Heater    |
+| Other    | ``ScheduledLoad`` | Spa Heater        |
 +----------+-------------------+-------------------+
 | Other    | ``ScheduledLoad`` | Ceiling Fan       |
 +----------+-------------------+-------------------+
