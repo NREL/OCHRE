@@ -9,7 +9,7 @@ import ochre.utils.envelope as utils_envelope
 
 
 ZONE_NAME_OPTIONS = {
-    'Indoor': ['living', 'living space'],
+    'Indoor': ['conditioned space'],
     'Foundation': ['crawlspace', 'basement', 'finishedbasement', 'basement - conditioned', 'basement - unconditioned',
                    'crawlspace - vented', 'crawlspace - unvented'],
     'Garage': ['garage'],
@@ -1289,7 +1289,7 @@ def parse_cooking_range(range_dict, oven_dict, n_bedrooms):
     is_induction = range_dict.get('IsInduction', False)
     is_convection = oven_dict.get('IsConvection', False)
     multiplier = range_dict.get('extension', {}).get('UsageMultiplier', 1)
-    assert 'living' in range_dict.get('Location', 'living')
+    assert parse_zone_name(range_dict.get('Location')) in ['Indoor', None]
 
     # get total energy usage
     burner_ef = 0.91 if is_induction else 1
@@ -1437,21 +1437,20 @@ def parse_ev(ev):
 
 
 def parse_pool_equipment(hpxml):
-    # Get pool and hot tub equipment
+    # Get pool and spa equipment
     pool_equipment = {}
-    for ochre_name in ['Pool', 'Hot Tub']:
-        hpxml_name = ochre_name.replace(' ', '')
+    for hpxml_name in ['Pool', 'Spa']:
         pool_list = list(hpxml.get(f'{hpxml_name}s', {}).values())
         if not pool_list or pool_list[0].get('Type', 'none') == 'none':
             continue
 
-        pump = list(pool_list[0][f'{hpxml_name}Pumps'].values())[0]
+        pump = list(pool_list[0]['Pumps'].values())[0]
         heater = pool_list[0]['Heater']
         assert len(pool_list) == 1 and isinstance(pump, dict) and isinstance(heater, dict)
-        if 'Load' in pump:
-            pool_equipment[f'{ochre_name} Pump'] = parse_mel(pump, f'{hpxml_name}Pump')
-        if 'Load' in heater:
-            pool_equipment[f'{ochre_name} Heater'] = parse_mel(heater, f'{hpxml_name}Heater')
+        if 'Load' in pump and pump.get('Type', 'none') != 'none':
+            pool_equipment[f'{hpxml_name} Pump'] = parse_mel(pump, f'{hpxml_name} Pump')
+        if 'Load' in heater and heater.get('Type', 'none') != 'none':
+            pool_equipment[f'{hpxml_name} Heater'] = parse_mel(heater, f'{hpxml_name} Heater')
 
     return pool_equipment
 
@@ -1574,7 +1573,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     mgls = parse_mels(mgl_dict, is_gas=True)
     equipment.update(mgls)
 
-    # Add pool/hot tub equipment: pumps and heaters
+    # Add pool/spa equipment: pumps and heaters
     pool_equipment = parse_pool_equipment(hpxml)
     equipment.update(pool_equipment)
 
