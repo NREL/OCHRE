@@ -51,7 +51,7 @@ class PV(ScheduledLoad):
         if abs(self.schedule[self.electric_name].min()) < abs(self.schedule[self.electric_name].max()):
             self.warn('Schedule should be negative (i.e. generating power).',
                       'Reversing schedule so that PV power is negative/generating')
-            self.schedule = -self.schedule
+            self.schedule = self.schedule * -1
             self.reset_time()
 
         self.capacity = capacity if capacity is not None else -self.schedule[self.electric_name].min()  # in kW, DC
