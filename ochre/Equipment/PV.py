@@ -28,13 +28,18 @@ class PV(ScheduledLoad):
             # Create PV schedule using SAM - requires capacity, tilt, orientation, and inverter efficiency
             if capacity is None:
                 raise Exception('Must specify {} capacity (in kW) when using SAM'.format(self.name))
-            if tilt is None:
-                tilt = kwargs['roof pitch']
-            if orientation is None:
-                orientation = kwargs.get('building orientation', 0) % 360
-                if 90 < orientation <= 270:
-                    # use back roof when closer to due south (orientation always within 90 deg of south)
-                    orientation = (orientation + 180) % 360
+            if (tilt is None or orientation is None):
+                if 'envelope_model' not in kwargs:
+                    raise Exception(f'Must specify {self.name} tilt and orientation,'
+                                    ' or provide an envelope_model with a roof.')
+                boundaries = kwargs.get('envelope_model', {}).boundaries
+                roofs = [bd.ext_surface for bd in boundaries if 'Roof' in bd.name]
+                # Use roof closest to south with preference to west (0-45 degrees)
+                roof_data = pd.DataFrame([[bd.tilt, az] for bd in roofs for az in bd.azimuths],
+                                         columns=['Tilt', 'Az'])
+                best_idx = (roof_data['Az'] - 185).abs().idxmax()
+                tilt = roof_data.loc[best_idx, 'Tilt']
+                orientation = roof_data.loc[best_idx, 'Az']
 
             inverter_efficiency = kwargs.get('inverter_efficiency') if include_inverter else 100  # in %
             schedule = run_sam(tilt=tilt, orientation=orientation, inv_efficiency=inverter_efficiency, **kwargs)

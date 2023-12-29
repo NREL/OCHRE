@@ -97,10 +97,13 @@ class BoundarySurface:
         # calculate fraction to sky, air, and ground. Note ground + air are combined since both use ambient temp
         # https://bigladdersoftware.com/epx/docs/8-0/engineering-reference/page-020.html#external-longwave-radiation
         if self.is_exterior:
-            tilt = kwargs.get('Tilt (deg)', utils.get_boundary_tilt(self.boundary_name))
-            tilt = np.cos(convert(tilt, 'deg', 'rad'))
-            self.sky_view_factor = ((1 + tilt) / 2) ** 1.5  # incorporates F and Beta from reference
+            self.tilt = kwargs.get('Tilt (deg)', utils.get_boundary_tilt(self.boundary_name))
+            self.azimuths = kwargs.get('Azimuth (deg)')
+            # sky view factor incorporates F and Beta from reference
+            self.sky_view_factor = ((1 + np.cos(convert(self.tilt, 'deg', 'rad'))) / 2) ** 1.5
         else:
+            self.tilt = None
+            self.azimuths = None
             self.sky_view_factor = 0
 
     def calculate_exterior_radiation(self, t_ext, t_sky):
