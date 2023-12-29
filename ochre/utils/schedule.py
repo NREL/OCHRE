@@ -133,7 +133,7 @@ def create_sam_weather_file(df_input, location, sam_weather_file=None, **kwargs)
     header['Latitude'] = location['latitude']
     header['Longitude'] = location['longitude']
     header['Time Zone'] = location['timezone']
-    header['Elevation'] = location['Altitude']
+    header['Elevation'] = location['altitude']
     header['Local Time Zone'] = location['timezone']
 
     # build main weather data
