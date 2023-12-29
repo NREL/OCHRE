@@ -16,32 +16,17 @@ def run_sam(
     inv_efficiency=None,
 ):
     """
-    Runs the System Advisory Model (SAM) PVWatts model. Adjustable parameters include weather data;
-    panel capacity, tilt, and azimuth; number of panels and strings; and inverter efficiency. This code was
-    generated using the following parameters from SAM:
-     - Photovoltaic (detailed), no financial model
-     - PV Module: SunPower SPR-X20-250-BLK, default parameters
-     - PV Inverter: SolarEdge SE5000 (277V), default parameters
-     - Default parameters for PV Albedo and Radiation, System Design, Shading, Layout, and Losses
+    Runs the System Advisory Model (SAM) PVWatts model. Adjustable parameters include panel capacity, tilt, and azimuth;
+    weather and location data, and inverter capacity and efficiency.
 
-    It has been verified that the default capacity and number of modules and strings gives reasonable outputs. However,
-    adjusting these parameters may lead to unexpected results, as the PV module and inverter models are fixed. If the
-    actual system set up is unknown, we recommend leaving these parameters as is, setting per_kw=True, and multiplying
-    the resulting PV schedule by the expected capacity.
-
+    :param capacity: PV system capacity, in kW
     :param tilt: PV array tilt angle, in degrees (0 = horizontal)
     :param azimuth: PV array azimuth angle, in degrees (0=south, west-of-south=positive)
-    :param capacity: PV system capacity, in kW
-    :param inv_efficiency: inverter efficiency, in %, defaults to the efficiency of the SolarEdge SE5000 (98.1%)
-    :param per_kw: boolean, if True (default), return the PV schedule as a fraction of the PV capacity.
-    :param sam_weather_file: file name of the weather file, must be in a SAM readable format.
-    :param start_time: starting time of the simulation
-    :param duration: duration of the simulation
-    :param kwargs: not used
-    :return: a pandas DataFrame of the PV schedule with 3 columns:
-     - Irradiance: solar irradiance on the PV array, in W/m^2
-     - Power_AC: AC electrical power, in kW (negative for generating)
-     - Power_DC: DC electrical power, in kW (negative for generating)
+    :param weather: Pandas DataFrame of time series weather data in OCHRE schedule format
+    :param location: dict of location data including timezone, elevation, latitude, and longitude
+    :param inv_capacity: inverter capacity, in kW, defaults to `capacity`
+    :param inv_efficiency: inverter efficiency, in %, uses PVWatts default (96%)
+    :return: a Pandas Series of the PV AC power, using the same index as `weather`
     """
     if capacity is None:
         raise OCHREException('Must specify PV capacity (in kW) when using SAM')
@@ -88,12 +73,13 @@ def run_sam(
 
 class PV(ScheduledLoad):
     """
-    PV System implemented using SAM or from an external schedule file.
+    PV System implemented using SAM or from an external schedule.
 
     If using SAM, the PV capacity must be specified. Tilt and azimuth can be specified, but will default to the
-    roof pitch and south.
+    angle of the most southern facing roof.
 
-    If using an external schedule, the external schedule file must be specified.
+    If not using SAM, an external schedule must be specified as a DataFrame (via `schedule`) or as a file (as
+    `equipment_schedule_file`)
     """
     name = 'PV'
     end_use = 'PV'
@@ -104,7 +90,6 @@ class PV(ScheduledLoad):
                  tilt=None,
                  azimuth=None,
                  envelope_model=None,
-                 include_inverter=True,
                  inverter_capacity=None,
                  inverter_efficiency=None,
                  inverter_priority='Var',
@@ -125,23 +110,14 @@ class PV(ScheduledLoad):
             self.tilt = roof_data.loc[best_idx, 'Tilt']
             self.azimuth = roof_data.loc[best_idx, 'Az']
 
-        # Inverter constraints, if included; if not, assume no limits and 100% efficiency
-        self.include_inverter = include_inverter
-        if self.include_inverter:
-            self.inverter_capacity = inverter_capacity or self.capacity  # in kVA, AC
-            assert self.inverter_capacity is not None
-            self.inverter_efficiency = inverter_efficiency
-            self.inverter_priority = inverter_priority
-            self.inverter_min_pf = inverter_min_pf
-            if self.inverter_min_pf is not None:
-                self.inverter_min_pf_factor = ((1 / self.inverter_min_pf ** 2) - 1) ** 0.5
-            else:
-                self.inverter_min_pf_factor = None
+        # Inverter constraints
+        self.inverter_capacity = inverter_capacity or self.capacity  # in kVA, AC
+        self.inverter_efficiency = inverter_efficiency
+        self.inverter_priority = inverter_priority
+        self.inverter_min_pf = inverter_min_pf
+        if self.inverter_min_pf is not None:
+            self.inverter_min_pf_factor = ((1 / self.inverter_min_pf ** 2) - 1) ** 0.5
         else:
-            self.inverter_priority = None
-            self.inverter_efficiency = None
-            self.inverter_capacity = None
-            self.inverter_min_pf = None
             self.inverter_min_pf_factor = None
 
         super().__init__(envelope_model=envelope_model, **kwargs)
@@ -149,6 +125,8 @@ class PV(ScheduledLoad):
         self.q_set_point = 0  # in kW, positive = consuming power
         if self.capacity is None:
             self.capacity = -self.schedule[self.electric_name].min()
+        if self.inverter_capacity is None:
+            self.inverter_capacity = self.capacity
 
         # check that schedule is negative
         if self.schedule[self.electric_name].abs().min() < self.schedule[self.electric_name].abs().max():
@@ -223,7 +201,7 @@ class PV(ScheduledLoad):
         p = self.electric_kw  # updated from super().calculate_power_and_heat
         q = self.q_set_point
         s = (p ** 2 + q ** 2) ** 0.5
-        if self.include_inverter and s > self.inverter_capacity:
+        if s > self.inverter_capacity:
             if self.inverter_priority == 'Watt':
                 p = -min(-p, self.inverter_capacity)  # Note: P <= 0
                 max_q_capacity = (self.inverter_capacity ** 2 - p ** 2) ** 0.5
