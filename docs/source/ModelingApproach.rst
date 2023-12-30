@@ -305,10 +305,10 @@ battery model.
 Solar PV
 --------
 
-Solar photovoltaics (PV) is modeled using PySAM, a python wrapper for
-the System Advisory Model (SAM). Standard values are used for the PV
-model, although the user can select the PV system capacity, the tilt
-angle, and the orientation.
+Solar photovoltaics (PV) is modeled using PySAM, a python wrapper for the
+System Advisory Model (SAM), using the PVWatts module. Standard values are
+used for the PV model, although the user must select the PV system capacity
+and can specify the tilt angle, azimuth, and inverter properties.
 
 PV can be externally controlled through a direct setpoint for real and
 reactive power. The user can define an inverter size and a minimum power

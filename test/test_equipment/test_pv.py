@@ -10,7 +10,7 @@ init_args = equip_init_args.copy()
 init_args.update({
     'capacity': 10,
     'tilt': 20,
-    'orientation': 180,
+    'azimuth': 180,
     'time_res': dt.timedelta(minutes=15),
 })
 
