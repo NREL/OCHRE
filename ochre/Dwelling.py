@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 from ochre import Simulator, Analysis
-from ochre.utils import load_hpxml, load_schedule, nested_update, update_equipment_properties, save_json
+from ochre.utils import OCHREException, load_hpxml, load_schedule, nested_update, update_equipment_properties, save_json
 from ochre.Models import Envelope
 from ochre.Equipment import *
 
@@ -45,21 +45,23 @@ class Dwelling(Simulator):
         self.metrics_verbosity = metrics_verbosity
         _ = house_args.pop('save_results', None)  # remove save_results from args to prevent saving all Equipment files
         if self.output_path is not None:
-            # remove existing output files, and save file locations
+            # remove existing output files
+            for file_type in ['metrics', 'hourly', 'schedule']:
+                for extn in ['parquet', 'csv']:
+                    f = os.path.join(self.output_path, f'{self.name}_{file_type}.{extn}')
+                    if os.path.exists(f):
+                        self.print('Removing previous results file:', f)
+                        os.remove(f)
+
+            # save file locations
             extn = '.parquet' if self.output_to_parquet else '.csv'
             self.metrics_file = os.path.join(self.output_path, self.name + '_metrics.csv')
-            if os.path.exists(self.metrics_file):
-                os.remove(self.metrics_file)
             if self.verbosity >= 3:
                 self.hourly_output_file = os.path.join(self.output_path, self.name + '_hourly' + extn)
-                if os.path.exists(self.hourly_output_file):
-                    os.remove(self.hourly_output_file)
             else:
                 self.hourly_output_file = None
             if self.verbosity >= 7 or save_schedule_columns:
                 schedule_output_file = os.path.join(self.output_path, self.name + '_schedule' + extn)
-                if os.path.exists(schedule_output_file):
-                    os.remove(schedule_output_file)
             else:
                 schedule_output_file = None
         else:
@@ -134,7 +136,7 @@ class Dwelling(Simulator):
             # check if there is more than 1 equipment per end use. Raise error for HVAC/WH, else print a warning
             if len(eq) > 1:
                 if end_use in ['HVAC Heating', 'HVAC Cooling', 'Water Heating']:
-                    raise Exception(f'More than 1 equipment defined for {end_use}: {eq}')
+                    raise OCHREException(f'More than 1 equipment defined for {end_use}: {eq}')
                 elif end_use not in ['Lighting', 'Other']:
                     self.warn(f'More than 1 equipment defined for {end_use}: {eq}')
 
@@ -143,7 +145,7 @@ class Dwelling(Simulator):
             ideal = eq.use_ideal_capacity if isinstance(eq, (HVAC, WaterHeater)) else True
             if not ideal:
                 if self.time_res >= dt.timedelta(minutes=15):
-                    raise Exception(f'Cannot use non-ideal equipment {name} with large time step of'
+                    raise OCHREException(f'Cannot use non-ideal equipment {name} with large time step of'
                                              f' {self.time_res}')
                 if self.time_res >= dt.timedelta(minutes=5):
                     self.warn(f'Using non-ideal equipment {name} with large time step of {self.time_res}')
@@ -188,7 +190,7 @@ class Dwelling(Simulator):
         elif end_use in self.equipment:
             return self.equipment[end_use]
         else:
-            raise Exception(f'Unknown end use: {end_use}')
+            raise OCHREException(f'Unknown end use: {end_use}')
 
     def update_inputs(self, schedule_inputs=None):
         if schedule_inputs is None:
@@ -197,7 +199,7 @@ class Dwelling(Simulator):
         # check voltage from external model
         self.voltage = schedule_inputs.get('Voltage (-)', 1)
         if np.isnan(self.voltage) or self.voltage < 0:
-            raise Exception(f'Error reading voltage for house {self.name}: {self.voltage}')
+            raise OCHREException(f'Error reading voltage for house {self.name}: {self.voltage}')
         if self.voltage == 0:
             # Enter resilience mode when voltage is 0. Assumes home generator maintains voltage at 1 p.u.
             schedule_inputs['Voltage (-)'] = 1

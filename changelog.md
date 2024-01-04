@@ -1,6 +1,10 @@
 ## OCHRE Changelog
 
+### Changes from PRs
+
 - Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
+- Fixed bug with ASHP backup heater units
+- Added OCHREException class to handle errors
 
 ### OCHRE v0.8.4-beta
 

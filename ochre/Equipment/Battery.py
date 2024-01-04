@@ -11,6 +11,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 import rainflow
 
+from ochre.utils import OCHREException
 from ochre.utils.units import convert, degC_to_K
 from ochre.Models import OneNodeRCModel
 from ochre.Equipment import Generator
@@ -94,7 +95,7 @@ class Battery(Generator):
             elif self.zone:
                 self.thermal_model.states[0] = self.zone.temperature
             else:
-                raise Exception('Must specify "Initial Battery Temperature (C)"')
+                raise OCHREException('Must specify "Initial Battery Temperature (C)"')
         else:
             self.thermal_model = None
 
@@ -353,7 +354,7 @@ class Battery(Generator):
 
         # raise warning/error if degradation is too high
         if sum(self.degradation_states) >= 1:
-            raise Exception('{} degraded beyond useful life.'.format(self.name))
+            raise OCHREException('{} degraded beyond useful life.'.format(self.name))
         elif sum(self.degradation_states) >= 0.7:
             self.warn('Degraded beyond useful life.')
 
