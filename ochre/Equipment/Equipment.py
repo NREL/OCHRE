@@ -211,12 +211,12 @@ class Equipment(Simulator):
         # calculate electric and gas power and heat gains
         heat_data = self.calculate_power_and_heat()
 
-        # Run update for subsimulators (e.g., water tank, battery thermal model)
-        super().update_model(heat_data)
-
         # Add heat gains to zone
         self.add_gains_to_zone()
         
+        # Run update for subsimulators (e.g., water tank, battery thermal model)
+        super().update_model(heat_data)
+
         # Update electric real/reactive power with ZIP model
         self.run_zip(voltage)
 
