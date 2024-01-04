@@ -1,5 +1,7 @@
 ## OCHRE Changelog
 
+- Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
+
 ### OCHRE v0.8.4-beta
 
 - Fixed bug with air infiltration inputs (works with ResStock 3.0 and 3.1, and OS-HPXML 1.6.0)
