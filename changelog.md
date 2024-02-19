@@ -1,5 +1,9 @@
 ## OCHRE Changelog
 
+- Updated PV model to integrate with PVWatts using PySAM v5.0 (not backwards compatible)
+- Removed and renamed PV input arguments related to PySAM
+- PV model accepts tilt and azimuth angles from roof boundary in envelope
+
 ### OCHRE v0.8.4-beta
 
 - Fixed bug with air infiltration inputs (works with ResStock 3.0 and 3.1, and OS-HPXML 1.6.0)
