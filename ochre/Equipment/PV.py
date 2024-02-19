@@ -104,6 +104,8 @@ class PV(ScheduledLoad):
             if envelope_model is None:
                 raise OCHREException('Must specify PV tilt and azimuth, or provide an envelope_model with a roof.')
             roofs = [bd.ext_surface for bd in envelope_model.boundaries if 'Roof' in bd.name]
+            if not roofs:
+                raise OCHREException('No roofs in envelope model. Must specify PV tilt and azimuth')
             # Use roof closest to south with preference to west (0-45 degrees)
             roof_data = pd.DataFrame([[bd.tilt, az] for bd in roofs for az in bd.azimuths], columns=['Tilt', 'Az'])
             best_idx = (roof_data['Az'] - 185).abs().idxmax()
