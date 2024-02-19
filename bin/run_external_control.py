@@ -7,7 +7,7 @@ from bin.run_dwelling import dwelling_args
 # Test script to run single Dwelling with constant external control signal
 
 dwelling_args.update({
-    'ext_time_res': dt.timedelta(minutes=60),
+    'ext_time_res': dt.timedelta(minutes=60),  # for duty cycle control only
 })
 
 example_control_signal = {
@@ -17,6 +17,23 @@ example_control_signal = {
     'PV': {'P Setpoint': -1.1, 'Q Setpoint': 0.5},  # in kW, kVAR
     'Battery': {'P Setpoint': -1.0},  # in kW
 }
+
+
+def run_with_schedule_control():
+    # Create Dwelling model (same as above)
+    dwelling = Dwelling(name="Test House with Controller", **dwelling_args)
+
+    # Get HVAC heater setpoints
+    heater = dwelling.get_equipment_by_end_use('HVAC Heating')
+    setpoints = heater.schedule['HVAC Heating Setpoint (C)']
+
+    # Reduce heating setpoint by 1C from 5-9PM
+    peak_times = setpoints.between_time(dt.time(17, 0, 0), dt.time(21, 0, 0), inclusive='left').index
+    setpoints.loc[peak_times] -= 1
+    heater.reset_time()  # resets the schedule
+
+    # Run simulation
+    dwelling.simulate()
 
 
 def run_constant_control_signal(control_signal):
@@ -73,8 +90,9 @@ def run_with_hvac_controller():
             'hour_of_day': t.hour,
             'outdoor_temp': dwelling.envelope.schedule.loc[t, 'Ambient Dry Bulb (C)'],
             'occupancy': dwelling.envelope.schedule.loc[t, 'Occupancy (Persons)'],
-            'heating_setpoint': heater.schedule.loc[t, 'HVAC Heating Setpoint (C)'],  # Original setpoint for current time
-            'cooling_setpoint': cooler.schedule.loc[t, 'HVAC Cooling Setpoint (C)'],  # Original setpoint for current time
+            # Original setpoints for current time
+            'heating_setpoint': heater.schedule.loc[t, 'HVAC Heating Setpoint (C)'],  
+            'cooling_setpoint': cooler.schedule.loc[t, 'HVAC Cooling Setpoint (C)'],
         })
 
         control_signal = get_hvac_controls(**controller_inputs)
@@ -110,6 +128,7 @@ def run_controls_from_file(control_file):
 
 
 if __name__ == '__main__':
+    # run_with_schedule_control()
     # run_constant_control_signal(example_control_signal)
     # run_controls_from_file(external_control_file='path/to/control_file.csv')
     run_with_hvac_controller()
