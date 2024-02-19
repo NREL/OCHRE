@@ -306,7 +306,7 @@ Solar PV
 --------
 
 Solar photovoltaics (PV) is modeled using PySAM, a python wrapper for the
-System Advisory Model (SAM), using the PVWatts module. Standard values are
+System Advisory Model (SAM), using the PVWatts module. SAM default values are
 used for the PV model, although the user must select the PV system capacity
 and can specify the tilt angle, azimuth, and inverter properties.
 
