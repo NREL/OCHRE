@@ -20,6 +20,7 @@ class WaterHeater(Equipment):
     optional_inputs = [
         "Water Heating Setpoint (C)",
         "Water Heating Deadband (C)",
+        "Water Heating Max Power (kW)",
         "Zone Temperature (C)",  # Needed for Water tank model
     ]  
     
@@ -66,12 +67,13 @@ class WaterHeater(Equipment):
         self.delivered_heat = 0  # heat delivered to the tank, in W
 
         # Control parameters
+        # note: bottom of deadband is (setpoint_temp - deadband_temp)
         self.setpoint_temp = kwargs['Setpoint Temperature (C)']
         self.setpoint_temp_ext = None
         self.max_temp = kwargs.get('Max Tank Temperature (C)', convert(140, 'degF', 'degC'))
         self.setpoint_ramp_rate = kwargs.get('Max Setpoint Ramp Rate (C/min)')  # max setpoint ramp rate, in C/min
         self.deadband_temp = kwargs.get('Deadband Temperature (C)', 5.56)  # deadband range, in delta degC, i.e. Kelvin
-        # note: bottom of deadband is (setpoint_temp - deadband_temp)
+        self.max_power = kwargs.get('Max Power (kW)')
 
     def update_inputs(self, schedule_inputs=None):
         # Add zone temperature to schedule inputs for water tank
@@ -86,7 +88,9 @@ class WaterHeater(Equipment):
         # - Setpoint: Updates setpoint temperature from the default (in C)
         #   - Note: Setpoint will only reset back to default value when {'Setpoint': None} is passed.
         # - Deadband: Updates deadband temperature (in C)
-        #   - Note: Deadband will not reset back to original value
+        #   - Note: Deadband will only be reset if it is in the schedule
+        # - Max Power: Updates maximum allowed power (in kW)
+        #   - Note: Max Power will only be reset if it is in the schedule
         # - Duty Cycle: Forces WH on for fraction of external time step (as fraction [0,1])
         #   - If 0 < Duty Cycle < 1, the equipment will cycle once every 2 external time steps
         #   - For HPWH: Can supply HP and ER duty cycles
@@ -99,18 +103,25 @@ class WaterHeater(Equipment):
                     f"Setpoint cannot exceed {self.max_temp}C. Setting setpoint to maximum value."
                 )
                 ext_setpoint = self.max_temp
-            if f"{self.end_use} Setpoint (C)" in self.current_schedule:
-                self.current_schedule[f"{self.end_use} Setpoint (C)"] = ext_setpoint
+            if "Water Heating Setpoint (C)" in self.current_schedule:
+                self.current_schedule["Water Heating Setpoint (C)"] = ext_setpoint
             else:
                 # Note that this overrides the ramp rate
                 self.setpoint_temp = ext_setpoint
 
         ext_db = control_signal.get("Deadband")
         if ext_db is not None:
-            if f"{self.end_use} Deadband (C)" in self.current_schedule:
-                self.current_schedule[f"{self.end_use} Deadband (C)"] = ext_db
+            if "Water Heating Deadband (C)" in self.current_schedule:
+                self.current_schedule["Water Heating Deadband (C)"] = ext_db
             else:
                 self.deadband_temp = ext_db
+
+        max_power = control_signal.get("Max Power")
+        if max_power is not None:
+            if "Water Heating Max Power (kW)" in self.current_schedule:
+                self.current_schedule["Water Heating Max Power (kW"] = max_power
+            else:
+                self.max_power = max_power
 
         # If load fraction = 0, force off
         load_fraction = control_signal.get("Load Fraction", 1)
@@ -158,8 +169,8 @@ class WaterHeater(Equipment):
 
     def update_setpoint(self):
         # get setpoint from schedule
-        if f"{self.end_use} Setpoint (C)" in self.current_schedule:
-            t_set_new = self.current_schedule[f"{self.end_use} Setpoint (C)"]
+        if "Water Heating Setpoint (C)" in self.current_schedule:
+            t_set_new = self.current_schedule["Water Heating Setpoint (C)"]
         else:
             t_set_new = self.setpoint_temp
         
@@ -173,8 +184,8 @@ class WaterHeater(Equipment):
             self.setpoint_temp = t_set_new
         
         # get deadband from schedule
-        if f"{self.end_use} Deadband (C)" in self.current_schedule:
-            self.temp_deadband = self.current_schedule[f"{self.end_use} Deadband (C)"]
+        if "Water Heating Deadband (C)" in self.current_schedule:
+            self.temp_deadband = self.current_schedule["Water Heating Deadband (C)"]
 
     def solve_ideal_capacity(self):
         # calculate ideal capacity based on achieving lower node setpoint temperature
@@ -251,15 +262,23 @@ class WaterHeater(Equipment):
             heats_to_tank = self.add_heat_from_mode(self.mode)
 
         self.delivered_heat = heats_to_tank.sum()
-        power = self.delivered_heat / self.efficiency  # in W
+        power = self.delivered_heat / self.efficiency / 1000  # in kW
+
+        # clip power and heat by max power
+        if "Water Heating Max Power (kW)" in self.current_schedule:
+            self.max_power = self.current_schedule["Water Heating Max Power (kW)"]
+        if self.max_power and power > self.max_power:
+            heats_to_tank *= self.max_power / power
+            self.delivered_heat *= self.max_power / power
+            power = self.max_power
 
         if self.is_gas:
             # note: no sensible gains from heater (all is vented)
-            self.gas_therms_per_hour = power / 1000 * kwh_to_therms  # W to therms/hour
+            self.gas_therms_per_hour = power * kwh_to_therms  # in therms/hour
             self.sensible_gain = 0
         else:
-            self.electric_kw = power / 1000
-            self.sensible_gain = power - self.delivered_heat  # in W
+            self.electric_kw = power
+            self.sensible_gain = power * 1000 - self.delivered_heat  # in W
 
         self.latent_gain = 0
 

@@ -205,7 +205,7 @@ class HVAC(Equipment):
         # - Setpoint: Updates heating (cooling) setpoint temperature from the dwelling schedule (in C)
         #   - Note: Setpoint must be provided every timestep or it will revert back to the dwelling schedule
         # - Deadband: Updates heating (cooling) deadband temperature (in C)
-        #   - Note: Deadband will not reset if it is not in the schedule
+        #   - Note: Deadband will only be reset if it is in the schedule
         # - Duty Cycle: Forces HVAC on for fraction of external time step (as fraction [0,1])
         #   - If 0 < Duty Cycle < 1, the equipment will cycle once every 2 external time steps
         #   - For ASHP: Can supply HP and ER duty cycles
