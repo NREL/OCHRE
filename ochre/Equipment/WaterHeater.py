@@ -91,6 +91,7 @@ class WaterHeater(Equipment):
         #   - Note: Deadband will only be reset if it is in the schedule
         # - Max Power: Updates maximum allowed power (in kW)
         #   - Note: Max Power will only be reset if it is in the schedule
+        #   - Note: Will not work for HPWH in HP mode
         # - Duty Cycle: Forces WH on for fraction of external time step (as fraction [0,1])
         #   - If 0 < Duty Cycle < 1, the equipment will cycle once every 2 external time steps
         #   - For HPWH: Can supply HP and ER duty cycles
@@ -183,9 +184,11 @@ class WaterHeater(Equipment):
         else:
             self.setpoint_temp = t_set_new
         
-        # get deadband from schedule
+        # get other controls from schedule - deadband and max power
         if "Water Heating Deadband (C)" in self.current_schedule:
             self.temp_deadband = self.current_schedule["Water Heating Deadband (C)"]
+        if "Water Heating Max Power (kW)" in self.current_schedule:
+            self.max_power = self.current_schedule["Water Heating Max Power (kW)"]
 
     def solve_ideal_capacity(self):
         # calculate ideal capacity based on achieving lower node setpoint temperature
@@ -265,9 +268,7 @@ class WaterHeater(Equipment):
         power = self.delivered_heat / self.efficiency / 1000  # in kW
 
         # clip power and heat by max power
-        if "Water Heating Max Power (kW)" in self.current_schedule:
-            self.max_power = self.current_schedule["Water Heating Max Power (kW)"]
-        if self.max_power and power > self.max_power:
+        if self.max_power and power > self.max_power and 'Heat Pump' not in self.mode:
             heats_to_tank *= self.max_power / power
             self.delivered_heat *= self.max_power / power
             power = self.max_power
@@ -687,6 +688,11 @@ class TanklessWaterHeater(WaterHeater):
         return 'On' if self.heat_from_draw > 0 else 'Off'
 
     def calculate_power_and_heat(self):
+        # clip heat by max power
+        power = self.heat_from_draw / self.efficiency / 1000  # in kW
+        if self.max_power and power > self.max_power:
+            self.heat_from_draw *= self.max_power / power
+
         if self.mode == 'Off':
             # do not update heat, force water heater off
             self.delivered_heat = 0
