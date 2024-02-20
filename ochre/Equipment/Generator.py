@@ -8,6 +8,7 @@ Created on Thu May 23 13:28:35 2019
 import datetime as dt
 from scipy.interpolate import interp1d
 
+from ochre.utils import OCHREException
 from ochre.utils.units import kwh_to_therms
 from ochre.Equipment import Equipment
 
@@ -50,7 +51,7 @@ class Generator(Equipment):
 
         # Control parameters
         if control_type not in CONTROL_TYPES:
-            raise Exception('Unknown {} control type: {}'.format(self.name, control_type))
+            raise OCHREException('Unknown {} control type: {}'.format(self.name, control_type))
         self.control_type = control_type
 
     def update_external_control(self, control_signal):
@@ -161,7 +162,7 @@ class Generator(Equipment):
             eff = self.efficiency_rated * (-0.5 * capacity_ratio ** 2 + 1.5 * capacity_ratio)
             return min(eff, 0.001)  # must be positive
         else:
-            raise Exception('Unknown efficiency type for {}: {}'.format(self.name, self.efficiency_type))
+            raise OCHREException('Unknown efficiency type for {}: {}'.format(self.name, self.efficiency_type))
 
     def calculate_power_and_heat(self):
         if self.mode == 'Off':

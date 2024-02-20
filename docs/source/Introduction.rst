@@ -1,24 +1,25 @@
 Getting Started
 ===============
 
-.. image:: images/OCHRE-Logo-Stacked-2Color.png
+.. image:: images/OCHRE-Logo-Horiz-2Color.png
   :width: 500
   :alt: OCHRE logo
 
 OCHRE Overview
 --------------
 
-OCHRE is a Python-based building energy modeling (BEM) tool designed
-specifically for modeling flexible loads in residential buildings. OCHRE
-includes detailed models and controls for flexible devices including
-HVAC equipment, water heaters, electric vehicles, solar PV, and
-batteries. It is designed to run in co-simulation with custom
-controllers, aggregators, and grid models. OCHRE is integrated with
-`OS-HPXML <https://openstudio-hpxml.readthedocs.io/en/latest/index.html>`__,
-and any OS-HPXML integrated workflow can be used to generate OCHRE input
-files.
+OCHRE\ |tm| is a Python-based building energy modeling (BEM) tool designed to
+model flexible loads in residential buildings. OCHRE includes detailed models
+and controls for flexible devices including HVAC equipment, water heaters,
+electric vehicles, solar PV, and batteries. It is designed to run in
+co-simulation with custom controllers, aggregators, and grid models. OCHRE
+integrates with `OS-HPXML
+<https://openstudio-hpxml.readthedocs.io/en/latest/index.html>`__, and any
+OS-HPXML integrated workflow can be used to generate OCHRE input files.
 
-More information about OCHRE is available on `NREL’s
+.. |tm| unicode:: U+2122
+
+More information about OCHRE is available on `NREL's
 website <https://www.nrel.gov/grid/ochre.html>`__ and on
 `Github <https://github.com/NREL/OCHRE>`__.
 

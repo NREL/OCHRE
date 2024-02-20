@@ -3,8 +3,9 @@ import pandas as pd
 import datetime as dt
 from PySAM.PySSC import PySSC
 
-from ochre.Equipment import ScheduledLoad
+from ochre.utils import OCHREException
 from ochre.utils.schedule import default_sam_weather_file
+from ochre.Equipment import ScheduledLoad
 
 
 class PV(ScheduledLoad):
@@ -27,7 +28,7 @@ class PV(ScheduledLoad):
         if use_sam:
             # Create PV schedule using SAM - requires capacity, tilt, orientation, and inverter efficiency
             if capacity is None:
-                raise Exception('Must specify {} capacity (in kW) when using SAM'.format(self.name))
+                raise OCHREException('Must specify {} capacity (in kW) when using SAM'.format(self.name))
             if tilt is None:
                 tilt = kwargs['roof pitch']
             if orientation is None:
@@ -151,7 +152,7 @@ class PV(ScheduledLoad):
                 p /= kva_ratio
                 q /= kva_ratio
             else:
-                raise Exception('Unknown {} inverter priority mode: {}'.format(self.name, self.inverter_priority))
+                raise OCHREException('Unknown {} inverter priority mode: {}'.format(self.name, self.inverter_priority))
 
         # Set powers. Negative = generating power
         self.electric_kw = p

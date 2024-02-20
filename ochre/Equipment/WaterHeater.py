@@ -7,9 +7,10 @@ Created on Mon Apr 02 13:24:32 2018
 import numpy as np
 import datetime as dt
 
+from ochre.utils import OCHREException
+from ochre.utils.units import convert, kwh_to_therms
 from ochre.Equipment import Equipment
 from ochre.Models import OneNodeWaterModel, TwoNodeWaterModel, StratifiedWaterModel, IdealWaterModel
-from ochre.utils.units import convert, kwh_to_therms
 
 
 class WaterHeater(Equipment):
@@ -115,9 +116,17 @@ class WaterHeater(Equipment):
         if load_fraction == 0:
             return "Off"
         elif load_fraction != 1:
-            raise OC(
-                "{self.name} can't handle non-integer load fractions".format()
-            )
+            raise OCHREException(f"{self.name} can't handle non-integer load fractions")
+
+        if 'Setpoint' in control_signal:
+            self.setpoint_temp_ext = control_signal.get('Setpoint')
+            if self.setpoint_temp_ext is not None and self.setpoint_temp_ext > self.max_temp:
+                self.warn('Setpoint cannot exceed {}C. Setting setpoint to maximum value.'.format(self.max_temp))
+                self.setpoint_temp_ext = self.max_temp
+
+        ext_db = control_signal.get('Deadband')
+        if ext_db is not None:
+            self.deadband_temp = ext_db
 
         # Force off if temperature exceeds maximum, and print warning (possible with Duty Cycle control)
         t_tank = self.model.states[self.t_upper_idx]
@@ -131,7 +140,7 @@ class WaterHeater(Equipment):
             if isinstance(duty_cycles, (int, float)):
                 duty_cycles = [duty_cycles]
             if not isinstance(duty_cycles, list) or not (0 <= sum(duty_cycles) <= 1):
-                raise Exception('Error parsing {} duty cycle control: {}'.format(self.name, duty_cycles))
+                raise OCHREException('Error parsing {} duty cycle control: {}'.format(self.name, duty_cycles))
 
             return self.run_duty_cycle_control(duty_cycles)
         else:
@@ -419,7 +428,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         if self.wall_heat_fraction and self.zone:
             walls = [s for s in self.zone.surfaces if s.boundary_name == 'Interior Wall']
             if not walls:
-                raise Exception(f'Interior wall surface not found, required for {self.name} model.')
+                raise OCHREException(f'Interior wall surface not found, required for {self.name} model.')
             self.wall_surface = walls[0]
         else:
             self.wall_surface = None
@@ -436,7 +445,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         elif self.model.n_nodes == 12:
             self.hp_nodes = np.array([0, 0, 0, 0, 0, 5, 10, 15, 20, 25, 30, 5]) / 110
         else:
-            raise Exception('{} model not defined for tank with {} nodes'.format(self.name, self.model.n_nodes))
+            raise OCHREException('{} model not defined for tank with {} nodes'.format(self.name, self.model.n_nodes))
 
     def update_inputs(self, schedule_inputs=None):
         # Add wet and dry bulb temperatures to schedule

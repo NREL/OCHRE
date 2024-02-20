@@ -3,7 +3,7 @@ import numpy as np
 import datetime as dt
 import pandas as pd
 
-from ochre.utils import load_csv
+from ochre.utils import OCHREException, load_csv
 from ochre.Equipment import EventBasedLoad, ScheduledLoad
 
 # For EVI-Pro assumptions, see Section 1.2 and 1.3:
@@ -33,7 +33,7 @@ class ElectricVehicle(EventBasedLoad):
     def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, enable_part_load=None, **kwargs):
         # get EV battery capacity and mileage
         if capacity is None and mileage is None:
-            raise Exception('Must specify capacity or mileage for {}'.format(self.name))
+            raise OCHREException('Must specify capacity or mileage for {}'.format(self.name))
         elif capacity is not None:
             self.capacity = capacity  # in kWh
             mileage = self.capacity * EV_FUEL_ECONOMY  # in mi
@@ -44,7 +44,7 @@ class ElectricVehicle(EventBasedLoad):
         # get charging level and set option for part load setpoints
         charging_level = charging_level.replace(' ', '')
         if str(charging_level) not in ['Level0', 'Level1', 'Level2']:
-            raise Exception('Unknown vehicle type for {}: {}'.format(self.name, charging_level))
+            raise OCHREException('Unknown vehicle type for {}: {}'.format(self.name, charging_level))
         self.charging_level = str(charging_level)
         if enable_part_load is None:
             enable_part_load = self.charging_level == 'Level2'
@@ -56,7 +56,7 @@ class ElectricVehicle(EventBasedLoad):
         elif vehicle_type == 'BEV':
             vehicle_num = 3 if mileage < 175 else 4
         else:
-            raise Exception('Unknown vehicle type for {}: {}'.format(self.name, vehicle_type))
+            raise OCHREException('Unknown vehicle type for {}: {}'.format(self.name, vehicle_type))
         self.vehicle_type = vehicle_type
 
         # charging model
@@ -99,7 +99,7 @@ class ElectricVehicle(EventBasedLoad):
         if eq_schedule is not None:
             # get average daily ambient temperature for generating events and round to nearest 5 C
             if 'Ambient Dry Bulb (C)' not in eq_schedule:
-                raise Exception('EV model requires ambient dry bulb temperature in schedule.')
+                raise OCHREException('EV model requires ambient dry bulb temperature in schedule.')
             temps_by_day = eq_schedule['Ambient Dry Bulb (C)']
             temps_by_day = temps_by_day.groupby(temps_by_day.index.date).mean()  # in C
             temps_by_day = ((temps_by_day / 5).round() * 5).astype(int).clip(lower=-20, upper=40)

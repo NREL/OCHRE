@@ -3,7 +3,7 @@ import datetime as dt
 import numpy as np
 
 from ochre import Simulator
-from ochre.utils import load_csv
+from ochre.utils import OCHREException, load_csv
 
 
 class Equipment(Simulator):
@@ -100,7 +100,7 @@ class Equipment(Simulator):
         if len(duty_cycles) == len(self.modes) - 1:
             duty_cycles.append(1 - sum(duty_cycles))
         if len(duty_cycles) != len(self.modes):
-            raise Exception('Error parsing duty cycles. Expected a list of length equal or 1 less than ' +
+            raise OCHREException('Error parsing duty cycles. Expected a list of length equal or 1 less than ' +
                                      'the number of modes ({}): {}'.format(len(self.modes), duty_cycles))
 
         self.duty_cycle_by_mode = dict(zip(self.modes, duty_cycles))
@@ -116,7 +116,7 @@ class Equipment(Simulator):
         :return: list of mode names in order of priority
         """
         if self.ext_time_res is None:
-            raise Exception('External control time resolution is not defined for {}.'.format(self.name))
+            raise OCHREException('External control time resolution is not defined for {}.'.format(self.name))
         if duty_cycles:
             self.update_duty_cycles(*duty_cycles)
 
@@ -142,7 +142,7 @@ class Equipment(Simulator):
 
     def update_external_control(self, control_signal):
         # Overwrite if external control might exist
-        raise Exception('Must define external control algorithm for {}'.format(self.name))
+        raise OCHREException('Must define external control algorithm for {}'.format(self.name))
 
     def update_internal_control(self):
         # Returns the equipment mode; can return None if the mode doesn't change
@@ -199,7 +199,7 @@ class Equipment(Simulator):
             self.time_in_mode += self.time_res
         else:
             if mode not in self.modes:
-                raise Exception(
+                raise OCHREException(
                     "Can't set {} mode to {}. Valid modes are: {}".format(self.name, mode, self.modes))
             self.mode = mode
             self.time_in_mode = self.time_res
@@ -211,12 +211,12 @@ class Equipment(Simulator):
         # calculate electric and gas power and heat gains
         heat_data = self.calculate_power_and_heat()
 
-        # Run update for subsimulators (e.g., water tank, battery thermal model)
-        super().update_model(heat_data)
-
         # Add heat gains to zone
         self.add_gains_to_zone()
         
+        # Run update for subsimulators (e.g., water tank, battery thermal model)
+        super().update_model(heat_data)
+
         # Update electric real/reactive power with ZIP model
         self.run_zip(voltage)
 
