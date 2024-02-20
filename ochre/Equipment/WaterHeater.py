@@ -102,6 +102,7 @@ class WaterHeater(Equipment):
             if f"{self.end_use} Setpoint (C)" in self.current_schedule:
                 self.current_schedule[f"{self.end_use} Setpoint (C)"] = ext_setpoint
             else:
+                # Note that this overrides the ramp rate
                 self.setpoint_temp = ext_setpoint
 
         ext_db = control_signal.get("Deadband")
@@ -118,22 +119,6 @@ class WaterHeater(Equipment):
         elif load_fraction != 1:
             raise OCHREException(f"{self.name} can't handle non-integer load fractions")
 
-        if 'Setpoint' in control_signal:
-            self.setpoint_temp_ext = control_signal.get('Setpoint')
-            if self.setpoint_temp_ext is not None and self.setpoint_temp_ext > self.max_temp:
-                self.warn('Setpoint cannot exceed {}C. Setting setpoint to maximum value.'.format(self.max_temp))
-                self.setpoint_temp_ext = self.max_temp
-
-        ext_db = control_signal.get('Deadband')
-        if ext_db is not None:
-            self.deadband_temp = ext_db
-
-        # Force off if temperature exceeds maximum, and print warning (possible with Duty Cycle control)
-        t_tank = self.model.states[self.t_upper_idx]
-        if t_tank > self.max_temp:
-            self.warn('Temperature over maximum temperature ({}C), forcing off'.format(self.max_temp))
-            return 'Off'
-
         if 'Duty Cycle' in control_signal:
             # Parse duty cycles into list for each mode
             duty_cycles = control_signal.get('Duty Cycle')
@@ -147,6 +132,14 @@ class WaterHeater(Equipment):
             return self.update_internal_control()
 
     def run_duty_cycle_control(self, duty_cycles):
+        # Force off if temperature exceeds maximum, and print warning
+        t_tank = self.model.states[self.t_upper_idx]
+        if t_tank > self.max_temp:
+            self.warn(
+                f"Temperature over maximum temperature ({self.max_temp}C), forcing off"
+            )
+            return "Off"
+
         if self.use_ideal_capacity:
             # Set capacity directly from duty cycle
             self.update_duty_cycles(*duty_cycles)
@@ -164,15 +157,24 @@ class WaterHeater(Equipment):
                 return mode_priority[0]  # take highest priority mode (usually current mode)
 
     def update_setpoint(self):
-        # update setpoint temperature
-        # TODO
-        t_set = self.setpoint_temp
-
-        if self.setpoint_ramp_rate and self.setpoint_temp != t_set:
-            self.setpoint_temp = min(max(t_set, self.setpoint_temp - self.setpoint_ramp_rate),
-                                     self.setpoint_temp + self.setpoint_ramp_rate)
+        # get setpoint from schedule
+        if f"{self.end_use} Setpoint (C)" in self.current_schedule:
+            t_set_new = self.current_schedule[f"{self.end_use} Setpoint (C)"]
         else:
-            self.setpoint_temp = t_set
+            t_set_new = self.setpoint_temp
+        
+        # update setpoint with ramp rate
+        if self.setpoint_ramp_rate and self.setpoint_temp != t_set_new:
+            delta_t = self.setpoint_ramp_rate * self.time_res.total_seconds() / 60  # in C
+            self.setpoint_temp = min(max(t_set_new, self.setpoint_temp - delta_t),
+                                     self.setpoint_temp + delta_t,
+            )
+        else:
+            self.setpoint_temp = t_set_new
+        
+        # get deadband from schedule
+        if f"{self.end_use} Deadband (C)" in self.current_schedule:
+            self.temp_deadband = self.current_schedule[f"{self.end_use} Deadband (C)"]
 
     def solve_ideal_capacity(self):
         # calculate ideal capacity based on achieving lower node setpoint temperature
