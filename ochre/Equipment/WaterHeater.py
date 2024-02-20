@@ -6,7 +6,6 @@ Created on Mon Apr 02 13:24:32 2018
 """
 import numpy as np
 import datetime as dt
-import pandas as pd
 
 from ochre.Equipment import Equipment
 from ochre.Models import OneNodeWaterModel, TwoNodeWaterModel, StratifiedWaterModel, IdealWaterModel
@@ -17,7 +16,11 @@ class WaterHeater(Equipment):
     name = 'Water Heater'
     end_use = 'Water Heating'
     default_capacity = 4500  # in W
-    optional_inputs = ['Zone Temperature (C)']  # Needed for Water tank model
+    optional_inputs = [
+        "Water Heating Setpoint (C)",
+        "Water Heating Deadband (C)",
+        "Zone Temperature (C)",  # Needed for Water tank model
+    ]  
     
     def __init__(self, use_ideal_capacity=None, model_class=None, **kwargs):
         # Create water tank model
@@ -63,7 +66,6 @@ class WaterHeater(Equipment):
 
         # Control parameters
         self.setpoint_temp = kwargs['Setpoint Temperature (C)']
-        self.setpoint_temp_default = self.setpoint_temp
         self.setpoint_temp_ext = None
         self.max_temp = kwargs.get('Max Tank Temperature (C)', convert(140, 'degF', 'degC'))
         self.setpoint_ramp_rate = kwargs.get('Max Setpoint Ramp Rate (C/min)')  # max setpoint ramp rate, in C/min
@@ -89,22 +91,33 @@ class WaterHeater(Equipment):
         #   - For HPWH: Can supply HP and ER duty cycles
         #   - Note: does not use clock on/off time
 
-        # If load fraction = 0, force off
-        load_fraction = control_signal.get('Load Fraction', 1)
-        if load_fraction == 0:
-            return 'Off'
-        elif load_fraction != 1:
-            raise Exception("{} can't handle non-integer load fractions".format(self.name))
+        ext_setpoint = control_signal.get("Setpoint")
+        if ext_setpoint is not None:
+            if ext_setpoint > self.max_temp:
+                self.warn(
+                    f"Setpoint cannot exceed {self.max_temp}C. Setting setpoint to maximum value."
+                )
+                ext_setpoint = self.max_temp
+            if f"{self.end_use} Setpoint (C)" in self.current_schedule:
+                self.current_schedule[f"{self.end_use} Setpoint (C)"] = ext_setpoint
+            else:
+                self.setpoint_temp = ext_setpoint
 
-        if 'Setpoint' in control_signal:
-            self.setpoint_temp_ext = control_signal.get('Setpoint')
-            if self.setpoint_temp_ext is not None and self.setpoint_temp_ext > self.max_temp:
-                self.warn('Setpoint cannot exceed {}C. Setting setpoint to maximum value.'.format(self.max_temp))
-                self.setpoint_temp_ext = self.max_temp
-
-        ext_db = control_signal.get('Deadband')
+        ext_db = control_signal.get("Deadband")
         if ext_db is not None:
-            self.deadband_temp = ext_db
+            if f"{self.end_use} Deadband (C)" in self.current_schedule:
+                self.current_schedule[f"{self.end_use} Deadband (C)"] = ext_db
+            else:
+                self.deadband_temp = ext_db
+
+        # If load fraction = 0, force off
+        load_fraction = control_signal.get("Load Fraction", 1)
+        if load_fraction == 0:
+            return "Off"
+        elif load_fraction != 1:
+            raise OC(
+                "{self.name} can't handle non-integer load fractions".format()
+            )
 
         # Force off if temperature exceeds maximum, and print warning (possible with Duty Cycle control)
         t_tank = self.model.states[self.t_upper_idx]
@@ -143,10 +156,8 @@ class WaterHeater(Equipment):
 
     def update_setpoint(self):
         # update setpoint temperature
-        if self.setpoint_temp_ext is not None:
-            t_set = self.setpoint_temp_ext
-        else:
-            t_set = self.setpoint_temp_default
+        # TODO
+        t_set = self.setpoint_temp
 
         if self.setpoint_ramp_rate and self.setpoint_temp != t_set:
             self.setpoint_temp = min(max(t_set, self.setpoint_temp - self.setpoint_ramp_rate),
