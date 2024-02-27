@@ -408,8 +408,8 @@ class ElectricResistanceWaterHeater(WaterHeater):
 class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
     name = 'Heat Pump Water Heater'
     modes = ['Heat Pump On', 'Lower On', 'Upper On', 'Off']
-    optional_inputs = ['Zone Wet Bulb Temperature (C)', 'Zone Temperature (C)']
-
+    optional_inputs = WaterHeater.optional_inputs + ['Zone Wet Bulb Temperature (C)']
+    
     def __init__(self, hp_only_mode=False, water_nodes=12, **kwargs):
         super().__init__(water_nodes=water_nodes, **kwargs)
 
