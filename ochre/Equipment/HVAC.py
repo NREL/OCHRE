@@ -296,7 +296,8 @@ class HVAC(Equipment):
             self.temp_deadband = self.current_schedule[f'{self.end_use} Deadband (C)']
 
         # updates setpoint with ramp rate constraints
-        # TODO: move to update_inputs. Could get run multiple times per time step in update_model
+        # TODO: create temp_setpoint_old and update in update_results. 
+        # Could get run multiple times per time step in update_model
         if self.setpoint_ramp_rate is not None:
             delta_t = self.setpoint_ramp_rate * self.time_res.total_seconds() / 60  # in C
             self.temp_setpoint = min(max(t_set, self.temp_setpoint - delta_t), self.temp_setpoint + delta_t)
@@ -471,6 +472,7 @@ class HVAC(Equipment):
         self.gas_therms_per_hour *= self.space_fraction
 
         # update previous indoor temperature
+        # TODO: move to update_results?
         self.temp_indoor_prev = self.zone.temperature
 
     def add_gains_to_zone(self):
