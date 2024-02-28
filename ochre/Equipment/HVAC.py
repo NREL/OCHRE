@@ -56,7 +56,7 @@ class HVAC(Equipment):
         assert (np.diff(self.capacity_list) > 0).all()
         self.capacity = self.capacity_list[self.speed_idx]
         self.capacity_ideal = self.capacity  # capacity to maintain setpoint, for ideal equipment, in W
-        self.capacity_max = self.capacity_list[-1]  # controllable for ideal equipment, in W
+        self.capacity_max = self.capacity_list[-1]  # varies for dynamic equipment, in W
         self.capacity_min = kwargs.get('Minimum Capacity (W)', 0)  # for ideal equipment, in W
         self.space_fraction = kwargs.get('Conditioned Space Fraction (-)', 1.0)
         self.delivered_heat = 0  # in W, total sensible heat gain, excluding duct losses
@@ -172,7 +172,8 @@ class HVAC(Equipment):
         self.ext_ignore_thermostat = kwargs.get('ext_ignore_thermostat', False)
         self.setpoint_ramp_rate = kwargs.get('setpoint_ramp_rate')  # max setpoint ramp rate, in C/min
         self.temp_indoor_prev = self.temp_setpoint
-        self.duty_cycle_capacity = None  # Option to set capacity from duty cycle
+        self.ext_capacity = None  # Option to set capacity directly, ideal capacity only
+        self.ext_capacity_frac = 1  # Option to limit max capacity, ideal capacity only
 
         # Results options
         self.show_eir_shr = kwargs.get('show_eir_shr', False)
@@ -206,7 +207,11 @@ class HVAC(Equipment):
         #   - Note: Setpoint must be provided every timestep or it will revert back to the dwelling schedule
         # - Deadband: Updates heating (cooling) deadband temperature (in C)
         #   - Note: Deadband will only be reset if it is in the schedule
-        # - Duty Cycle: Forces HVAC on for fraction of external time step (as fraction [0,1])
+        # - Capacity: Sets HVAC capacity directly, ideal capacity only
+        #   - Resets every time step
+        # - Max Capacity Fraction: Limits HVAC max capacity, ideal capacity only
+        #   - For now, does not get reset
+        # - Duty Cycle: Forces HVAC on for fraction of external time step (as fraction [0,1]), non-ideal capacity only
         #   - If 0 < Duty Cycle < 1, the equipment will cycle once every 2 external time steps
         #   - For ASHP: Can supply HP and ER duty cycles
         #   - Note: does not use clock on/off time
@@ -231,10 +236,37 @@ class HVAC(Equipment):
         elif load_fraction != 1:
             raise OCHREException(f"{self.name} can't handle non-integer load fractions")
 
+        capacity_frac = control_signal.get('Max Capacity Fraction')
+        if capacity_frac is not None:
+            if not self.use_ideal_capacity:
+                raise IOError(
+                    f"Cannot set {self.name} Max Capacity Fraction. "
+                    'Set `use_ideal_capacity` to True or control "Duty Cycle".'
+                )
+            self.ext_capacity_frac = capacity_frac
+
+        capacity = control_signal.get('Capacity')
+        if capacity is not None:
+            if not self.use_ideal_capacity:
+                raise IOError(
+                    f"Cannot set {self.name} Capacity. "
+                    'Set `use_ideal_capacity` to True or control "Duty Cycle".'
+                )
+
+            self.ext_capacity = capacity
+            # TODO: remove once schedule is incorporated, test with ASHP modes
+            return 'On' if self.ext_capacity > 0 else 'Off'
+
         if any(['Duty Cycle' in key for key in control_signal]):
+            if self.use_ideal_capacity:
+                raise IOError(
+                    f"Cannot set {self.name} Duty Cycle. "
+                    'Set `use_ideal_capacity` to False or use "Capacity" control.'
+                )
             return self.run_duty_cycle_control(control_signal)
-        else:
-            return self.update_internal_control()
+
+        # if mode isn't set yet, run internal control method
+        return self.update_internal_control()
 
     def run_duty_cycle_control(self, control_signal):
         duty_cycles = control_signal.get('Duty Cycle', 0)
@@ -242,7 +274,7 @@ class HVAC(Equipment):
             self.speed_idx = 0
             return 'Off'
         if duty_cycles == 1:
-            self.speed_idx = self.n_speeds  # max speed, only relevant for non-ideal capacity model
+            self.speed_idx = self.n_speeds  # max speed
             return 'On'
 
         # Parse duty cycles
@@ -250,26 +282,17 @@ class HVAC(Equipment):
             duty_cycles = [duty_cycles]
         assert 0 <= sum(duty_cycles) <= 1
 
-        if self.use_ideal_capacity:
-            # Set capacity to constant value based on duty cycle
-            self.duty_cycle_capacity = duty_cycles[0] * self.capacity_max
-            if self.duty_cycle_capacity < self.capacity_min:
-                self.duty_cycle_capacity = 0
+        # Set mode based on duty cycle from external controller
+        mode_priority = self.calculate_mode_priority(*duty_cycles)
+        thermostat_mode = self.run_thermostat_control()
+        thermostat_mode = thermostat_mode if thermostat_mode is not None else self.mode
 
-            mode = 'On' if self.duty_cycle_capacity > 0 else 'Off'
+        # take thermostat mode if it exists in priority stack, or take highest priority mode (usually current mode)
+        mode = thermostat_mode if (thermostat_mode in mode_priority and
+                                    not self.ext_ignore_thermostat) else mode_priority[0]
 
-        else:
-            # Set mode based on duty cycle from external controller
-            mode_priority = self.calculate_mode_priority(*duty_cycles)
-            thermostat_mode = self.run_thermostat_control()
-            thermostat_mode = thermostat_mode if thermostat_mode is not None else self.mode
-
-            # take thermostat mode if it exists in priority stack, or take highest priority mode (usually current mode)
-            mode = thermostat_mode if (thermostat_mode in mode_priority and
-                                       not self.ext_ignore_thermostat) else mode_priority[0]
-
-            # by default, turn on to max speed
-            self.speed_idx = self.n_speeds if 'On' in mode else 0
+        # by default, turn on to max speed
+        self.speed_idx = self.n_speeds if 'On' in mode else 0
 
         return mode
 
@@ -278,7 +301,8 @@ class HVAC(Equipment):
         self.update_setpoint()
 
         if self.use_ideal_capacity:
-            self.duty_cycle_capacity = None
+            # TODO: this won't work until it's added to the schedule
+            self.ext_capacity = None
 
             # run ideal capacity calculation here, just to determine mode and speed
             # FUTURE: capacity update is done twice per loop, could but updated to improve speed
@@ -356,17 +380,22 @@ class HVAC(Equipment):
         if self.use_ideal_capacity:
             # Solve for capacity to meet setpoint
             self.capacity_ideal = self.solve_ideal_capacity()
+            capacity = self.capacity_ideal
+            
+            # Update from direct capacity controls
+            if self.ext_capacity is not None:
+                capacity = self.ext_capacity
 
-            if self.duty_cycle_capacity is not None:
-                capacity = self.duty_cycle_capacity
-            elif self.capacity_ideal < self.capacity_min:
+            # Enforce min and max capacity limits
+            if capacity < self.capacity_min:
                 # If capacity < capacity_min (or capacity is negative), force off
                 capacity = 0
-            else:
-                # Clip at maximum capacity. If ideal capacity is out of bounds, setpoint won't be met
-                capacity = min(self.capacity_ideal, self.capacity_max)
+            elif capacity > self.capacity_max * self.ext_capacity_frac:
+                # Clip at maximum capacity, considering max capacity fraction
+                # Note: if ideal capacity is out of bounds, setpoint won't be met
+                capacity = self.capacity_max * self.ext_capacity_frac
 
-            # set speed and return capacity
+            # set speed (only used for non-dynamic equipment) and return capacity
             self.speed_idx = capacity / self.capacity_max
             return capacity
 
@@ -704,14 +733,6 @@ class DynamicHVAC(HVAC):
 
         return super().update_external_control(control_signal)
 
-    def run_duty_cycle_control(self, control_signal):
-        if self.use_ideal_capacity:
-            # update max capacity using highest enabled speed
-            max_speed = np.nonzero(~ self.disable_speeds)[0][-1] + 1
-            self.capacity_max = self.calculate_biquadratic_param(param='cap', speed_idx=max_speed)
-
-        return super().run_duty_cycle_control(control_signal)
-
     def run_two_speed_control(self):
         mode = super().run_thermostat_control()  # Can be On, Off, or None
         if self.speed_idx == 0:
@@ -929,7 +950,6 @@ class MinisplitHVAC(DynamicHVAC):
         super().__init__(**kwargs)
 
 
-
 class MinisplitAHSPCooler(MinisplitHVAC, AirConditioner):
     name = 'MSHP Cooler'
     crankcase_kw = 0.015
@@ -977,10 +997,10 @@ class HeatPumpHeater(DynamicHVAC, Heater):
             self.defrost_power_mult = 0.954 / 0.875  # increase in power relative to the capacity
             q_defrost = 0.01 * defrost_time_frac * (7.222 - t_ext_db) * (self.capacity_max / 1.01667)
 
-            # Update actual capacity or max allowable capacity
+            # Update actual capacity and max allowable capacity
+            self.capacity_max = self.capacity_max * defrost_capacity_mult - q_defrost
             if self.use_ideal_capacity:
-                self.capacity_max = self.capacity_max * defrost_capacity_mult - q_defrost
-                capacity = min(capacity, self.capacity_max)
+                capacity = min(capacity, self.capacity_max * self.ext_capacity_frac)
             else:
                 capacity = capacity * defrost_capacity_mult - q_defrost
 
@@ -1020,77 +1040,89 @@ class ASHPHeater(HeatPumpHeater):
         self.er_capacity_rated = kwargs['Supplemental Heater Capacity (W)']
         self.er_eir_rated = kwargs.get('Supplemental Heater EIR (-)', 1)
         self.er_capacity = 0
-        self.er_duty_cycle_capacity = None
+        self.er_ext_capacity = None  # Option to set ER capacity directly, ideal capacity only
+        self.er_ext_capacity_frac = 1  # Option to limit max capacity, ideal capacity only
 
         # Update minimum time for ER element
         er_on_time = kwargs.get(self.end_use + ' Minimum ER On Time', 0)
         self.min_time_in_mode['HP and ER On'] = dt.timedelta(minutes=er_on_time)
         self.min_time_in_mode['ER On'] = dt.timedelta(minutes=er_on_time)
 
-        # TODO: add option to disable ER
+    def update_external_control(self, control_signal):
+        # Additional options for ASHP external control signals:
+        # - ER Capacity: Sets ER capacity directly, ideal capacity only
+        #   - Resets every time step
+        # - Max ER Capacity Fraction: Limits ER max capacity, ideal capacity only
+        #   - Recommended to set to 0 to disable ER element
+        #   - For now, does not get reset
+        # - ER Duty Cycle: Combines with "Duty Cycle" control, see HVAC.update_external_control
+
+        capacity_frac = control_signal.get("Max ER Capacity Fraction")
+        if capacity_frac is not None:
+            if not self.use_ideal_capacity:
+                raise IOError(
+                    f"Cannot set {self.name} Max ER Capacity Fraction. "
+                    'Set `use_ideal_capacity` to True or control "ER Duty Cycle".'
+                )
+            self.er_ext_capacity_frac = capacity_frac
+
+        capacity = control_signal.get("ER Capacity")
+        if capacity is not None:
+            if not self.use_ideal_capacity:
+                raise IOError(
+                    f"Cannot set {self.name} ER Capacity. "
+                    'Set `use_ideal_capacity` to True or control "ER Duty Cycle".'
+                )
+            self.er_ext_capacity = capacity
+        
+        return super().update_external_control(control_signal)
 
     def run_duty_cycle_control(self, control_signal):
         # If duty cycles exist, combine duty cycles for HP and ER modes
         er_duty_cycle = control_signal.get('ER Duty Cycle', 0)
-        if self.use_ideal_capacity:
-            # Use ideal HVAC to determine HP mode and HP duty cycle capacity
-            hp_mode = super().run_duty_cycle_control(control_signal)
-
-            # determine ER mode and capacity
-            assert isinstance(er_duty_cycle, (int, float)) and 0 <= er_duty_cycle <= 1
-            self.er_duty_cycle_capacity = er_duty_cycle * self.er_capacity_rated
-
-            # return mode based on HP and ER modes
-            if self.er_duty_cycle_capacity > 0:
-                if hp_mode == 'On':
-                    return 'HP and ER On'
-                else:
-                    return 'ER On'
-            else:
-                if hp_mode == 'On':
-                    return 'HP On'
-                else:
-                    return 'Off'
-
+        hp_duty_cycle = control_signal.get('Duty Cycle', 0)
+        if er_duty_cycle + hp_duty_cycle > 1:
+            combo_duty_cycle = 1 - er_duty_cycle - hp_duty_cycle
+            er_duty_cycle -= combo_duty_cycle
+            hp_duty_cycle -= combo_duty_cycle
+            duty_cycles = [hp_duty_cycle, combo_duty_cycle, er_duty_cycle, 0]
         else:
-            hp_duty_cycle = control_signal.get('Duty Cycle', 0)
-            duty_cycles = [min(hp_duty_cycle, 1 - er_duty_cycle), min(hp_duty_cycle, er_duty_cycle),
-                           min(er_duty_cycle, 1 - hp_duty_cycle), 1 - max(hp_duty_cycle, er_duty_cycle)]
+            duty_cycles = [hp_duty_cycle, 0, er_duty_cycle, 1 - er_duty_cycle - hp_duty_cycle]
+        assert sum(duty_cycles) == 1
 
-            # update control args and determine mode and speed
-            control_signal['Duty Cycle'] = duty_cycles
-            mode = super().run_duty_cycle_control(control_signal)
+        # update control args and determine mode and speed
+        # TODO: update schedule, not control_signal
+        control_signal['Duty Cycle'] = duty_cycles
+        mode = super().run_duty_cycle_control(control_signal)
 
-            # update mode counters
-            if mode == 'HP and ER On':
-                # update HP only and ER only counters
-                self.ext_mode_counters['HP On'] += self.time_res
-                self.ext_mode_counters['ER On'] += self.time_res
-            elif 'On' in mode:
-                # update HP+ER counter
-                self.ext_mode_counters['HP and ER On'] = max(self.ext_mode_counters[mode] + self.time_res,
-                                                             self.ext_mode_counters['HP On'],
-                                                             self.ext_mode_counters['ER On'])
-            return mode
+        # update mode counters
+        if mode == 'HP and ER On':
+            # update HP only and ER only counters
+            self.ext_mode_counters['HP On'] += self.time_res
+            self.ext_mode_counters['ER On'] += self.time_res
+        elif 'On' in mode:
+            # update HP+ER counter
+            self.ext_mode_counters['HP and ER On'] = max(self.ext_mode_counters[mode] + self.time_res,
+                                                            self.ext_mode_counters['HP On'],
+                                                            self.ext_mode_counters['ER On'])
+        return mode
 
     def update_internal_control(self):
-        # Update setpoint from schedule
-        self.update_setpoint()
-
         if self.use_ideal_capacity:
-            self.duty_cycle_capacity = None
-            self.er_duty_cycle_capacity = None
+            # Note: not calling super().update_internal_control
+            # TODO: this won't work until they are added to the schedule
+            self.ext_capacity = None
+            self.er_ext_capacity = None
 
-            # Update capacity (and HP max capacity)
-            self.capacity = HeatPumpHeater.update_capacity(self)
+            # Update setpoint from schedule
+            self.update_setpoint()
 
-            if self.capacity_ideal <= 0:
-                mode = 'Off'
-            elif self.capacity_ideal <= self.capacity_max:
-                mode = 'HP On'
-            else:
-                mode = 'HP and ER On'
+            # Update HP capacity (and HP max capacity)
+            hp_capacity = HeatPumpHeater.update_capacity(self)
+            hp_on = hp_capacity > 0
 
+            er_capacity = self.update_er_capacity(hp_capacity)
+            er_on = er_capacity > 0
         else:
             # get HP and ER modes separately
             hp_mode = super().update_internal_control()
@@ -1098,24 +1130,23 @@ class ASHPHeater(HeatPumpHeater):
             er_mode = self.run_er_thermostat_control()
             er_on = er_mode == 'On' if er_mode is not None else 'ER' in self.mode
 
-            # combine HP and ER modes
-            if er_on:
-                if hp_on:
-                    mode = 'HP and ER On'
-                else:
-                    mode = 'ER On'
-            else:
-                if hp_on:
-                    mode = 'HP On'
-                else:
-                    mode = 'Off'
-
         # Force HP off if outdoor temp is very cold
         t_ext_db = self.current_schedule['Ambient Dry Bulb (C)']
-        if self.outdoor_temp_limit is not None and t_ext_db < self.outdoor_temp_limit and 'HP' in mode:
-            mode = 'ER On'
+        if self.outdoor_temp_limit is not None and t_ext_db < self.outdoor_temp_limit and hp_on:
+            hp_on = False
+            er_on = True
 
-        return mode
+        # combine HP and ER modes
+        if er_on:
+            if hp_on:
+                return 'HP and ER On'
+            else:
+                return 'ER On'
+        else:
+            if hp_on:
+                return 'HP On'
+            else:
+                return 'Off'
 
     def run_er_thermostat_control(self):
         # run thermostat control for ER element - lower the setpoint by the deadband
@@ -1133,6 +1164,19 @@ class ASHPHeater(HeatPumpHeater):
         if self.hvac_mult * (temp_indoor - temp_turn_off) > 0:
             return 'Off'
 
+    def update_er_capacity(self, hp_capacity):
+        if self.use_ideal_capacity:
+            if self.er_ext_capacity is not None:
+                er_capacity = self.er_ext_capacity
+            else:
+                # use total ideal capacity - calculated in HVAC.update_capacity
+                er_capacity = self.capacity_ideal - hp_capacity
+                er_capacity = min(max(er_capacity, 0), self.er_capacity_rated * self.er_ext_capacity_frac)
+        else:
+            er_capacity = self.er_capacity_rated
+
+        return er_capacity
+
     def update_capacity(self):
         # Get HP capacity and update ideal capacity
         hp_capacity = super().update_capacity()
@@ -1140,25 +1184,17 @@ class ASHPHeater(HeatPumpHeater):
             hp_capacity = 0
 
         if 'ER' in self.mode:
-            if self.er_duty_cycle_capacity is not None:
-                er_capacity = self.er_duty_cycle_capacity
-            elif self.use_ideal_capacity:
-                # use total ideal capacity - calculated in HVAC.update_capacity
-                er_capacity = self.capacity_ideal - hp_capacity
-                er_capacity = min(max(er_capacity, 0), self.er_capacity_rated)
-            else:
-                er_capacity = self.er_capacity_rated
+            self.er_capacity = self.update_er_capacity(hp_capacity)
         else:
-            er_capacity = 0
+            self.er_capacity = 0
 
-        # save ER capacity
-        self.er_capacity = er_capacity
-        return hp_capacity + er_capacity
+        return hp_capacity + self.er_capacity
 
     def update_fan_power(self, capacity):
         fan_power = super().update_fan_power(capacity)
 
         # if ER on and using ideal capacity, fan power is fixed at rated value
+        # this will cause small changes in indoor temperature
         if self.use_ideal_capacity and 'ER' in self.mode:
             if 'HP' in self.mode:
                 fixed_fan_power = self.fan_power_max

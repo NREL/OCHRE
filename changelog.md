@@ -2,8 +2,12 @@
 
 ### Changes from PRs
 
+- Added HVAC capacity and max capacity controls, ideal mode only
+- Require HVAC duty cycle control for thermostatic mode only
 - Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
 - Fixed bug with ASHP backup heater units
+- Fixed bug with named HVAC/Water Heating equipment arguments
+- Fixed bug in ASHP duty cycle control
 - Added OCHREException class to handle errors
 
 ### OCHRE v0.8.4-beta
