@@ -3,6 +3,8 @@
 - Initial Beta Release
 - Added HVAC capacity and max capacity controls, ideal mode only
 - Require HVAC duty cycle control for thermostatic mode only
+- Fixed bug with named HVAC/Water Heating equipment arguments
+- Fixed bug in ASHP duty cycle control
 
 ### List of changes since v0.8.1 (private version)
 
