@@ -25,7 +25,7 @@ can handle multiple zones and boundaries, including:
 
    -  Interior walls and furniture
 
-   -  Windows
+   -  Windows and doors to living space
 
    -  Roof (flat and tilted)
 
@@ -33,7 +33,7 @@ can handle multiple zones and boundaries, including:
 
    -  Ceiling and gable walls (if attic exists)
 
-   -  Garage walls, roof, and floor (if garage exists)
+   -  Garage walls, door, roof, and floor (if garage exists)
 
    -  Foundation walls, slab, ceiling, and rim joists (if foundation
       exists)

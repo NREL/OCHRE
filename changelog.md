@@ -1,12 +1,29 @@
-## OCHRE V0.8.3-beta
+## OCHRE Changelog
 
-- Initial Beta Release
+### Changes from PRs
+
 - Added HVAC capacity and max capacity controls, ideal mode only
 - Require HVAC duty cycle control for thermostatic mode only
+- Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
+- Fixed bug with ASHP backup heater units
 - Fixed bug with named HVAC/Water Heating equipment arguments
 - Fixed bug in ASHP duty cycle control
+- Added OCHREException class to handle errors
 
-### List of changes since v0.8.1 (private version)
+### OCHRE v0.8.4-beta
+
+- Fixed bug with air infiltration inputs (works with ResStock 3.0 and 3.1, and OS-HPXML 1.6.0)
+- Fixed bug with 2-speed HVAC control
+- Fixed bug with nested dictionary arguments for Envelope zones and boundaries
+- Fixed bug when setting ScheduledLoad power to 0
+- Fixed bug with Lighting end use power and total power figures
+- Fixed floor area check for garage geometry. 
+- Removed requirement for HVAC setpoint schedule in HPXML file
+- Added garage door boundary. Uses the same material as a regular door
+- Added check to explicitly not handle garage windows, attic windows, and attic doors
+- Added errors for unknown zones (mainly for foundation windows and doors)
+
+### OCHRE v0.8.3-beta (initial beta release)
 
 - Compatible with OS-HPXML 1.5.0 and 1.6.1 (includes ResStock 3.0, ResStock 3.1, and BEopt 3.0)
 - Incorporated adjusted number of bedrooms calculation

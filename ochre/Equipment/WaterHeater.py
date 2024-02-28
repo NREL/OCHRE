@@ -6,18 +6,23 @@ Created on Mon Apr 02 13:24:32 2018
 """
 import numpy as np
 import datetime as dt
-import pandas as pd
 
+from ochre.utils import OCHREException
+from ochre.utils.units import convert, kwh_to_therms
 from ochre.Equipment import Equipment
 from ochre.Models import OneNodeWaterModel, TwoNodeWaterModel, StratifiedWaterModel, IdealWaterModel
-from ochre.utils.units import convert, kwh_to_therms
 
 
 class WaterHeater(Equipment):
     name = 'Water Heater'
     end_use = 'Water Heating'
     default_capacity = 4500  # in W
-    optional_inputs = ['Zone Temperature (C)']  # Needed for Water tank model
+    optional_inputs = [
+        "Water Heating Setpoint (C)",
+        "Water Heating Deadband (C)",
+        "Water Heating Max Power (kW)",
+        "Zone Temperature (C)",  # Needed for Water tank model
+    ]  
     
     def __init__(self, use_ideal_capacity=None, model_class=None, **kwargs):
         # Create water tank model
@@ -62,13 +67,13 @@ class WaterHeater(Equipment):
         self.delivered_heat = 0  # heat delivered to the tank, in W
 
         # Control parameters
+        # note: bottom of deadband is (setpoint_temp - deadband_temp)
         self.setpoint_temp = kwargs['Setpoint Temperature (C)']
-        self.setpoint_temp_default = self.setpoint_temp
         self.setpoint_temp_ext = None
         self.max_temp = kwargs.get('Max Tank Temperature (C)', convert(140, 'degF', 'degC'))
         self.setpoint_ramp_rate = kwargs.get('Max Setpoint Ramp Rate (C/min)')  # max setpoint ramp rate, in C/min
         self.deadband_temp = kwargs.get('Deadband Temperature (C)', 5.56)  # deadband range, in delta degC, i.e. Kelvin
-        # note: bottom of deadband is (setpoint_temp - deadband_temp)
+        self.max_power = kwargs.get('Max Power (kW)')
 
     def update_inputs(self, schedule_inputs=None):
         # Add zone temperature to schedule inputs for water tank
@@ -83,34 +88,48 @@ class WaterHeater(Equipment):
         # - Setpoint: Updates setpoint temperature from the default (in C)
         #   - Note: Setpoint will only reset back to default value when {'Setpoint': None} is passed.
         # - Deadband: Updates deadband temperature (in C)
-        #   - Note: Deadband will not reset back to original value
+        #   - Note: Deadband will only be reset if it is in the schedule
+        # - Max Power: Updates maximum allowed power (in kW)
+        #   - Note: Max Power will only be reset if it is in the schedule
+        #   - Note: Will not work for HPWH in HP mode
         # - Duty Cycle: Forces WH on for fraction of external time step (as fraction [0,1])
         #   - If 0 < Duty Cycle < 1, the equipment will cycle once every 2 external time steps
         #   - For HPWH: Can supply HP and ER duty cycles
         #   - Note: does not use clock on/off time
 
-        # If load fraction = 0, force off
-        load_fraction = control_signal.get('Load Fraction', 1)
-        if load_fraction == 0:
-            return 'Off'
-        elif load_fraction != 1:
-            raise Exception("{} can't handle non-integer load fractions".format(self.name))
+        ext_setpoint = control_signal.get("Setpoint")
+        if ext_setpoint is not None:
+            if ext_setpoint > self.max_temp:
+                self.warn(
+                    f"Setpoint cannot exceed {self.max_temp}C. Setting setpoint to maximum value."
+                )
+                ext_setpoint = self.max_temp
+            if "Water Heating Setpoint (C)" in self.current_schedule:
+                self.current_schedule["Water Heating Setpoint (C)"] = ext_setpoint
+            else:
+                # Note that this overrides the ramp rate
+                self.setpoint_temp = ext_setpoint
 
-        if 'Setpoint' in control_signal:
-            self.setpoint_temp_ext = control_signal.get('Setpoint')
-            if self.setpoint_temp_ext is not None and self.setpoint_temp_ext > self.max_temp:
-                self.warn('Setpoint cannot exceed {}C. Setting setpoint to maximum value.'.format(self.max_temp))
-                self.setpoint_temp_ext = self.max_temp
-
-        ext_db = control_signal.get('Deadband')
+        ext_db = control_signal.get("Deadband")
         if ext_db is not None:
-            self.deadband_temp = ext_db
+            if "Water Heating Deadband (C)" in self.current_schedule:
+                self.current_schedule["Water Heating Deadband (C)"] = ext_db
+            else:
+                self.deadband_temp = ext_db
 
-        # Force off if temperature exceeds maximum, and print warning (possible with Duty Cycle control)
-        t_tank = self.model.states[self.t_upper_idx]
-        if t_tank > self.max_temp:
-            self.warn('Temperature over maximum temperature ({}C), forcing off'.format(self.max_temp))
-            return 'Off'
+        max_power = control_signal.get("Max Power")
+        if max_power is not None:
+            if "Water Heating Max Power (kW)" in self.current_schedule:
+                self.current_schedule["Water Heating Max Power (kW"] = max_power
+            else:
+                self.max_power = max_power
+
+        # If load fraction = 0, force off
+        load_fraction = control_signal.get("Load Fraction", 1)
+        if load_fraction == 0:
+            return "Off"
+        elif load_fraction != 1:
+            raise OCHREException(f"{self.name} can't handle non-integer load fractions")
 
         if 'Duty Cycle' in control_signal:
             # Parse duty cycles into list for each mode
@@ -118,13 +137,21 @@ class WaterHeater(Equipment):
             if isinstance(duty_cycles, (int, float)):
                 duty_cycles = [duty_cycles]
             if not isinstance(duty_cycles, list) or not (0 <= sum(duty_cycles) <= 1):
-                raise Exception('Error parsing {} duty cycle control: {}'.format(self.name, duty_cycles))
+                raise OCHREException('Error parsing {} duty cycle control: {}'.format(self.name, duty_cycles))
 
             return self.run_duty_cycle_control(duty_cycles)
         else:
             return self.update_internal_control()
 
     def run_duty_cycle_control(self, duty_cycles):
+        # Force off if temperature exceeds maximum, and print warning
+        t_tank = self.model.states[self.t_upper_idx]
+        if t_tank > self.max_temp:
+            self.warn(
+                f"Temperature over maximum temperature ({self.max_temp}C), forcing off"
+            )
+            return "Off"
+
         if self.use_ideal_capacity:
             # Set capacity directly from duty cycle
             self.update_duty_cycles(*duty_cycles)
@@ -142,17 +169,26 @@ class WaterHeater(Equipment):
                 return mode_priority[0]  # take highest priority mode (usually current mode)
 
     def update_setpoint(self):
-        # update setpoint temperature
-        if self.setpoint_temp_ext is not None:
-            t_set = self.setpoint_temp_ext
+        # get setpoint from schedule
+        if "Water Heating Setpoint (C)" in self.current_schedule:
+            t_set_new = self.current_schedule["Water Heating Setpoint (C)"]
         else:
-            t_set = self.setpoint_temp_default
-
-        if self.setpoint_ramp_rate and self.setpoint_temp != t_set:
-            self.setpoint_temp = min(max(t_set, self.setpoint_temp - self.setpoint_ramp_rate),
-                                     self.setpoint_temp + self.setpoint_ramp_rate)
+            t_set_new = self.setpoint_temp
+        
+        # update setpoint with ramp rate
+        if self.setpoint_ramp_rate and self.setpoint_temp != t_set_new:
+            delta_t = self.setpoint_ramp_rate * self.time_res.total_seconds() / 60  # in C
+            self.setpoint_temp = min(max(t_set_new, self.setpoint_temp - delta_t),
+                                     self.setpoint_temp + delta_t,
+            )
         else:
-            self.setpoint_temp = t_set
+            self.setpoint_temp = t_set_new
+        
+        # get other controls from schedule - deadband and max power
+        if "Water Heating Deadband (C)" in self.current_schedule:
+            self.temp_deadband = self.current_schedule["Water Heating Deadband (C)"]
+        if "Water Heating Max Power (kW)" in self.current_schedule:
+            self.max_power = self.current_schedule["Water Heating Max Power (kW)"]
 
     def solve_ideal_capacity(self):
         # calculate ideal capacity based on achieving lower node setpoint temperature
@@ -229,15 +265,21 @@ class WaterHeater(Equipment):
             heats_to_tank = self.add_heat_from_mode(self.mode)
 
         self.delivered_heat = heats_to_tank.sum()
-        power = self.delivered_heat / self.efficiency  # in W
+        power = self.delivered_heat / self.efficiency / 1000  # in kW
+
+        # clip power and heat by max power
+        if self.max_power and power > self.max_power and 'Heat Pump' not in self.mode:
+            heats_to_tank *= self.max_power / power
+            self.delivered_heat *= self.max_power / power
+            power = self.max_power
 
         if self.is_gas:
             # note: no sensible gains from heater (all is vented)
-            self.gas_therms_per_hour = power / 1000 * kwh_to_therms  # W to therms/hour
+            self.gas_therms_per_hour = power * kwh_to_therms  # in therms/hour
             self.sensible_gain = 0
         else:
-            self.electric_kw = power / 1000
-            self.sensible_gain = power - self.delivered_heat  # in W
+            self.electric_kw = power
+            self.sensible_gain = power * 1000 - self.delivered_heat  # in W
 
         self.latent_gain = 0
 
@@ -366,8 +408,8 @@ class ElectricResistanceWaterHeater(WaterHeater):
 class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
     name = 'Heat Pump Water Heater'
     modes = ['Heat Pump On', 'Lower On', 'Upper On', 'Off']
-    optional_inputs = ['Zone Wet Bulb Temperature (C)', 'Zone Temperature (C)']
-
+    optional_inputs = WaterHeater.optional_inputs + ['Zone Wet Bulb Temperature (C)']
+    
     def __init__(self, hp_only_mode=False, water_nodes=12, **kwargs):
         super().__init__(water_nodes=water_nodes, **kwargs)
 
@@ -408,7 +450,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         if self.wall_heat_fraction and self.zone:
             walls = [s for s in self.zone.surfaces if s.boundary_name == 'Interior Wall']
             if not walls:
-                raise Exception(f'Interior wall surface not found, required for {self.name} model.')
+                raise OCHREException(f'Interior wall surface not found, required for {self.name} model.')
             self.wall_surface = walls[0]
         else:
             self.wall_surface = None
@@ -425,7 +467,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         elif self.model.n_nodes == 12:
             self.hp_nodes = np.array([0, 0, 0, 0, 0, 5, 10, 15, 20, 25, 30, 5]) / 110
         else:
-            raise Exception('{} model not defined for tank with {} nodes'.format(self.name, self.model.n_nodes))
+            raise OCHREException('{} model not defined for tank with {} nodes'.format(self.name, self.model.n_nodes))
 
     def update_inputs(self, schedule_inputs=None):
         # Add wet and dry bulb temperatures to schedule
@@ -647,6 +689,11 @@ class TanklessWaterHeater(WaterHeater):
         return 'On' if self.heat_from_draw > 0 else 'Off'
 
     def calculate_power_and_heat(self):
+        # clip heat by max power
+        power = self.heat_from_draw / self.efficiency / 1000  # in kW
+        if self.max_power and power > self.max_power:
+            self.heat_from_draw *= self.max_power / power
+
         if self.mode == 'Off':
             # do not update heat, force water heater off
             self.delivered_heat = 0

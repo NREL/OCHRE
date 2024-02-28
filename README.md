@@ -1,7 +1,8 @@
+![OCHRE](docs\source\images\OCHRE-Logo-Horiz-2Color.png)
+
 # OCHRE: The Object-oriented Controllable High-resolution Residential Energy Model
 
-A high-fidelity, high-resolution residential building model with behind-the-meter DERs and flexible load models 
-that integrates with controllers and distribution models in building-to-grid co-simulation platforms. 
+OCHRE&trade; is a Python-based building energy modeling (BEM) tool designed to model flexible loads in residential buildings. OCHRE includes detailed models and controls for flexible devices including HVAC equipment, water heaters, electric vehicles, solar PV, and batteries. It is designed to run in co-simulation with custom controllers, aggregators, and grid models.
 
 The full documentation for OCHRE can be found at https://ochre-docs-final.readthedocs.io/en/latest/
 
