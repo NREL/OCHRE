@@ -241,7 +241,7 @@ class HVAC(Equipment):
             if not self.use_ideal_capacity:
                 raise IOError(
                     f"Cannot set {self.name} Max Capacity Fraction. "
-                    'Set `use_ideal_capacity` to True or control "ER Duty Cycle".'
+                    'Set `use_ideal_capacity` to True or control "Duty Cycle".'
                 )
             self.ext_capacity_frac = capacity_frac
 
@@ -250,10 +250,11 @@ class HVAC(Equipment):
             if not self.use_ideal_capacity:
                 raise IOError(
                     f"Cannot set {self.name} Capacity. "
-                    'Set `use_ideal_capacity` to True or control "ER Duty Cycle".'
+                    'Set `use_ideal_capacity` to True or control "Duty Cycle".'
                 )
 
             self.ext_capacity = capacity
+            # TODO: remove once schedule is incorporated, test with ASHP modes
             return 'On' if self.ext_capacity > 0 else 'Off'
 
         if any(['Duty Cycle' in key for key in control_signal]):
@@ -947,7 +948,6 @@ class MinisplitHVAC(DynamicHVAC):
         super().__init__(**kwargs)
 
 
-
 class MinisplitAHSPCooler(MinisplitHVAC, AirConditioner):
     name = 'MSHP Cooler'
     crankcase_kw = 0.015
@@ -1079,10 +1079,17 @@ class ASHPHeater(HeatPumpHeater):
         # If duty cycles exist, combine duty cycles for HP and ER modes
         er_duty_cycle = control_signal.get('ER Duty Cycle', 0)
         hp_duty_cycle = control_signal.get('Duty Cycle', 0)
-        duty_cycles = [min(hp_duty_cycle, 1 - er_duty_cycle), min(hp_duty_cycle, er_duty_cycle),
-                        min(er_duty_cycle, 1 - hp_duty_cycle), 1 - max(hp_duty_cycle, er_duty_cycle)]
+        if er_duty_cycle + hp_duty_cycle > 1:
+            combo_duty_cycle = 1 - er_duty_cycle - hp_duty_cycle
+            er_duty_cycle -= combo_duty_cycle
+            hp_duty_cycle -= combo_duty_cycle
+            duty_cycles = [hp_duty_cycle, combo_duty_cycle, er_duty_cycle, 0]
+        else:
+            duty_cycles = [hp_duty_cycle, 0, er_duty_cycle, 1 - er_duty_cycle - hp_duty_cycle]
+        assert sum(duty_cycles) == 1
 
         # update control args and determine mode and speed
+        # TODO: update schedule, not control_signal
         control_signal['Duty Cycle'] = duty_cycles
         mode = super().run_duty_cycle_control(control_signal)
 

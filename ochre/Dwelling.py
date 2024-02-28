@@ -262,6 +262,7 @@ class Dwelling(Simulator):
             if sub_control_signal is None:
                 sub_control_signal = {}
 
+            # TODO: update schedule, not control signal
             if 'net_power' not in sub_control_signal:
                 sub_control_signal['net_power'] = self.total_p_kw
             if isinstance(sub, Battery) and 'pv_power' not in sub_control_signal:

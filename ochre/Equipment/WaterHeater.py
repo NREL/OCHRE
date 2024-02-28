@@ -440,6 +440,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
             # Add HP duty cycle to ERWH control
             duty_cycles = [control_signal.get('HP Duty Cycle', 0),
                            control_signal.get('ER Duty Cycle', 0) if not self.hp_only_mode else 0]
+            # TODO: update schedule, not control signal
             control_signal['Duty Cycle'] = duty_cycles
 
         return super().update_external_control(control_signal)
