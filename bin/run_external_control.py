@@ -7,12 +7,15 @@ from bin.run_dwelling import dwelling_args
 # Test script to run single Dwelling with constant external control signal
 
 dwelling_args.update({
-    'time_res': dt.timedelta(minutes=60),
+    'time_res': dt.timedelta(minutes=10),
     'ext_time_res': dt.timedelta(minutes=60),
 })
 
 example_control_signal = {
-    'HVAC Heating': {'Setpoint': 19},  # in C
+    'HVAC Heating': {'Setpoint': 19,
+                    #  'Max Capacity Fraction': 0.8,
+                     'Max ER Capacity Fraction': 0.5,
+                     },  # in C
     'HVAC Cooling': {'Setpoint': 22},  # in C
     'Water Heating': {'Setpoint': 50},  # in C
     'PV': {'P Setpoint': -1.1, 'Q Setpoint': 0.5},  # in kW, kVAR
@@ -22,14 +25,14 @@ example_control_signal = {
 
 def run_constant_control_signal(control_signal=None):
     # Initialization
-    dwelling = Dwelling(name='Test House with Controller', **dwelling_args)
+    dwelling = Dwelling(name='OCHRE with Controller', **dwelling_args)
 
     # Simulation
     for t in dwelling.sim_times:
         # assert dwelling.current_time == t
         house_status = dwelling.update(control_signal=control_signal)
 
-    return dwelling.finalize()
+    df, _, _ = dwelling.finalize()
 
 
 def get_hvac_controls(hour_of_day, occupancy, heating_setpoint, **unused_inputs):
@@ -55,7 +58,7 @@ def get_hvac_controls(hour_of_day, occupancy, heating_setpoint, **unused_inputs)
 
 def run_with_hvac_controller():
     # Initialization
-    dwelling = Dwelling(name='Test House with Controller', **dwelling_args)
+    dwelling = Dwelling(name="OCHRE with Controller", **dwelling_args)
     heater = dwelling.get_equipment_by_end_use('HVAC Heating')
     cooler = dwelling.get_equipment_by_end_use('HVAC Cooling')
 
@@ -97,7 +100,7 @@ def run_controls_from_file(control_file):
     df_ext = pd.read_csv(control_file, index_col='Time', parse_dates=True)
 
     # Initialization
-    dwelling = Dwelling(name='Test House with Controller', **dwelling_args)
+    dwelling = Dwelling(name="OCHRE with Controller", **dwelling_args)
 
     # Simulation
     control_signal = None
