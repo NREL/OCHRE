@@ -1,6 +1,8 @@
 ## OCHRE V0.8.3-beta
 
 - Initial Beta Release
+- Added HVAC capacity and max capacity controls, ideal mode only
+- Require HVAC duty cycle control for thermostatic mode only
 
 ### List of changes since v0.8.1 (private version)
 
