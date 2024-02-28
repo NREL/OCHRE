@@ -296,11 +296,11 @@ class WaterHeater(Equipment):
 
         # Note: using end use, not equipment name, for all results
         if self.verbosity >= 3:
-            results[f'{self.end_use} Delivered (kW)'] = self.delivered_heat / 1000
+            results[f'{self.end_use} Delivered (W)'] = self.delivered_heat
         if self.verbosity >= 6:
             cop = self.delivered_heat / (self.electric_kw * 1000) if self.electric_kw > 0 else 0
             results[f'{self.end_use} COP (-)'] = cop
-            results[f'{self.end_use} Total Sensible Heat Gain (kW)'] = self.sensible_gain / 1000
+            results[f'{self.end_use} Total Sensible Heat Gain (W)'] = self.sensible_gain
             results[f'{self.end_use} Deadband Upper Limit (C)'] = self.setpoint_temp
             results[f'{self.end_use} Deadband Lower Limit (C)'] = self.setpoint_temp - self.deadband_temp
 
@@ -638,7 +638,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
                 hp_on_frac = self.duty_cycle_by_mode['Heat Pump On']
             else:
                 hp_on_frac = 1 if 'Heat Pump' in self.mode else 0
-            results[f'{self.end_use} Heat Pump Max Capacity (kW)'] = self.hp_capacity / 1000
+            results[f'{self.end_use} Heat Pump Max Capacity (W)'] = self.hp_capacity
             results[f'{self.end_use} Heat Pump On Fraction (-)'] = hp_on_frac
             results[f'{self.end_use} Heat Pump COP (-)'] = self.hp_cop
         return results

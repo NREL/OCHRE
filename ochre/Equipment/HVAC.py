@@ -515,7 +515,7 @@ class HVAC(Equipment):
 
         # Note: using end use, not equipment name, for all results
         if self.verbosity >= 3:
-            results[f'{self.end_use} Delivered (kW)'] = abs(self.delivered_heat) * self.duct_dse / 1000
+            results[f'{self.end_use} Delivered (W)'] = abs(self.delivered_heat) * self.duct_dse
         if self.verbosity >= 6:
             # recalculate COP to account for any changes in power (e.g. crankcase, pan heater)
             main_power = self.electric_kw + self.gas_therms_per_hour / kwh_to_therms - self.fan_power / 1000
@@ -529,12 +529,12 @@ class HVAC(Equipment):
             results[f'{self.end_use} Setpoint (C)'] = self.temp_setpoint
             results[f'{self.end_use} Main Power (kW)'] = main_power
             results[f'{self.end_use} Fan Power (kW)'] = self.fan_power / 1000
-            results[f'{self.end_use} Latent Gains (kW)'] = self.latent_gain * self.space_fraction / 1000
+            results[f'{self.end_use} Latent Gains (W)'] = self.latent_gain * self.space_fraction
             results[f'{self.end_use} COP (-)'] = cop
             results[f'{self.end_use} SHR (-)'] = self.shr if on or self.show_eir_shr else 0
             results[f'{self.end_use} Speed (-)'] = self.speed_idx
-            results[f'{self.end_use} Capacity (kW)'] = self.capacity / 1000
-            results[f'{self.end_use} Max Capacity (kW)'] = self.capacity_max / 1000
+            results[f'{self.end_use} Capacity (W)'] = self.capacity
+            results[f'{self.end_use} Max Capacity (W)'] = self.capacity_max
 
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())
