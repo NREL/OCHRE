@@ -181,7 +181,7 @@ class StateSpaceModel(Simulator):
         # Transform SS matrices and states
         t_inv = linalg.inv(t)
         a_t = t.dot(a).dot(t_inv)
-        a_t = t.dot(b)
+        b_t = t.dot(b)
         c_t = c.dot(t_inv)
         x_t = t.dot(x)
 
@@ -217,7 +217,7 @@ class StateSpaceModel(Simulator):
 
         # update matrices
         self.A_c = a_t[:reduced_states, :reduced_states]
-        self.B_c = a_t[:reduced_states, :]
+        self.B_c = b_t[:reduced_states, :]
         self.C = c_t[:, :reduced_states]
         if update_discrete:
             self.A, self.B = self.to_discrete()
