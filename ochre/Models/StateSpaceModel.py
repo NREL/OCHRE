@@ -165,7 +165,6 @@ class StateSpaceModel(Simulator):
 
         # SVD of U*L
         z, s, yh = linalg.svd(u.T.dot(l))
-        s = np.diag(s)
         y = yh.T
 
         # Solve for state transformation matrix
@@ -190,7 +189,7 @@ class StateSpaceModel(Simulator):
         # Qt = linalg.solve_continuous_lyapunov(At.T, -Ct.T.dot(Ct))
 
         # update B and C with input/output weights, back to original model
-        a_t /= input_weights
+        b_t /= input_weights
         c_t = (c_t.T / output_weights).T
 
         # Determine number of reduced states
