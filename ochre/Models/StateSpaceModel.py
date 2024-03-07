@@ -165,7 +165,6 @@ class StateSpaceModel(Simulator):
 
         # SVD of U*L
         z, s, yh = linalg.svd(u.T.dot(l))
-        s = np.diag(s)
         y = yh.T
 
         # Solve for state transformation matrix
@@ -181,7 +180,7 @@ class StateSpaceModel(Simulator):
         # Transform SS matrices and states
         t_inv = linalg.inv(t)
         a_t = t.dot(a).dot(t_inv)
-        a_t = t.dot(b)
+        b_t = t.dot(b)
         c_t = c.dot(t_inv)
         x_t = t.dot(x)
 
@@ -190,7 +189,7 @@ class StateSpaceModel(Simulator):
         # Qt = linalg.solve_continuous_lyapunov(At.T, -Ct.T.dot(Ct))
 
         # update B and C with input/output weights, back to original model
-        a_t /= input_weights
+        b_t /= input_weights
         c_t = (c_t.T / output_weights).T
 
         # Determine number of reduced states
@@ -217,7 +216,7 @@ class StateSpaceModel(Simulator):
 
         # update matrices
         self.A_c = a_t[:reduced_states, :reduced_states]
-        self.B_c = a_t[:reduced_states, :]
+        self.B_c = b_t[:reduced_states, :]
         self.C = c_t[:, :reduced_states]
         if update_discrete:
             self.A, self.B = self.to_discrete()
