@@ -81,7 +81,7 @@ def run_water_heater():
     water_draw_magnitude = 12  # L/min
     withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=len(times))
     schedule = pd.DataFrame({
-        'Fixtures (L/min)': withdraw_rate,
+        'Water Heating (L/min)': withdraw_rate,
         'Zone Temperature (C)': 20,
         'Mains Temperature (C)': 7,
     }, index=times)

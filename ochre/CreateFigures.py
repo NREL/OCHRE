@@ -368,15 +368,15 @@ def plot_envelope(dfs_to_plot, **kwargs):
 
     # plot HVAC delivered heat and temperatures
     plot_info = zone_data + [
-        ('HVAC Heating Delivered (kW)', 'Heating Delivered', 'r', False),
-        ('HVAC Cooling Delivered (kW)', 'Cooling Delivered', 'b', False),
+        ('HVAC Heating Delivered (W)', 'Heating Delivered', 'r', False),
+        ('HVAC Cooling Delivered (W)', 'Cooling Delivered', 'b', False),
     ]
-    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, add_diff=['HVAC Heating Delivered (kW)',
-                                                                              'HVAC Cooling Delivered (kW)'], **kwargs)
+    fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, add_diff=['HVAC Heating Delivered (W)',
+                                                                              'HVAC Cooling Delivered (W)'], **kwargs)
     if ax1 is not None:
         ax1.set_ylabel(r'Temperature ($^\circ$C)')
     if ax2 is not None:
-        ax2.set_ylabel('Heat Delivered (kW)')
+        ax2.set_ylabel('Heat Delivered (W)')
 
     # plot all component loads
     plot_info = [
@@ -386,8 +386,8 @@ def plot_envelope(dfs_to_plot, **kwargs):
         ('Internal Heat Gain - Indoor (W)', 'Internal Gains', 'c'),
         ('HVAC Heating Duct Losses (W)', 'Ducts (Heating)', 'r'),
         ('HVAC Cooling Duct Losses (W)', 'Ducts (Cooling)', 'b'),
-        # ('HVAC Heating Delivered (kW)', 'Heating Delivered', 'r', False),
-        # ('HVAC Cooling Delivered (kW)', 'Cooling Delivered', 'b', False),
+        # ('HVAC Heating Delivered (W)', 'Heating Delivered', 'r', False),
+        # ('HVAC Cooling Delivered (W)', 'Cooling Delivered', 'b', False),
         # ('Temperature - Indoor (C)', 'Indoor Temp', 'k')
         # ('Temperature - Outdoor (C)', 'Ambient Temp', 'k', True, 1),
         # ('Wind Speed (m/s)', 'Wind Speed', 'r', False, 1),
@@ -436,10 +436,10 @@ def plot_envelope_detailed(dfs_to_plot, **kwargs):
         # (series, label, color, axis_left, axis_num, ls, mult)
         if convection_heat_cols:
             plot_info.append((df.loc[:, convection_heat_cols].sum(axis=1), f'Net Convection Heat Gain - {zone} (W)'))
-        if zone == 'Indoor' and ('HVAC Heating Delivered (kW)' in df.columns or
-                                 'HVAC Cooling Delivered (kW)' in df.columns):
-            df[f'HVAC Heat Gain - {zone} (W)'] = (df.get('HVAC Heating Delivered (kW)', 0) -
-                                                  df.get('HVAC Cooling Delivered (kW)', 0)) * 1000
+        if zone == 'Indoor' and ('HVAC Heating Delivered (W)' in df.columns or
+                                 'HVAC Cooling Delivered (W)' in df.columns):
+            df[f'HVAC Heat Gain - {zone} (W)'] = (df.get('HVAC Heating Delivered (W)', 0) -
+                                                  df.get('HVAC Cooling Delivered (W)', 0))
         injection_heat_cols = [col for col in [
             f'Occupancy Heat Gain - {zone} (W)',
             f'Infiltration Heat Gain - {zone} (W)',
@@ -510,14 +510,14 @@ def plot_hvac(dfs_to_plot, **kwargs):
 
 def plot_wh(dfs_to_plot, **kwargs):
     # plot water heater delivered heat, power, flow rate if they exist
-    plot_info = [('Hot Water Delivered (kW)', 'Delivered Heat', 'c'),
-                 ('Water Heating Delivered (kW)', 'WH Heat', 'r'),
+    plot_info = [('Hot Water Delivered (W)', 'Delivered Heat', 'c'),
+                 ('Water Heating Delivered (W)', 'WH Heat', 'r'),
                  ('Hot Water Delivered (L/min)', 'Flow Rate', 'b', False),
                  ('Hot Water Outlet Temperature (C)', 'Outlet Temp', 'g', True, 1),
                  ]
     fig, (ax1, ax2) = multi_comparison_plot(dfs_to_plot, plot_info, **kwargs)
     if ax1 is not None:
-        ax1[0].set_ylabel('Hot Water Delivered (kW)')
+        ax1[0].set_ylabel('Hot Water Delivered (W)')
         ax2[0].set_ylabel('Hot Water Delivered (L/min)')
         ax1[1].set_ylabel('Temperature ($^\circ$C)')
 

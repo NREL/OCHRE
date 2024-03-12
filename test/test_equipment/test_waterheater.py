@@ -140,7 +140,7 @@ class WaterHeaterTestCase(unittest.TestCase):
 
         results = self.wh.generate_results(3)
         self.assertEqual(len(results), 5)
-        self.assertIn('Water Heating Delivered (kW)', results)
+        self.assertIn('Water Heating Delivered (W)', results)
 
         results = self.wh.generate_results(6)
         self.assertEqual(len(results), 16)

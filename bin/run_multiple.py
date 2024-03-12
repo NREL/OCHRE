@@ -138,7 +138,6 @@ def run_single_building(input_path, simulation_name='ochre', output_path=None):
 def compile_results(main_folder):
     # Sample script to compile results from multiple OCHRE runs
     # assumes each run is in a different folder, and all simulation names are 'ochre'
-    dirs_to_include = int(dirs_to_include)
 
     # set up
     main_folder = os.path.abspath(main_folder)

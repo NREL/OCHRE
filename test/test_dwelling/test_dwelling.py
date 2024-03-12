@@ -202,7 +202,7 @@ class DwellingWithEquipmentTestCase(unittest.TestCase):
         self.assertEqual(len(df), 96)
         # self.assertEqual(len(df.columns), 159)
         self.assertTrue((df['Total Electric Power (kW)'] > 0).all())
-        self.assertAlmostEqual(df['Water Heating Delivered (kW)'].mean(), 0.27, places=1)
+        self.assertAlmostEqual(df['Water Heating Delivered (W)'].mean(), 0.27, places=1)
 
         # check time series outputs
         self.assertEqual(len(hourly), 24)

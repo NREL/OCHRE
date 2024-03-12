@@ -31,15 +31,29 @@ equipment, by end use.
 
 HVAC Heating or HVAC Cooling
 ----------------------------
-================================  ==========  ========================================================================= 
-**Control Command**               **Units**   **Description**     
-================================  ==========  ========================================================================= 
-Load Fraction                     unitless    1 (no effect) or 0 (force equipment off)
-Setpoint                          C           Sets temperature setpoint for one timestep (then reverts to schedule)
-Deadband                          C           Sets thermostat deadband (does not revert unless deadband is scheduled)
-Duty Cycle                        unitless    Sets the equipment duty cycle for ``ext_time_res``
-Disable Speed X                   unitless    Disables low (X=1) or high (X=2) speed if value is ``True`` [#]_
-================================  ==========  =========================================================================
++-------------------------------+--------------------------+-----------+-------------------------------------------------------------------------------------+
+| **End Use or Equipment Name** | **Control Command**      | **Units** | **Description**                                                                     |
++===============================+==========================+===========+=====================================================================================+
+| HVAC Heating or HVAC Cooling  | Load Fraction            | unitless  | 1 (no effect) or 0 (forces equipment off)                                           |
++-------------------------------+--------------------------+-----------+-------------------------------------------------------------------------------------+
+| HVAC Heating or HVAC Cooling  | Setpoint                 | C         | Sets temperature setpoint for one timestep (then reverts back to schedule)          |
++-------------------------------+--------------------------+-----------+-------------------------------------------------------------------------------------+
+| HVAC Heating or HVAC Cooling  | Deadband                 | C         | Sets temperature deadband (does not revert back unless deadband is in the schedule) |
++-------------------------------+--------------------------+-----------+-------------------------------------------------------------------------------------+
+| HVAC Heating or HVAC Cooling  | Capacity                 | W         | Sets HVAC capacity directly, ideal capacity only (reverts back to defaults)         |
++-------------------------------+--------------------------+-----------+-------------------------------------------------------------------------------------+
+| HVAC Heating or HVAC Cooling  | Max Capacity Fraction    | unitless  | Limits HVAC max capacity, ideal capacity only (does not revert)                     |
++-------------------------------+--------------------------+-----------+-------------------------------------------------------------------------------------+
+| HVAC Heating or HVAC Cooling  | Duty Cycle               | unitless  | Sets the equipment duty cycle for ext_time_res, non-ideal capacity only             |
++-------------------------------+--------------------------+-----------+-------------------------------------------------------------------------------------+
+| HVAC Heating or HVAC Cooling  | Disable Speed X          | N/A       | Disables low (X=1) or high (X=2) speed if value is ``True`` [#]_                    |
++-------------------------------+--------------------------+-----------+-------------------------------------------------------------------------------------+
+| HVAC Heating (ASHP only)      | ER Capacity              | W         | Sets ER element capacity directly, ideal capacity only (reverts back to defaults)   |
++-------------------------------+--------------------------+-----------+-------------------------------------------------------------------------------------+
+| HVAC Heating (ASHP only)      | Max ER Capacity Fraction | unitless  | Limits ER element max capacity, ideal capacity only (does not revert)               |
++-------------------------------+--------------------------+-----------+-------------------------------------------------------------------------------------+
+| HVAC Heating (ASHP only)      | ER Duty Cycle            | unitless  | Sets the ER element duty cycle for ext_time_res, non-ideal capacity only            |
++-------------------------------+--------------------------+-----------+-------------------------------------------------------------------------------------+
 
 .. [#] Only available for 2 speed equipment, either ASHP or AC. Variable speed equipment modulates between all speeds to
          perfectly maintain setpoint ( deadband = 0 C)

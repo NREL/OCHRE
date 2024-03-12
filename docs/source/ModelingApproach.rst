@@ -135,60 +135,65 @@ HVAC
 ----
 
 OCHRE models several different types of heating, ventilation, and air
-conditioning (HVAC) technologies commonly found in residential buildings
-in the United States. This includes furnaces, boilers, electric
-resistance baseboards, central air conditioners (ACs), room air
-conditioners, air source heat pumps (ASHPs), and minisplit heat pumps
-(MSHPs). OCHRE also includes “ideal” heating and cooling equipment
-models that perfectly maintain the indoor setpoint temperature with a
-constant efficiency. Ideal equipment is useful for debugging and
-determining the loads in a building.
+conditioning (HVAC) technologies commonly found in residential buildings in
+the United States. This includes furnaces, boilers, electric resistance
+baseboards, central air conditioners (ACs), room air conditioners, air source
+heat pumps (ASHPs), and minisplit heat pumps (MSHPs). OCHRE also includes
+“ideal” heating and cooling equipment models that perfectly maintain the
+indoor setpoint temperature with a constant efficiency.
 
-HVAC equipment use three types of algorithms for determining equipment
-capacity and efficiency:
+HVAC equipment use one of two algorithms to determine equipment max capacity
+and efficiency:
 
--  Static capacity: System capacity and efficiency is set at
+-  Static: System max capacity and efficiency is set at
    initialization and does not change (e.g., Gas Furnace, Electric
-   Baseboard)
+   Baseboard).
 
--  Dynamic capacity: System capacity and efficiency varies based on
-   indoor and outdoor temperatures and air flow rate (e.g., Air
-   Conditioner, Air Source Heat Pump)
+-  Dynamic: System max capacity and efficiency varies based on indoor and
+   outdoor temperatures and air flow rate using biquadratic formulas. These
+   curves are based on “\ `Improved Modeling of Residential Air Conditioners
+   and Heat Pumps for Energy Calculations
+<https://scholar.colorado.edu/concern/graduate_thesis_or_dissertations/r781wg40j>`__\
+” (e.g.,  Air Conditioner, Air Source Heat Pump).
 
--  Ideal capacity: System capacity is calculated at each time step to
-   maintain constant indoor temperature (e.g., Ideal Heater, Ideal
-   Cooler)
+In addition, HVAC equipment use one of two modes to determine real-time
+capacity and power consumption:
 
-Air source heat pumps, minisplit heat pumps, and air conditioners
-include multi-speed options, including single-speed, two-speed, and
-variable speed options. The one- and two-speed options typically use the
-dynamic capacity algorithm for high resolution simulations, while the
-variable speed option typically uses the ideal capacity algorithm. This
-equipment use curves to determine the capacity of efficiency of the unit
-as a function of the outdoor air drybulb temperature and indoor air
-wetbulb temperature. These curves are based on “\ `Improved Modeling of
-Residential Air Conditioners and Heat Pumps for Energy
-Calculations <https://scholar.colorado.edu/concern/graduate_thesis_or_dissertations/r781wg40j>`__\ ”.
-Minisplit heat pumps are always modeled as multispeed equipment, while
-for other equipment multiple options are available, with more speeds
-corresponding to higher efficiency equipment.
+-  Thermostatic mode: A thermostat control with a deadband is used to
+   turn the equipment on and off. Capacity and power are zero or at their
+   maximum values.
 
-The Air Source Heat Pump and Mini Split Heat Pump models include heating
-and cooling functionality. The heat pump heating model includes a
-reverse cycle defrost algorithm that reduces efficiency and capacity at
-low temperatures, as well as an electric resistance element that is
-enabled when the outdoor air temperature is below a threshold.
+-  Ideal mode: Capacity is calculated at each time step to perfectly
+   maintain the indoor setpoint temperature. Power is determined by the
+   fraction of time that the equipment is on in various modes.
 
-By default, HVAC equipment are controlled using a thermostat control.
-Heating and cooling setpoints are defined in the input files and can
-vary over time.
+By default, most HVAC equipment operate in thermostatic mode for simulations
+with a time resolution of less than 5 minutes. Otherwise, the ideal mode is
+used. The only exceptions are variable speed equipment, which always operate
+in ideal capacity mode.
 
-All HVAC equipment can be externally controlled by updating the
-thermostat setpoints and deadband or by direct load control (i.e.,
-shut-off). Static and dynamic HVAC equipment can also be controlled
-using duty cycle control or by disabling specific speeds. The equipment
-will follow the duty cycle control exactly while minimizing temperature
-deviation from setpoint and minimizing cycling.
+Air source heat pumps, central air conditioners, and room air conditioners
+include single-speed, two-speed, and variable speed options. Minisplit heat
+pumps are always modeled as variable speed equipment.
+
+The Air source heat pump and Minisplit heat pump models include heating and
+cooling functionality. The heat pump heating model includes a few unique
+features:
+
+-  An electric resistance element with additional controls, including an
+   offset thermostat deadband.
+-  A heat pump shut off control when the outdoor air temperature is below a
+   threshold.
+-  A reverse cycle defrost algorithm that reduces heat pump efficiency and
+   capacity at low temperatures.
+
+All HVAC equipment can be externally controlled by updating the thermostat
+setpoints and deadband or by direct load control (i.e., shut-off). Specific
+speeds can be disabled in multi-speed equipment. Equipment capacity can also
+be set directly or controlled using a maximum capacity fraction in ideal mode.
+In thermostatic mode, duty cycle controls can determine the equipment state.
+The equipment will follow the duty cycle control exactly while minimizing
+cycling and temperature deviation from setpoint. 
 
 Ducts
 ~~~~~

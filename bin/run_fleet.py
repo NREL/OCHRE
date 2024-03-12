@@ -41,7 +41,7 @@ def run_water_heater_fleet(num_water_heaters=5):
         'Tank Height (m)': 1.22,
         'UA (W/K)': 2.17,
         'schedule': pd.DataFrame({
-            'Fixtures (L/min)': withdraw_rate[wh_name],
+            'Water Heating (L/min)': withdraw_rate[wh_name],
             'Zone Temperature (C)': np.random.uniform(15, 18),
             'Mains Temperature (C)': np.random.uniform(5.6, 8.3),
         }, index=times),
