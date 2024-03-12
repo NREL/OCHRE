@@ -158,11 +158,11 @@ def load_eplus_file(file_name, eplus_format='ResStock', variable_names_file='Var
     if eplus_format == 'BEopt':
         # add HVAC COP and SHR (note, excludes fan power and duct losses) - BEopt only
         df['HVAC Heating COP (-)'] = replace_nans(
-            df['HVAC Heating Capacity (kW)'] / (
+            df['HVAC Heating Capacity (W)'] / 1000 / (
                 df['HVAC Heating Main Power (kW)'] + df.get('HVAC Heating ER Power (kW)', missing)))
-        df['HVAC Cooling COP (-)'] = replace_nans(df['HVAC Cooling Capacity (kW)'] / df['HVAC Cooling Main Power (kW)'])
-        df['HVAC Cooling SHR (-)'] = replace_nans(df['HVAC Cooling Sensible Capacity (kW)'] /
-                                                  df['HVAC Cooling Capacity (kW)'])
+        df['HVAC Cooling COP (-)'] = replace_nans(df['HVAC Cooling Capacity (W)'] / 1000 / df['HVAC Cooling Main Power (kW)'])
+        df['HVAC Cooling SHR (-)'] = replace_nans(df['HVAC Cooling Sensible Capacity (W)'] /
+                                                  df['HVAC Cooling Capacity (W)'])
 
         # calculate indoor wet bulb - BEopt only
         df['Temperature - Indoor Wet Bulb (C)'] = psychrolib.GetTWetBulbFromRelHum(
@@ -307,15 +307,15 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
 
         for end_use, hvac_mult in [('HVAC Heating', 1), ('HVAC Cooling', -1)]:
             # Delivered heating/cooling
-            if end_use + ' Delivered (kW)' in results:
-                delivered = results[end_use + ' Delivered (kW)']
+            if end_use + ' Delivered (W)' in results:
+                delivered = results[end_use + ' Delivered (W)'] / 1000  # in kW
                 delivered_sum = delivered.sum(skipna=False)
                 metrics['Total {} Delivered (kWh)'.format(end_use)] = delivered_sum * hr_per_step
             else:
                 delivered_sum = 0
 
-            if end_use + ' Capacity (kW)' in results:
-                capacity = results[end_use + ' Capacity (kW)']
+            if end_use + ' Capacity (W)' in results:
+                capacity = results[end_use + ' Capacity (W)'] / 1000  # in kW
                 capacity_sum = capacity.sum()
 
                 # FUTURE: maybe add: fan power ratio = total power / main power;
@@ -346,12 +346,12 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
                     metrics[f'Average {end_use} Duct Efficiency (-)'] = delivered_sum / (sens_capacity_sum + fan_heat)
 
                 # HVAC capacity - only when device is on
-                if metrics_verbosity >= 8:
+                if metrics_verbosity >= 8:  
                     metrics['Average {} Capacity (kW)'.format(end_use)] = capacity[capacity > 0].mean()
 
     # Water heater and hot water metrics
-    if metrics_verbosity >= 4 and 'Water Heating Delivered (kW)' in results:
-        heat = results['Water Heating Delivered (kW)']
+    if metrics_verbosity >= 4 and 'Water Heating kW)' in results:
+        heat = results['Water Heating Delivered (W)'] / 1000  # in kW
         metrics['Total Water Heating Delivered (kWh)'] = heat.sum(skipna=False) * hr_per_step
 
         # COP - weighted average only when device is on
@@ -369,9 +369,9 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             # FUTURE: Down with imperial units!
             metrics['Total Hot Water Delivered (gal/day)'] = convert(
                 results['Hot Water Delivered (L/min)'].mean(skipna=False), 'L/min', 'gallon/day')
-        if 'Hot Water Delivered (kW)' in results:
+        if 'Hot Water Delivered (W)' in results:
             metrics['Total Hot Water Delivered (kWh)'] = \
-                results['Hot Water Delivered (kW)'].sum(skipna=False) * hr_per_step
+                results['Hot Water Delivered (W)'].sum(skipna=False) / 1000 * hr_per_step
 
     # Battery metrics
     if metrics_verbosity >= 4 and 'Battery Electric Power (kW)' in results:
