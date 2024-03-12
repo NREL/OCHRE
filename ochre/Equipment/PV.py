@@ -66,8 +66,9 @@ def run_sam(
     system_model.execute()
 
     # get results, make negative for generation
-    ac = pd.Series(system_model.Outputs.ac, index=time) / 1000  # in kW
-    # dc = pd.Series(system_model.Outputs.dc, index=time) / 1000  # in kW
+    ac = - pd.Series(system_model.Outputs.ac, index=time) / 1000  # in kW
+    # dc = - pd.Series(system_model.Outputs.dc, index=time) / 1000  # in kW
+    print(ac.mean())
     return ac
 
 
@@ -131,7 +132,7 @@ class PV(ScheduledLoad):
             self.inverter_capacity = self.capacity
 
         # check that schedule is negative
-        if self.schedule[self.electric_name].abs().min() < self.schedule[self.electric_name].abs().max():
+        if self.schedule[self.electric_name].mean() > 0:
             self.warn('Schedule should be negative (i.e. generating power).',
                       'Reversing schedule so that PV power is negative/generating')
             self.schedule = self.schedule * -1
