@@ -10,18 +10,14 @@ init_args = equip_init_args.copy()
 init_args.update({
     'capacity': 10,
     'tilt': 20,
-    'orientation': 180,
-    'include_inverter': True,
+    'azimuth': 180,
     'time_res': dt.timedelta(minutes=15),
-    'sam_weather_file': os.path.join(default_input_path, 'Weather', 'sample_SAM_weather.csv'),
 })
 
 scheduled_init_args = equip_init_args.copy()
 scheduled_init_args.update({
-    'include_inverter': True,
     'time_res': dt.timedelta(minutes=15),
     'equipment_schedule_file': 'test_pv_schedule.csv',
-
 })
 
 
