@@ -8,7 +8,7 @@ import numba  # required for array-based psychrolib
 import psychrolib
 from numpy.polynomial.polynomial import Polynomial
 
-from ochre.utils import convert, load_csv, ZONES
+from ochre.utils import OCHREException, convert, load_csv, ZONES
 from ochre.Equipment import ALL_END_USES
 
 psychrolib.SetUnitSystem(psychrolib.SI)
@@ -111,10 +111,10 @@ def load_eplus_file(file_name, eplus_format='ResStock', variable_names_file='Var
     elif eplus_format == 'Eplus Detailed':
         df = pd.read_csv(file_name)
     else:
-        raise Exception(f'Unknown EnergyPlus output file format: {eplus_format}')
+        raise OCHREException(f'Unknown EnergyPlus output file format: {eplus_format}')
 
     if len(df) != 8760:
-        raise Exception(f'Comparison file should have 8760 rows: {file_name}')
+        raise OCHREException(f'Comparison file should have 8760 rows: {file_name}')
 
     # Load variable names and units file
     df_names = load_csv(variable_names_file)
@@ -560,12 +560,12 @@ def find_files_from_ending(path, ending, priority_list=None, **kwargs):
             # select file match in priority list. If not found, throw an error
             matches = [f for f in priority_list if f in matches]
             if len(matches) != 1:
-                raise Exception(f'{len(matches)} files found matching {ending} in {root}: {matches}')
+                raise OCHREException(f'{len(matches)} files found matching {ending} in {root}: {matches}')
         
         file_path = os.path.join(root, matches[0])
         run_name = get_parent_folders(file_path, **kwargs)
         if run_name in all_files:
-            raise Exception(f'Multiple files found with same run name ({run_name}).'
+            raise OCHREException(f'Multiple files found with same run name ({run_name}).'
                              'Try increasing dirs_to_include. Error from:', file_path)
 
         all_files[run_name] = file_path        

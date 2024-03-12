@@ -1,6 +1,7 @@
 import numpy as np
 import datetime as dt
 
+from ochre.utils import OCHREException
 from ochre.utils.units import convert, degC_to_K, cfm_to_m3s
 import ochre.utils.envelope as utils
 from ochre.Models import RCModel, HumidityModel, ModelException
@@ -469,7 +470,7 @@ class Boundary:
         cap_values = [kwargs['C_' + self.label + str(i)] for i in range(10) if 'C_' + self.label + str(i) in kwargs]
         res_values = [kwargs['R_' + self.label + str(i)] for i in range(10) if 'R_' + self.label + str(i) in kwargs]
         if not len(cap_values) and self.name != 'Window':
-            raise Exception(f'Missing RC coefficients for {self.name} with properties: {kwargs}')
+            raise OCHREException(f'Missing RC coefficients for {self.name} with properties: {kwargs}')
         if len(res_values) != len(cap_values):
             raise ModelException(f'Cannot parse RC data for {self.name}. Number of resistors ({len(res_values)}) is not'
                                  f' compatible with the number of capacitors ({len(cap_values)})')
@@ -1005,7 +1006,7 @@ class Envelope(RCModel):
         elif zone_name in self.ext_zones:
             return self.ext_zones[zone_name].temperature
         else:
-            raise Exception(f'Unknown zone name {zone_name}.')
+            raise OCHREException(f'Unknown zone name {zone_name}.')
 
     def add_component_loads(self):
         # TODO

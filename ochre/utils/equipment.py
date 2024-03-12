@@ -2,7 +2,7 @@ import math
 import numpy as np
 import psychrolib
 
-from ochre.utils import load_csv, convert
+from ochre.utils import OCHREException, load_csv, convert
 
 psychrolib.SetUnitSystem(psychrolib.SI)
 
@@ -73,7 +73,7 @@ def get_duct_info(ducts, zones, boundaries, construction, location, **kwargs):
         else:
             zone_type = 'unins_basement'
     else:
-        raise Exception('Unknown duct location: {duct_location}')
+        raise OCHREException('Unknown duct location: {duct_location}')
 
     return {
         'Zone Type': zone_type,
@@ -106,7 +106,7 @@ def update_equipment_properties(properties, schedule, zip_parameters_file='ZIP P
         named = {key: val for key, val in all_equipment.items() if key in names_by_type.values()}
         if len(named) > 1:
             eq_names = list(named.keys())
-            raise IOError(f'Only 1 {end_use} equipment is allowed, but multiple were included in inputs: {eq_names}')
+            raise OCHREException(f'Only 1 {end_use} equipment is allowed, but multiple were included in inputs: {eq_names}')
         
         # Get equipment name from named dict and from generic (using name and fuel)
         eq_name, eq_data = list(named.items())[0] if named else None, {}
@@ -117,7 +117,7 @@ def update_equipment_properties(properties, schedule, zip_parameters_file='ZIP P
             eq_fuel = 'Natural gas'
         generic_name = names_by_type.get((eq_type, eq_fuel))
         if generic_name is None and eq_type is not None:
-            raise Exception(f'Unknown {end_use} type ({eq_type}) and fuel ({eq_fuel}) combo.')
+            raise OCHREException(f'Unknown {end_use} type ({eq_type}) and fuel ({eq_fuel}) combo.')
 
         # compare names from generic and named dicts
         if generic_name is None and eq_name is None:
@@ -200,7 +200,7 @@ def calculate_duct_dse(hvac, ducts, climate_file='ASHRAE152_climate_data.csv',
         capacity = convert(hvac.capacity_list[4], 'W', 'Btu/hour')
         fan_flow = convert(hvac.flow_rate_list[4], 'm^3/s', 'cubic_feet/min')
     else:
-        raise Exception(f'Unknown number of speeds for {hvac.name}: {hvac.n_speeds}')
+        raise OCHREException(f'Unknown number of speeds for {hvac.name}: {hvac.n_speeds}')
 
     # Other inputs
     ambient_temp = 68 if hvac.is_heater else 78
@@ -422,7 +422,7 @@ def calculate_duct_dse(hvac, ducts, climate_file='ASHRAE152_climate_data.csv',
     if 1 < dse <= 1.1:
         print(f'WARNING: {hvac_type} DSE slightly above 1.0 ({dse}). Setting to 1.0')
     elif not (0 < dse <= 1):
-        raise Exception(f'{hvac_type} DSE out of bounds: {dse}')
+        raise OCHREException(f'{hvac_type} DSE out of bounds: {dse}')
     elif dse < 0.4:
         print(f'WARNING: Low {hvac_type} DSE: {dse}')
 

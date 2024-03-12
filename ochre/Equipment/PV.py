@@ -230,7 +230,7 @@ class PV(ScheduledLoad):
                 p /= kva_ratio
                 q /= kva_ratio
             else:
-                raise Exception('Unknown {} inverter priority mode: {}'.format(self.name, self.inverter_priority))
+                raise OCHREException('Unknown {} inverter priority mode: {}'.format(self.name, self.inverter_priority))
 
         # Set powers. Negative = generating power
         self.electric_kw = p
