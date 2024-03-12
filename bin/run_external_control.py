@@ -1,7 +1,7 @@
 import datetime as dt
 import pandas as pd
 
-from ochre import Dwelling
+from ochre import Dwelling, CreateFigures
 from bin.run_dwelling import dwelling_args
 
 # Test script to run single Dwelling with constant external control signal
@@ -9,17 +9,29 @@ from bin.run_dwelling import dwelling_args
 dwelling_args.update({
     'time_res': dt.timedelta(minutes=10),
     'ext_time_res': dt.timedelta(minutes=60),  # for duty cycle control only
+    'Equipment': {
+        'Battery': {},
+    },
 })
 
 example_control_signal = {
-    'HVAC Heating': {'Setpoint': 19,
-                    #  'Max Capacity Fraction': 0.8,
-                     'Max ER Capacity Fraction': 0.5,
-                     },  # in C
-    'HVAC Cooling': {'Setpoint': 22},  # in C
-    'Water Heating': {'Setpoint': 50},  # in C
-    'PV': {'P Setpoint': -1.1, 'Q Setpoint': 0.5},  # in kW, kVAR
-    'Battery': {'P Setpoint': -1.0},  # in kW
+    "HVAC Heating": {
+        "Setpoint": 19,
+        #  'Max Capacity Fraction': 0.8,
+        "Max ER Capacity Fraction": 0.5,
+    },  # in C
+    "HVAC Cooling": {"Setpoint": 22},  # in C
+    "Water Heating": {"Setpoint": 50},  # in C
+    "PV": {"P Setpoint": -1.1, "Q Setpoint": 0.5},  # in kW, kVAR
+    "Battery": {
+        # 'P Setpoint': -1.0,  # in kW
+        # "SOC": 0.8,
+        "Self Consumption Mode": True,
+        "Max Import Limit": 1,  # in kW
+        "Max Export Limit": 1,  # in kW
+        # 'Min SOC': 0.2,
+        # 'Max SOC': 0.8,
+    },
 }
 
 
@@ -50,6 +62,11 @@ def run_constant_control_signal(control_signal=None):
         house_status = dwelling.update(control_signal=control_signal)
 
     df, _, _ = dwelling.finalize()
+
+    df["Battery Electric Power (kW)"].plot()
+    # df["Total Electric Power (kW)"].plot()
+    # df["Battery SOC (-)"].plot()
+    CreateFigures.plt.show()
 
 
 def get_hvac_controls(hour_of_day, occupancy, heating_setpoint, **unused_inputs):
@@ -134,6 +151,6 @@ def run_controls_from_file(control_file):
 
 if __name__ == '__main__':
     # run_with_schedule_control()
-    # run_constant_control_signal(example_control_signal)
-    run_with_hvac_controller()
+    run_constant_control_signal(example_control_signal)
+    # run_with_hvac_controller()
     # run_controls_from_file(external_control_file='path/to/control_file.csv')
