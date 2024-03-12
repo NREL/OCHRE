@@ -68,7 +68,6 @@ def run_sam(
     # get results, make negative for generation
     ac = - pd.Series(system_model.Outputs.ac, index=time) / 1000  # in kW
     # dc = - pd.Series(system_model.Outputs.dc, index=time) / 1000  # in kW
-    print(ac.mean())
     return ac
 
 
