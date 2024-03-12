@@ -100,6 +100,11 @@ class Generator(Equipment):
         return self.update_internal_control()
 
     def update_internal_control(self):
+        if f"{self.end_use} Max Import Limit (kW)" in self.current_schedule:
+            self.import_limit = self.current_schedule[f"{self.end_use} Max Import Limit (kW)"]
+        if f"{self.end_use} Max Export Limit (kW)" in self.current_schedule:
+            self.export_limit = self.current_schedule[f"{self.end_use} Max Export Limit (kW)"]
+
         # Set power setpoint based on internal control type
         if self.self_consumption_mode:
             net_power = self.current_schedule.get("net_power")

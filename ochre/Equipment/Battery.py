@@ -156,9 +156,9 @@ class Battery(Generator):
 
         # Control parameters
         self.charge_solar_only = kwargs.get("Charge from Solar Only", False)
-        self.soc_setpoint = None
-        self.soc_min_ctrl = None
-        self.soc_max_ctrl = None
+        # self.soc_setpoint = None  # not used
+        self.soc_min_ctrl = self.soc_min
+        self.soc_max_ctrl = self.soc_max
 
     def update_inputs(self, schedule_inputs=None):
         # Add zone temperature to schedule inputs for water tank
