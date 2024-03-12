@@ -259,17 +259,14 @@ class Dwelling(Simulator):
     def start_sub_update(self, sub, control_signal):
         sub_control_signal = super().start_sub_update(sub, control_signal)
         
-        if isinstance(sub, Generator):
-            # Add house net_power and pv_power to control signal for equipment that use it (Generator and Battery)
-            if sub_control_signal is None:
-                sub_control_signal = {}
+        # Add house net_power to schedule for Generator
+        if isinstance(sub, Generator) and 'net_power' not in sub.current_schedule:
+            sub.current_schedule["net_power"] = self.total_p_kw
 
-            # TODO: update schedule, not control signal
-            if 'net_power' not in sub_control_signal:
-                sub_control_signal['net_power'] = self.total_p_kw
-            if isinstance(sub, Battery) and 'pv_power' not in sub_control_signal:
-                pv_power = sum([e.electric_kw for e in self.equipment_by_end_use['PV']])
-                sub_control_signal['pv_power'] = pv_power
+        # Add pv_power to schedule for Battery
+        if isinstance(sub, Battery) and "pv_power" not in sub.current_schedule:
+            pv_power = sum([e.electric_kw for e in self.equipment_by_end_use['PV']])
+            sub.current_schedule["pv_power"] = pv_power
 
         return sub_control_signal
     
