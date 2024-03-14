@@ -4,6 +4,7 @@
 
 .idea/
 .vscode/
+.venv
 .env
 __pycache__/
 src/
@@ -12,6 +13,7 @@ dist/
 *.egg-info/
 *.code-workspace
 environment.yml
+requirements.txt
 
 defaults/Input Files/OCHRE*
 outputs/
