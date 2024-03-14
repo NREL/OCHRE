@@ -1,8 +1,9 @@
 import os
 import re
 import json
-import pandas as pd
 import datetime as dt
+import pandas as pd
+import pyarrow.parquet as pq
 import numpy as np
 import numba  # required for array-based psychrolib
 import psychrolib
@@ -33,7 +34,7 @@ def get_agg_func(column, agg_type='Time'):
         return 'mean' if unit in units_to_mean else 'sum'
 
 
-def load_timeseries_file(file_name, columns=None, resample_res=None, **kwargs):
+def load_timeseries_file(file_name, columns=None, resample_res=None, ignore_errors=True, **kwargs):
     # Loads OCHRE-defined timeseries files, csv and parquet options
     # option to specify columns to load as a list. Will add 'Time' index
     # option to resample the file at a given timedelta, will take the mean of all columns
@@ -44,6 +45,11 @@ def load_timeseries_file(file_name, columns=None, resample_res=None, **kwargs):
 
     extn = os.path.splitext(file_name)[1]
     if extn == '.parquet':
+        if ignore_errors and columns:
+            # check that all columns exist, see:
+            # https://stackoverflow.com/questions/65705660/ignore-columns-not-present-in-parquet-with-pyarrow-in-pandas
+            parquet_file = pq.ParquetFile(file_name)
+            columns = [c for c in columns if c in parquet_file.schema.names]
         df = pd.read_parquet(file_name, columns=columns, **kwargs)
     elif extn == '.csv':
         df = pd.read_csv(file_name, index_col='Time', parse_dates=True, usecols=columns, **kwargs)
@@ -263,7 +269,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             'Peak Electric Power (kW)': p.max(),
             'Peak Electric Power - 15 min avg (kW)': p.resample('15min').mean().max(),
             'Peak Electric Power - 30 min avg (kW)': p.resample('30min').mean().max(),
-            'Peak Electric Power - 1 hour avg (kW)': p.resample('1H').mean().max(),
+            'Peak Electric Power - 1 hour avg (kW)': p.resample('1h').mean().max(),
         })
 
     # End use power metrics
