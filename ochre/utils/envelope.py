@@ -24,7 +24,7 @@ CARDINAL_DIRECTIONS = {
 
 
 def get_boundary_tilt(name):
-    # get boundary tilt (i.e. orientation) based on boundary name (0-90 degrees)
+    # get boundary tilt based on boundary name (0-90 degrees)
     if any([x in name for x in ['Floor', 'Ceiling']]):
         tilt = 0  # horizontal
     elif any([x in name for x in ['Wall', 'Rim Joist', 'Window', 'Door', 'Furniture']]):

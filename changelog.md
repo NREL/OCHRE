@@ -2,8 +2,11 @@
 
 ### Changes from PRs
 
+- Updated PV model to integrate with PVWatts using PySAM v5.0 (not backwards compatible)
+- Removed and renamed PV input arguments related to PySAM
 - Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
 - Fixed bug with ASHP backup heater units
+- PV model accepts tilt and azimuth angles from roof boundary in envelope
 - Added OCHREException class to handle errors
 - Fixed bug with state space model reduction algorithm
 
