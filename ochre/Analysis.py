@@ -427,7 +427,8 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             unique_modes = [mode for mode in modes.unique() if mode != 'Off']
             for unique_mode in unique_modes:
                 on = modes == unique_mode
-                cycles = on.diff().fillna(on).clip(lower=0).sum()
+                cycle_starts = on & (~on).shift()
+                cycles = cycle_starts.sum()
                 if cycles <= 1:
                     continue
                 elif len(unique_modes) == 1:
