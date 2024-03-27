@@ -375,21 +375,24 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
 
     # Battery metrics
     if metrics_verbosity >= 4 and 'Battery Electric Power (kW)' in results:
-        p = results['Battery Electric Power (kW)']
-        metrics['Battery Charging Energy (kWh)'] = p.clip(lower=0).sum(skipna=False) * hr_per_step
-        metrics['Battery Discharging Energy (kWh)'] = -p.clip(upper=0).sum(skipna=False) * hr_per_step
+        batt_energy = results['Battery Electric Power (kW)'] * hr_per_step
+        metrics['Battery Charging Energy (kWh)'] = batt_energy.clip(lower=0).sum(skipna=False)
+        metrics['Battery Discharging Energy (kWh)'] = -batt_energy.clip(upper=0).sum(skipna=False)
         if metrics['Battery Charging Energy (kWh)'] != 0:
             metrics['Battery Round-trip Efficiency (-)'] = (metrics['Battery Discharging Energy (kWh)'] /
                                                             metrics['Battery Charging Energy (kWh)'])
             
         if all([r in results for r in ['Battery Energy to Discharge (kWh)', 'Total Electric Energy (kWh)']]):
-            cumulative_energy = results['Total Electric Energy (kWh)'].cumsum()
+            cumulative_energy = (results['Total Electric Energy (kWh)'] - batt_energy).cumsum()
             end_energy = cumulative_energy + results['Battery Energy to Discharge (kWh)']
-            end_times = cumulative_energy.searchsorted(end_energy)
-            last_time = end_energy.index[-1] + time_res
-            end_energy = pd.concat([end_energy, pd.Series(index=[last_time])])  # add 1 row for last time step
-            end_times = end_energy.iloc[end_times].index
-            results['Islanding Time (hours)'] = (end_times - results.index).total_seconds() / 3600
+            last_time = results.index[-1] + time_res
+            islanding_times = []
+            for t, energy in end_energy.items():
+                future_energies = cumulative_energy[t : t + dt.timedelta(days=7)]
+                end_time = (future_energies >= energy).idxmax()
+                islanding_time = (end_time - t).total_seconds() / 3600 if end_time > t else 24 * 7
+                islanding_times.append(islanding_time)
+            results["Islanding Time (hours)"] = islanding_times
 
             metrics['Average Islanding Time (hours)'] = results['Islanding Time (hours)'].mean()
 
