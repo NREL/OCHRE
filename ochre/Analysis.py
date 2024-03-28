@@ -350,7 +350,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
                     metrics['Average {} Capacity (kW)'.format(end_use)] = capacity[capacity > 0].mean()
 
     # Water heater and hot water metrics
-    if metrics_verbosity >= 4 and 'Water Heating kW)' in results:
+    if metrics_verbosity >= 4 and "Water Heating Delivered (W)" in results:
         heat = results['Water Heating Delivered (W)'] / 1000  # in kW
         metrics['Total Water Heating Delivered (kWh)'] = heat.sum(skipna=False) * hr_per_step
 
