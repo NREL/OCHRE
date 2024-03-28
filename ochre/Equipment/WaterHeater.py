@@ -426,6 +426,8 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         # Nominal COP based on simulation of the UEF test procedure at varying COPs
         self.cop_nominal = kwargs['HPWH COP (-)']
         self.hp_cop = self.cop_nominal
+        if self.cop_nominal < 2:
+            self.warn("Low Nominal COP:", self.cop_nominal)
 
         # Heat pump capacity and power parameters - hardcoded for now
         if 'HPWH Capacity (W)' in kwargs:
