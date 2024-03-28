@@ -263,7 +263,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             'Peak Electric Power (kW)': p.max(),
             'Peak Electric Power - 15 min avg (kW)': p.resample('15min').mean().max(),
             'Peak Electric Power - 30 min avg (kW)': p.resample('30min').mean().max(),
-            'Peak Electric Power - 1 hour avg (kW)': p.resample('1H').mean().max(),
+            'Peak Electric Power - 1 hour avg (kW)': p.resample('1h').mean().max(),
         })
 
     # End use power metrics
