@@ -978,6 +978,10 @@ class HeatPumpHeater(DynamicHVAC, Heater):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+        # Check EIR and print warning if too low
+        if self.eir_max > 0.5:
+            self.warn("Low EIR:", self.eir_max, "(at full capacity)")
+
         # Defrost Parameters
         self.defrost = False
         self.power_defrost = 0
