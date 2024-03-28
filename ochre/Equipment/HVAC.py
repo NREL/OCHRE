@@ -700,6 +700,10 @@ class DynamicHVAC(HVAC):
 
         super().__init__(**kwargs)
 
+        # Check EIR and print warning if too low
+        if self.eir_max > 0.5:
+            self.warn("Low EIR:", self.eir_max, "(at full capacity)")
+
     def initialize_biquad_params(self, **kwargs):
         if self.n_speeds not in SPEED_TYPES:
             raise OCHREException('Unknown number of speeds ({}). Should be one of: {}'.format(self.n_speeds,

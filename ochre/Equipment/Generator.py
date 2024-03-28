@@ -110,12 +110,8 @@ class Generator(Equipment):
             net_power = self.current_schedule.get("net_power")
             if net_power is not None:
                 # account for import/export limits
-                if net_power >= 0:
-                    # generation only
-                    self.power_setpoint = min(-net_power + self.export_limit, 0)
-                else:
-                    # consumption only
-                    self.power_setpoint = max(-net_power - self.import_limit, 0)
+                desired_power = max(min(net_power, self.import_limit), -self.export_limit)
+                self.power_setpoint = desired_power - net_power
             else:
                 self.warn("Cannot run Self-Consumption control without net power")
                 self.power_setpoint = 0
