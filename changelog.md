@@ -5,18 +5,23 @@
 - Updated PV model to integrate with PVWatts using PySAM v5.0 (not backwards compatible)
 - PV model accepts tilt and azimuth angles from roof boundary in envelope
 - Removed and renamed PV input arguments related to PySAM
+- Changed the units for some outputs related to heat gains/capacity
 - Added controls and optional schedule columns for HVAC, WH, EV, Battery
 - Added HVAC capacity and max capacity controls, ideal mode only
 - Require HVAC duty cycle control for thermostatic mode only
 - Added water heater max power control
 - Added EV max power and max SOC controls
+- Added OCHREException class to handle errors
+- Added warnings for HVAC and WH heat pumps with low COP
+- Fixed bug with schedule file import using Pandas v2.2
 - Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
 - Fixed bug with ASHP backup heater units
 - Fixed bug with named HVAC/Water Heating equipment arguments
 - Fixed bug in ASHP duty cycle control
 - Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
 - Fixed bug with ASHP backup heater units
-- Added OCHREException class to handle errors
+- Fixed bug with battery/generator self-consumption controls
+- Fixed bug with WH and battery islanding time metrics
 - Fixed bug with state space model reduction algorithm
 
 ### OCHRE v0.8.4-beta
