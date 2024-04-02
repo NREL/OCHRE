@@ -219,47 +219,48 @@ basement.
 Water Heating
 -------------
 
-OCHRE currently supports modeling tank, tankless and heat pump water
-heaters. The water tank model is an RC model that tracks temperature
-throughout the tank. It is a flexible model that can handle multiple
-nodes in the water tank. Currently, a 12-node, 2-node, and 1-node model
-are implemented. RC coefficients are derived from the properties file.
-The fully mixed tank models the entire tank as a single node with a
-uniform temperature. This model is best suited to large timesteps. In
-residential waters, stratification occurs as cold water is brought into
-the bottom of the tank and buoyancy drives the hottest water to the top
-of the tank. The stratified tank model captures this buoyancy and the
-effect it has on outlet temperature as well as the “dead volume” below
-the lower element in an electric water heater that doesn’t get heated
-during normal operation. Note that to model a heat pump water heater a
-stratified tank model must be used (2 or 12 nodes, with 12 nodes
-generally being more accurate but also more computationally intensive.
-In HPWHs, the heat pump performance is a function of the ambient air wet
-bulb temperature (calculated using the humidity module in OCHRE) and the
-temperature of water adjacent to the condenser (typically the bottom
-half of the tank in most products on the market today).
+OCHRE models electric resistance and gas tank water heaters, electric and gas
+tankless water heaters, and heat pump water heaters.
 
-The tank model accounts for internal and external conduction, heat flows
-from water draws, and includes an algorithm to simulate temperature
-inversion mixing (ie stratification) if more than 1 node is used. The
-model can handle regular and tempered water draws. A separate water draw
-file is currently required to set the water draw profile. In standard
-usage, this draw profile is part of the schedule file generated as part
-of creating inputs (see the section on schedule inputs)
+In tank water heaters, stratification occurs as cold water is brought into the
+bottom of the tank and buoyancy drives the hottest water to the top of the
+tank. OCHRE's stratified water tank model captures this buoyancy using
+multi-node RC network that tracks temperatures vertically throughout the tank
+and an algorithm to simulate temperature inversion mixing (i.e.,
+stratification). The tank model also accounts for internal and external
+conduction, heat flows from water draws, and the location of upper and lower
+heating elements when determining tank temperatures. It is a flexible model
+that can handle multiple nodes, although a 12-node, 2-node, and 1-node model
+are currently implemented. RC coefficients are derived from the HPXML file.
+The 1-node model ignores the effects of stratification and maintains a uniform
+temperature in the tank. This model is best suited for large timesteps.
 
-Mechanically, water heaters with a tank follow a similar structure to
-HVAC equipment. For example, the Electric Resistance Water Heater has a
-static capacity, while the Heat Pump Water Heater has a dynamic capacity
-(and a backup electric resistance element similar to the Air Source Heat
-Pump). Tankless water heaters operate similarly to Ideal HVAC equipment,
-although an 8% derate is applied to the nominal efficiency of the unit
-to account for cycling losses in accordance with ANSI/RESNET 301.
+Similar to HVAC equipment, electric resistance and gas heating elements are
+modeled with static capacity and efficiency. The Electric Resistance Water
+Heater model includes upper and lower heating elements and two temperature
+sensors for the thermostatic control.
 
-Similar to HVAC equipment, water heater equipment has a thermostat
-control, and can be externally controlled by updating the thermostat
-setpoints and deadband, specifying a duty cycle, or direct shut-off.
-Tankless equipment can only be controlled through thermostat control and
-direct-shut-off.
+In heat pump water heaters, the heat pump capacity and efficiency are
+functions of the ambient air wet bulb temperature (calculated using the
+humidity module in OCHRE) and the temperature of water adjacent to the
+condenser (typically the bottom half of the tank in most products on the
+market today). The model also includes an electric resistance backup element
+at the top of the tank.
+
+Tankless water heaters operate similarly to Ideal HVAC equipment, although an
+8% derate is applied to the nominal efficiency of the unit to account for
+cycling losses in accordance with ANSI/RESNET 301.
+
+The model accounts for regular and tempered water draws. Sink, shower, and
+bath water draws are modeled as tempered (i.e., the volume of hot water
+depends on the outlet temperature), and appliance draws are modeled as regular
+(i.e., the volume is fixed). Water draw schedules are required in the
+schedule.
+
+Similar to HVAC equipment, water heater equipment has a thermostat control,
+and can be externally controlled by updating the thermostat setpoints and
+deadband, specifying a duty cycle, or direct shut-off. Tankless equipment can
+only be controlled through thermostat control and direct-shut-off.
 
 Electric Vehicles
 -----------------
