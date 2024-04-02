@@ -6,13 +6,19 @@ from bin.run_dwelling import dwelling_args
 
 # Test script to run single Dwelling with constant external control signal
 
-dwelling_args.update({
-    'time_res': dt.timedelta(minutes=10),
-    'ext_time_res': dt.timedelta(minutes=60),  # for duty cycle control only
-    'Equipment': {
-        'Battery': {},
-    },
-})
+dwelling_args.update(
+    {
+        "time_res": dt.timedelta(minutes=10),
+        "ext_time_res": dt.timedelta(minutes=60),  # for duty cycle control only
+        "Equipment": {
+            "EV": {
+                'vehicle_type': 'BEV',
+                'charging_level': 'Level 2',
+                'mileage': 150,
+            },
+        },
+    }
+)
 
 example_control_signal = {
     "HVAC Heating": {
@@ -31,6 +37,14 @@ example_control_signal = {
         "Max Export Limit": 1,  # in kW
         # 'Min SOC': 0.2,
         # 'Max SOC': 0.8,
+    },
+    "EV": {
+        # "Delay": True,
+        "Max Power": 6,
+        "Max SOC": 0.7,
+        # "P Setpoint": 5,
+        # "SOC": 0.6,
+        # "SOC Rate": 0.02,
     },
 }
 
@@ -63,9 +77,8 @@ def run_constant_control_signal(control_signal=None):
 
     df, _, _ = dwelling.finalize()
 
-    df["Battery Electric Power (kW)"].plot()
-    # df["Total Electric Power (kW)"].plot()
-    # df["Battery SOC (-)"].plot()
+    df["EV Electric Power (kW)"].plot()
+    df["EV SOC (-)"].plot()
     CreateFigures.plt.show()
 
 

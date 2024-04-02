@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import datetime as dt
 import pandas as pd
@@ -248,10 +247,9 @@ class ElectricVehicle(EventBasedLoad):
         # force ac power within kw capacity and SOC limits, no discharge allowed
         hours = self.time_res.total_seconds() / 3600
         ac_power = (self.soc_max_ctrl - self.soc) * self.capacity / hours / EV_EFFICIENCY
+        ac_power = min(max(ac_power, 0), self.max_power_ctrl)
         if self.setpoint_power is not None:
-            ac_power = min(max(ac_power, 0), self.setpoint_power)
-        else:
-            ac_power = min(max(ac_power, 0), self.max_power_ctrl)
+            ac_power = min(ac_power, self.setpoint_power)
         self.electric_kw = ac_power
 
         # update SOC for next time step, check with upper and lower bound of usable SOC
