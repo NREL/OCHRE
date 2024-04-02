@@ -5,8 +5,11 @@
 - Updated PV model to integrate with PVWatts using PySAM v5.0 (not backwards compatible)
 - PV model accepts tilt and azimuth angles from roof boundary in envelope
 - Removed and renamed PV input arguments related to PySAM
+- Added controls and optional schedule columns for HVAC, WH, EV, Battery
 - Added HVAC capacity and max capacity controls, ideal mode only
 - Require HVAC duty cycle control for thermostatic mode only
+- Added water heater max power control
+- Added EV max power and max SOC controls
 - Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
 - Fixed bug with ASHP backup heater units
 - Fixed bug with named HVAC/Water Heating equipment arguments
