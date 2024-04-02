@@ -27,6 +27,7 @@ class Dwelling(Simulator):
                  **house_args):
         super().__init__(**house_args)
         house_args.pop('name', None)  # remove name from kwargs
+        house_args['main_sim_name'] = self.name
 
         # Time parameters
         if self.initialization_time is not None:
@@ -104,7 +105,6 @@ class Dwelling(Simulator):
             'start_time': self.start_time,  # updates time zone if necessary
             'schedule': schedule,
             'initial_schedule': schedule.loc[self.start_time].to_dict(),
-            'main_sim_name': self.name,
             'output_path': self.output_path,
         }
 

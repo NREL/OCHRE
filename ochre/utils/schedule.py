@@ -16,9 +16,6 @@ from ochre.utils.envelope import calculate_solar_irradiance
 
 # List of variables and functions for loading and parsing schedule files
 
-header_file = os.path.join(default_input_path, 'PV', 'sam_weather_header.csv')
-default_sam_weather_file = os.path.join(default_input_path, 'PV', 'SAM_weather_{}.csv')  # placeholder for house name
-
 # TODO: move to simple schedule parameters file?
 SCHEDULE_NAMES = {
     'Occupancy': {
@@ -121,44 +118,8 @@ def set_annual_index(df, start_year, offset=None, timezone=None):
     return df
 
 
-def create_sam_weather_file(df_input, location, sam_weather_file=None, **kwargs):
-    # Convert weather data to SAM readable format
-    if sam_weather_file is None:
-        sam_weather_file = default_sam_weather_file.format(kwargs['main_sim_name'])
-
-    # load header file
-    header = pd.read_csv(header_file)
-
-    # update params
-    header['Latitude'] = location['latitude']
-    header['Longitude'] = location['longitude']
-    header['Time Zone'] = location['timezone']
-    header['Elevation'] = location['Altitude']
-    header['Local Time Zone'] = location['timezone']
-
-    # build main weather data
-    df = df_input.loc[:, ['DNI (W/m^2)', 'GHI (W/m^2)', 'DHI (W/m^2)', 'Wind Speed (m/s)']]
-    df['Year'] = df.index.year
-    df['Month'] = df.index.month
-    df['Day'] = df.index.day
-    df['Hour'] = df.index.hour
-    df['Minute'] = df.index.minute
-    df['Temperature'] = df_input['Ambient Dry Bulb (C)']
-
-    # Re-order columns
-    columns = ['Year', 'Month', 'Day', 'Hour', 'Minute',
-               'DNI (W/m^2)', 'GHI (W/m^2)', 'DHI (W/m^2)', 'Temperature', 'Wind Speed (m/s)']
-    df = df.loc[:, columns]
-    df.columns = [col[:col.index('(') - 1] if '(' in col else col for col in df.columns]
-
-    # Save new weather data to csv, with header
-    header.to_csv(sam_weather_file, index=False)
-    df.to_csv(sam_weather_file, mode='a', index=False)
-
-
 # FUTURE: could get epw file from API, ResStock uses https://data.nrel.gov/system/files/156/BuildStock_TMY3_FIPS.zip
-def import_weather(weather_file=None, weather_path=None, weather_station=None, weather_metadata=None,
-                   create_sam_file=None, **kwargs):
+def import_weather(weather_file=None, weather_path=None, weather_station=None, weather_metadata=None, **kwargs):
     # get weather station and weather file name
     if weather_file is not None and weather_station is not None:
         if weather_station not in weather_file:
@@ -175,10 +136,6 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
         if weather_path is None:
             weather_path = os.path.join(default_input_path, 'Weather')
         weather_file = os.path.join(weather_path, weather_file)
-
-    if create_sam_file is None:
-        pv = kwargs.get('Equipment', {}).get('PV')
-        create_sam_file = pv is not None and 'equipment_schedule_file' not in pv
 
     start_year = kwargs['start_time'].year
     ext = os.path.splitext(weather_file)[-1]
@@ -300,13 +257,6 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
     df['Ambient Wet Bulb (-)'] = psychrolib.GetTWetBulbFromHumRatio(df['Ambient Dry Bulb (C)'].values,
                                                                     df['Ambient Humidity Ratio (-)'].values,
                                                                     df['Ambient Pressure (kPa)'].values * 1000)
-
-    # If creating a PV profile, interpolate weather and save SAM file
-    if create_sam_file:
-        year_start = dt.datetime(start_year, 1, 1, tzinfo=df.index.tzinfo)
-        duration = dt.timedelta(days=365)
-        df_sam = resample_and_reindex(df, kwargs['time_res'], year_start, duration, interpolate=True, offset=offset)
-        create_sam_weather_file(df_sam, location, **kwargs)
 
     return df, location
 

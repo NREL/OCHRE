@@ -14,7 +14,7 @@ requirements = [
     'matplotlib',
     'pint',
     'pvlib',
-    'NREL-PySAM',
+    'nrel-pysam>=5.0',
     'psychrolib',
     'numba',  # required for psychrolib
     'xmltodict',
