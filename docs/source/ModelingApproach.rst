@@ -274,11 +274,12 @@ has a prescribed start time, end time, and starting state-of-charge
 (SOC). When the event starts, the EV will charge using a linear model
 similar to the battery model described below.
 
-Electric vehicles can be externally controlled through a delay signal or
-a direct power signal. A delay signal will delay the start time of the
-charging event. The direct power signal will set the charging power
-directly at each time step, and it is only suggested for Level 2
-charging.
+Electric vehicles can be externally controlled through a delay signal, a
+direct power signal, or charging constraints. A delay signal will delay the
+start time of the charging event. A direct power signal (in kW, or SOC rate)
+will set the charging power directly at each time step, and it is only
+suggested for Level 2 charging. Max power and max SOC contraints can also
+limit the charging rate and can optionally be set as a schedule.
 
 Batteries
 ---------
@@ -295,18 +296,15 @@ thermal model and can use any envelope zone as the ambient temperature.
 The battery degradation model tracks energy capacity degradation using
 temperature and SOC data and a rainflow algorithm.
 
-The battery model includes a schedule-based controller and a
-self-consumption controller. The schedule-based controller runs a daily
-charge and discharge schedule, where the user can define the charging
-and discharging start times and power setpoints. The self-consumption
-controller sets the battery power setpoint to the opposite of the house
-net load (including PV) to achieve zero grid import and export. There is
-also an option to only allow battery charging from PV. The battery will
-follow these controls until the SOC limits are reached.
-
-The battery can also be externally controlled through a direct setpoint
-for real power. There is currently no reactive power control for the
-battery model.
+The battery model can be controlled through a direct power signal or using a
+self-consumption controller. Direct power signals (or desired SOC setpoints)
+can be included in the schedule or sent at each time step. The
+self-consumption controller sets the battery power setpoint to the opposite of
+the house net load (including PV) to achieve desired grid import and export
+limits (defaults are zero, i.e., maximize self-consumption). The battery will
+follow these controls while maintaining SOC and power limits. There is also an
+option to only allow battery charging from PV. There is currently no reactive
+power control for the battery model.
 
 Solar PV
 --------
