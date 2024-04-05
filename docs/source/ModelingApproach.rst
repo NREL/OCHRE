@@ -90,21 +90,19 @@ currently support modeling a whole multifamily building with multiple
 units simultaneously or the modeling of central space and water heating
 systems.
 
-Thermal mass due to furniture and interior partition walls is also
-accounted for in the living space. Partition walls and furniture are
-modeled explicitly with surface areas and material properties like any
-other surface and exchange heat through both convection and radiation.
-The heat capacity of the air is also modeled to determine the living
-zone temperature. However, a multiplier is generally applied to this
-capacitance. 
-`Numerous studies <https://docs.google.com/spreadsheets/d/1ebSmvDFdXEXVRdvkzqMF1C9MwHrHCQKFF75QMkPgd7A/edit?pli=1#gid=0>`__
-have shown that applying a multiplier to the air capacitance provides a
-much better match to experimental data when trying to model explicit
-cycling of the HVAC equipment conditioning the living space. This
-multiplier helps account for the volume of ducts and the time required
-for warm and cold air to diffuse through the living space. Values for
-this multiplier in the literature range from 3-15 depending on the
-study. OCHRE uses a default multiplier of 7.
+Thermal mass due to furniture and interior partition walls is also accounted
+for in the living space. Partition walls and furniture are modeled explicitly
+with surface areas and material properties like any other surface and exchange
+heat through both convection and radiation. The heat capacity of the air is
+also modeled to determine the living zone temperature. However, a multiplier
+is generally applied to this capacitance. `Numerous studies
+<https://docs.google.com/spreadsheets/d/1ebSmvDFdXEXVRdvkzqMF1C9MwHrHCQKFF75QMkPgd7A/edit?pli=1#gid=0>`__
+have shown that applying a multiplier to the air capacitance provides a much
+better match to experimental data when trying to model explicit cycling of the
+HVAC equipment conditioning the living space. This multiplier helps account
+for the volume of ducts and the time required for warm and cold air to diffuse
+through the living space. Values for this multiplier in the literature range
+from 3-15 depending on the study. OCHRE uses a default multiplier of 7.
 
 The envelope includes a humidity model for the living space zone. The
 model determines the indoor humidity and wet bulb temperature based on a
@@ -151,10 +149,8 @@ and efficiency:
 
 -  Dynamic: System max capacity and efficiency varies based on indoor and
    outdoor temperatures and air flow rate using biquadratic formulas. These
-   curves are based on “\ `Improved Modeling of Residential Air Conditioners
-   and Heat Pumps for Energy Calculations
-<https://scholar.colorado.edu/concern/graduate_thesis_or_dissertations/r781wg40j>`__\
-” (e.g.,  Air Conditioner, Air Source Heat Pump).
+   curves are based on `this paper
+   <https://scholar.colorado.edu/concern/graduate_thesis_or_dissertations/r781wg40j>`__.
 
 In addition, HVAC equipment use one of two modes to determine real-time
 capacity and power consumption:
@@ -356,14 +352,20 @@ fraction to zero to simulate an outage or a resilience use case.
 Co-simulation
 -------------
 
-OCHRE is designed to be run in co-simulation with controllers, grid
-models, aggregators, and other agents. The inputs and outputs of key
-functions are designed to connect with these agents for streamlined
-integration. These inputs and outputs are defined in [controller
-integration] and [outputs and analysis], respectively.
+OCHRE is designed to be run in co-simulation with controllers, grid models,
+aggregators, and other agents. The inputs and outputs of key functions are
+designed to connect with these agents for streamlined integration. See
+`Controller Integration
+<https://ochre-docs-final.readthedocs.io/en/latest/ControllerIntegration.html>`__
+and `Outputs and Analysis
+<https://ochre-docs-final.readthedocs.io/en/latest/Outputs.html>`__ for
+details on the inputs and outputs, respectively.
 
-See [citation and publication] for a list of use cases where OCHRE was
-run in co-simulation. And feel free to contact the developers [contact]
+See `Citation and Publications
+<https://ochre-docs-final.readthedocs.io/en/latest/Introduction.html#citation-and-publications>`__`
+for example use cases where OCHRE was run in co-simulation. And feel free to
+`contact us
+<https://ochre-docs-final.readthedocs.io/en/latest/Introduction.html#contact>`__
 if you are interested in developing your own use case.
 
 Unsupported OS-HPXML Features

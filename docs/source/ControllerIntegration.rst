@@ -153,7 +153,9 @@ External model signals can also modify any time series schedule values
 including weather and occupancy variables. The names and units of these
 variables can be found in the header of the schedule output file.
 Alternatively, these variables can be reset at the beginning of the
-simulation; see notebooks/… for more details.
+simulation; see `this example code
+<https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__ for
+more details.
 
 Status Variables
 ----------------
@@ -164,26 +166,22 @@ controller. These status variables are equivalent to the Time Series
 Outputs described in Outputs and Analysis. Note that the ``verbosity``
 applies to the status variables in the same way as the outputs.
 
-Example Use Case – Dwelling
----------------------------
+Example Use Cases
+-----------------
 
-The following code creates a Dwelling model and runs a simulation that
-controls the HVAC heating setpoint. For more details and examples, see
-bin/run_external_control.py and notebooks/user_tutorial.ipynb
-
-Example Use Case – Equipment
-----------------------------
-
-The following code creates a water heater model and runs a simulation
-that controls the water heater setpoint. For more details and examples,
-see bin/run_external_control.py and notebooks/user_tutorial.ipynb
+See `bin/run_external_control.py
+<https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__ and
+`notebooks/user_tutorial.ipynb
+<https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__ for
+more details.
 
 Co-simulation
 -------------
 
-Multiple OCHRE instances have been run in co-simulation using the HELICS
-platform. OCHRE models can communicate with other agents via its
-external control signals, external model signals, and status variables.
+Multiple OCHRE instances have been run in co-simulation using the `HELICS
+<https://helics.org/>`__ platform. OCHRE models can communicate with other
+agents via its external control signals, external model signals, and status
+variables.
 
 See the publications list for examples of co-simulation architectures
 that use OCHRE. We do not currently have public code for using OCHRE in
