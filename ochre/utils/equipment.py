@@ -109,7 +109,7 @@ def update_equipment_properties(properties, schedule, zip_parameters_file='ZIP P
             raise OCHREException(f'Only 1 {end_use} equipment is allowed, but multiple were included in inputs: {eq_names}')
         
         # Get equipment name from named dict and from generic (using name and fuel)
-        eq_name, eq_data = list(named.items())[0] if named else None, {}
+        eq_name, eq_data = list(named.items())[0] if named else (None, {})
         eq_type = generic.get('Equipment Name')
         eq_fuel = generic.get('Fuel')
         if eq_fuel not in ['Electricity', 'Natural gas', None]:

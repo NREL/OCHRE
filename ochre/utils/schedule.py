@@ -395,6 +395,7 @@ def import_occupancy_schedule(occupancy, equipment, start_time, schedule_input_f
     if schedules_to_merge:
         df_to_merge = pd.concat(schedules_to_merge, axis=1)
         df_norm = df_norm.join(df_to_merge, on=[df_norm.index.month, df_norm.index.hour, df_norm.index.weekday < 5])
+        df_norm = df_norm.drop(columns=['key_0', 'key_1', 'key_2'], errors='ignore')
 
     # Calculate max value for each column and add to new DataFrame
     schedule_data = []
