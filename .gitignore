@@ -9,6 +9,7 @@ __pycache__/
 src/
 build/
 dist/
+docs/_build
 *.egg-info/
 *.code-workspace
 environment.yml
