@@ -54,4 +54,4 @@ Changelog = "https://github.com/NREL/OCHRE/blob/main/changelog.md"
 path = "ochre/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-include = ["ochre", "defaults"]
+packages = ["ochre"]
