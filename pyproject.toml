@@ -22,7 +22,7 @@ dependencies = [
     "pytz",
     "python-dateutil",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.9,<3.12"
 authors = [
   { name="Jeff Maguire", email="Jeff.Maguire@nrel.gov" },
   { name="Michael Blonsky", email="Michael.Blonsky@nrel.gov" },
