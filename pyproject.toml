@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ochre-nrel"
+dynamic = ["version"]
+dependencies = [
+    "numpy",
+    "pandas>=1.4.0",
+    "scipy",
+    "matplotlib",
+    "pint",
+    "pvlib",
+    "nrel-pysam>=5.0",
+    "psychrolib",
+    "numba",  # required for psychrolib
+    "xmltodict",
+    "pyarrow",
+    "fastparquet",
+    "rainflow",
+    "pytz",
+    "python-dateutil",
+]
+requires-python = ">=3.9"
+authors = [
+  { name="Jeff Maguire", email="Jeff.Maguire@nrel.gov" },
+  { name="Michael Blonsky", email="Michael.Blonsky@nrel.gov" },
+]
+description = "A residential energy modeling tool designed to model flexible loads and DERs"
+readme = "README.md"
+keywords = [
+    "building energy modeling",
+    "demand flexibility",
+    "residential buildings",
+    "grid-interactive buildings",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+]
+
+[project.urls]
+Homepage = "https://www.nrel.gov/grid/ochre.html"
+Documentation = "https://ochre-docs-final.readthedocs.io/en/latest/"
+Repository = "https://github.com/NREL/OCHRE.git"
+Issues = "https://github.com/NREL/OCHRE/issues"
+Changelog = "https://github.com/NREL/OCHRE/blob/main/changelog.md"
+
+[tool.hatch.version]
+path = "ochre/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+include = ["ochre", "defaults"]
