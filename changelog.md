@@ -13,6 +13,8 @@
 - Added EV max power and max SOC controls
 - Added OCHREException class to handle errors
 - Added warnings for HVAC and WH heat pumps with low COP
+- Moved default input file path for package installation
+- Replaced setup.py with pyproject.toml
 - Fixed bug with schedule file import using Pandas v2.2
 - Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
 - Fixed bug with ASHP backup heater units
