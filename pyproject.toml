@@ -6,15 +6,15 @@ build-backend = "hatchling.build"
 name = "ochre-nrel"
 dynamic = ["version"]
 dependencies = [
-    "numpy",
-    "pandas>=1.4.0",
-    "scipy",
-    "matplotlib",
+    "numpy ~= 1.26",
+    "pandas >=1.4, < 3.0",
+    "scipy ~= 1.11",
+    "matplotlib ~= 3.8",
     "pint",
-    "pvlib",
-    "nrel-pysam>=5.0",
-    "psychrolib",
-    "numba",  # required for psychrolib
+    "pvlib ~= 0.10",
+    "nrel-pysam ~= 5.1",
+    "psychrolib ~= 2.5",
+    "numba ~= 0.59",  # required for psychrolib
     "xmltodict",
     "pyarrow",
     "fastparquet",
@@ -22,7 +22,7 @@ dependencies = [
     "pytz",
     "python-dateutil",
 ]
-requires-python = ">=3.9,<3.12"
+requires-python = ">=3.9"
 authors = [
   { name="Jeff Maguire", email="Jeff.Maguire@nrel.gov" },
   { name="Michael Blonsky", email="Michael.Blonsky@nrel.gov" },
