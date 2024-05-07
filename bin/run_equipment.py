@@ -6,7 +6,7 @@ import pandas as pd
 from ochre import Dwelling, Battery, ElectricResistanceWaterHeater, AirConditioner, ElectricVehicle
 from ochre import CreateFigures
 from ochre.Models.Envelope import Envelope
-from bin.run_dwelling import dwelling_args
+# from bin.run_dwelling import dwelling_args
 
 
 # Test scripts to run single piece of equipment, examples include:
@@ -17,10 +17,10 @@ from bin.run_dwelling import dwelling_args
 default_args = {
     'start_time': dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
     'time_res': dt.timedelta(minutes=15),
-    'duration': dt.timedelta(days=10),
-    'verbosity': 6,  # verbosity of results (1-9)
-    'save_results': False,  # if True, must specify output_path
-    # 'output_path': os.getcwd(),
+    'duration': dt.timedelta(days=365),
+    'verbosity': 7,  # verbosity of results (1-9)
+    'save_results': True,  # if True, must specify output_path
+    # 'output_path': os.path.join(os.getcwd(),'EVProfiles','Level2')
 }
 
 
@@ -185,12 +185,14 @@ def run_hvac():
     CreateFigures.plt.show()
 
 
-def run_ev():
+def run_ev(seed):
     equipment_args = {
         # Equipment parameters
         'vehicle_type': 'BEV',
-        'charging_level': 'Level 1',
-        'mileage': 100,
+        'charging_level': 'Level 2',
+        'capacity': 57.5,
+        'seed': seed,
+        'output_path': os.path.join(os.getcwd(),'EVProfiles','Level2',str(seed)),
         **default_args,
     }
 
@@ -200,10 +202,10 @@ def run_ev():
     # Simulate equipment
     df = equipment.simulate()
 
-    print(df.head())
-    CreateFigures.plot_daily_profile(df, 'EV Electric Power (kW)', plot_max=False, plot_min=False)
-    CreateFigures.plot_time_series_detailed((df['EV SOC (-)'],))
-    CreateFigures.plt.show()
+    # print(df.head())
+    # CreateFigures.plot_daily_profile(df, 'EV Electric Power (kW)', plot_max=False, plot_min=False)
+    # CreateFigures.plot_time_series_detailed((df['EV SOC (-)'],))
+    # CreateFigures.plt.show()
 
 
 def run_equipment_from_house_model():
@@ -229,9 +231,10 @@ def run_equipment_from_house_model():
 if __name__ == '__main__':
     # Choose a scenario to run:
     
-    run_battery()
+    # run_battery()
     # run_battery_controlled()
     # run_water_heater()
     # run_hvac()
-    # run_ev()
+    for i in range(1,1001):
+        run_ev(i)
     # run_equipment_from_house_model()
