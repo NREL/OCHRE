@@ -10,17 +10,17 @@ dependencies = [
     "pandas >=1.4, < 3.0",
     "scipy ~= 1.11",
     "matplotlib ~= 3.8",
-    "pint",
-    "pvlib ~= 0.10",
+    "pint ~= 0.23",
+    "pvlib ~= 0.10.4",
     "nrel-pysam ~= 5.1",
     "psychrolib ~= 2.5",
     "numba ~= 0.59",  # required for psychrolib
-    "xmltodict",
-    "pyarrow",
-    "fastparquet",
-    "rainflow",
-    "pytz",
-    "python-dateutil",
+    "xmltodict ~= 0.13.0",
+    "pyarrow ~= 15.0",
+    "fastparquet >= 2024.0",
+    "rainflow ~= 3.2",
+    "pytz >= 2024.0",
+    "python-dateutil ~= 2.9",
 ]
 requires-python = ">=3.9"
 authors = [
