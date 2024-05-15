@@ -25,6 +25,7 @@
 - Fixed bug with battery/generator self-consumption controls
 - Fixed bug with WH and battery islanding time metrics
 - Fixed bug with state space model reduction algorithm
+- Fixed syntax warning for Python 3.12
 
 ### OCHRE v0.8.4-beta
 
