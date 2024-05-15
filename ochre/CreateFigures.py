@@ -519,7 +519,7 @@ def plot_wh(dfs_to_plot, **kwargs):
     if ax1 is not None:
         ax1[0].set_ylabel('Hot Water Delivered (W)')
         ax2[0].set_ylabel('Hot Water Delivered (L/min)')
-        ax1[1].set_ylabel('Temperature ($^\circ$C)')
+        ax1[1].set_ylabel('Temperature ($^\\circ$C)')
 
     # plot water heater power and COP
     plot_info = [('Water Heating Electric Power (kW)', 'Electric Power', 'm'),
