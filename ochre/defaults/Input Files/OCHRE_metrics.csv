@@ -1,0 +1,50 @@
+Metric,Value
+Total Electric Energy (kWh),36.94357870239805
+Total Gas Energy (therms),46.80872882276418
+Average Electric Power (kW),0.5131052597555285
+Peak Electric Power (kW),2.0866513021191158
+Peak Electric Power - 15 min avg (kW),2.0866513021191158
+Peak Electric Power - 30 min avg (kW),1.8139422558346352
+Peak Electric Power - 1 hour avg (kW),1.639196696444739
+HVAC Cooling Electric Energy (kWh),0.7200000000000003
+HVAC Heating Electric Energy (kWh),0.0
+PV Electric Energy (kWh),-10.050851070732477
+Other Electric Energy (kWh),35.488715330249434
+Lighting Electric Energy (kWh),10.785714442881087
+Water Heating Gas Energy (therms),1.8120151943885987
+HVAC Heating Gas Energy (therms),43.81292797861603
+Other Gas Energy (therms),1.1837856497595611
+Average Temperature - Indoor (C),20.104956071842523
+Average Temperature - Foundation (C),-1.7855062391481507
+Average Temperature - Attic (C),-0.42931393619515507
+"Component Load - Ducts, Heating (kWh)",-0.0
+"Component Load - Ducts, Cooling (kWh)",-0.0
+Unmet Heating Load (C-hours),0.0
+Unmet Cooling Load (C-hours),0.0
+Total HVAC Heating Delivered (kWh),770.4182090234453
+Average HVAC Heating COP (-),0.6
+Average HVAC Heating SHR (-),1.0
+Average HVAC Heating Duct Efficiency (-),1.0
+Total HVAC Cooling Delivered (kWh),0.0
+Average HVAC Cooling COP (-),0.0
+Total Water Heating Delivered (kWh),41.106191188985704
+Average Water Heating COP (-),0.0
+Total Hot Water Unmet Demand (kWh),0.0
+Total Hot Water Delivered (gal/day),57.49915766495085
+Total Hot Water Delivered (kWh),31.621648248470336
+Clothes Washer Electric Energy (kWh),0.40535529855054175
+Clothes Dryer Electric Energy (kWh),1.5498559156455427
+Dishwasher Electric Energy (kWh),1.4779105623219604
+Refrigerator Electric Energy (kWh),4.833601970847876
+Cooking Range Electric Energy (kWh),0.4812226787181594
+Exterior Lighting Electric Energy (kWh),0.5144881112360474
+Indoor Lighting Electric Energy (kWh),6.937889677167392
+Basement Lighting Electric Energy (kWh),3.33333665447765
+MELs Electric Energy (kWh),26.740768904165353
+Clothes Dryer Gas Energy (therms),0.7025629710414016
+Cooking Range Gas Energy (therms),0.4812226787181594
+Clothes Washer Cycles,3.0
+Clothes Dryer Cycles,3.0
+Dishwasher Cycles,3.0
+Cooking Range Cycles,8.0
+PV Cycles,3.0

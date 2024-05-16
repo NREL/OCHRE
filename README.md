@@ -10,7 +10,7 @@ Contact: jeff.maguire@nrel.gov, michael.blonsky@nrel.gov, killian.mckenna@nrel.g
 
 ## Installation
 
-Note that OCHRE requires Python version 3.9 or higher
+Note that OCHRE requires Python version >=3.9 and <3.12
 
 ### Stand-alone Installation
 
