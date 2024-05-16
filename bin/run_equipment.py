@@ -201,6 +201,7 @@ def run_ev(seed):
     equipment = ElectricVehicle(**equipment_args)
 
     # Simulate equipment
+    equipment.main_simulator = True
     df = equipment.simulate()
 
     # print(df.head())
@@ -236,6 +237,6 @@ if __name__ == '__main__':
     # run_battery_controlled()
     # run_water_heater()
     # run_hvac()
-    for i in range(1,1001):
+    for i in range(1,2):
         run_ev(i)
     # run_equipment_from_house_model()
