@@ -6,7 +6,7 @@ import pandas as pd
 from ochre import Dwelling, Battery, ElectricResistanceWaterHeater, AirConditioner, ElectricVehicle
 from ochre import CreateFigures
 from ochre.Models.Envelope import Envelope
-# from bin.run_dwelling import dwelling_args
+from bin.run_dwelling import dwelling_args
 
 
 # Test scripts to run single piece of equipment, examples include:
@@ -188,11 +188,12 @@ def run_hvac():
 def run_ev(seed):
     equipment_args = {
         # Equipment parameters
-        'vehicle_type': 'BEV',
-        'charging_level': 'Level 2',
-        'capacity': 57.5,
-        'seed': seed,
-        'output_path': os.path.join(os.getcwd(),'EVProfiles','Level2',str(seed)),
+        "vehicle_type": "BEV",
+        "charging_level": "Level 1",
+        "equipment_event_file": "pdf_Veh4_Level2.csv",
+        "capacity": 57.5,
+        "seed": seed,
+        "output_path": os.path.join(os.getcwd(), "EVProfiles", "Level2", str(seed)),
         **default_args,
     }
 
