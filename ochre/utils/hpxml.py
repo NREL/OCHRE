@@ -98,7 +98,7 @@ def get_boundaries_by_zones(boundaries, default_int_zone='Indoor', default_ext_z
     return bd_by_zones
 
 
-def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
+def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls, adj_walls):
     # for windows and doors, determine interior zone based on attached wall zone
     ext_bd, gar_bd, attic_bd = {}, {}, {}
     for name, boundary in boundaries.items():
@@ -116,6 +116,9 @@ def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
             boundary['Interior Zone'] = 'Attic'
             attic_bd[name] = boundary
             attic_walls[wall]['Area'] -= boundary['Area']
+        elif wall in adj_walls:
+            # skip doors on adjacent (adiabatic) walls
+            pass
         else:
             raise OCHREException(f'Unknown attached wall for {name}: {wall}')
     
@@ -324,13 +327,17 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
 
     # Get windows (only accepts windows to indoor zone for now), and subtract wall area
     all_windows = enclosure.get('Windows', {})
-    windows, gar_windows, attic_windows = get_boundaries_by_wall(all_windows, ext_walls, gar_walls, attic_walls)
+    windows, gar_windows, attic_windows = get_boundaries_by_wall(
+        all_windows, ext_walls, gar_walls, attic_walls, adj_walls
+    )
     assert not gar_windows
     assert not attic_windows
     
     # Get doors (only accepts doors to indoor zone and garage), and subtract wall area
     all_doors = enclosure.get('Doors', {})
-    doors, gar_doors, attic_doors = get_boundaries_by_wall(all_doors, ext_walls, gar_walls, attic_walls)
+    doors, gar_doors, attic_doors = get_boundaries_by_wall(
+        all_doors, ext_walls, gar_walls, attic_walls, adj_walls
+    )
     assert not attic_doors
 
     boundaries = {
