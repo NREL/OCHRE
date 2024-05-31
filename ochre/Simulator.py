@@ -53,13 +53,6 @@ class Simulator:
         if self.save_results:
             self.set_up_results_files(**kwargs)
 
-        # Define model schedule and time resolution
-        self.all_schedule_inputs = None
-        self.schedule = self.initialize_schedule(**kwargs)
-        self.current_schedule = self.schedule.iloc[0].to_dict() if self.schedule is not None else {}
-        self.schedule_iterable = None
-        self.reset_time()
-
         # Set random seed based on output path. Only sets seed if seed or output_path is specified
         if self.main_simulator:
             if seed is None:
@@ -68,6 +61,13 @@ class Simulator:
                 if isinstance(seed, str):
                     seed = int(hashlib.md5(seed.encode()).hexdigest(), 16) % 2 ** 32
                 np.random.seed(seed)
+
+        # Define model schedule and time resolution
+        self.all_schedule_inputs = None
+        self.schedule = self.initialize_schedule(**kwargs)
+        self.current_schedule = self.schedule.iloc[0].to_dict() if self.schedule is not None else {}
+        self.schedule_iterable = None
+        self.reset_time()
 
     def set_up_results_files(self, hpxml_file=None, equipment_schedule_file=None, **kwargs):
         if self.output_path is None:

@@ -11,6 +11,7 @@
 - Require HVAC duty cycle control for thermostatic mode only
 - Added water heater max power control
 - Added EV max power and max SOC controls
+- Added `equipment_event_file` input for EVs
 - Added OCHREException class to handle errors
 - Added warnings for HVAC and WH heat pumps with low COP
 - Moved default input file path for package installation
