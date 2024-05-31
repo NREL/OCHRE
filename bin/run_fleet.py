@@ -1,9 +1,10 @@
 import datetime as dt
 import numpy as np
 import pandas as pd
+from multiprocessing import Pool
 # import cProfile
 
-from ochre import ElectricResistanceWaterHeater
+from ochre import ElectricResistanceWaterHeater, ElectricVehicle
 from ochre import CreateFigures
 
 from bin.run_dwelling import dwelling_args
@@ -57,8 +58,8 @@ def run_water_heater_fleet(num_water_heaters=5):
         df = eq.simulate()
         all_data[eq_name] = df
 
-    powers = pd.DataFrame({eq_name: df[f'Water Heating Electric Power (kW)'] for eq_name, df in all_data.items()})
-    temps = pd.DataFrame({eq_name: df['Hot Water Outlet Temperature (C)'] for eq_name, df in all_data.items()})
+    # powers = pd.DataFrame({eq_name: df[f'Water Heating Electric Power (kW)'] for eq_name, df in all_data.items()})
+    # temps = pd.DataFrame({eq_name: df['Hot Water Outlet Temperature (C)'] for eq_name, df in all_data.items()})
     # temps.plot()
     # CreateFigures.plot_daily_profile(df, 'Battery Electric Power (kW)', plot_max=False, plot_min=False)
     # CreateFigures.plot_time_series_detailed((df['Battery SOC (-)'],))
@@ -91,6 +92,51 @@ def run_fleet_controlled():
     CreateFigures.plt.show()
 
 
+def run_ev(ev_args):
+    # Initialize equipment
+    equipment = ElectricVehicle(**ev_args)
+
+    # Simulate equipment
+    df = equipment.simulate()
+    return df["EV Electric Power (kW)"]
+
+
+def run_ev_fleet(n=2, n_parallel=2):
+    """Runs multiple EV simulations and compiles energy consumption"""
+    ev_options = pd.DataFrame(
+        {
+            "vehicle_type": ["BEV", "BEV", "PHEV", "PHEV"],
+            "mileage": [100, 250, 20, 50],
+        }
+    )
+    def make_ev_args(seed):
+        ev_option = ev_options.sample().iloc[0].to_dict()
+        return {
+            # timing and general parameters
+            "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+            "time_res": dt.timedelta(minutes=60),
+            "duration": dt.timedelta(days=10),
+            "verbosity": 1,  # verbosity of results (1-9)
+            "save_results": False,  # if True, must specify output_path
+            "seed": seed,  # required for randomization if output_path is not specified
+
+            # Equipment parameters
+            "charging_level": np.random.choice(["Level 1", "Level 2"]),
+            **ev_option,
+            # "equipment_event_file": r"C:\Users\mblonsky\Downloads\2030NCN_EVI-Pro_charge_events_for_OCHRE\2030NCN_EVI-Pro_charge_events_for_OCHRE\CA OCHRE EV Events\MY2020_BEV_Car_level_2_Central.csv",
+        } 
+    map_args = [make_ev_args(i) for i in range(n)]
+
+    with Pool(n_parallel) as p:
+        out = p.map(run_ev, map_args)
+
+    # combine load profiles
+    df = pd.concat(out, axis=1)
+    df.columns = [f"EV_{i}" for i in range(1, n+1)]
+    print(df)
+
+
 if __name__ == '__main__':
-    run_water_heater_fleet()
+    # run_water_heater_fleet()
     # run_fleet_controlled()
+    run_ev_fleet()
