@@ -34,7 +34,7 @@ class ElectricVehicle(EventBasedLoad):
         "EV Max SOC (-)",
     ]
 
-    def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, enable_part_load=None, **kwargs):
+    def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, enable_part_load=None, equipment_event_file=None, **kwargs):
         # get EV battery capacity and mileage
         if capacity is None and mileage is None:
             raise OCHREException('Must specify capacity or mileage for {}'.format(self.name))
@@ -54,14 +54,16 @@ class ElectricVehicle(EventBasedLoad):
             enable_part_load = self.charging_level == 'Level2'
         self.enable_part_load = enable_part_load
 
-        # get vehicle number (1-4) based on type and mileage
+        # get vehicle number (1-4) based on type and mileage. Used for choosing event file
+        self.vehicle_type = vehicle_type
         if vehicle_type == 'PHEV':
             vehicle_num = 1 if mileage < 35 else 2
         elif vehicle_type == 'BEV':
             vehicle_num = 3 if mileage < 175 else 4
         else:
             raise OCHREException('Unknown vehicle type for {}: {}'.format(self.name, vehicle_type))
-        self.vehicle_type = vehicle_type
+        if equipment_event_file is None:
+            equipment_event_file = "pdf_Veh{}_{}.csv".format(vehicle_num, self.charging_level)
 
         # charging model
         self.max_power = EV_MAX_POWER[self.charging_level][vehicle_num - 1]
@@ -73,7 +75,6 @@ class ElectricVehicle(EventBasedLoad):
         self.unmet_load = 0  # lost charging from delays, in kW
 
         # initialize events
-        equipment_event_file = 'pdf_Veh{}_{}.csv'.format(vehicle_num, self.charging_level)
         super().__init__(equipment_event_file=equipment_event_file, **kwargs)
 
     def import_probabilities(self, equipment_pdf_file=None, equipment_event_file=None, **kwargs):
