@@ -65,6 +65,8 @@ SCHEDULE_NAMES = {
         "battery": None,
         "vacancy": None,
         "water_heater_operating_mode": None,
+        "Vacancy": None,
+        "Power Outage": None,
     },
 }
 
