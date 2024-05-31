@@ -123,7 +123,6 @@ def run_ev_fleet(n=2, n_parallel=2):
             # Equipment parameters
             "charging_level": np.random.choice(["Level 1", "Level 2"]),
             **ev_option,
-            # "equipment_event_file": r"C:\Users\mblonsky\Downloads\2030NCN_EVI-Pro_charge_events_for_OCHRE\2030NCN_EVI-Pro_charge_events_for_OCHRE\CA OCHRE EV Events\MY2020_BEV_Car_level_2_Central.csv",
         } 
     map_args = [make_ev_args(i) for i in range(n)]
 
