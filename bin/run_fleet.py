@@ -98,7 +98,9 @@ def run_ev(ev_args):
 
     # Simulate equipment
     df = equipment.simulate()
-    return df["EV Electric Power (kW)"]
+    out = df["EV Electric Power (kW)"]
+    out.name = equipment.name
+    return out
 
 
 def run_ev_fleet(n=2, n_parallel=2):
@@ -109,16 +111,17 @@ def run_ev_fleet(n=2, n_parallel=2):
             "mileage": [100, 250, 20, 50],
         }
     )
-    def make_ev_args(seed):
+    def make_ev_args(i):
         ev_option = ev_options.sample().iloc[0].to_dict()
         return {
             # timing and general parameters
+            "name": f"EV_{i}",
             "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
             "time_res": dt.timedelta(minutes=60),
             "duration": dt.timedelta(days=10),
             "verbosity": 1,  # verbosity of results (1-9)
             "save_results": False,  # if True, must specify output_path
-            "seed": seed,  # required for randomization if output_path is not specified
+            "seed": i,  # required for randomization if output_path is not specified
 
             # Equipment parameters
             "charging_level": np.random.choice(["Level 1", "Level 2"]),
@@ -131,7 +134,6 @@ def run_ev_fleet(n=2, n_parallel=2):
 
     # combine load profiles
     df = pd.concat(out, axis=1)
-    df.columns = [f"EV_{i}" for i in range(1, n+1)]
     print(df)
 
 
