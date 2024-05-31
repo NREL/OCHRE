@@ -34,7 +34,8 @@ class ElectricVehicle(EventBasedLoad):
         "EV Max SOC (-)",
     ]
 
-    def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, enable_part_load=None, equipment_event_file=None, **kwargs):
+    def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, max_power=None, 
+                 enable_part_load=None, equipment_event_file=None, **kwargs):
         # get EV battery capacity and mileage
         if capacity is None and mileage is None:
             raise OCHREException('Must specify capacity or mileage for {}'.format(self.name))
@@ -66,7 +67,10 @@ class ElectricVehicle(EventBasedLoad):
             equipment_event_file = "pdf_Veh{}_{}.csv".format(vehicle_num, self.charging_level)
 
         # charging model
-        self.max_power = EV_MAX_POWER[self.charging_level][vehicle_num - 1]
+        if max_power is None:
+            self.max_power = EV_MAX_POWER[self.charging_level][vehicle_num - 1]
+        else:
+            self.max_power = max_power
         self.max_power_ctrl = self.max_power
         self.setpoint_power = None
         self.soc = 1  # unitless
