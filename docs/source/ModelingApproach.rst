@@ -361,7 +361,7 @@ and `Outputs and Analysis
 details on the inputs and outputs, respectively.
 
 See `Citation and Publications
-<https://ochre-docs-final.readthedocs.io/en/latest/Introduction.html#citation-and-publications>`__`
+<https://ochre-docs-final.readthedocs.io/en/latest/Introduction.html#citation-and-publications>`__
 for example use cases where OCHRE was run in co-simulation. And feel free to
 `contact us
 <https://ochre-docs-final.readthedocs.io/en/latest/Introduction.html#contact>`__
