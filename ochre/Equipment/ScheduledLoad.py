@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 from ochre.utils.units import kwh_to_therms
-from ochre.utils import load_csv
+from ochre.utils import OCHREException, load_csv
 import ochre.utils.schedule as utils_schedule
 from ochre.Equipment import Equipment
 
@@ -50,8 +50,10 @@ class ScheduledLoad(Equipment):
                             schedule_rename_columns=None, schedule_scale_factor=1, **kwargs):
         self.electric_name = f'{self.name} (kW)'
         self.gas_name = f'{self.name} (therms/hour)'
-
-        if equipment_schedule_file is not None:
+        input_cols = [self.electric_name, self.gas_name]
+        has_cols = schedule is not None and any([col in schedule.columns for col in input_cols])
+        
+        if not has_cols and equipment_schedule_file is not None:
             # load schedule from separate schedule file - used for scheduled PV and EV
             schedule = load_csv(equipment_schedule_file, sub_folder=self.end_use)
             schedule = schedule.loc[:, schedule_rename_columns]
@@ -62,11 +64,11 @@ class ScheduledLoad(Equipment):
             schedule *= schedule_scale_factor
 
         if schedule is None:
-            raise Exception(f'Schedule required for {self.name}')
+            raise OCHREException(f'Schedule required for {self.name}')
         
-        required_inputs = [name for name in [self.electric_name, self.gas_name] if name in schedule]
+        required_inputs = [name for name in input_cols if name in schedule]
         if not required_inputs:
-            raise Exception(f'Cannot find any schedule columns for {self.name}')
+            raise OCHREException(f'Cannot find any schedule columns for {self.name}')
 
         # set schedule columns to zero if month multiplier exists and is zero (for ceiling fans)
         multipliers = kwargs.get('month_multipliers', [])
@@ -104,14 +106,14 @@ class ScheduledLoad(Equipment):
             if abs(self.p_set_point) > 20:
                 self.warn(f'High electric power warning: {self.p_set_point} kW.')
                 if abs(self.p_set_point) > 40:
-                    raise Exception(f'{self.name} electric power is too large: {self.p_set_point} kW.')
+                    raise OCHREException(f'{self.name} electric power is too large: {self.p_set_point} kW.')
 
         if self.is_gas:
             self.gas_set_point = self.current_schedule[self.gas_name]
             if abs(self.gas_set_point) > 0.5:
                 self.warn(f'High gas power warning: {self.gas_set_point} therms/hour.')
                 if abs(self.gas_set_point) > 1:
-                    raise Exception(f'{self.name} gas power is too large: {self.gas_set_point} therms/hour.')
+                    raise OCHREException(f'{self.name} gas power is too large: {self.gas_set_point} therms/hour.')
 
         return 'On' if self.p_set_point + self.gas_set_point != 0 else 'Off'
 

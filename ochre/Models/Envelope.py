@@ -1,6 +1,7 @@
 import numpy as np
 import datetime as dt
 
+from ochre.utils import OCHREException
 from ochre.utils.units import convert, degC_to_K, cfm_to_m3s
 import ochre.utils.envelope as utils
 from ochre.Models import RCModel, HumidityModel, ModelException
@@ -97,10 +98,13 @@ class BoundarySurface:
         # calculate fraction to sky, air, and ground. Note ground + air are combined since both use ambient temp
         # https://bigladdersoftware.com/epx/docs/8-0/engineering-reference/page-020.html#external-longwave-radiation
         if self.is_exterior:
-            tilt = kwargs.get('Tilt (deg)', utils.get_boundary_tilt(self.boundary_name))
-            tilt = np.cos(convert(tilt, 'deg', 'rad'))
-            self.sky_view_factor = ((1 + tilt) / 2) ** 1.5  # incorporates F and Beta from reference
+            self.tilt = kwargs.get('Tilt (deg)', utils.get_boundary_tilt(self.boundary_name))
+            self.azimuths = kwargs.get('Azimuth (deg)')
+            # sky view factor incorporates F and Beta from reference
+            self.sky_view_factor = ((1 + np.cos(convert(self.tilt, 'deg', 'rad'))) / 2) ** 1.5
         else:
+            self.tilt = None
+            self.azimuths = None
             self.sky_view_factor = 0
 
     def calculate_exterior_radiation(self, t_ext, t_sky):
@@ -466,7 +470,7 @@ class Boundary:
         cap_values = [kwargs['C_' + self.label + str(i)] for i in range(10) if 'C_' + self.label + str(i) in kwargs]
         res_values = [kwargs['R_' + self.label + str(i)] for i in range(10) if 'R_' + self.label + str(i) in kwargs]
         if not len(cap_values) and self.name != 'Window':
-            raise Exception(f'Missing RC coefficients for {self.name} with properties: {kwargs}')
+            raise OCHREException(f'Missing RC coefficients for {self.name} with properties: {kwargs}')
         if len(res_values) != len(cap_values):
             raise ModelException(f'Cannot parse RC data for {self.name}. Number of resistors ({len(res_values)}) is not'
                                  f' compatible with the number of capacitors ({len(cap_values)})')
@@ -1002,7 +1006,7 @@ class Envelope(RCModel):
         elif zone_name in self.ext_zones:
             return self.ext_zones[zone_name].temperature
         else:
-            raise Exception(f'Unknown zone name {zone_name}.')
+            raise OCHREException(f'Unknown zone name {zone_name}.')
 
     def add_component_loads(self):
         # TODO

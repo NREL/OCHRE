@@ -1,9 +1,8 @@
-import os
 import numpy as np
 import datetime as dt
 import pandas as pd
 
-from ochre.utils import load_csv
+from ochre.utils import OCHREException, load_csv
 from ochre.Equipment import EventBasedLoad, ScheduledLoad
 
 # For EVI-Pro assumptions, see Section 1.2 and 1.3:
@@ -29,11 +28,16 @@ class ElectricVehicle(EventBasedLoad):
     zone_name = None
     delay_event_end = False
     required_inputs = ['Ambient Dry Bulb (C)']
+    optional_inputs = [
+        "EV Max Power (kW)",
+        "EV SOC (-)",
+        "EV Max SOC (-)",
+    ]
 
-    def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, enable_part_load=None, **kwargs):
+    def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, enable_part_load=None, equipment_event_file=None, **kwargs):
         # get EV battery capacity and mileage
         if capacity is None and mileage is None:
-            raise Exception('Must specify capacity or mileage for {}'.format(self.name))
+            raise OCHREException('Must specify capacity or mileage for {}'.format(self.name))
         elif capacity is not None:
             self.capacity = capacity  # in kWh
             mileage = self.capacity * EV_FUEL_ECONOMY  # in mi
@@ -44,30 +48,33 @@ class ElectricVehicle(EventBasedLoad):
         # get charging level and set option for part load setpoints
         charging_level = charging_level.replace(' ', '')
         if str(charging_level) not in ['Level0', 'Level1', 'Level2']:
-            raise Exception('Unknown vehicle type for {}: {}'.format(self.name, charging_level))
+            raise OCHREException('Unknown vehicle type for {}: {}'.format(self.name, charging_level))
         self.charging_level = str(charging_level)
         if enable_part_load is None:
             enable_part_load = self.charging_level == 'Level2'
         self.enable_part_load = enable_part_load
 
-        # get vehicle number (1-4) based on type and mileage
+        # get vehicle number (1-4) based on type and mileage. Used for choosing event file
+        self.vehicle_type = vehicle_type
         if vehicle_type == 'PHEV':
             vehicle_num = 1 if mileage < 35 else 2
         elif vehicle_type == 'BEV':
             vehicle_num = 3 if mileage < 175 else 4
         else:
-            raise Exception('Unknown vehicle type for {}: {}'.format(self.name, vehicle_type))
-        self.vehicle_type = vehicle_type
+            raise OCHREException('Unknown vehicle type for {}: {}'.format(self.name, vehicle_type))
+        if equipment_event_file is None:
+            equipment_event_file = "pdf_Veh{}_{}.csv".format(vehicle_num, self.charging_level)
 
         # charging model
         self.max_power = EV_MAX_POWER[self.charging_level][vehicle_num - 1]
+        self.max_power_ctrl = self.max_power
         self.setpoint_power = None
         self.soc = 1  # unitless
         self.next_soc = 1  # unitless
+        self.soc_max_ctrl = 1  # unitless
         self.unmet_load = 0  # lost charging from delays, in kW
 
         # initialize events
-        equipment_event_file = 'pdf_Veh{}_{}.csv'.format(vehicle_num, self.charging_level)
         super().__init__(equipment_event_file=equipment_event_file, **kwargs)
 
     def import_probabilities(self, equipment_pdf_file=None, equipment_event_file=None, **kwargs):
@@ -99,7 +106,7 @@ class ElectricVehicle(EventBasedLoad):
         if eq_schedule is not None:
             # get average daily ambient temperature for generating events and round to nearest 5 C
             if 'Ambient Dry Bulb (C)' not in eq_schedule:
-                raise Exception('EV model requires ambient dry bulb temperature in schedule.')
+                raise OCHREException('EV model requires ambient dry bulb temperature in schedule.')
             temps_by_day = eq_schedule['Ambient Dry Bulb (C)']
             temps_by_day = temps_by_day.groupby(temps_by_day.index.date).mean()  # in C
             temps_by_day = ((temps_by_day / 5).round() * 5).astype(int).clip(lower=-20, upper=40)
@@ -169,16 +176,44 @@ class ElectricVehicle(EventBasedLoad):
         self.event_schedule.loc[self.event_index, 'end_soc'] = np.clip(end_soc, 0, 1)
 
     def update_external_control(self, control_signal):
+        # Options for external control signals:
+        # - P Setpoint: Directly sets power setpoint, in kW
+        # - SOC: Solves for power setpoint to achieve desired SOC, unitless
+        # - SOC Rate: Solves for power setpoint to achieve desired SOC Rate, in 1/hour
+        # - Max Power: Updates maximum allowed power (in kW)
+        #   - Note: Max Power will only be reset if it is in the schedule
+        # - Max SOC: Maximum SOC limit for charging
+        # - See additional controls in EventBasedLoad.update_external_control
+
+        max_power = control_signal.get("Max Power")
+        if max_power is not None:
+            if "EV Max Power (kW)" in self.current_schedule:
+                self.current_schedule["EV Max Power (kW)"] = max_power
+            else:
+                self.max_power_ctrl = max_power
+
+        max_soc = control_signal.get("Max SOC")
+        if max_soc is not None:
+            if "EV Max SOC (-)" in self.current_schedule:
+                self.current_schedule["EV Max SOC (-)"] = max_soc
+            else:
+                self.soc_max_ctrl = max_soc
+
         mode = super().update_external_control(control_signal)
 
-        # update with power setpoint and/or SOC rate
+        # update power setpoint directly or through SOC or SOC Rate
         if 'P Setpoint' in control_signal:
             setpoint = control_signal['P Setpoint']
+        elif 'SOC' in control_signal:
+            soc = control_signal.get("SOC")
+            power_dc = (soc - self.soc) * self.capacity / self.time_res.total_seconds() * 3600
+            setpoint = power_dc / EV_EFFICIENCY
         elif 'SOC Rate' in control_signal:
             power_dc = control_signal['SOC Rate'] * self.capacity  # in kW
             setpoint = power_dc / EV_EFFICIENCY
         else:
             setpoint = None
+
         if setpoint is not None:
             setpoint = max(setpoint, 0)
             if mode != 'On' and setpoint > 0:
@@ -187,13 +222,22 @@ class ElectricVehicle(EventBasedLoad):
                 self.setpoint_power = setpoint
             else:
                 # set to max power if setpoint > half of max
-                self.setpoint_power = self.max_power if setpoint >= self.max_power / 2 else 0
+                self.setpoint_power = (
+                    self.max_power if setpoint >= self.max_power / 2 else 0
+                )
 
         return mode
 
     def update_internal_control(self):
         self.setpoint_power = None
         self.unmet_load = 0
+
+        # update control parameters from schedule
+        if "EV Max Power (kW)" in self.current_schedule:
+            self.max_power_ctrl = self.current_schedule["EV Max Power (kW)"]
+        if "EV Max SOC (-)" in self.current_schedule:
+            self.soc_max_ctrl = self.current_schedule["EV Max SOC (-)"]
+
         return super().update_internal_control()
 
     def calculate_power_and_heat(self):
@@ -203,11 +247,9 @@ class ElectricVehicle(EventBasedLoad):
 
         # force ac power within kw capacity and SOC limits, no discharge allowed
         hours = self.time_res.total_seconds() / 3600
-        ac_power = (1 - self.soc) * self.capacity / hours / EV_EFFICIENCY
-        if self.setpoint_power is not None:
-            ac_power = min(max(ac_power, 0), self.setpoint_power)
-        else:
-            ac_power = min(max(ac_power, 0), self.max_power)
+        max_power = self.setpoint_power if self.setpoint_power is not None else self.max_power_ctrl
+        ac_power = (self.soc_max_ctrl - self.soc) * self.capacity / hours / EV_EFFICIENCY
+        ac_power = min(max(ac_power, 0), max_power)
         self.electric_kw = ac_power
 
         # update SOC for next time step, check with upper and lower bound of usable SOC
@@ -227,7 +269,6 @@ class ElectricVehicle(EventBasedLoad):
     def generate_results(self):
         results = super().generate_results()
 
-        # remaining_charge_minutes = (1 - self.soc) * self.capacity / (self.max_power * EV_CHARGER_EFFICIENCY) * 60
         if self.verbosity >= 3:
             results[f'{self.end_use} SOC (-)'] = self.soc
             results[f'{self.end_use} Parked'] = self.in_event
@@ -237,7 +278,9 @@ class ElectricVehicle(EventBasedLoad):
             results[f'{self.end_use} Start Time'] = self.event_start
             results[f'{self.end_use} End Time'] = self.event_end
         if self.verbosity >= 7:
-            remaining_charge_minutes = (1 - self.soc) * self.capacity / (self.max_power * EV_EFFICIENCY) * 60
+            remaining_charge_minutes = (
+                (1 - self.soc) * self.capacity / (self.max_power_ctrl * EV_EFFICIENCY) * 60
+            )
             results[f'{self.end_use} Remaining Charge Time (min)'] = remaining_charge_minutes
         return results
 

@@ -6,7 +6,7 @@ import pandas as pd
 import hashlib
 
 from ochre import __version__
-
+from ochre.utils import OCHREException
 
 class Simulator:
     name = 'OCHRE'
@@ -27,6 +27,8 @@ class Simulator:
         self.current_time = start_time
         self.time_res = time_res
         self.duration = duration
+        if self.duration < self.time_res:
+            raise OCHREException(f'Duration ({duration}) must be longer than time resolution ({time_res}).')
         self.initialization_time = initialization_time
         self.sim_times = pd.date_range(self.start_time, self.start_time + self.duration, freq=self.time_res,
                                        inclusive='left')
@@ -51,13 +53,6 @@ class Simulator:
         if self.save_results:
             self.set_up_results_files(**kwargs)
 
-        # Define model schedule and time resolution
-        self.all_schedule_inputs = None
-        self.schedule = self.initialize_schedule(**kwargs)
-        self.current_schedule = self.schedule.iloc[0].to_dict() if self.schedule is not None else {}
-        self.schedule_iterable = None
-        self.reset_time()
-
         # Set random seed based on output path. Only sets seed if seed or output_path is specified
         if self.main_simulator:
             if seed is None:
@@ -67,6 +62,13 @@ class Simulator:
                     seed = int(hashlib.md5(seed.encode()).hexdigest(), 16) % 2 ** 32
                 np.random.seed(seed)
 
+        # Define model schedule and time resolution
+        self.all_schedule_inputs = None
+        self.schedule = self.initialize_schedule(**kwargs)
+        self.current_schedule = self.schedule.iloc[0].to_dict() if self.schedule is not None else {}
+        self.schedule_iterable = None
+        self.reset_time()
+
     def set_up_results_files(self, hpxml_file=None, equipment_schedule_file=None, **kwargs):
         if self.output_path is None:
             if hpxml_file is not None:
@@ -74,21 +76,22 @@ class Simulator:
             elif equipment_schedule_file is not None:
                 self.output_path = os.path.dirname(equipment_schedule_file)
             else:
-                raise IOError('Must specify output_path, or set save_results=False.')
+                raise OCHREException('Must specify output_path, or set save_results=False.')
         if not os.path.isabs(self.output_path):
             self.output_path = os.path.abspath(self.output_path)
         os.makedirs(self.output_path, exist_ok=True)
 
-        # save result file path and remove existing results files
-        extn = '.parquet' if self.output_to_parquet else '.csv'
+        # save result file path 
         file_name = self.name if not self.main_sim_name else f'{self.name}_{self.main_sim_name}'
+        extn = '.parquet' if self.output_to_parquet else '.csv'
         self.results_file = os.path.join(self.output_path, file_name + extn)
-        if os.path.exists(self.results_file):
-            self.print('Removing previous results')
-            os.remove(self.results_file)
-            for f in os.listdir(self.output_path):
-                if self.name in f and '.parquet' in f:
-                    os.remove(os.path.join(self.output_path, f))
+
+        # Remove existing results files
+        for f in os.listdir(self.output_path):
+            if f == f'{file_name}.csv' or (self.name in f and '.parquet' in f):
+                self.print('Removing previous results file:', os.path.join(self.output_path, f))
+                os.remove(os.path.join(self.output_path, f))
+
 
         # remove existing status files
         statuses = ['failed', 'complete']
@@ -140,7 +143,7 @@ class Simulator:
             return None
 
         if not isinstance(schedule.index, pd.DatetimeIndex):
-            raise Exception(f'{self.name} schedule index must be a DateTime index, not {type(schedule.index)}.'
+            raise OCHREException(f'{self.name} schedule index must be a DateTime index, not {type(schedule.index)}.'
                             f' If loading schedule from a file, try setting index column to "Time".')
 
         # Check that all required inputs are in schedule, print warning if not
@@ -157,7 +160,7 @@ class Simulator:
 
         # Check that start time matches schedule
         if self.start_time < schedule.index[0]:
-            raise Exception(f'{self.name} start time ({self.start_time}) is before the schedule start time '
+            raise OCHREException(f'{self.name} start time ({self.start_time}) is before the schedule start time '
                                      f'({schedule.index[0]}).')
         elif self.start_time > schedule.index[0]:
             self.warn(f'Updating {self.name} schedule start time from {schedule.index[0]} to {self.start_time}.')
@@ -184,7 +187,7 @@ class Simulator:
         elif end_time + self.time_res < schedule.index[-1]:
             schedule = schedule.loc[:end_time + self.time_res]
         elif end_time > schedule.index[-1]:
-            raise Exception(f'{self.name} end time ({end_time}) is after the schedule end time '
+            raise OCHREException(f'{self.name} end time ({end_time}) is after the schedule end time '
                                      f'({schedule.index[-1]}).')
 
         return schedule
@@ -324,7 +327,7 @@ class Simulator:
 
         elif self.output_to_parquet:
             output_files = [os.path.join(self.output_path, f) for f in os.listdir(self.output_path)
-                            if re.match(f'{self.name}.*\.parquet', f) and '_schedule.parquet' not in f]
+                            if re.match(f'{self.name}.*\\.parquet', f) and '_schedule.parquet' not in f]
             dfs = [pd.read_parquet(f) for f in sorted(output_files)]
             if self.results:
                 # add recent results that haven't been saved to a parquet file

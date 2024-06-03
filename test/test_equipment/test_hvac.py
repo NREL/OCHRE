@@ -218,12 +218,12 @@ class IdealHeaterTestCase(unittest.TestCase):
         self.hvac.mode = 'Off'
         mode = self.hvac.run_duty_cycle_control(update_args_inside, {'Duty Cycle': 0.5})
         self.assertEqual(mode, 'On')
-        self.assertEqual(self.hvac.duty_cycle_capacity, 2500)
+        self.assertEqual(self.hvac.ext_capacity, 2500)
 
         self.hvac.mode = 'Off'
         mode = self.hvac.run_duty_cycle_control(update_args_inside, {'Duty Cycle': 0})
         self.assertEqual(mode, 'Off')
-        self.assertEqual(self.hvac.duty_cycle_capacity, 0)
+        self.assertEqual(self.hvac.ext_capacity, 0)
 
     def test_update_internal_control(self):
         mode = self.hvac.update_internal_control(update_args_heat)
@@ -529,7 +529,7 @@ class VariableSpeedHVACTestCase(unittest.TestCase):
         mode = self.hvac.run_duty_cycle_control(update_args_inside, {'Duty Cycle': 0.5})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.hvac.capacity_max, 6010, places=-1)
-        self.assertAlmostEqual(self.hvac.duty_cycle_capacity, 3000, places=-1)
+        self.assertAlmostEqual(self.hvac.ext_capacity, 3000, places=-1)
 
     def test_update_capacity(self):
         # Capacity should follow ideal update

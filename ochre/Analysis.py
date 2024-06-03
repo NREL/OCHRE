@@ -4,10 +4,11 @@ import json
 import pandas as pd
 import datetime as dt
 import numpy as np
+import numba  # required for array-based psychrolib
 import psychrolib
 from numpy.polynomial.polynomial import Polynomial
 
-from ochre.utils import convert, load_csv, ZONES
+from ochre.utils import OCHREException, convert, load_csv, ZONES
 from ochre.Equipment import ALL_END_USES
 
 psychrolib.SetUnitSystem(psychrolib.SI)
@@ -110,10 +111,10 @@ def load_eplus_file(file_name, eplus_format='ResStock', variable_names_file='Var
     elif eplus_format == 'Eplus Detailed':
         df = pd.read_csv(file_name)
     else:
-        raise Exception(f'Unknown EnergyPlus output file format: {eplus_format}')
+        raise OCHREException(f'Unknown EnergyPlus output file format: {eplus_format}')
 
     if len(df) != 8760:
-        raise Exception(f'Comparison file should have 8760 rows: {file_name}')
+        raise OCHREException(f'Comparison file should have 8760 rows: {file_name}')
 
     # Load variable names and units file
     df_names = load_csv(variable_names_file)
@@ -153,21 +154,22 @@ def load_eplus_file(file_name, eplus_format='ResStock', variable_names_file='Var
         else:
             df['HVAC Heating Main Power (kW)'] = gas_kw
 
+    # TODO: no longer used. Need verify if this is needed for OS-HPXML format
     if eplus_format == 'BEopt':
         # add HVAC COP and SHR (note, excludes fan power and duct losses) - BEopt only
         df['HVAC Heating COP (-)'] = replace_nans(
-            df['HVAC Heating Capacity (kW)'] / (
+            df['HVAC Heating Capacity (W)'] / 1000 / (
                 df['HVAC Heating Main Power (kW)'] + df.get('HVAC Heating ER Power (kW)', missing)))
-        df['HVAC Cooling COP (-)'] = replace_nans(df['HVAC Cooling Capacity (kW)'] / df['HVAC Cooling Main Power (kW)'])
-        df['HVAC Cooling SHR (-)'] = replace_nans(df['HVAC Cooling Sensible Capacity (kW)'] /
-                                                  df['HVAC Cooling Capacity (kW)'])
+        df['HVAC Cooling COP (-)'] = replace_nans(df['HVAC Cooling Capacity (W)'] / 1000 / df['HVAC Cooling Main Power (kW)'])
+        df['HVAC Cooling SHR (-)'] = replace_nans(df['HVAC Cooling Sensible Capacity (W)'] /
+                                                  df['HVAC Cooling Capacity (W)'])
 
         # calculate indoor wet bulb - BEopt only
-        df['Temperature - Indoor Wet Bulb (C)'] = [
-            psychrolib.GetTWetBulbFromRelHum(t, rh, p) for (t, rh, p) in zip(
-                df['Temperature - Indoor (C)'], df['Relative Humidity - Indoor (-)'],
-                convert(df['Weather|Atmospheric Pressure'].values, 'atm', 'Pa'))
-        ]
+        df['Temperature - Indoor Wet Bulb (C)'] = psychrolib.GetTWetBulbFromRelHum(
+            df['Temperature - Indoor (C)'].values,
+            df['Relative Humidity - Indoor (-)'],
+            convert(df['Weather|Atmospheric Pressure'].values, 'atm', 'Pa'),
+        )
 
         # add unmet HVAC loads - BEopt only
         df['Unmet HVAC Load (C)'] = df['Temperature - Indoor (C)'] - df['Temperature - Indoor (C)'].clip(
@@ -261,7 +263,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             'Peak Electric Power (kW)': p.max(),
             'Peak Electric Power - 15 min avg (kW)': p.resample('15min').mean().max(),
             'Peak Electric Power - 30 min avg (kW)': p.resample('30min').mean().max(),
-            'Peak Electric Power - 1 hour avg (kW)': p.resample('1H').mean().max(),
+            'Peak Electric Power - 1 hour avg (kW)': p.resample('1h').mean().max(),
         })
 
     # End use power metrics
@@ -305,15 +307,15 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
 
         for end_use, hvac_mult in [('HVAC Heating', 1), ('HVAC Cooling', -1)]:
             # Delivered heating/cooling
-            if end_use + ' Delivered (kW)' in results:
-                delivered = results[end_use + ' Delivered (kW)']
+            if end_use + ' Delivered (W)' in results:
+                delivered = results[end_use + ' Delivered (W)'] / 1000  # in kW
                 delivered_sum = delivered.sum(skipna=False)
                 metrics['Total {} Delivered (kWh)'.format(end_use)] = delivered_sum * hr_per_step
             else:
                 delivered_sum = 0
 
-            if end_use + ' Capacity (kW)' in results:
-                capacity = results[end_use + ' Capacity (kW)']
+            if end_use + ' Capacity (W)' in results:
+                capacity = results[end_use + ' Capacity (W)'] / 1000  # in kW
                 capacity_sum = capacity.sum()
 
                 # FUTURE: maybe add: fan power ratio = total power / main power;
@@ -344,12 +346,12 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
                     metrics[f'Average {end_use} Duct Efficiency (-)'] = delivered_sum / (sens_capacity_sum + fan_heat)
 
                 # HVAC capacity - only when device is on
-                if metrics_verbosity >= 8:
+                if metrics_verbosity >= 8:  
                     metrics['Average {} Capacity (kW)'.format(end_use)] = capacity[capacity > 0].mean()
 
     # Water heater and hot water metrics
-    if metrics_verbosity >= 4 and 'Water Heating Delivered (kW)' in results:
-        heat = results['Water Heating Delivered (kW)']
+    if metrics_verbosity >= 4 and "Water Heating Delivered (W)" in results:
+        heat = results['Water Heating Delivered (W)'] / 1000  # in kW
         metrics['Total Water Heating Delivered (kWh)'] = heat.sum(skipna=False) * hr_per_step
 
         # COP - weighted average only when device is on
@@ -367,27 +369,30 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             # FUTURE: Down with imperial units!
             metrics['Total Hot Water Delivered (gal/day)'] = convert(
                 results['Hot Water Delivered (L/min)'].mean(skipna=False), 'L/min', 'gallon/day')
-        if 'Hot Water Delivered (kW)' in results:
+        if 'Hot Water Delivered (W)' in results:
             metrics['Total Hot Water Delivered (kWh)'] = \
-                results['Hot Water Delivered (kW)'].sum(skipna=False) * hr_per_step
+                results['Hot Water Delivered (W)'].sum(skipna=False) / 1000 * hr_per_step
 
     # Battery metrics
     if metrics_verbosity >= 4 and 'Battery Electric Power (kW)' in results:
-        p = results['Battery Electric Power (kW)']
-        metrics['Battery Charging Energy (kWh)'] = p.clip(lower=0).sum(skipna=False) * hr_per_step
-        metrics['Battery Discharging Energy (kWh)'] = -p.clip(upper=0).sum(skipna=False) * hr_per_step
+        batt_energy = results['Battery Electric Power (kW)'] * hr_per_step
+        metrics['Battery Charging Energy (kWh)'] = batt_energy.clip(lower=0).sum(skipna=False)
+        metrics['Battery Discharging Energy (kWh)'] = -batt_energy.clip(upper=0).sum(skipna=False)
         if metrics['Battery Charging Energy (kWh)'] != 0:
             metrics['Battery Round-trip Efficiency (-)'] = (metrics['Battery Discharging Energy (kWh)'] /
                                                             metrics['Battery Charging Energy (kWh)'])
             
         if all([r in results for r in ['Battery Energy to Discharge (kWh)', 'Total Electric Energy (kWh)']]):
-            cumulative_energy = results['Total Electric Energy (kWh)'].cumsum()
+            cumulative_energy = (results['Total Electric Energy (kWh)'] - batt_energy).cumsum()
             end_energy = cumulative_energy + results['Battery Energy to Discharge (kWh)']
-            end_times = cumulative_energy.searchsorted(end_energy)
-            last_time = end_energy.index[-1] + time_res
-            end_energy = pd.concat([end_energy, pd.Series(index=[last_time])])  # add 1 row for last time step
-            end_times = end_energy.iloc[end_times].index
-            results['Islanding Time (hours)'] = (end_times - results.index).total_seconds() / 3600
+            last_time = results.index[-1] + time_res
+            islanding_times = []
+            for t, energy in end_energy.items():
+                future_energies = cumulative_energy[t : t + dt.timedelta(days=7)]
+                end_time = (future_energies >= energy).idxmax()
+                islanding_time = (end_time - t).total_seconds() / 3600 if end_time > t else 24 * 7
+                islanding_times.append(islanding_time)
+            results["Islanding Time (hours)"] = islanding_times
 
             metrics['Average Islanding Time (hours)'] = results['Islanding Time (hours)'].mean()
 
@@ -398,8 +403,8 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
                                                            'kWh'))
 
     # Outage metrics
-    if metrics_verbosity >= 4 and 'Voltage (-)' in results:
-        outage = results['Voltage (-)'] == 0
+    if metrics_verbosity >= 4 and 'Grid Voltage (-)' in results:
+        outage = results["Grid Voltage (-)"] == 0
         if outage.any():
             outage_sum = outage.sum(skipna=False) * hr_per_step
             outage_diff = np.diff(outage.values, prepend=0, append=0)
@@ -425,7 +430,8 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             unique_modes = [mode for mode in modes.unique() if mode != 'Off']
             for unique_mode in unique_modes:
                 on = modes == unique_mode
-                cycles = on.diff().fillna(on).clip(lower=0).sum()
+                cycle_starts = on & (~on).shift()
+                cycles = cycle_starts.sum()
                 if cycles <= 1:
                     continue
                 elif len(unique_modes) == 1:
@@ -558,12 +564,12 @@ def find_files_from_ending(path, ending, priority_list=None, **kwargs):
             # select file match in priority list. If not found, throw an error
             matches = [f for f in priority_list if f in matches]
             if len(matches) != 1:
-                raise Exception(f'{len(matches)} files found matching {ending} in {root}: {matches}')
+                raise OCHREException(f'{len(matches)} files found matching {ending} in {root}: {matches}')
         
         file_path = os.path.join(root, matches[0])
         run_name = get_parent_folders(file_path, **kwargs)
         if run_name in all_files:
-            raise Exception(f'Multiple files found with same run name ({run_name}).'
+            raise OCHREException(f'Multiple files found with same run name ({run_name}).'
                              'Try increasing dirs_to_include. Error from:', file_path)
 
         all_files[run_name] = file_path        

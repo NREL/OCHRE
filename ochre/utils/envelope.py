@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pvlib
 
-from ochre.utils import load_csv, convert
+from ochre.utils import OCHREException, load_csv, convert
 
 # List of utility functions for OCHRE Envelope
 
@@ -24,7 +24,7 @@ CARDINAL_DIRECTIONS = {
 
 
 def get_boundary_tilt(name):
-    # get boundary tilt (i.e. orientation) based on boundary name (0-90 degrees)
+    # get boundary tilt based on boundary name (0-90 degrees)
     if any([x in name for x in ['Floor', 'Ceiling']]):
         tilt = 0  # horizontal
     elif any([x in name for x in ['Wall', 'Rim Joist', 'Window', 'Door', 'Furniture']]):
@@ -32,7 +32,7 @@ def get_boundary_tilt(name):
     elif 'Roof' in name:
         tilt = None  # tilt should already be defined
     else:
-        raise Exception('Unknown boundary name:', name)
+        raise OCHREException('Unknown boundary name:', name)
 
     return tilt
 
@@ -57,7 +57,7 @@ def calculate_plane_irradiance(df, tilt, panel_azimuth, window_data=None, albedo
         if na_times.any():
             large_ghi = df.loc[na_times, 'GHI (W/m^2)'] > 10
             if large_ghi.any():
-                raise Exception(f'Solar calculation is returning NA. First instance is: {large_ghi.idxmax()}')
+                raise OCHREException(f'Solar calculation is returning NA. First instance is: {large_ghi.idxmax()}')
             irr = irr.fillna(0)
 
     # Limit sky diffuse to DHI+GHI, based on simple Sandia model:
@@ -136,7 +136,7 @@ def calculate_solar_irradiance(weather, weather_timezone, location, boundaries, 
         azimuths = bd.get('Azimuth (deg)', default_azimuth)
         window_data = bd if bd_name == 'Window' else None
         if len(areas) != len(azimuths):
-            raise Exception(f'Number of areas and azimuths for {bd_name} are not equal.'
+            raise OCHREException(f'Number of areas and azimuths for {bd_name} are not equal.'
                             f' Areas: {areas}, Azimuths: {azimuths}')
 
         irr = sum([calculate_plane_irradiance(weather, tilt, az, window_data) * area
@@ -215,11 +215,11 @@ def get_boundary_rc_values(all_bd_properties, raise_error=False, **house_args):
         if len(bd_choices) == 0:
             keys = ['Construction Type', 'Finish Type', 'Insulation Details']
             p = {key: val for key, val in bd_properties.items() if key in keys}
-            raise Exception(f'Cannot find material properties for {bd_name} with properties: {p}')
+            raise OCHREException(f'Cannot find material properties for {bd_name} with properties: {p}')
         elif len(bd_choices) == 1:
             bd_data = bd_choices.iloc[0].to_dict()
         elif r_value is None:
-            raise Exception(f'Boundary R Value must be specified for {bd_name} with properties: {bd_properties}')
+            raise OCHREException(f'Boundary R Value must be specified for {bd_name} with properties: {bd_properties}')
         else:
             # Find row with closest Boundary R Value
             r_options = bd_choices['Boundary R Value']
@@ -231,11 +231,11 @@ def get_boundary_rc_values(all_bd_properties, raise_error=False, **house_args):
         # Check for reasonable difference in R value (print warning if above R0.5)
         if r_value is not None:
             if r_value == 0:
-                raise Exception(f'{bd_name} R value is zero, double check inputs')
+                raise OCHREException(f'{bd_name} R value is zero, double check inputs')
             error_abs = abs(r_closest - r_value)
             error_pct = error_abs / r_value
             if raise_error and error_abs > 1 and error_pct > 0.15:
-                raise Exception(f'{bd_name} R value ({r_value:0.2f}) does not match closest option: {bd_type},'
+                raise OCHREException(f'{bd_name} R value ({r_value:0.2f}) does not match closest option: {bd_type},'
                                 f' R={r_closest:0.2f}')
             elif error_abs > 0.5 and error_pct > 0.10:
                 print(f'WARNING: {bd_name} R value ({r_value:0.2f}) is far from closest match: {bd_type},'
@@ -245,7 +245,7 @@ def get_boundary_rc_values(all_bd_properties, raise_error=False, **house_args):
         df = materials.loc[(materials['Boundary Name'] == bd_name) &
                            (materials['Boundary Type'] == bd_type)]
         if not len(df):
-            raise Exception(f'Cannot find boundary properties for {bd_name} with type: {bd_type}')
+            raise OCHREException(f'Cannot find boundary properties for {bd_name} with type: {bd_type}')
 
         # Create RC parameters
         label = bd_properties['Boundary Label']
@@ -442,7 +442,7 @@ def get_slab_insulation(floor, name=None):
     elif not r_perimeter and not r_under:
         insulation = 'Uninsulated'
     else:
-        raise Exception(f'Unknown slab insulation parameters for {name}: {floor}')
+        raise OCHREException(f'Unknown slab insulation parameters for {name}: {floor}')
 
     return insulation
 
