@@ -34,7 +34,8 @@ class ElectricVehicle(EventBasedLoad):
         "EV Max SOC (-)",
     ]
 
-    def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, enable_part_load=None, equipment_event_file=None, **kwargs):
+    def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, max_power=None, 
+                 enable_part_load=None, equipment_event_file=None, **kwargs):
         # get EV battery capacity and mileage
         if capacity is None and mileage is None:
             raise OCHREException('Must specify capacity or mileage for {}'.format(self.name))
@@ -66,7 +67,10 @@ class ElectricVehicle(EventBasedLoad):
             equipment_event_file = "pdf_Veh{}_{}.csv".format(vehicle_num, self.charging_level)
 
         # charging model
-        self.max_power = EV_MAX_POWER[self.charging_level][vehicle_num - 1]
+        if max_power is None:
+            self.max_power = EV_MAX_POWER[self.charging_level][vehicle_num - 1]
+        else:
+            self.max_power = max_power
         self.max_power_ctrl = self.max_power
         self.setpoint_power = None
         self.soc = 1  # unitless
@@ -87,8 +91,10 @@ class ElectricVehicle(EventBasedLoad):
         df = load_csv(equipment_event_file, sub_folder=self.end_use)
 
         # update column formats
-        df['weekday'] = df['weekday'].astype(bool)
-        df['temperature'] = df['temperature'].astype(int)
+        if 'weekday' in df.columns:
+            df['weekday'] = df['weekday'].astype(bool)
+        if 'temperature' in df.columns:
+            df['temperature'] = df['temperature'].astype(int)
         df['start_time'] = df['start_time'].astype(float)
         df['duration'] = df['duration'].astype(float)
         df['start_soc'] = df['start_soc'].astype(float)
@@ -97,9 +103,14 @@ class ElectricVehicle(EventBasedLoad):
         df = df.sort_values(['day_id', 'start_time'])
         df = df.set_index('day_id')
 
-        # group by weekday and temperature
-        day_ids = df.groupby(['temperature', 'weekday']).groups
-        day_ids = {key: val.unique() for key, val in day_ids.items()}
+        group_types = [col for col in ["temperature", "weekday"] if col in df.columns]
+        if group_types:
+            # group by weekday and/or temperature
+            day_ids = df.groupby(group_types).groups
+            day_ids = {key: val.unique() for key, val in day_ids.items()}
+        else:
+            # return all day ids without grouping
+            day_ids = df.index
         return day_ids, df
 
     def generate_all_events(self, probabilities, event_data, eq_schedule, ambient_ev_temp=20, **kwargs):
@@ -116,11 +127,21 @@ class ElectricVehicle(EventBasedLoad):
                                   freq=dt.timedelta(days=1))
             temps_by_day = pd.Series([ambient_ev_temp] * len(dates), index=dates)
 
-        # randomly sample IDs by weekday and temp
         temps_by_day.index = pd.to_datetime(temps_by_day.index)
         wdays = temps_by_day.index.weekday < 5
-        keys = list(zip(temps_by_day.values, wdays))
-        day_ids = [np.random.choice(probabilities[key]) for key in keys]
+        keys = {'temperature': temps_by_day.values, 
+                'weekday': wdays,
+        }
+        keys = [key for name, key in keys.items() if name in event_data.columns]
+        if len(keys) >= 2:
+            keys = list(zip(*keys))
+        
+        if not keys:
+            # randomly sample IDs
+            day_ids = [np.random.choice(probabilities) for _ in range(len(temps_by_day))]
+        else:
+            # randomly sample IDs by weekday and/or temp
+            day_ids = [np.random.choice(probabilities[key]) for key in keys]
 
         # get event info and add date
         df_events = []
