@@ -9,7 +9,7 @@ import ochre.utils.envelope as utils_envelope
 
 
 ZONE_NAME_OPTIONS = {
-    'Indoor': ['living', 'living space'],
+    'Indoor': ['conditioned space'],
     'Foundation': ['crawlspace', 'basement', 'finishedbasement', 'basement - conditioned', 'basement - unconditioned',
                    'crawlspace - vented', 'crawlspace - unvented'],
     'Garage': ['garage'],
@@ -98,7 +98,7 @@ def get_boundaries_by_zones(boundaries, default_int_zone='Indoor', default_ext_z
     return bd_by_zones
 
 
-def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
+def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls, adj_walls):
     # for windows and doors, determine interior zone based on attached wall zone
     ext_bd, gar_bd, attic_bd = {}, {}, {}
     for name, boundary in boundaries.items():
@@ -116,6 +116,9 @@ def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
             boundary['Interior Zone'] = 'Attic'
             attic_bd[name] = boundary
             attic_walls[wall]['Area'] -= boundary['Area']
+        elif wall in adj_walls:
+            # skip doors on adjacent (adiabatic) walls
+            pass
         else:
             raise OCHREException(f'Unknown attached wall for {name}: {wall}')
     
@@ -324,13 +327,17 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
 
     # Get windows (only accepts windows to indoor zone for now), and subtract wall area
     all_windows = enclosure.get('Windows', {})
-    windows, gar_windows, attic_windows = get_boundaries_by_wall(all_windows, ext_walls, gar_walls, attic_walls)
+    windows, gar_windows, attic_windows = get_boundaries_by_wall(
+        all_windows, ext_walls, gar_walls, attic_walls, adj_walls
+    )
     assert not gar_windows
     assert not attic_windows
     
     # Get doors (only accepts doors to indoor zone and garage), and subtract wall area
     all_doors = enclosure.get('Doors', {})
-    doors, gar_doors, attic_doors = get_boundaries_by_wall(all_doors, ext_walls, gar_walls, attic_walls)
+    doors, gar_doors, attic_doors = get_boundaries_by_wall(
+        all_doors, ext_walls, gar_walls, attic_walls, adj_walls
+    )
     assert not attic_doors
 
     boundaries = {
@@ -1289,7 +1296,7 @@ def parse_cooking_range(range_dict, oven_dict, n_bedrooms):
     is_induction = range_dict.get('IsInduction', False)
     is_convection = oven_dict.get('IsConvection', False)
     multiplier = range_dict.get('extension', {}).get('UsageMultiplier', 1)
-    assert 'living' in range_dict.get('Location', 'living')
+    assert parse_zone_name(range_dict.get('Location')) in ['Indoor', None]
 
     # get total energy usage
     burner_ef = 0.91 if is_induction else 1
@@ -1437,21 +1444,20 @@ def parse_ev(ev):
 
 
 def parse_pool_equipment(hpxml):
-    # Get pool and hot tub equipment
+    # Get pool and spa equipment
     pool_equipment = {}
-    for ochre_name in ['Pool', 'Hot Tub']:
-        hpxml_name = ochre_name.replace(' ', '')
+    for hpxml_name in ['Pool', 'Spa']:
         pool_list = list(hpxml.get(f'{hpxml_name}s', {}).values())
         if not pool_list or pool_list[0].get('Type', 'none') == 'none':
             continue
 
-        pump = list(pool_list[0][f'{hpxml_name}Pumps'].values())[0]
+        pump = list(pool_list[0]['Pumps'].values())[0]
         heater = pool_list[0]['Heater']
         assert len(pool_list) == 1 and isinstance(pump, dict) and isinstance(heater, dict)
-        if 'Load' in pump:
-            pool_equipment[f'{ochre_name} Pump'] = parse_mel(pump, f'{hpxml_name}Pump')
-        if 'Load' in heater:
-            pool_equipment[f'{ochre_name} Heater'] = parse_mel(heater, f'{hpxml_name}Heater')
+        if 'Load' in pump and pump.get('Type', 'none') != 'none':
+            pool_equipment[f'{hpxml_name} Pump'] = parse_mel(pump, f'{hpxml_name} Pump')
+        if 'Load' in heater and heater.get('Type', 'none') != 'none':
+            pool_equipment[f'{hpxml_name} Heater'] = parse_mel(heater, f'{hpxml_name} Heater')
 
     return pool_equipment
 
@@ -1574,7 +1580,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     mgls = parse_mels(mgl_dict, is_gas=True)
     equipment.update(mgls)
 
-    # Add pool/hot tub equipment: pumps and heaters
+    # Add pool/spa equipment: pumps and heaters
     pool_equipment = parse_pool_equipment(hpxml)
     equipment.update(pool_equipment)
 
@@ -1609,6 +1615,8 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
 
     # Parse occupancy
     occupancy = parse_hpxml_occupancy(hpxml)
+    if 'Occupancy' in house_args:
+        occupancy = nested_update(occupancy, house_args.pop('Occupancy'))
 
     # Parse envelope properties and merge with house_args
     boundaries, zones, construction = parse_hpxml_envelope(hpxml, occupancy, **house_args)

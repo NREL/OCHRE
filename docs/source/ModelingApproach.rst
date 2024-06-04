@@ -103,6 +103,19 @@ HVAC equipment conditioning the living space. This multiplier helps account
 for the volume of ducts and the time required for warm and cold air to diffuse
 through the living space. Values for this multiplier in the literature range
 from 3-15 depending on the study. OCHRE uses a default multiplier of 7.
+Thermal mass due to furniture and interior partition walls is also accounted
+for in the living space. Partition walls and furniture are modeled explicitly
+with surface areas and material properties like any other surface and exchange
+heat through both convection and radiation. The heat capacity of the air is
+also modeled to determine the living zone temperature. However, a multiplier
+is generally applied to this capacitance. `Numerous studies
+<https://docs.google.com/spreadsheets/d/1ebSmvDFdXEXVRdvkzqMF1C9MwHrHCQKFF75QMkPgd7A/edit?pli=1#gid=0>`__
+have shown that applying a multiplier to the air capacitance provides a much
+better match to experimental data when trying to model explicit cycling of the
+HVAC equipment conditioning the living space. This multiplier helps account
+for the volume of ducts and the time required for warm and cold air to diffuse
+through the living space. Values for this multiplier in the literature range
+from 3-15 depending on the study. OCHRE uses a default multiplier of 7.
 
 The envelope includes a humidity model for the living space zone. The
 model determines the indoor humidity and wet bulb temperature based on a
@@ -338,7 +351,7 @@ be electric or natural gas loads. Schedule-based loads include:
 
 -  Ceiling fan and ventilation fan
 
--  Pool Equipment (pool pump and heater, hot tub pump and heater)
+-  Pool Equipment (pool pump and heater, spa pump and heater)
 
 -  Miscellaneous electric loads (television, other)
 

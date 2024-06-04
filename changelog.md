@@ -21,6 +21,8 @@
 - Fixed bug with ASHP backup heater units
 - Fixed bug with named HVAC/Water Heating equipment arguments
 - Fixed bug in ASHP duty cycle control
+- PV model accepts tilt and azimuth angles from roof boundary in envelope
+- Added OCHREException class to handle errors
 - Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
 - Fixed bug with ASHP backup heater units
 - Fixed bug with battery/generator self-consumption controls
