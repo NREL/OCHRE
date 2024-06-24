@@ -113,7 +113,30 @@ class ElectricVehicle(EventBasedLoad):
             day_ids = df.index
         return day_ids, df
 
-    def generate_all_events(self, probabilities, event_data, eq_schedule, ambient_ev_temp=20, **kwargs):
+    def generate_all_events(
+        self,
+        probabilities,
+        event_data,
+        eq_schedule,
+        ambient_ev_temp=20,
+        ev_daily_charge_ratio=None,
+        **kwargs,
+    ):
+        # Get ratio of days with charging event if not provided
+        if ev_daily_charge_ratio is None:
+            if self.charging_level != "Level2":
+                # Level 1 plug charges most days
+                ev_daily_charge_ratio = 0.9
+            elif self.capacity >= 70:
+                # for large EVs (>~200 mi range), charge every 5 days, on average
+                ev_daily_charge_ratio = 0.2
+            elif self.capacity >= 35:
+                # for smaller EVs (>~100 mi range), charge every 3 days, on average
+                ev_daily_charge_ratio = 0.33
+            else:
+                # for the smallest EVs (mostly PHEV), charge every 2 days, on average
+                ev_daily_charge_ratio = 0.5
+
         if eq_schedule is not None:
             # get average daily ambient temperature for generating events and round to nearest 5 C
             if 'Ambient Dry Bulb (C)' not in eq_schedule:
@@ -133,22 +156,21 @@ class ElectricVehicle(EventBasedLoad):
                 'weekday': wdays,
         }
         keys = [key for name, key in keys.items() if name in event_data.columns]
-        if len(keys) >= 2:
-            keys = list(zip(*keys))
-        
         if not keys:
             # randomly sample IDs
             day_ids = [np.random.choice(probabilities) for _ in range(len(temps_by_day))]
         else:
             # randomly sample IDs by weekday and/or temp
+            keys = keys[0] if len(keys) == 1 else list(zip(*keys))
             day_ids = [np.random.choice(probabilities[key]) for key in keys]
 
-        # get event info and add date
+        # assign charging events for some simulation days
         df_events = []
         for day_id, date in zip(day_ids, temps_by_day.index):
-            df = event_data.loc[event_data.index == day_id].reset_index()
-            df['start_time'] = date + pd.to_timedelta(df['start_time'], unit='minute')
-            df_events.append(df)
+            if np.random.rand() <= ev_daily_charge_ratio:
+                df = event_data.loc[event_data.index == day_id].reset_index()
+                df['start_time'] = date + pd.to_timedelta(df['start_time'], unit='minute')
+                df_events.append(df)
         df_events = pd.concat(df_events)
         df_events = df_events.reset_index(drop=True)
 
