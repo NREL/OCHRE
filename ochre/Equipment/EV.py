@@ -119,23 +119,23 @@ class ElectricVehicle(EventBasedLoad):
         event_data,
         eq_schedule,
         ambient_ev_temp=20,
-        ev_daily_charge_ratio=None,
+        event_day_ratio=None,
         **kwargs,
     ):
         # Get ratio of days with charging event if not provided
-        if ev_daily_charge_ratio is None:
+        if event_day_ratio is None:
             if self.charging_level != "Level2":
                 # Level 1 plug charges most days
-                ev_daily_charge_ratio = 0.9
+                event_day_ratio = 0.9
             elif self.capacity >= 70:
                 # for large EVs (>~200 mi range), charge every 5 days, on average
-                ev_daily_charge_ratio = 0.2
+                event_day_ratio = 0.2
             elif self.capacity >= 35:
                 # for smaller EVs (>~100 mi range), charge every 3 days, on average
-                ev_daily_charge_ratio = 0.33
+                event_day_ratio = 0.33
             else:
                 # for the smallest EVs (mostly PHEV), charge every 2 days, on average
-                ev_daily_charge_ratio = 0.5
+                event_day_ratio = 0.5
 
         if eq_schedule is not None:
             # get average daily ambient temperature for generating events and round to nearest 5 C
@@ -167,7 +167,7 @@ class ElectricVehicle(EventBasedLoad):
         # assign charging events for some simulation days
         df_events = []
         for day_id, date in zip(day_ids, temps_by_day.index):
-            if np.random.rand() <= ev_daily_charge_ratio:
+            if np.random.rand() <= event_day_ratio:
                 df = event_data.loc[event_data.index == day_id].reset_index()
                 df['start_time'] = date + pd.to_timedelta(df['start_time'], unit='minute')
                 df_events.append(df)
