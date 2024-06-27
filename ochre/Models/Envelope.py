@@ -99,7 +99,8 @@ class BoundarySurface:
         # https://bigladdersoftware.com/epx/docs/8-0/engineering-reference/page-020.html#external-longwave-radiation
         if self.is_exterior:
             self.tilt = kwargs.get('Tilt (deg)', utils.get_boundary_tilt(self.boundary_name))
-            self.azimuths = kwargs.get('Azimuth (deg)', 0)
+            default_azimuth = [0] if self.tilt == 0 else None
+            self.azimuths = kwargs.get("Azimuth (deg)", default_azimuth)
             # sky view factor incorporates F and Beta from reference
             self.sky_view_factor = ((1 + np.cos(convert(self.tilt, 'deg', 'rad'))) / 2) ** 1.5
         else:
