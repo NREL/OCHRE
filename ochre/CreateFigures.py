@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.cm as cm
 
-default_colors = cm.get_cmap('tab10').colors  # discrete color map with 10 colors
+default_colors = cm.tab10.colors  # discrete color map with 10 colors
 register_matplotlib_converters()
 locator = mdates.AutoDateLocator()
 formatter = mdates.ConciseDateFormatter(locator, show_offset=False)
