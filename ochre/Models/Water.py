@@ -10,6 +10,10 @@ water_cp = 4.183  # kJ/kg-K
 water_conductivity = 0.6406  # W/m-K
 water_c = water_cp * water_density_liters * 1000  # heat capacity with useful units: J/K-L
 
+# PCM properties based on manufacturer data
+solid = {'pcm_density': 904, 'pcm_density_liters': 0.904, 'pcm_cp': 1.9, 'pcm_conductivity': 0.28, 'pcm_c': 1717.6}
+liquid = {'pcm_density': 829, 'pcm_density_liters': 0.829, 'pcm_cp': 2.2, 'pcm_conductivity': 0.16, 'pcm_c': 1823.8}
+pcm_transition = 53 # C
 
 class StratifiedWaterModel(RCModel):
     """
@@ -44,23 +48,30 @@ class StratifiedWaterModel(RCModel):
         'Zone Temperature (C)',
     ]
 
-    def __init__(self, water_nodes=12, water_vol_fractions=None, **kwargs):
+     def __init__(self, total_nodes=12, water_nodes=11, pcm_nodes=1, water_vol_fractions=None, **kwargs):
         if water_vol_fractions is None:
-            self.n_nodes = water_nodes
+            self.n_nodes = total_nodes
+            self.w_nodes = water_nodes
+            self.p_nodes = pcm_nodes
             self.vol_fractions = np.ones(self.n_nodes) / self.n_nodes
         else:
             self.n_nodes = len(water_vol_fractions)
             self.vol_fractions = np.array(water_vol_fractions) / sum(water_vol_fractions)
 
         self.volume = kwargs['Tank Volume (L)']  # in L
+        self.volume_node = self.volume // self.n_nodes
 
         super().__init__(external_nodes=['AMB'], **kwargs)
         self.next_states = self.states  # for holding state info for next time step
+
+        self.pcm_node_index = self.n_nodes - 1         # Place PCM node at bottom of tank
 
         self.t_amb_idx = self.input_names.index('T_AMB')
         assert self.t_amb_idx == 0  # should always be first
         self.t_1_idx = self.state_names.index('T_WH1')
         self.h_1_idx = self.input_names.index('H_WH1')
+        self.t_pcm_idx = self.state_names.index('T_PCM')
+        self.h_pcm_idx = self.input_names.index('H_PCM')
 
         # key variables for results
         self.draw_total = 0  # in L
@@ -77,6 +88,7 @@ class StratifiedWaterModel(RCModel):
         # self.washer_draw_temp = kwargs.get('Clothes Washer Delivery Temperature (C)', convert(92.5, 'degF', 'degC'))
 
     def load_rc_data(self, **kwargs):
+        rc_params = {}
         # Get properties from input file
         h = kwargs['Tank Height (m)']  # in m
         top_area = self.volume / h / 1000  # in m^2
@@ -91,26 +103,46 @@ class StratifiedWaterModel(RCModel):
         else:
             raise ModelException('Missing heat transfer coefficient (UA) for {}'.format(self.name))
 
-        # calculate general RC parameters for whole tank
-        c_water_tot = self.volume * water_c  # Heat capacity of water (J/K)
-        r_int = (h / self.n_nodes) / water_conductivity / top_area  # R between nodes (K/W)
+        # calculate general RC parameters for water in tank
+        self.volume_water = self.volume_node * self.w_nodes
+        c_water_tot = self.volume_water * water_c  # Heat capacity of water (J/K)
+        r_int_water = (h / self.w_nodes) / water_conductivity / top_area  # R between nodes (K/W)
         r_side_tot = 1 / u / (2 * np.pi * r * h)  # R from side of tank (K/W)
         r_top = 1 / u / top_area  # R from top/bottom of tank (K/W)
 
-        # Capacitance per node
-        rc_params = {'C_WH' + str(i + 1): c_water_tot * frac for i, frac in enumerate(self.vol_fractions)}
-
-        # Resistance to exterior from side, top, and bottom
-        rc_params.update({'R_WH{}_AMB'.format(i + 1): r_side_tot / frac for i, frac in enumerate(self.vol_fractions)})
+        # Capacitance and resistance per water node
+        for i in range(self.n_nodes - 1):
+            rc_params[f'C_WH{i + 1}'] = c_water_tot * self.vol_fractions[i] # Capacitance per water node
+            rc_params[f'R_WH{i + 1}_AMB'] = r_side_tot / self.vol_fractions[i] # Resistance to ambient per water node
+       
+        
         rc_params['R_WH1_AMB'] = self.par(rc_params['R_WH1_AMB'], r_top)
         rc_params['R_WH{}_AMB'.format(self.n_nodes)] = self.par(rc_params['R_WH{}_AMB'.format(self.n_nodes)], r_top)
 
-        # Resistance between nodes
+        # Resistance between water nodes
         if self.n_nodes > 1:
-            rc_params.update({'R_WH{}_WH{}'.format(i + 1, i + 2): r_int for i in range(self.n_nodes - 1)})
+            for i in range (self.n_nodes - 1):
+                rc_params[f'R_WH{i + 1}_WH{i + 2}'] = r_int_water
 
+        # Resistance and capacitance of PCM node based on temperature and corresponding PCM state
+        if self.t_pcm_idx <= pcm_transition:
+            pcm_properties = solid
+        else:
+            pcm_properties = liquid
+            
+        pcm_c = pcm_properties['pcm_c']
+        pcm_conductivity = pcm_properties['pcm_conductivity']
+                
+        c_pcm_tot = self.volume_node * pcm_c
+        r_int_pcm = (h / self.p_nodes) / pcm_conductivity / top_area
+            
+      #  pcm_index = self.pcm_node_index
+        rc_params['C_PCM'] = c_pcm_tot * self.vol_fractions
+        rc_params[f'R_PCM{i + 1}_PCM{i + 2}'] = r_int_pcm  # Resistance between last water node and PCM node
+       # rc_params['R_PCM_AMB'] = ...  # 
+   
         return rc_params
-
+        
     @staticmethod
     def initialize_state(state_names, input_names, A_c, B_c, **kwargs):
         t_init = kwargs.get('Initial Temperature (C)')
