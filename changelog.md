@@ -1,5 +1,9 @@
 ## OCHRE Changelog
 
+### New from PRs
+
+- Added multi-speed HVAC parameters for ResStock 2024 dataset
+
 ### OCHRE v0.8.5-beta
 
 - Updated PV model to integrate with PVWatts using PySAM v5.0 (not backwards compatible)
