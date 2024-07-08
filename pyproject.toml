@@ -45,7 +45,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://www.nrel.gov/grid/ochre.html"
-Documentation = "https://ochre-docs-final.readthedocs.io/en/latest/"
+Documentation = "https://ochre-nrel.readthedocs.io/en/latest/"
 Repository = "https://github.com/NREL/OCHRE.git"
 Issues = "https://github.com/NREL/OCHRE/issues"
 Changelog = "https://github.com/NREL/OCHRE/blob/main/changelog.md"

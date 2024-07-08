@@ -355,16 +355,16 @@ OCHRE is designed to be run in co-simulation with controllers, grid models,
 aggregators, and other agents. The inputs and outputs of key functions are
 designed to connect with these agents for streamlined integration. See
 `Controller Integration
-<https://ochre-docs-final.readthedocs.io/en/latest/ControllerIntegration.html>`__
+<https://ochre-nrel.readthedocs.io/en/latest/ControllerIntegration.html>`__
 and `Outputs and Analysis
-<https://ochre-docs-final.readthedocs.io/en/latest/Outputs.html>`__ for
+<https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__ for
 details on the inputs and outputs, respectively.
 
 See `Citation and Publications
-<https://ochre-docs-final.readthedocs.io/en/latest/Introduction.html#citation-and-publications>`__
+<https://ochre-nrel.readthedocs.io/en/latest/Introduction.html#citation-and-publications>`__
 for example use cases where OCHRE was run in co-simulation. And feel free to
 `contact us
-<https://ochre-docs-final.readthedocs.io/en/latest/Introduction.html#contact>`__
+<https://ochre-nrel.readthedocs.io/en/latest/Introduction.html#contact>`__
 if you are interested in developing your own use case.
 
 Unsupported OS-HPXML Features

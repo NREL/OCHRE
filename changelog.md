@@ -1,6 +1,6 @@
 ## OCHRE Changelog
 
-### Changes from PRs
+### OCHRE v0.8.5-beta
 
 - Updated PV model to integrate with PVWatts using PySAM v5.0 (not backwards compatible)
 - PV model accepts tilt and azimuth angles from roof boundary in envelope
@@ -25,6 +25,7 @@
 - Fixed bug with ASHP backup heater units
 - Fixed bug with battery/generator self-consumption controls
 - Fixed bug with WH and battery islanding time metrics
+- Fixed bug with garage area outside of typical building rectangle
 - Fixed bug with state space model reduction algorithm
 - Fixed syntax warning for Python 3.12
 

@@ -13,7 +13,6 @@ docs/_build
 *.egg-info/
 *.code-workspace
 environment.yml
-requirements.txt
 
 defaults/Input Files/OCHRE*
 outputs/
