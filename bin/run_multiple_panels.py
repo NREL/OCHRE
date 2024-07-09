@@ -15,10 +15,6 @@ from ochre import Dwelling, Analysis, ElectricVehicle
 # weather_path = os.path.join('path', 'to', 'weather_files')
 weather_path = os.path.join(os.getcwd(), 'ResStockFiles', 'Weather')
 
-end_use_names=['HVAC Heating Electric Power (kW)', 'HVAC Cooling Electric Power (kW)', 'Water Heating Electric Power (kW)',
-               'Clothes Washer Electric Power (kW)', 'Clothes Dryer Electric Power (kW)', 'Dishwasher Electric Power (kW)',
-               'Cooking Range Electric Power (kW)', 'Refrigerator Electric Power (kW)', 'Lighting Electric Power (kW)',
-               'Exterior Lighting Electric Power (kW)', 'MELs Electric Power (kW)', 'EV Electric Power (kW)']
 
 def run_multiple_hpc(main_folder, overwrite='False', n_max=None, *args):
     # runs multiple OCHRE simulations on HPC using slurm
@@ -110,7 +106,7 @@ def run_multiple_local(main_folder, overwrite='False', n_parallel=1, n_max=None,
     my_print('All processes finished, exiting.')
 
 
-def run_single_building(input_path, der_type='ev', sim_type='baseline', simulation_name='ochre', output_path=None):
+def run_single_building(input_path, der_type='ev', sim_type='circuit_pausing', tech1='EV', tech2='Water Heating', simulation_name='ochre', output_path=None):
     # run individual building case
     my_print(f'Running OCHRE for building {simulation_name} ({input_path})')
     if not os.path.isabs(input_path):
@@ -158,20 +154,10 @@ def run_single_building(input_path, der_type='ev', sim_type='baseline', simulati
         dwelling.simulate()
     
     elif sim_type == 'circuit_sharing':
-        assert der_type == 'ev'
-        circuit_sharing_control(dwelling)
+        circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path)
     
-    elif sim_type == 'ev_charger_adapter':
-        assert der_type == 'ev'
-        ev_charger_adapter(input_path, dwelling)
-    
-    elif sim_type == 'smart_electrical_panel':
-        assert der_type == 'ev'
-        smart_electrical_panel(input_path, dwelling)
-    
-    elif sim_type == 'hems':
-        assert der_type == 'ev'
-        hems(input_path, dwelling)
+    elif sim_type == 'circuit_pausing':
+        circuit_pausing_control(sim_type, input_path, dwelling, tech1, output_path)
     
     
 def setup_ev_run(simulation_name, dwelling_args):
@@ -182,7 +168,7 @@ def setup_ev_run(simulation_name, dwelling_args):
             # Equipment parameters
             'vehicle_type': 'BEV',
             'charging_level': 'Level 2',
-            'mileage': 300,
+            "capacity": 57.5,
         }
     }
 
@@ -197,211 +183,203 @@ def setup_ev_run(simulation_name, dwelling_args):
     return dwelling
 
 
-def circuit_sharing_control(dwelling):
-    
-    dryer = dwelling.get_equipment_by_end_use('Clothes Dryer') 
+def circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path):   
     
     # run simulation with circuit sharing controls
     times = pd.date_range(dwelling.start_time, dwelling.start_time + dwelling.duration, freq=dwelling.time_res,
                           inclusive='left')
 
     control_signal = None
+    
+    if tech2 == 'Clothes Dryer':
+        # initialize an empty list for cycle recording
+        pipeline = [] # for storing cycles waiting to be rescheduled
+        n_delay = 0 # number of cycles waiting in the pipeline
+        N = 0 # total number of delayed cycles
+        t_delay = [] # for storing delayed timesteps of each delayed cycle
+        n_pop = 0 # index for tracking number of cycles poped
+    
     for t in times:
         # print(t, dwelling.current_time)
         assert dwelling.current_time == t
-        # print(dryer.schedule.loc[t, 'Clothes Dryer (kW)'])
-        if dryer.schedule.loc[t, 'Clothes Dryer (kW)'] > 0:
-            control_signal = {'EV': {'P Setpoint': 0}}
+        house_status = dwelling.update(control_signal=control_signal)
+    
+        # get primary load power
+        if tech1 in ['Strip Heat']:
+            P_prim = house_status['HVAC Heating ER Power (kW)']
         else:
-            # Keep previous control signal (same as forward fill)
-            control_signal = None
-        
-        house_status = dwelling.update(ext_control_args=control_signal)
+            P_prim = house_status[tech1+ ' Electric Power (kW)']    
+    
+        # decide control for secondary load
+        if tech2 == 'Clothes Dryer':
+            n_delay, N, t_delay, n_pop = dryer_control(sim_type, dwelling, P_prim, t, pipeline, n_delay, N, t_delay, n_pop)
+        else:        
+            if P_prim > 0:
+                if tech2 == 'Water Heating':
+                    control_signal = {tech2: {'Load Fraction': 0}}
+                else: # EV
+                    control_signal = {tech2: {'P Setpoint': 0}}
+            else:
+                # keep previous control signal (same as forward fill)
+                control_signal = None
+
+    if tech2 == 'Clothes Dryer':
+        df = pd.DataFrame(t_delay, columns=['Delayed Time (s)'])
+        df.to_csv(os.path.join(output_path, 'Dryer_metrics.csv'), index=True)
+        # print('File saved.')
 
     dwelling.finalize()
+    
+    
+def record_and_remove_cycle(dwelling, schedule, t, pipeline):
+    
+    # all zero indicies
+    zero_indices = schedule.index[schedule == 0].tolist()
+    
+    # find the last index that the power is zero - cycle start
+    cycle_start = max([index for index in zero_indices if index < t], default=None) + dwelling.time_res
+        
+    # find the next index that the power is zero - cycle end
+    cycle_end = min([index for index in zero_indices if index > t], default=None) - dwelling.time_res
+    
+    # record cycle in pipeline
+    pipeline.append(schedule[cycle_start:cycle_end].copy())
+    # print(pipeline) 
+    
+    # remove cycle from schedule
+    for i in pd.date_range(cycle_start, cycle_end, freq=dwelling.time_res, inclusive='both'):
+        schedule.loc[i] = 0
+    
+    return(schedule)
 
 
-def total_amp(house_status):
+def add_first_cycle_to_schedule(dwelling, schedule, pipeline, t_delay, n_pop):
     
-    amp=0
+    # first cycle in pipeline
+    # print(pipeline[0])
     
-    # print(house_status)
-    for end_use in end_use_names:
-        if end_use in house_status:
-            if end_use in [end_use_names[j] for j in [0,1,2,4,6,11]]:
-                amp+=house_status[end_use]*1000/240
-            else:
-                amp+=house_status[end_use]*1000/120
+    cycle_start = pipeline[0].index[0]
+    cycle_end = pipeline[0].index[-1]
+    cycle_length = cycle_end - cycle_start
+    
+    # add to schedule
+    schedule[dwelling.current_time:dwelling.current_time + cycle_length] = pipeline[0]
+        
+    # update pipeline
+    t_delay[n_pop] = dwelling.current_time - t_delay[n_pop]
+    pipeline.pop(0)
+    n_pop += 1
+    # print(pipeline)
+    
+    return(schedule, n_pop)
+
+
+def coincide_with_next_cycle(dwelling, schedule, pipeline):
+    
+    cycle_start = pipeline[0].index[0]
+    cycle_end = pipeline[0].index[-1]
+    cycle_length = cycle_end - cycle_start
+    
+    for i in pd.date_range(dwelling.current_time, dwelling.current_time + cycle_length, freq=dwelling.time_res, inclusive='both'):
+        if schedule.loc[i] > 0:
+            return(True, i)
             
-    return amp
+    return(False, dwelling.current_time)
 
 
-def shed_ev(house_status, size, Pmin=1.44, Pmax=11.5):
+def exceed_threshold(P_prim, size, pipeline):
     
-    if house_status['EV Electric Power (kW)']==0:
-        return None
+    if P_prim + pipeline[0][0] > 0.8*size*240/1000:
+        return(True)
     else:
-        P_rest=house_status['Total Electric Power (kW)']-house_status['EV Electric Power (kW)']
-        P_ev=0.8*size*240/1000-P_rest
-        if P_ev<Pmin:
-            P_ev=Pmin
-        if P_ev>Pmax:
-            P_ev=Pmax
-        return P_ev
+        return(False)
+
+
+def dryer_control(sim_type, dwelling, P_prim, t, pipeline, n_delay, N, t_delay, n_pop, size=0):
+    
+    dryer = dwelling.get_equipment_by_end_use('Clothes Dryer')
+    schedule = dryer.schedule['Clothes Dryer (kW)']
+    
+    if (sim_type == 'circuit_sharing' and P_prim > 0) or (sim_type == 'circuit_pausing' and P_prim > 0.8*size*240/1000):
+        if schedule.loc[t] > 0:
+            # record and remove the cycle from schedule
+            schedule = record_and_remove_cycle(dwelling, schedule, t, pipeline)
+            n_delay += 1
+            N += 1
+            t_delay.append(dwelling.current_time)
+            dryer.reset_time(start_time=dwelling.current_time)
+            # print(n_delay, N, n_pop, t_delay)
+    else:
+        if (sim_type == 'circuit_sharing' and n_delay > 0) or (sim_type == 'circuit_pausing' and n_delay > 0 and not exceed_threshold(P_prim, size, pipeline)):
+            # check if exceeds threshold if adding dryer cycle, only when circuit pausing
+            # check if will coincide with next cycle
+            if coincide_with_next_cycle(dwelling, schedule, pipeline)[0]: 
+                schedule = record_and_remove_cycle(dwelling, schedule, coincide_with_next_cycle(dwelling, schedule, pipeline)[1], pipeline)
+                n_delay += 1
+                N += 1
+                t_delay.append(coincide_with_next_cycle(dwelling, schedule, pipeline)[1])
+                dryer.reset_time(start_time=dwelling.current_time)
+                # print(n_delay, N, n_pop, t_delay)
+
+            # add the first cycle in pipeline to schedule
+            schedule, n_pop = add_first_cycle_to_schedule(dwelling, schedule, pipeline, t_delay, n_pop)
+            n_delay -= 1
+            dryer.reset_time(start_time=dwelling.current_time)
+            # print(n_delay, N, n_pop, t_delay)
+    
+    return(n_delay, N, t_delay, n_pop)
         
 
-def ev_charger_adapter(input_path, dwelling):
+def circuit_pausing_control(sim_type, input_path, dwelling, tech1, output_path):
       
     # read panel sizes
-    panels = pd.read_csv('D:/GitHub/ochre/ResStockFiles/panels.csv', index_col=0)
+    panels = pd.read_csv('C:/GitHub/ochre/ResStockFiles/panels.csv', index_col=0)
     size = panels['panel'].loc[int(input_path[-3:])]
-    print('panel size:', size)
+    # print('panel size:', size)
     
-    # run simulation with ev charger adapter controls
+    # run simulation with circuit pausing controls
     times = pd.date_range(dwelling.start_time, dwelling.start_time + dwelling.duration, freq=dwelling.time_res,
                           inclusive='left')
 
     control_signal = None
-    clock = dwelling.start_time # record last time EV was stopped
     
+    if tech1 == 'Clothes Dryer':
+        # initialize an empty list for cycle recording
+        pipeline = [] # for storing cycles waiting to be rescheduled
+        n_delay = 0 # number of cycles waiting in the pipeline
+        N = 0 # total number of delayed cycles
+        t_delay = [] # for storing delayed timesteps of each delayed cycle
+        n_pop = 0 # index for tracking number of cycles poped
+        
     for t in times:
         # print(t, dwelling.current_time)
         assert dwelling.current_time == t
-        house_status = dwelling.update(ext_control_args=control_signal)
-        # print('total amp:', t, total_amp(house_status))
+        house_status = dwelling.update(control_signal=control_signal)
         
-        if house_status['Total Electric Power (kW)'] > 0.8*size*240/1000:
-            control_signal = {'EV': {'P Setpoint': shed_ev(house_status, size)}}
-            clock = dwelling.current_time
-        elif dwelling.current_time - clock < pd.Timedelta(15, "m"):
-            if clock == dwelling.start_time: # no EV load has been shedded
-                control_signal = None
-            else:
-                control_signal = {'EV': {'P Setpoint': shed_ev(house_status, size)}}
+        # get total power
+        P_prim = house_status['Total Electric Power (kW)']
+        
+        # control target load
+        if tech1 == 'Clothes Dryer':
+            n_delay, N, t_delay, n_pop = dryer_control(sim_type, dwelling, P_prim, t, pipeline, n_delay, N, t_delay, n_pop, size)
         else:
-            # Keep previous control signal (same as forward fill)
-            control_signal = None
+            if P_prim > 0.8*size*240/1000:
+                if tech1 == 'Water Heating':
+                    control_signal = {tech1: {'Load Fraction': 0}}
+                else: # EV
+                    control_signal = {tech1: {'P Setpoint': 0}}
+            else:
+                # keep previous control signal (same as forward fill)
+                control_signal = None
         
-        # house_status = dwelling.update(ext_control_args=control_signal)
+    if tech1 == 'Clothes Dryer':
+        df = pd.DataFrame(t_delay, columns=['Delayed Time (s)'])
+        df.to_csv(os.path.join(output_path, 'Dryer_metrics.csv'), index=True)
+        # print('File saved.')
 
     dwelling.finalize()
 
-
-def smart_electrical_panel(input_path, dwelling):
-      
-    # read panel sizes
-    panels = pd.read_csv('D:/GitHub/ochre/ResStockFiles/panels.csv', index_col=0)
-    size = panels['panel'].loc[int(input_path[-3:])]
-    print('panel size:', size)
     
-    # read load order
-    order = pd.read_csv('D:/GitHub/ochre/ResStockFiles/load_order.csv', index_col=0)
-    print('load order:', order)
-    
-    # run simulation with smart panel controls
-    times = pd.date_range(dwelling.start_time, dwelling.start_time + dwelling.duration, freq=dwelling.time_res,
-                          inclusive='left')
-
-    control_signal = None
-    clock = dwelling.start_time # record last time total power exceeds 80%
-    
-    for t in times:
-        # print(t, dwelling.current_time)
-        assert dwelling.current_time == t
-        house_status = dwelling.update(ext_control_args=control_signal)
-        
-        # house_status = dwelling.update(ext_control_args={'Lighting': {'P Setpoint': 0}})
-        # control_signal = {'Lighting': {'Load Fraction': 0}}
-        
-        if house_status['Total Electric Power (kW)'] > 0.8*size*240/1000:
-            # turn off the last load on the list
-            control_signal = {str(order['load'].iloc[-1]): {str(order['control variable'].iloc[-1]): 0}}
-            new_total = house_status['Total Electric Power (kW)'] - house_status[str(order['load'].iloc[-1])+' Electric Power (kW)']
-            for i in range(len(order)-1):
-                if new_total <= 0.8*size*240/1000:
-                    break
-                else:
-                    control_signal[str(order['load'].iloc[-2-i])] = {str(order['control variable'].iloc[-2-i]): 0}
-                    if str(order['load'].iloc[-2-i])+' Electric Power (kW)' in house_status:
-                        new_total = new_total - house_status[str(order['load'].iloc[-2-i])+' Electric Power (kW)']
-                    else:
-                        new_total = new_total
-            clock = dwelling.current_time
-        elif dwelling.current_time - clock < pd.Timedelta(15, "m"):
-            # Keep previous control signal (same as forward fill)
-            pass
-        else:
-            # turn on loads one at a time
-            if clock == dwelling.start_time: # no load has been turned off, i is not initialized
-                control_signal = None
-            elif i == 0: # only the last load has been turned off
-                control_signal = None
-            else:
-                control_signal = {str(order['load'].iloc[-1]): {str(order['control variable'].iloc[-1]): 0}}
-                for j in range(i-1):
-                    control_signal[str(order['load'].iloc[-2-j])] = {str(order['control variable'].iloc[-2-j]): 0}
-                i=i-1
-        
-        print('clock:', clock, 'control signal:', control_signal)
-        
-    dwelling.finalize()
-
-
-def hems(input_path, dwelling):
-      
-    # read panel sizes
-    panels = pd.read_csv('D:/GitHub/ochre/ResStockFiles/panels.csv', index_col=0)
-    size = panels['panel'].loc[int(input_path[-3:])]
-    print('panel size:', size)
-
-    
-    # run simulation with HEMS control
-    times = pd.date_range(dwelling.start_time, dwelling.start_time + dwelling.duration, freq=dwelling.time_res,
-                          inclusive='left')
-
-    control_signal = None
-    clock = dwelling.start_time # record last time total power exceeds 80%
-    
-    for t in times:
-        # print(t, dwelling.current_time)
-        assert dwelling.current_time == t
-        house_status = dwelling.update(ext_control_args=control_signal)
-        
-        if house_status['Total Electric Power (kW)'] > 0.8*size*240/1000:
-            # shed EV load first
-            control_signal = {'EV': {'P Setpoint': shed_ev(house_status, size)}}
-            if shed_ev(house_status, size) is not None:
-                new_total = house_status['Total Electric Power (kW)'] - house_status['EV Electric Power (kW)'] + shed_ev(house_status, size)
-            else:
-                new_total = house_status['Total Electric Power (kW)']
-            if new_total > 0.8*size*240/1000:
-                    # shed TCLs
-                    control_signal['HVAC Heating'] = {'Setpoint': 17.8} # 64 F
-                    control_signal['HVAC Cooling'] = {'Setpoint': 29.4} # 85 F
-                    control_signal['Water Heating'] = {'Setpoint': 46.1} # 115 F                      
-            clock = dwelling.current_time # loads have been changed, the 15 min requirement kicks in
-        
-        elif dwelling.current_time - clock < pd.Timedelta(15, "m"):
-            if clock == dwelling.start_time: # no load has been turned off
-                control_signal = None
-            else:
-                control_signal['EV'] = {'P Setpoint': shed_ev(house_status, size)}
-                control_signal['Electric Vehicle'] = {'P Setpoint': shed_ev(house_status, size)}
-
-        else:
-            # turn on loads one at a time
-            if control_signal is None: # no load has been turned off
-                control_signal = None
-            elif 'HVAC Heating' in control_signal: # TCLs have been shedded at the last timestep
-                control_signal = {'EV': {'P Setpoint': shed_ev(house_status, size)}} # revert setpoints but keep shedding EV
-            else:
-                control_signal = None # revert all load control
-                
-        print('clock:', clock, 'control signal:', control_signal)
-        
-    dwelling.finalize()
-    
-
 def compile_results(main_folder):
     # Sample script to compile results from multiple OCHRE runs
     # assumes each run is in a different folder, and all simulation names are 'ochre'
