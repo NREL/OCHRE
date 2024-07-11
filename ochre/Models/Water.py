@@ -200,7 +200,7 @@ class StratifiedWaterModel(RCModel):
         #         vol_ratio = (self.washer_draw_temp - self.mains_temp) / (self.outlet_temp - self.mains_temp)
         #         self.draw_total += draw_cw * vol_ratio
 
-        t_s = self.time_res
+        t_s = self.time_res.total_seconds()
         draw_liters = self.draw_total * t_s / 60  # in liters
         draw_fraction = draw_liters / self.volume  # unitless
 
