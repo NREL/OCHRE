@@ -187,6 +187,8 @@ class HVAC(Equipment):
         if use_ideal_capacity is None:
             use_ideal_capacity = self.time_res >= dt.timedelta(minutes=5) or self.n_speeds >= 4
         self.use_ideal_capacity = use_ideal_capacity
+        if self.n_speeds >= 4:
+            self.use_ideal_capacity = True
 
     def initialize_schedule(self, schedule=None, **kwargs):
         # Compile all HVAC required inputs
