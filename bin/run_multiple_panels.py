@@ -106,7 +106,7 @@ def run_multiple_local(main_folder, overwrite='False', n_parallel=1, n_max=None,
     my_print('All processes finished, exiting.')
 
 
-def run_single_building(input_path, der_type=None, sim_type='circuit_sharing', tech1='Cooking Range', tech2='Clothes Dryer', simulation_name='ochre', output_path=None):
+def run_single_building(input_path, size, der_type=None, sim_type='circuit_sharing', tech1='Cooking Range', tech2='Clothes Dryer', simulation_name='ochre', output_path=None):
     # run individual building case
     my_print(f'Running OCHRE for building {simulation_name} ({input_path})')
     if not os.path.isabs(input_path):
@@ -120,8 +120,8 @@ def run_single_building(input_path, der_type=None, sim_type='circuit_sharing', t
         'initialization_time': dt.timedelta(days=1),  # used to create realistic starting temperature
 
         # Input parameters
-        'hpxml_file': os.path.join(input_path, 'Input Files', 'in.xml'),
-        'schedule_input_file': os.path.join(input_path, 'Input Files', 'schedules.csv'),
+        'hpxml_file': os.path.join(input_path, 'in.xml'),
+        'schedule_input_file': os.path.join(input_path, 'schedules.csv'),
         'weather_path': weather_path,
     
         # Output parameters
@@ -160,7 +160,7 @@ def run_single_building(input_path, der_type=None, sim_type='circuit_sharing', t
         circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path)
     
     elif sim_type == 'circuit_pausing':
-        circuit_pausing_control(sim_type, input_path, dwelling, tech1, output_path)
+        circuit_pausing_control(sim_type, input_path, dwelling, tech1, size, output_path)
     
     
 def setup_ev_run(simulation_name, dwelling_args):
@@ -336,11 +336,11 @@ def dryer_control(sim_type, dwelling, P_prim, t, pipeline, n_delay, N, t_delay, 
     return(n_delay, N, t_delay, deltat_delay, n_pop)
         
 
-def circuit_pausing_control(sim_type, input_path, dwelling, tech1, output_path):
+def circuit_pausing_control(sim_type, input_path, dwelling, tech1, size, output_path):
       
     # read panel sizes
-    panels = pd.read_csv('C:/GitHub/ochre/ResStockFiles/panels.csv', index_col=0)
-    size = panels['panel'].loc[int(input_path[-3:])]
+    # panels = pd.read_csv('C:/GitHub/ochre/ResStockFiles/panels.csv', index_col=0)
+    # size = panels['panel'].loc[int(input_path[-3:])]
     # print('panel size:', size)
     
     # run simulation with circuit pausing controls
@@ -434,18 +434,52 @@ def my_print(*args):
 
 
 if __name__ == "__main__":
-    assert len(sys.argv) >= 2
-    cmd = sys.argv[1]
-    args = sys.argv[2:]
-    if cmd == 'hpc':
-        run_multiple_hpc(*args)
-    elif cmd == 'local':
-        run_multiple_local(*args)
-    elif cmd == 'single':
-        run_single_building(*args)
-    else:
-        my_print(f'Invalid command ({cmd}) for run_ochre.py. Must be "hpc", "local", or "single".')
+    # assert len(sys.argv) >= 2
+    # cmd = sys.argv[1]
+    # args = sys.argv[2:]
+    # if cmd == 'hpc':
+    #     run_multiple_hpc(*args)
+    # elif cmd == 'local':
+    #     run_multiple_local(*args)
+    # elif cmd == 'single':
+    #     run_single_building(*args)
+    # else:
+    #     my_print(f'Invalid command ({cmd}) for run_ochre.py. Must be "hpc", "local", or "single".')
 
-    # compile results from multi-run
-    if args:
-        compile_results(args[0])
+    # # compile results from multi-run
+    # if args:
+    #     compile_results(args[0])
+    
+    # for running on HPC
+    # read the spreadsheet containing all scenarios
+    scenarios = pd.read_csv(os.path.join(os.getcwd(), 'bin', 'control_scenarios_processed.csv'))
+    # print(scenarios)
+    
+    # find the controller type based on building id and upgrade number, ignore multiple controllers for now
+    for k, bldg_id in enumerate(scenarios['building_id']):
+        
+        input_path = os.path.join(os.getcwd(), 'ResStockFiles', 'upgrade'+str(scenarios['case'].iloc[k]), str(bldg_id))
+        size = scenarios['panel'].iloc[k]
+        
+        if scenarios['circuit_pause'].iloc[k] > 1:
+            continue
+        elif (scenarios['circuit_pause'].iloc[k] == 1) and (scenarios['circuit_share'].iloc[k] == 1):
+            continue
+        elif scenarios['circuit_pause'].iloc[k] == 1:
+            run_single_building(input_path, sim_type='circuit_pausing', tech1=scenarios['circuit_pause_name'].iloc[k], size=size)
+        elif scenarios['circuit_share'].iloc[k] == 1:
+            run_single_building(input_path, sim_type='circuit_sharing', tech1=scenarios['primary_cs_load_name'].iloc[k], tech2=scenarios['secondary_cs_load_name'].iloc[k], size=size)
+        else:
+            continue
+        
+        # print(k, bldg_id)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
