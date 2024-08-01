@@ -12,7 +12,7 @@ EV_EFFICIENCY = 0.9  # unitless, charging efficiency
 EV_MAX_POWER = {  # max AC charging power, by vehicle number (PHEV20, PHEV50, BEV100, BEV250)
     'Level0': [1.4, 1.4, 1.4, 1.4],  # For testing only
     'Level1': [1.4, 1.4, 1.4, 1.4],
-    'Level2': [3.6, 3.6, 7.2, 11.5],
+    'Level2': [3.6, 3.6, 7.2, 7.68],
 }
 
 
