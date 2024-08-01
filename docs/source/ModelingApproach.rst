@@ -338,7 +338,7 @@ be electric or natural gas loads. Schedule-based loads include:
 
 -  Ceiling fan and ventilation fan
 
--  Pool Equipment (pool pump and heater, hot tub pump and heater)
+-  Pool Equipment (pool pump and heater, spa pump and heater)
 
 -  Miscellaneous electric loads (television, other)
 
