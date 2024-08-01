@@ -1,0 +1,50 @@
+Metric,Value
+Total Electric Energy (kWh),84.04442977313063
+Total Gas Energy (therms),43.63171664005722
+Average Electric Power (kW),1.1672837468490367
+Peak Electric Power (kW),3.1699846354524492
+Peak Electric Power - 15 min avg (kW),3.1699846354524492
+Peak Electric Power - 30 min avg (kW),2.8972755891679682
+Peak Electric Power - 1 hour avg (kW),2.7225300297780723
+Lighting Electric Energy (kWh),10.785714442881087
+Other Electric Energy (kWh),35.488715330249434
+HVAC Cooling Electric Energy (kWh),0.7200000000000003
+HVAC Heating Electric Energy (kWh),0.0
+EV Electric Energy (kWh),37.050000000000104
+Other Gas Energy (therms),1.1837856497595611
+HVAC Heating Gas Energy (therms),40.666426703218164
+Water Heating Gas Energy (therms),1.7815042870795028
+Average Temperature - Indoor (C),19.10745286726903
+Average Temperature - Foundation (C),-1.908297741534829
+Average Temperature - Attic (C),-0.49617127649266474
+"Component Load - Ducts, Heating (kWh)",-0.0
+"Component Load - Ducts, Cooling (kWh)",-0.0
+Unmet Heating Load (C-hours),0.0
+Unmet Cooling Load (C-hours),0.0
+Total HVAC Heating Delivered (kWh),715.0892915298424
+Average HVAC Heating COP (-),0.6000000000000001
+Average HVAC Heating SHR (-),1.0
+Average HVAC Heating Duct Efficiency (-),1.0
+Total HVAC Cooling Delivered (kWh),0.0
+Average HVAC Cooling COP (-),0.0
+Total Water Heating Delivered (kWh),40.41404070753221
+Average Water Heating COP (-),0.0
+Total Hot Water Unmet Demand (kWh),0.0
+Total Hot Water Delivered (gal/day),59.47778324237036
+Total Hot Water Delivered (kWh),31.401856143123382
+Clothes Washer Electric Energy (kWh),0.40535529855054175
+Clothes Dryer Electric Energy (kWh),1.5498559156455427
+Dishwasher Electric Energy (kWh),1.4779105623219604
+Refrigerator Electric Energy (kWh),4.833601970847876
+Cooking Range Electric Energy (kWh),0.4812226787181594
+Exterior Lighting Electric Energy (kWh),0.5144881112360474
+Indoor Lighting Electric Energy (kWh),6.937889677167392
+Basement Lighting Electric Energy (kWh),3.33333665447765
+MELs Electric Energy (kWh),26.740768904165353
+Clothes Dryer Gas Energy (therms),0.7025629710414016
+Cooking Range Gas Energy (therms),0.4812226787181594
+Clothes Washer Cycles,3.0
+Clothes Dryer Cycles,3.0
+Dishwasher Cycles,3.0
+Cooking Range Cycles,8.0
+EV Cycles,3.0

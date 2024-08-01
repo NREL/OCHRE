@@ -327,7 +327,7 @@ class Simulator:
 
         elif self.output_to_parquet:
             output_files = [os.path.join(self.output_path, f) for f in os.listdir(self.output_path)
-                            if re.match(f'{self.name}.*\.parquet', f) and '_schedule.parquet' not in f]
+                            if re.match(f'{self.name}.*\\.parquet', f) and '_schedule.parquet' not in f]
             dfs = [pd.read_parquet(f) for f in sorted(output_files)]
             if self.results:
                 # add recent results that haven't been saved to a parquet file

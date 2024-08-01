@@ -4,13 +4,13 @@
 
 OCHRE&trade; is a Python-based building energy modeling (BEM) tool designed to model flexible loads in residential buildings. OCHRE includes detailed models and controls for flexible devices including HVAC equipment, water heaters, electric vehicles, solar PV, and batteries. It is designed to run in co-simulation with custom controllers, aggregators, and grid models.
 
-The full documentation for OCHRE can be found at https://ochre-docs-final.readthedocs.io/en/latest/
+The full documentation for OCHRE can be found at https://ochre-nrel.readthedocs.io/
 
 Contact: jeff.maguire@nrel.gov, michael.blonsky@nrel.gov, killian.mckenna@nrel.gov
 
 ## Installation
 
-Note that OCHRE requires Python version 3.9 or higher
+Note that OCHRE requires Python version >=3.9 and <3.12
 
 ### Stand-alone Installation
 
