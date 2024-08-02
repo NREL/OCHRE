@@ -53,6 +53,11 @@ dwelling_args = {
     #     }},
     # },
 
+    # Occupancy parameters
+    # 'Occupancy': {
+    #     'Number of Occupants (-)': 3,
+    # },
+
     # Equipment parameters
     'Equipment': {
         # HVAC equipment
