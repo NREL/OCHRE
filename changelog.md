@@ -3,6 +3,10 @@
 ### New from PRs
 
 - Added multi-speed HVAC parameters for ResStock 2024 dataset
+- Updated with OS-HPXML v1.7 naming conventions (e.g., spa equipment, indoor zone)
+- Fixed garage interior ceiling connections
+- Fixed issue with adjacent doors (e.g., for multi-family units, hallways)
+- Allowed "Occupancy" adjustments in input arguments
 
 ### OCHRE v0.8.5-beta
 
