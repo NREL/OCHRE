@@ -687,7 +687,7 @@ class DynamicHVAC(HVAC):
                                         (df_speed['HVAC Efficiency'] == rated_efficiency) &
                                         (df_speed['Number of Speeds'] == self.n_speeds)]
             if not len(speed_params):
-                raise OCHREException(f'Cannot find multispeed parameters for {rated_efficiency} {self.name}')
+                raise OCHREException(f'Cannot find multispeed parameters for {self.n_speeds}-speed {rated_efficiency} {self.name}')
             assert len(speed_params) == 1
             speed_params = speed_params.iloc[0].to_dict()
             

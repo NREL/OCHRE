@@ -7,7 +7,7 @@ import collections
 import xmltodict
 
 this_path = os.path.dirname(__file__)
-main_path = os.path.abspath(os.path.join(this_path, os.pardir, os.pardir))
+main_path = os.path.abspath(os.path.join(this_path, os.pardir))
 default_input_path = os.path.join(main_path, 'defaults')
 
 

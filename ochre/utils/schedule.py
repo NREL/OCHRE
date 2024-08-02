@@ -11,7 +11,7 @@ import psychrolib
 import pytz
 import pvlib
 
-from ochre.utils import OCHREException, main_path, default_input_path, load_csv, convert
+from ochre.utils import OCHREException, default_input_path, load_csv, convert
 from ochre.utils.envelope import calculate_solar_irradiance
 
 # List of variables and functions for loading and parsing schedule files

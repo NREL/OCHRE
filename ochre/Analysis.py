@@ -409,8 +409,8 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
                                                            'kWh'))
 
     # Outage metrics
-    if metrics_verbosity >= 4 and 'Voltage (-)' in results:
-        outage = results['Voltage (-)'] == 0
+    if metrics_verbosity >= 4 and 'Grid Voltage (-)' in results:
+        outage = results["Grid Voltage (-)"] == 0
         if outage.any():
             outage_sum = outage.sum(skipna=False) * hr_per_step
             outage_diff = np.diff(outage.values, prepend=0, append=0)

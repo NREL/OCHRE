@@ -120,7 +120,7 @@ class WaterHeater(Equipment):
         max_power = control_signal.get("Max Power")
         if max_power is not None:
             if "Water Heating Max Power (kW)" in self.current_schedule:
-                self.current_schedule["Water Heating Max Power (kW"] = max_power
+                self.current_schedule["Water Heating Max Power (kW)"] = max_power
             else:
                 self.max_power = max_power
 

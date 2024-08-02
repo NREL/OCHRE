@@ -156,8 +156,8 @@ The table below lists the optional arguments for creating a ``Dwelling`` model.
 ``schedule_input_file``     string                     None                            Path to schedule input file                                                                                                                                      
 ``initialization_time``     ``datetime.timedelta``     None                            Length of "warm up" simulation for initial conditions [#]_                                                                                                       
 ``time_zone``               string                     None [#]_                       Use ``DST`` for local U.S. time zone with daylight savings, ``noDST`` for local U.S. time zone without [#]_                                                      
-``verbosity``               int                        1                               Verbosity of the outputs, from 0-9. See `Outputs and Analysis <https://ochre-docs-final.readthedocs.io/en/latest/Outputs.html>`__ for details.                
-``metrics_verbosity``       int                        1                               Verbosity of metrics, from 0-9. See `Dwelling Metrics <https://ochre-docs-final.readthedocs.io/en/latest/Outputs.html#dwelling-metrics>`__ for details.
+``verbosity``               int                        1                               Verbosity of the outputs, from 0-9. See `Outputs and Analysis <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__ for details.                
+``metrics_verbosity``       int                        1                               Verbosity of metrics, from 0-9. See `Dwelling Metrics <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html#dwelling-metrics>`__ for details.
 ``output_path``             string                     [#]_                            Path to saved output files                                                                                                                                       
 ``output_to_parquet``       boolean                    False                           Save time series data as parquet (instead of .csv)                                                                                                               
 ``export_res``              ``datetime.timedelta``     None [#]_                       Time resolution to save results                                                                                                                                  
@@ -476,49 +476,21 @@ OCHRE includes an electric vehicle (EV) model. The equipment name can be
 “EV” or “Electric Vehicle”. The table below shows the required and
 optional equipment-specific arguments for EVs.
 
-+-------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| Argument Name           | Argument Type | Required? | Default Value                                                       | Description                                           |
-+=========================+===============+===========+=====================================================================+=======================================================+
-| ``vehicle_type``        | string        | Yes       | BEV, if taken from HPXML file                                       | EV vehicle type, options are "PHEV" or "BEV"          |
-+-------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| ``charging_level``      | string        | Yes       | Level 2, if taken from HPXML file                                   | EV charging type, options are "Level 1" or "Level 2"  |
-+-------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| ``capacity or mileage`` | number        | Yes       | 100 miles if HPXML Annual EV Energy < 1500 kWh, otherwise 250 miles | EV battery capacity in kWh or mileage in miles        |
-+-------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| ``enable_part_load``    | boolean       | No        | True if charging_level = Level 2                                    | Allows EV to charge at partial load                   |
-+-------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| ``ambient_ev_temp``     | number        | No        | Taken from schedule, or 20 C                                        | Ambient temperature used to estimate EV usage per day |
-+-------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-
-Solar PV
-~~~~~~~~
-
-OCHRE includes a solar PV model. The table below shows the required and
-optional equipment-specific arguments for PV.
-
-+-------------------------+---------------+--------------------------------------------------------+-----------------------------------------------+--------------------------------------------------------------------------------------+
-| Argument Name           | Argument Type | Required?                                              | Default Value                                 | Description                                                                          |
-+=========================+===============+========================================================+===============================================+======================================================================================+
-| ``capacity``            | number        | Only if use_sam is True                                |                                               | PV panel capacity, in kW                                                             |
-+-------------------------+---------------+--------------------------------------------------------+-----------------------------------------------+--------------------------------------------------------------------------------------+
-| ``use_sam``             | boolean       | No                                                     | True if equipment_schedule_file not specified | If True, runs PySAM to generate PV power profile                                     |
-+-------------------------+---------------+--------------------------------------------------------+-----------------------------------------------+--------------------------------------------------------------------------------------+
-| ``tilt``                | number        | No                                                     | Taken from HPXML roof pitch                   | Tilt angle from horizontal, in degrees. Used for SAM                                 |
-+-------------------------+---------------+--------------------------------------------------------+-----------------------------------------------+--------------------------------------------------------------------------------------+
-| ``orientation``         | number        | No                                                     | Taken from HPXML building orientation         | Orientation angle from south, in degrees. Used for SAM                               |
-+-------------------------+---------------+--------------------------------------------------------+-----------------------------------------------+--------------------------------------------------------------------------------------+
-| ``include_inverter``    | boolean       | No                                                     | TRUE                                          | If True, outputs AC power and incorporates inverter efficiency and power constraints |
-+-------------------------+---------------+--------------------------------------------------------+-----------------------------------------------+--------------------------------------------------------------------------------------+
-| ``inverter_efficiency`` | number        | No                                                     | 1                                             | Efficiency of the inverter, unitless                                                 |
-+-------------------------+---------------+--------------------------------------------------------+-----------------------------------------------+--------------------------------------------------------------------------------------+
-| ``inverter_priority``   | string        | No                                                     | "Var"                                         | PV inverter priority. Options are "Var", "Watt", or "CPF" (constant power factor)    |
-+-------------------------+---------------+--------------------------------------------------------+-----------------------------------------------+--------------------------------------------------------------------------------------+
-| ``inverter_capacity``   | number        | No                                                     | PV.capacity                                   | Inverter apparent power capacity, in kVA (i.e., kW)                                  |
-+-------------------------+---------------+--------------------------------------------------------+-----------------------------------------------+--------------------------------------------------------------------------------------+
-| ``inverter_min_pf``     | number        | No                                                     | 0.8                                           | Inverter minimum power factor, unitless                                              |
-+-------------------------+---------------+--------------------------------------------------------+-----------------------------------------------+--------------------------------------------------------------------------------------+
-| ``sam_weather_file``    | string        | Only if use_sam is True and running without a Dwelling |                                               | Weather file in SAM format                                                           |
-+-------------------------+---------------+--------------------------------------------------------+-----------------------------------------------+--------------------------------------------------------------------------------------+
++--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
+| Argument Name            | Argument Type | Required? | Default Value                                                       | Description                                           |
++==========================+===============+===========+=====================================================================+=======================================================+
+| ``vehicle_type``         | string        | Yes       | BEV, if taken from HPXML file                                       | EV vehicle type, options are "PHEV" or "BEV"          |
++--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
+| ``charging_level``       | string        | Yes       | Level 2, if taken from HPXML file                                   | EV charging type, options are "Level 1" or "Level 2"  |
++--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
+| ``capacity or mileage``  | number        | Yes       | 100 miles if HPXML Annual EV Energy < 1500 kWh, otherwise 250 miles | EV battery capacity in kWh or mileage in miles        |
++--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
+| ``enable_part_load``     | boolean       | No        | True if charging_level = Level 2                                    | Allows EV to charge at partial load                   |
++--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
+| ``ambient_ev_temp``      | number        | No        | Taken from schedule, or 20 C                                        | Ambient temperature used to estimate EV usage per day |
++--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
+| ``equipment_event_file`` | string        | No        | Default file based on ``vehicle_type`` and mileage                  | File for EV event scenarios                           |
++--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
 
 Battery
 ~~~~~~~
