@@ -1011,6 +1011,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
 
     else:
         raise OCHREException(f'Unknown water heater type: {water_heater_type}')
+    
 
     # Increase insulation from tank jacket (reduces UA)
     if tank_jacket_r:
@@ -1028,12 +1029,19 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     if eta_c > 1.0:
         raise OCHREException('A water heater heat source (either burner or element) efficiency of > 1 has been calculated.'
                         ' Double check water heater inputs.')
-
+    
+    if low_power_hpwh:
+        t_set = 140 #F
+        t_temper = 125 #F
+    else:
+        t_set =  convert(water_heater.get('HotWaterTemperature', 125), 'degF', 'degC')
+        t_temper = t_set
     wh = {
         'Equipment Name': water_heater_type,
         'Fuel': water_heater['FuelType'].capitalize(),
         'Zone': parse_zone_name(water_heater['Location']),
-        'Setpoint Temperature (C)': convert(water_heater.get('HotWaterTemperature', 125), 'degF', 'degC'),
+        'Setpoint Temperature (C)': t_set,
+        'Temepring Valve Setpoint (C)': t_temper,
         # 'Heat Transfer Coefficient (W/m^2/K)': u,
         'UA (W/K)': convert(ua, 'Btu/hour/degR', 'W/K'),
         'Efficiency (-)': eta_c,
