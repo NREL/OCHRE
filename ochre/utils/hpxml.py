@@ -1038,8 +1038,8 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
                         ' Double check water heater inputs.')
     
     if low_power_hpwh:
-        t_set = 140 #F
-        t_temper = 125 #F
+        t_set = convert(140, 'degF', 'degC')
+        t_temper = convert(125, 'degF', 'degC')
     else:
         t_set =  convert(water_heater.get('HotWaterTemperature', 125), 'degF', 'degC')
         t_temper = t_set

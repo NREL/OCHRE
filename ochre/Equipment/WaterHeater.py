@@ -413,7 +413,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
     def __init__(self, hp_only_mode=False, water_nodes=12, **kwargs):
         super().__init__(water_nodes=water_nodes, **kwargs)
 
-        self.low_power_hpwh = kwargs.get('Low Power HPWH', false)
+        self.low_power_hpwh = kwargs.get('Low Power HPWH', False)
 
         # Control parameters
         self.hp_only_mode = hp_only_mode

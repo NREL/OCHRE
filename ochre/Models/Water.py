@@ -74,6 +74,7 @@ class StratifiedWaterModel(RCModel):
         # mixed temperature (i.e. target temperature) setpoint for fixtures - Sink/Shower/Bath (SSB)
         self.tempered_draw_temp = kwargs.get('Mixed Delivery Temperature (C)', convert(105, 'degF', 'degC'))
         self.hot_draw_temp = kwargs.get('Tempering Valve Setpoint (C)', convert(125, 'degF', 'degC'))
+        self.setpoint_temp = kwargs.get('Setpoint Temperature (C)', convert(125, 'degF', 'degC'))
         # Removing target temperature for clothes washers
         # self.washer_draw_temp = kwargs.get('Clothes Washer Delivery Temperature (C)', convert(92.5, 'degF', 'degC'))
 
@@ -149,8 +150,7 @@ class StratifiedWaterModel(RCModel):
 
         # calculate total draw volume from tempered draw volume(s)
         # for tempered draw, assume outlet temperature == T1, slightly off if the water draw is very large
-        t_set = kwargs.get('Setpoint Temperature (C)', convert(125, 'degF', 'degC')) #FIXME: can pass this in from elesewhere
-        if self.tempered_draw_temp < t_set:
+        if self.tempered_draw_temp < self.setpoint_temp:
             if self.outlet_temp <= self.hot_draw_temp:
                 self.draw_total += draw_hot
             else:
