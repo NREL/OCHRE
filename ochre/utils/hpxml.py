@@ -925,6 +925,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     first_hour_rating = water_heater.get('FirstHourRating')
     recovery_efficiency = water_heater.get('RecoveryEfficiency')
     tank_jacket_r = water_heater.get('WaterHeaterInsulation', {}).get('Jacket', {}).get('JacketRValue', 0)
+    low_power_hpwh = False
 
     # calculate actual volume from rated volume
     if volume_gal is not None:
@@ -952,6 +953,9 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     elif water_heater_type == 'heat pump water heater':
         assert is_electric
         eta_c = 1
+        if uniform_energy_factor == 4.9: #FIXME: temporary flag for designating 120V HPWHs in panels branch of ResStock
+            low_power_hpwh = True
+            
         # HPWH UA calculation taken from ResStock:
         # https://github.com/NREL/resstock/blob/run/restructure-v3/resources/hpxml-measures/HPXMLtoOpenStudio/resources/waterheater.rb#L765
         if volume_gal <= 58.0:
@@ -1036,6 +1040,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
         'Energy Factor (-)': energy_factor,
         'Tank Volume (L)': volume,
         'Tank Height (m)': height,
+        'Low Power HPWH': low_power_hpwh,
     }
     if heating_capacity is not None:
         wh['Capacity (W)'] = convert(heating_capacity, 'Btu/hour', 'W')
