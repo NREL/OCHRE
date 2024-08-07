@@ -115,7 +115,7 @@ def run_single_building(input_path, size, der_type=None, sim_type='circuit_shari
     dwelling_args = {
         # Timing parameters      
         'start_time': dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
-        'time_res': dt.timedelta(minutes=5),         # time resolution of the simulation
+        'time_res': dt.timedelta(minutes=2),         # time resolution of the simulation
         'duration': dt.timedelta(days=365),             # duration of the simulation
         'initialization_time': dt.timedelta(days=1),  # used to create realistic starting temperature
 
@@ -456,10 +456,25 @@ if __name__ == "__main__":
     # print(scenarios)
     
     # find the controller type based on building id and upgrade number, ignore multiple controllers for now
-    for k, bldg_id in enumerate(scenarios['building_id']):
+    for l in range(len(scenarios[138:139])):
+        
+        k=scenarios[138:139].index[l]
+        bldg_id = scenarios['building_id'].iloc[k]
+        print(l, k, bldg_id)
         
         input_path = os.path.join(os.getcwd(), 'ResStockFiles', 'upgrade'+str(scenarios['case'].iloc[k]), str(bldg_id))
         size = scenarios['panel'].iloc[k]
+        
+        # preprocess schedules of low-power appliances
+        if scenarios['case'].iloc[k] in [6, 7, 13, 14]:
+            schedule = pd.read_csv(os.path.join(input_path, 'schedules.csv'), index_col=None)
+            schedule['clothes_dryer'] = schedule['clothes_dryer']/2
+            schedule['cooking_range'] = schedule['cooking_range']/2
+            schedule.to_csv(os.path.join(input_path, 'schedules.csv'), index=False)
+        elif scenarios['case'].iloc[k] in [16, 17, 18, 19]:
+            schedule = pd.read_csv(os.path.join(input_path, 'schedules.csv'), index_col=None)
+            schedule['clothes_dryer'] = schedule['clothes_dryer']/2
+            schedule.to_csv(os.path.join(input_path, 'schedules.csv'), index=False)
         
         if scenarios['circuit_pause'].iloc[k] > 1:
             continue
