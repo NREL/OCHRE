@@ -222,7 +222,6 @@ def run_equipment_from_house_model():
     equipment.results_file = dwelling.results_file
 
     # If necessary, update equipment schedule
-    assert equipment.schedule is None
     equipment.model.schedule['Zone Temperature (C)'] = 20
     equipment.reset_time()
 

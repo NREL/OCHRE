@@ -3,11 +3,18 @@
 ### New from PRs
 
 - Added multi-speed HVAC parameters for ResStock 2024 dataset
+- Updated with OS-HPXML v1.7 naming conventions (e.g., spa equipment, indoor zone)
+- Fixed garage interior ceiling connections
+- Fixed issue with adjacent doors (e.g., for multi-family units, hallways)
+- Allowed "Occupancy" adjustments in input arguments
 
 ### OCHRE v0.8.5-beta
 
 - Updated PV model to integrate with PVWatts using PySAM v5.0 (not backwards compatible)
+- PV model accepts tilt and azimuth angles from roof boundary in envelope
 - Removed and renamed PV input arguments related to PySAM
+- Changed the units for some outputs related to heat gains/capacity
+- Added controls and optional schedule columns for HVAC, WH, EV, Battery
 - Added HVAC capacity and max capacity controls, ideal mode only
 - Require HVAC duty cycle control for thermostatic mode only
 - Added water heater max power control

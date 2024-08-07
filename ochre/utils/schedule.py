@@ -67,7 +67,7 @@ SCHEDULE_NAMES = {
         "water_heater_operating_mode": None,
         "Vacancy": None,
         "Power Outage": None,
-        "hot_water_showers":None,
+        "hot_water_showers": None, #TODO: use this for unmet loads
     },
 }
 

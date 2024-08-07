@@ -932,6 +932,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     first_hour_rating = water_heater.get('FirstHourRating')
     recovery_efficiency = water_heater.get('RecoveryEfficiency')
     tank_jacket_r = water_heater.get('WaterHeaterInsulation', {}).get('Jacket', {}).get('JacketRValue', 0)
+    low_power_hpwh = False
 
     # calculate actual volume from rated volume
     if volume_gal is not None:
@@ -959,6 +960,9 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     elif water_heater_type == 'heat pump water heater':
         assert is_electric
         eta_c = 1
+        if uniform_energy_factor == 4.9: #FIXME: temporary flag for designating 120V HPWHs in panels branch of ResStock
+            low_power_hpwh = True
+            
         # HPWH UA calculation taken from ResStock:
         # https://github.com/NREL/resstock/blob/run/restructure-v3/resources/hpxml-measures/HPXMLtoOpenStudio/resources/waterheater.rb#L765
         if volume_gal <= 58.0:
@@ -1014,6 +1018,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
 
     else:
         raise OCHREException(f'Unknown water heater type: {water_heater_type}')
+    
 
     # Increase insulation from tank jacket (reduces UA)
     if tank_jacket_r:
@@ -1031,18 +1036,26 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     if eta_c > 1.0:
         raise OCHREException('A water heater heat source (either burner or element) efficiency of > 1 has been calculated.'
                         ' Double check water heater inputs.')
-
+    
+    if low_power_hpwh:
+        t_set = convert(140, 'degF', 'degC')
+        t_temper = convert(125, 'degF', 'degC')
+    else:
+        t_set =  convert(water_heater.get('HotWaterTemperature', 125), 'degF', 'degC')
+        t_temper = t_set
     wh = {
         'Equipment Name': water_heater_type,
         'Fuel': water_heater['FuelType'].capitalize(),
         'Zone': parse_zone_name(water_heater['Location']),
-        'Setpoint Temperature (C)': convert(water_heater.get('HotWaterTemperature', 125), 'degF', 'degC'),
+        'Setpoint Temperature (C)': t_set,
+        'Temepring Valve Setpoint (C)': t_temper,
         # 'Heat Transfer Coefficient (W/m^2/K)': u,
         'UA (W/K)': convert(ua, 'Btu/hour/degR', 'W/K'),
         'Efficiency (-)': eta_c,
         'Energy Factor (-)': energy_factor,
         'Tank Volume (L)': volume,
         'Tank Height (m)': height,
+        'Low Power HPWH': low_power_hpwh,
     }
     if heating_capacity is not None:
         wh['Capacity (W)'] = convert(heating_capacity, 'Btu/hour', 'W')
