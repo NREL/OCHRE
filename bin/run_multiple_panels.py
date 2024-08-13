@@ -144,10 +144,10 @@ def run_single_building(input_path, size, der_type=None, sim_type='circuit_shari
     
     # create OCHRE building based on der type
     if der_type == 'ev':
-        dwelling = setup_ev_run(simulation_name, dwelling_args)
+        dwelling = setup_ev_run(dwelling_args)
     else: 
         # baseline ResStock dwelling
-        dwelling = Dwelling(simulation_name,**dwelling_args)           
+        dwelling = Dwelling(**dwelling_args)           
                             
     # run simulation
     if sim_type == 'baseline':
@@ -161,7 +161,7 @@ def run_single_building(input_path, size, der_type=None, sim_type='circuit_shari
         circuit_pausing_control(sim_type, input_path, dwelling, tech1, size, output_path)
     
     
-def setup_ev_run(simulation_name, dwelling_args):
+def setup_ev_run(dwelling_args):
 
 
     equipment_args = {
@@ -178,7 +178,7 @@ def setup_ev_run(simulation_name, dwelling_args):
 
     dwelling_args['Equipment']=equipment_args
     # print(dwelling_args)
-    dwelling = Dwelling(simulation_name, **dwelling_args)
+    dwelling = Dwelling(**dwelling_args)
 
     return dwelling
 
