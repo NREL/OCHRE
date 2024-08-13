@@ -125,7 +125,7 @@ def run_single_building(input_path, size, der_type=None, sim_type='circuit_shari
         'weather_path': weather_path,
     
         # Output parameters
-        'output_path': input_path,
+        'output_path': os.path.join(input_path, 'ochre_output'),
         'output_to_parquet': False,              # saves time series files as parquet files (False saves as csv files)
         'verbosity': 7,                         # verbosity of time series files (0-9)
         
@@ -138,7 +138,7 @@ def run_single_building(input_path, size, der_type=None, sim_type='circuit_shari
 
     # determine output path, default uses same as input path
     if output_path is None:
-        output_path = input_path
+        output_path = os.path.join(input_path, 'ochre_output')
     os.makedirs(output_path, exist_ok=True)
     
     
