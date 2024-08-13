@@ -132,9 +132,7 @@ def run_single_building(input_path, size, der_type=None, sim_type='circuit_shari
         'seed': int(input_path[-3:]),
         
         'Equipment': {
-            'HVAC Heating': {'use_ideal_capacity': False},
-            'HVAC Cooling': {'use_ideal_capacity': False},
-            'Water Heating': {'use_ideal_capacity': False},
+
         },
     }
 
@@ -460,7 +458,7 @@ if __name__ == "__main__":
         
         k=scenarios[138:139].index[l]
         bldg_id = scenarios['building_id'].iloc[k]
-        print(l, k, bldg_id)
+        # print(l, k, bldg_id)
         
         input_path = os.path.join(os.getcwd(), 'ResStockFiles', 'upgrade'+str(scenarios['case'].iloc[k]), str(bldg_id))
         size = scenarios['panel'].iloc[k]
