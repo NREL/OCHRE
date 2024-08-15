@@ -152,7 +152,7 @@ class StratifiedWaterModel(RCModel):
         # for tempered draw, assume outlet temperature == T1, slightly off if the water draw is very large
         if self.tempered_draw_temp < self.setpoint_temp:
             if self.outlet_temp <= self.hot_draw_temp:
-                self.draw_total += draw_hot
+                self.draw_total = draw_hot
             else:
                 vol_ratio_hot = (self.hot_draw_temp - self.mains_temp) / (self.outlet_temp - self.mains_temp)
                 self.draw_total += draw_hot * vol_ratio_hot
