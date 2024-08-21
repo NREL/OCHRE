@@ -23,7 +23,7 @@ def run_multiple_hpc(main_folder, overwrite='False', n_max=None, *args):
 
     # find all building folders
     main_folder = os.path.abspath(main_folder)
-    required_files = ['in.xml', 'schedules.csv']
+    required_files = ['in.xml', 'in.schedules.csv']
     exclude_files = ['ochre_complete'] if not overwrite else []  # if not overwrite, skip completed runs
     ochre_folders = Analysis.find_subfolders(main_folder, required_files, exclude_files)
     n = len(ochre_folders)
@@ -78,7 +78,7 @@ def run_multiple_local(main_folder, overwrite='False', n_parallel=1, n_max=None,
 
     # get all building folders
     main_folder = os.path.abspath(main_folder)
-    required_files = ['in.xml', 'schedules.csv']
+    required_files = ['in.xml', 'in.schedules.csv']
     exclude_files = ['ochre_complete'] if not overwrite else []  # if not overwrite, skip completed runs
     ochre_folders = Analysis.find_subfolders(main_folder, required_files, exclude_files)
     n = len(ochre_folders)
@@ -116,12 +116,12 @@ def run_single_building(input_path, size, der_type=None, sim_type='circuit_shari
         # Timing parameters      
         'start_time': dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
         'time_res': dt.timedelta(minutes=2),         # time resolution of the simulation
-        'duration': dt.timedelta(days=365),             # duration of the simulation
+        'duration': dt.timedelta(days=10),             # duration of the simulation
         'initialization_time': dt.timedelta(days=1),  # used to create realistic starting temperature
 
         # Input parameters
         'hpxml_file': os.path.join(input_path, 'in.xml'),
-        'schedule_input_file': os.path.join(input_path, 'schedules.csv'),
+        'schedule_input_file': os.path.join(input_path, 'in.schedules.csv'),
         'weather_path': weather_path,
     
         # Output parameters
@@ -148,7 +148,11 @@ def run_single_building(input_path, size, der_type=None, sim_type='circuit_shari
     else: 
         # baseline ResStock dwelling
         dwelling = Dwelling(**dwelling_args)           
-                            
+    
+    # process schedule-based load power profile (clothes dryer, clothes washer, cooking, and dishwasher) 
+    for end_use in ['Clothes Dryer', 'Clothes Washer', 'Cooking Range', 'Dishwasher']:
+        dwelling = change_end_use_power(dwelling, end_use)
+                        
     # run simulation
     if sim_type == 'baseline':
         # run without controls
@@ -159,6 +163,24 @@ def run_single_building(input_path, size, der_type=None, sim_type='circuit_shari
     
     elif sim_type == 'circuit_pausing':
         circuit_pausing_control(sim_type, input_path, dwelling, tech1, size, output_path)
+
+
+def change_end_use_power(dwelling, end_use):
+    
+    if dwelling.get_equipment_by_end_use(end_use) is not None:
+        load = dwelling.get_equipment_by_end_use(end_use)
+        schedule = load.schedule[end_use+' (kW)']
+        print(f"Old peak {schedule.max()}")
+        
+        # read resstock schedule
+        resstock_schedule = pd.read_csv(os.path.join(input_path, 'schedules.csv'), index_col=None)
+        peak = resstock_schedule[end_use.lower().replace(" ", "_")].max()
+        schedule = schedule/schedule.max()*peak
+        load.schedule[end_use+' (kW)'] = schedule
+        print(f"New peak {load.schedule.max()}")
+        load.reset_time()
+        
+    return dwelling
     
     
 def setup_ev_run(dwelling_args):
@@ -454,9 +476,9 @@ if __name__ == "__main__":
     # print(scenarios)
     
     # find the controller type based on building id and upgrade number, ignore multiple controllers for now
-    for l in range(len(scenarios[138:139])):
+    for l in range(len(scenarios[137:138])):
         
-        k=scenarios[138:139].index[l]
+        k=scenarios[137:138].index[l]
         bldg_id = scenarios['building_id'].iloc[k]
         # print(l, k, bldg_id)
         
