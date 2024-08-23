@@ -399,6 +399,8 @@ current list of technologies not supported in OCHRE is:
 
 -  Overhangs
 
+-  Cathedral ceilings
+
 -  Structural Insulated Panel (SIP) walls
 
 -  Ground source heat pumps

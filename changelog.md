@@ -1,5 +1,13 @@
 ## OCHRE Changelog
 
+### New from PRs
+
+- Added multi-speed HVAC parameters for ResStock 2024 dataset
+- Updated with OS-HPXML v1.7 naming conventions (e.g., spa equipment, indoor zone)
+- Fixed garage interior ceiling connections
+- Fixed issue with adjacent doors (e.g., for multi-family units, hallways)
+- Allowed "Occupancy" adjustments in input arguments
+
 ### OCHRE v0.8.5-beta
 
 - Updated PV model to integrate with PVWatts using PySAM v5.0 (not backwards compatible)
@@ -21,8 +29,6 @@
 - Fixed bug with ASHP backup heater units
 - Fixed bug with named HVAC/Water Heating equipment arguments
 - Fixed bug in ASHP duty cycle control
-- PV model accepts tilt and azimuth angles from roof boundary in envelope
-- Added OCHREException class to handle errors
 - Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
 - Fixed bug with ASHP backup heater units
 - Fixed bug with battery/generator self-consumption controls

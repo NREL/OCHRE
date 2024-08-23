@@ -67,7 +67,8 @@ def run_water_heater_fleet(num_water_heaters=5):
 
 
 def run_fleet_controlled():
-    #TODO
+    # TODO: not working, convert to battery fleet
+    # maybe add another example with EV fleet
     equipment_args = {
         # Equipment parameters
         # See defaults/Battery/default_parameters.csv for more options
