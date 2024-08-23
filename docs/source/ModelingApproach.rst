@@ -103,19 +103,6 @@ HVAC equipment conditioning the living space. This multiplier helps account
 for the volume of ducts and the time required for warm and cold air to diffuse
 through the living space. Values for this multiplier in the literature range
 from 3-15 depending on the study. OCHRE uses a default multiplier of 7.
-Thermal mass due to furniture and interior partition walls is also accounted
-for in the living space. Partition walls and furniture are modeled explicitly
-with surface areas and material properties like any other surface and exchange
-heat through both convection and radiation. The heat capacity of the air is
-also modeled to determine the living zone temperature. However, a multiplier
-is generally applied to this capacitance. `Numerous studies
-<https://docs.google.com/spreadsheets/d/1ebSmvDFdXEXVRdvkzqMF1C9MwHrHCQKFF75QMkPgd7A/edit?pli=1#gid=0>`__
-have shown that applying a multiplier to the air capacitance provides a much
-better match to experimental data when trying to model explicit cycling of the
-HVAC equipment conditioning the living space. This multiplier helps account
-for the volume of ducts and the time required for warm and cold air to diffuse
-through the living space. Values for this multiplier in the literature range
-from 3-15 depending on the study. OCHRE uses a default multiplier of 7.
 
 The envelope includes a humidity model for the living space zone. The
 model determines the indoor humidity and wet bulb temperature based on a
@@ -274,14 +261,18 @@ only be controlled through thermostat control and direct-shut-off.
 Electric Vehicles
 -----------------
 
-Electric vehicles are modeled using an event-based model and a charging
-event dataset from
-`EVI-Pro <https://www.nrel.gov/transportation/evi-pro.html>`__. EV
-parking events are randomly generated using the EVI-Pro dataset for each
-day of the simulation. One or more events may occur per day. Each event
-has a prescribed start time, end time, and starting state-of-charge
-(SOC). When the event starts, the EV will charge using a linear model
-similar to the battery model described below.
+Electric vehicles are modeled using an event-based model. EV parking events
+are randomly generated using event-based datasets for each day of the
+simulation. Zero, one, or more events may occur per day. Each event has a
+prescribed start time, end time, and starting state-of-charge (SOC). When the
+event starts, the EV will charge using a linear model similar to the battery
+model described below.
+
+OCHRE's default event-based datasets are taken from `EVI-Pro
+<https://www.nrel.gov/transportation/evi-pro.html>`__. Additional datasets
+used for the `2030 National Charging Network
+<https://www.nrel.gov/docs/fy23osti/85654.pdf>`__ study may be available upon
+request.
 
 Electric vehicles can be externally controlled through a delay signal, a
 direct power signal, or charging constraints. A delay signal will delay the
@@ -370,8 +361,8 @@ designed to connect with these agents for streamlined integration. See
 `Controller Integration
 <https://ochre-nrel.readthedocs.io/en/latest/ControllerIntegration.html>`__
 and `Outputs and Analysis
-<https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__ for
-details on the inputs and outputs, respectively.
+<https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__ for details on
+the inputs and outputs, respectively.
 
 See `Citation and Publications
 <https://ochre-nrel.readthedocs.io/en/latest/Introduction.html#citation-and-publications>`__
