@@ -52,7 +52,7 @@ class StratifiedWaterModel(RCModel):
             self.n_nodes = len(water_vol_fractions)
             self.vol_fractions = np.array(water_vol_fractions) / sum(water_vol_fractions)
 
-        self.volume = kwargs['Tank Volume (L)']  # in L
+        self.volume = kwargs['Tank Volume (L)']  # water volume, in L
 
         super().__init__(external_nodes=['AMB'], **kwargs)
         self.next_states = self.states  # for holding state info for next time step
@@ -165,18 +165,19 @@ class StratifiedWaterModel(RCModel):
         t_s = self.time_res.total_seconds()
         draw_liters = self.draw_total * t_s / 60  # in liters
         draw_fraction = draw_liters / self.volume  # unitless
+        water_temps = self.states[:self.n_nodes]  # cuts off PCM, other non-water nodes
 
         if self.n_nodes == 2 and draw_fraction < self.vol_fractions[1]:
             # Use empirical factor for determining water flow by node
             flow_fraction = 0.95  # Totally empirical factor based on detailed lab validation
             if draw_fraction > self.vol_fractions[0]:
                 # outlet temp is volume-weighted average of lower and upper temps
-                self.outlet_temp = (self.states[0] * self.vol_fractions[0] +
-                                    self.states[1] * (draw_fraction - self.vol_fractions[0])) / draw_fraction
+                self.outlet_temp = (water_temps[0] * self.vol_fractions[0] +
+                                    water_temps[1] * (draw_fraction - self.vol_fractions[0])) / draw_fraction
             q_delivered = draw_liters * water_c * (self.outlet_temp - self.mains_temp)  # in J
 
             # q_to_mains_upper = self.state_capacitances[0] * (self.x[0] - self.mains_temp)
-            q_to_mains_lower = self.capacitances[1] * (self.states[1] - self.mains_temp)
+            q_to_mains_lower = self.capacitances[1] * (water_temps[1] - self.mains_temp)
             if q_delivered * flow_fraction > q_to_mains_lower:
                 # If you'd fully cool the bottom node to mains, set bottom node to mains and cool top node
                 q_nodes = np.array([q_to_mains_lower - q_delivered, -q_to_mains_lower])
@@ -188,12 +189,12 @@ class StratifiedWaterModel(RCModel):
                 # water draw is smaller than all node volumes
                 q_delivered = draw_liters * water_c * (self.outlet_temp - self.mains_temp)  # in J
                 # all volume transfers are from the node directly below
-                q_nodes = draw_liters * water_c * np.diff(self.states, append=self.mains_temp)  # in J
+                q_nodes = draw_liters * water_c * np.diff(water_temps, append=self.mains_temp)  # in J
             else:
                 # calculate volume transfers to/from each node, including q_delivered
                 vols_pre = np.append(self.vol_fractions, draw_fraction).cumsum()
                 vols_post = np.insert(self.vol_fractions, 0, draw_fraction).cumsum()
-                temps = np.append(self.states, self.mains_temp)
+                temps = np.append(water_temps, self.mains_temp)
 
                 # update outlet temp as a weighted average of temps, by volume
                 vols_delivered = np.diff(vols_pre.clip(max=draw_fraction), prepend=0)
