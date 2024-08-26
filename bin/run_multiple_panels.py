@@ -106,7 +106,7 @@ def run_multiple_local(main_folder, overwrite='False', n_parallel=1, n_max=None,
     my_print('All processes finished, exiting.')
 
 
-def run_single_building(input_path, size, der_type=None, sim_type='circuit_sharing', tech1='Cooking Range', tech2='Clothes Dryer', simulation_name='ochre', output_path=None):
+def run_single_building(input_path, size, der_type='ev', sim_type='ev_control', tech1='Cooking Range', tech2='Clothes Dryer', simulation_name='ochre', output_path=None):
     # run individual building case
     my_print(f'Running OCHRE for building {simulation_name} ({input_path})')
     if not os.path.isabs(input_path):
@@ -163,6 +163,9 @@ def run_single_building(input_path, size, der_type=None, sim_type='circuit_shari
     
     elif sim_type == 'circuit_pausing':
         circuit_pausing_control(sim_type, input_path, dwelling, tech1, size, output_path)
+        
+    elif sim_type == 'ev_control':
+        ev_charger_adapter(input_path, dwelling, size, output_path)
 
 
 def change_end_use_power(dwelling, end_use):
@@ -170,14 +173,14 @@ def change_end_use_power(dwelling, end_use):
     if dwelling.get_equipment_by_end_use(end_use) is not None:
         load = dwelling.get_equipment_by_end_use(end_use)
         schedule = load.schedule[end_use+' (kW)']
-        print(f"Old peak {schedule.max()}")
+        # print(f"Old peak {schedule.max()}")
         
         # read resstock schedule
         resstock_schedule = pd.read_csv(os.path.join(input_path, 'schedules.csv'), index_col=None)
         peak = resstock_schedule[end_use.lower().replace(" ", "_")].max()
         schedule = schedule/schedule.max()*peak
         load.schedule[end_use+' (kW)'] = schedule
-        print(f"New peak {load.schedule.max()}")
+        # print(f"New peak {load.schedule.max()}")
         load.reset_time()
         
     return dwelling
@@ -212,13 +215,13 @@ def circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path):
                           inclusive='left')
 
     control_signal = None
+    N = 0 # total number of delayed cycles
+    t_delay = [] # for storing timestamps of delay
     
     if tech2 == 'Clothes Dryer':
         # initialize an empty list for cycle recording
         pipeline = [] # for storing cycles waiting to be rescheduled
         n_delay = 0 # number of cycles waiting in the pipeline
-        N = 0 # total number of delayed cycles
-        t_delay = [] # for storing timestamps of delay
         deltat_delay = [] # for storing delayed timesteps of each delayed cycle
         n_pop = 0 # index for tracking number of cycles poped
     
@@ -242,15 +245,18 @@ def circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path):
                     control_signal = {tech2: {'Load Fraction': 0}}
                 else: # EV
                     control_signal = {tech2: {'P Setpoint': 0}}
+                N = N+1
+                t_delay.append(dwelling.current_time)
             else:
                 # keep previous control signal (same as forward fill)
                 control_signal = None
 
+    
+    df = pd.DataFrame(t_delay, columns=['Timestamp'])
     if tech2 == 'Clothes Dryer':
-        df = pd.DataFrame(t_delay, columns=['Timestamp'])
         df['Delayed Time (s)'] = deltat_delay
-        df.to_csv(os.path.join(output_path, 'Dryer_metrics.csv'), index=True)
-        # print('File saved.')
+    df.to_csv(os.path.join(output_path, tech2+'_metrics.csv'), index=False)
+    # print('File saved.')
 
     dwelling.finalize()
     
@@ -368,13 +374,13 @@ def circuit_pausing_control(sim_type, input_path, dwelling, tech1, size, output_
                           inclusive='left')
 
     control_signal = None
+    N = 0 # total number of delayed cycles
+    t_delay = [] # for storing timestamps of delay
     
     if tech1 == 'Clothes Dryer':
         # initialize an empty list for cycle recording
         pipeline = [] # for storing cycles waiting to be rescheduled
         n_delay = 0 # number of cycles waiting in the pipeline
-        N = 0 # total number of delayed cycles
-        t_delay = [] # for storing timestamps of delay
         deltat_delay = [] # for storing delayed timesteps of each delayed cycle
         n_pop = 0 # index for tracking number of cycles poped
         
@@ -395,16 +401,77 @@ def circuit_pausing_control(sim_type, input_path, dwelling, tech1, size, output_
                     control_signal = {tech1: {'Load Fraction': 0}}
                 else: # EV
                     control_signal = {tech1: {'P Setpoint': 0}}
+                N = N+1
+                t_delay.append(dwelling.current_time)
             else:
                 # keep previous control signal (same as forward fill)
                 control_signal = None
         
+    
+    df = pd.DataFrame(t_delay, columns=['Timestamp'])
     if tech1 == 'Clothes Dryer':
-        df = pd.DataFrame(t_delay, columns=['Timestamp'])
         df['Delayed Time (s)'] = deltat_delay
-        df.to_csv(os.path.join(output_path, 'Dryer_metrics.csv'), index=True)
-        # print('File saved.')
+    df.to_csv(os.path.join(output_path, tech1+'_metrics.csv'), index=False)
+    # print('File saved.')
 
+    dwelling.finalize()
+
+
+def shed_ev(house_status, size, Pmin=1.44, Pmax=7.68):
+    
+    if house_status['EV Electric Power (kW)']==0:
+        return None
+    else:
+        P_rest=house_status['Total Electric Power (kW)']-house_status['EV Electric Power (kW)']
+        P_ev=0.8*size*240/1000-P_rest
+        if P_ev<Pmin:
+            P_ev=Pmin
+        if P_ev>Pmax:
+            P_ev=Pmax
+        return P_ev
+        
+
+def ev_charger_adapter(input_path, dwelling, size, output_path):
+         
+    # run simulation with ev charger adapter controls
+    times = pd.date_range(dwelling.start_time, dwelling.start_time + dwelling.duration, freq=dwelling.time_res,
+                          inclusive='left')
+
+    control_signal = None
+    clock = dwelling.start_time # record last time EV was stopped
+    N = 0 # total number of delayed cycles
+    t_delay = [] # for storing timestamps of delay
+    
+    for t in times:
+        # print(t, dwelling.current_time)
+        assert dwelling.current_time == t
+        house_status = dwelling.update(control_signal=control_signal)
+        
+        if house_status['Total Electric Power (kW)'] > 0.8*size*240/1000:
+            control_signal = {'EV': {'P Setpoint': shed_ev(house_status, size)}}
+            clock = dwelling.current_time
+            if shed_ev(house_status, size) is not None:
+                N += 1
+                t_delay.append(dwelling.current_time)
+        elif dwelling.current_time - clock < pd.Timedelta(15, "m"):
+            if clock == dwelling.start_time: # no EV load has been shedded
+                control_signal = None
+            else:
+                control_signal = {'EV': {'P Setpoint': shed_ev(house_status, size)}}
+                if shed_ev(house_status, size) is not None:
+                    N += 1
+                    t_delay.append(dwelling.current_time)
+        else:
+            # Keep previous control signal (same as forward fill)
+            control_signal = None
+        
+        # house_status = dwelling.update(control_signal=control_signal)
+
+    
+    df = pd.DataFrame(t_delay, columns=['Timestamp'])
+    df.to_csv(os.path.join(output_path, 'EV_metrics.csv'), index=False)
+    # print('File saved.')
+    
     dwelling.finalize()
 
     
