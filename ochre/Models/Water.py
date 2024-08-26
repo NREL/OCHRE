@@ -126,7 +126,7 @@ class StratifiedWaterModel(RCModel):
         return {name: t_init for name in state_names}
 
     def update_water_draw(self):
-        heats_to_model = np.zeros(self.nx)
+        heats_to_model = np.zeros(self.n_nodes)
         self.mains_temp = self.current_schedule.get('Mains Temperature (C)')
         self.outlet_temp = self.states[self.t_1_idx]  # initial outlet temp, for estimating draw volume
 
@@ -240,12 +240,13 @@ class StratifiedWaterModel(RCModel):
         #     p. 1528
         # Starting from the top, check for mixing at each node
 
-        init_states = self.next_states.copy()
+        water_temps = self.next_states[:self.n_nodes]
+        init_states = water_temps.copy()
         for node_idx in range(self.n_nodes - 1):
-            current_temp = self.next_states[node_idx]
+            current_temp = water_temps[node_idx]
 
             # new temp is the max of any possible mixings
-            heats = self.next_states * self.vol_fractions  # note: excluding c_p and volume factors
+            heats = water_temps * self.vol_fractions  # note: excluding c_p and volume factors
             heat_sums = heats[node_idx:].cumsum()
             vol_sums = self.vol_fractions[node_idx:].cumsum()
             new_temp = (heat_sums / vol_sums).max()
@@ -257,31 +258,34 @@ class StratifiedWaterModel(RCModel):
 
                 # calculate heat transfer, update temperatures of current node and node below
                 q = (new_temp - current_temp) * self.vol_fractions[node_idx]
-                self.next_states[node_idx] = new_temp
-                self.next_states[node_idx + 1] -= q / self.vol_fractions[node_idx + 1]
+                water_temps[node_idx] = new_temp
+                water_temps[node_idx + 1] -= q / self.vol_fractions[node_idx + 1]
 
-                if not any(np.diff(self.next_states) > 0.1):
+                if not any(np.diff(water_temps) > 0.1):
                     # no more inversions
                     return
 
             elif new_temp < current_temp - 0.001:  # small computational errors are possible:
                 msg = 'Error in inversion mixing algorithm. ' \
                       'New temperature ({}) less than previous ({}) at node {}.'
-                raise ModelException(msg.format(new_temp, self.next_states[node_idx], node_idx + 1))
+                raise ModelException(msg.format(new_temp, water_temps[node_idx], node_idx + 1))
 
         # check final heat to ensure no losses from mixing
-        heat_check = np.dot(self.next_states - init_states, self.capacitances)  # in J
+        heat_check = np.dot(water_temps - init_states, self.capacitances[:self.n_nodes])  # in J
         if not abs(heat_check) < 1:
             raise ModelException(
                 'Large error ({}) in water heater inversion mixing algorithm.'
-                'Final state temperatures are: {}'.format(heat_check, self.next_states))
+                'Final state temperatures are: {}'.format(heat_check, water_temps))
 
     def update_model(self, control_signal=None):
         if control_signal is not None:
             # control signal must be heat injections from water heater, by node
-            assert isinstance(control_signal, np.ndarray) and len(control_signal) == self.nx
+            assert isinstance(control_signal, np.ndarray) and len(control_signal) == self.n_nodes
             self.h_injections = sum(control_signal)
-            control_signal = self.inputs_init + np.insert(control_signal, 0, 0)  # adds heat injections in inputs_init
+
+            # add heat injections in inputs_init
+            self.inputs_init[self.h_1_idx : self.h_1_idx + self.n_nodes] += control_signal
+            control_signal = self.inputs_init
         else:
             self.h_injections = 0
 
@@ -323,11 +327,12 @@ class StratifiedWaterModel(RCModel):
             results['Hot Water Delivered (W)'] = self.h_delivered
             results['Hot Water Unmet Demand (kW)'] = self.h_unmet_load / 1000
         if self.verbosity >= 6:
+            water_states = self.states[: self.n_nodes]
             results['Hot Water Heat Injected (W)'] = self.h_injections
             results['Hot Water Heat Loss (W)'] = self.h_loss
-            results['Hot Water Average Temperature (C)'] = self.states.dot(self.vol_fractions)
-            results['Hot Water Maximum Temperature (C)'] = self.states.max()
-            results['Hot Water Minimum Temperature (C)'] = self.states.min()
+            results["Hot Water Average Temperature (C)"] = water_states.dot(self.vol_fractions)
+            results["Hot Water Maximum Temperature (C)"] = water_states.max()
+            results["Hot Water Minimum Temperature (C)"] = water_states.min()
             results['Hot Water Mains Temperature (C)'] = self.mains_temp
         return results
 

@@ -37,71 +37,67 @@ class TankWithPCM(StratifiedWaterModel):
     name = 'Water Tank with PCM'
 
     def __init__(self, pcm_water_node=5, pcm_vol_fraction=0.5, **kwargs):
+        # PCM node data
+        self.pcm_water_node = pcm_water_node  # node number, from the top
+        self.t_pcm_wh_idx = self.pcm_water_node - 1
+        self.pcm_vol_fraction = pcm_vol_fraction
+
         super().__init__(**kwargs)
 
-        # PCM node data
-        self.pcm_water_node = pcm_water_node
-        self.pcm_vol_fraction = pcm_vol_fraction
+        # PCM state and input indices
         self.t_pcm_idx = self.state_names.index("T_PCM")
         self.h_pcm_idx = self.input_names.index("H_PCM")
+        assert self.state_names.index(f"T_WH{self.pcm_water_node}") == self.t_pcm_wh_idx
+        self.h_pcm_wh_idx = self.input_names.index(f"H_WH{self.pcm_water_node}")
         
+        # PCM results variables
         self.pcm_heat_to_water = None  # in W
 
     def load_rc_data(self, **kwargs):
         # TODO:
         # - C list should have PCM node at the bottom
 
-        rc_params = super().load_rc_data(self, **kwargs)
+        rc_params = super().load_rc_data(**kwargs)
 
         # Add PCM capacitance, default to solid state for now
-        pcm_node_vol_fraction = self.vol_fractions[self.pcm_water_node]
+        pcm_node_vol_fraction = self.vol_fractions[self.t_pcm_wh_idx]
         pcm_volume = self.volume * pcm_node_vol_fraction * self.pcm_vol_fraction
         rc_params["C_PCM"] = solid["pcm_c"] * pcm_volume
 
         # Reduce water volume and vol_fractions from PCM volume
         self.volume -= pcm_volume
-        self.vol_fractions[self.pcm_water_node] *= 1 - self.pcm_vol_fraction
+        self.vol_fractions[self.t_pcm_wh_idx] *= 1 - self.pcm_vol_fraction
         self.vol_fractions = self.vol_fractions / sum(self.vol_fractions)
 
         # Reduce water node capacitance
-        rc_params[f"C_WH{self.pcm_water_node + 1}"] *= 1 - self.pcm_vol_fraction
+        rc_params[f"C_WH{self.pcm_water_node}"] *= 1 - self.pcm_vol_fraction
         
         # Add water-PCM resistance, default to solid state for now
-        rc_params[f"R_PCM_WH{self.pcm_water_node + 1}"] = pcm_volume / solid["pcm_conductivity"]
+        rc_params[f"R_PCM_WH{self.pcm_water_node}"] = pcm_volume / solid["pcm_conductivity"]
 
         return rc_params
 
     def get_pcm_heat_xfer(self):
-        raise NotImplementedError()
+        return 0
 
     def update_inputs(self, schedule_inputs=None):
         # Note: self.inputs_init are not updated here, only self.current_schedule
         super().update_inputs(schedule_inputs)
 
-        # get zone temperature from schedule
-        t_zone = self.current_schedule['Zone Temperature (C)']
-
-        # update heat injections from water draw
-        # FUTURE: revise CW and DW when event based schedules are added
-        heats_to_model = self.update_water_draw()
-
-        # update heat injections from PCM
+        # get heat injections from PCM
         self.pcm_heat_to_water = self.get_pcm_heat_xfer()
-        heats_to_model[self.pcm_water_node] += self.pcm_heat_to_water
-        heats_to_model[self.t_pcm_idx] -= self.pcm_heat_to_water
 
-        # update water tank model
-        self.inputs_init = np.concatenate(([t_zone], heats_to_model))
+        # add PCM heat to inputs
+        self.inputs_init = np.append(self.inputs_init, self.pcm_heat_to_water)
+        # self.inputs_init[self.h_pcm_wh_idx] = self.pcm_heat_to_water
+        self.inputs_init[self.h_pcm_idx] = -self.pcm_heat_to_water
 
     def generate_results(self):
         # Note: most results are included in Dwelling/WH. Only inputs and states are saved to self.results
         results = super().generate_results()
 
         if self.verbosity >= 6:
-            water_states = self.states[:self.n_nodes]
-            results["Hot Water Average Temperature (C)"] = water_states.dot(self.vol_fractions)
-            results["Hot Water Maximum Temperature (C)"] = water_states.max()
-            results["Hot Water Minimum Temperature (C)"] = water_states.min()
             results['Water Tank PCM Temperature (C)'] = self.states[self.t_pcm_idx]
-            results['Water Tank PCM Heat Injected (W)'] = self.h_injections
+            results['Water Tank PCM Water Temperature (C)'] = self.states[self.t_pcm_wh_idx]
+            results["Water Tank PCM Heat Injected (W)"] = self.pcm_heat_to_water
         return results
