@@ -211,7 +211,7 @@ def run_equipment_from_house_model():
     dwelling = Dwelling(name='OCHRE House', **dwelling_args)
 
     # Extract equipment by its end use and update simulation properties
-    equipment = dwelling.equipment_by_end_use['Water Heating'][0]
+    equipment = dwelling.get_equipment_by_end_use('Water Heating')
     equipment.main_simulator = True
     equipment.save_results = dwelling.save_results
     equipment.export_res = dwelling.export_res
