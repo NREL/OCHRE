@@ -1116,8 +1116,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     distribution_gal_per_day = mw_gpd * fixture_multiplier
 
     # Combine fixture and distribution water draws in schedule
-    wh['Fixture Average Water Draw (L/day)'] = convert(fixture_gal_per_day + distribution_gal_per_day, 'gallon/day',
-                                                       'L/day')
+    wh['Average Water Draw (L/day)'] = convert(fixture_gal_per_day + distribution_gal_per_day, 'gallon/day', 'L/day')
 
     return wh
 
