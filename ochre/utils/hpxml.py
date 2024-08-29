@@ -920,6 +920,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     # Inputs from HPXML
     water_heater_type = water_heater['WaterHeaterType']
     is_electric = water_heater['FuelType'] == 'electricity'
+    t_set = convert(water_heater.get('HotWaterTemperature', 125), 'degF', 'degC')
     energy_factor = water_heater.get('EnergyFactor')
     uniform_energy_factor = water_heater.get('UniformEnergyFactor')
     n_beds = construction['Number of Bedrooms (-)']
@@ -932,7 +933,6 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     first_hour_rating = water_heater.get('FirstHourRating')
     recovery_efficiency = water_heater.get('RecoveryEfficiency')
     tank_jacket_r = water_heater.get('WaterHeaterInsulation', {}).get('Jacket', {}).get('JacketRValue', 0)
-    low_power_hpwh = False
 
     # calculate actual volume from rated volume
     if volume_gal is not None:
@@ -960,9 +960,6 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     elif water_heater_type == 'heat pump water heater':
         assert is_electric
         eta_c = 1
-        if uniform_energy_factor == 4.9: #FIXME: temporary flag for designating 120V HPWHs in panels branch of ResStock
-            low_power_hpwh = True
-            
         # HPWH UA calculation taken from ResStock:
         # https://github.com/NREL/resstock/blob/run/restructure-v3/resources/hpxml-measures/HPXMLtoOpenStudio/resources/waterheater.rb#L765
         if volume_gal <= 58.0:
@@ -1018,7 +1015,6 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
 
     else:
         raise OCHREException(f'Unknown water heater type: {water_heater_type}')
-    
 
     # Increase insulation from tank jacket (reduces UA)
     if tank_jacket_r:
@@ -1036,26 +1032,19 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     if eta_c > 1.0:
         raise OCHREException('A water heater heat source (either burner or element) efficiency of > 1 has been calculated.'
                         ' Double check water heater inputs.')
-    
-    if low_power_hpwh:
-        t_set = convert(140, 'degF', 'degC')
-        t_temper = convert(125, 'degF', 'degC')
-    else:
-        t_set =  convert(water_heater.get('HotWaterTemperature', 125), 'degF', 'degC')
-        t_temper = t_set
+
     wh = {
-        'Equipment Name': water_heater_type,
-        'Fuel': water_heater['FuelType'].capitalize(),
-        'Zone': parse_zone_name(water_heater['Location']),
-        'Setpoint Temperature (C)': t_set,
-        'Temepring Valve Setpoint (C)': t_temper,
+        "Equipment Name": water_heater_type,
+        "Fuel": water_heater["FuelType"].capitalize(),
+        "Zone": parse_zone_name(water_heater["Location"]),
+        "Setpoint Temperature (C)": t_set,
+        "Tempering Valve Setpoint (C)": None,
         # 'Heat Transfer Coefficient (W/m^2/K)': u,
-        'UA (W/K)': convert(ua, 'Btu/hour/degR', 'W/K'),
-        'Efficiency (-)': eta_c,
-        'Energy Factor (-)': energy_factor,
-        'Tank Volume (L)': volume,
-        'Tank Height (m)': height,
-        'Low Power HPWH': low_power_hpwh,
+        "UA (W/K)": convert(ua, "Btu/hour/degR", "W/K"),
+        "Efficiency (-)": eta_c,
+        "Energy Factor (-)": energy_factor,
+        "Tank Volume (L)": volume,
+        "Tank Height (m)": height,
     }
     if heating_capacity is not None:
         wh['Capacity (W)'] = convert(heating_capacity, 'Btu/hour', 'W')
@@ -1064,8 +1053,22 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
         # add HPWH COP, from ResStock, defaults to using UEF
         if uniform_energy_factor is None:
             uniform_energy_factor = (0.60522 + energy_factor) / 1.2101
-        cop = 1.174536058 * uniform_energy_factor  # Based on simulation of the UEF test procedure at varying COPs
-        wh['HPWH COP (-)'] = cop
+
+        # Add/update parameters for low power HPWH
+        # FIXME: temporary flag for designating 120V HPWHs in panels branch of ResStock
+        if uniform_energy_factor == 4.9:
+            wh.update({
+                "Low Power HPWH": True,
+                "HPWH COP (-)": 4.2,
+                "HPWH Capacity (W)": 1499.4,
+                "Setpoint Temperature (C)": convert(140, "degF", "degC"),
+                "Tempering Valve Setpoint (C)": convert(125, "degF", "degC"),
+                "hp_only_mode": True,
+            })
+        else:
+            # Based on simulation of the UEF test procedure at varying COPs
+            wh["HPWH COP (-)"] = 1.174536058 * uniform_energy_factor
+
     if water_heater_type == 'instantaneous water heater' and wh['Fuel'] != 'Electricity':
         on_time_frac = [0.0269, 0.0333, 0.0397, 0.0462, 0.0529][n_beds - 1]
         wh['Parasitic Power (W)'] = 5 + 60 * on_time_frac
