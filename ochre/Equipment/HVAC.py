@@ -5,7 +5,7 @@ import psychrolib
 from ochre.utils import OCHREException, convert, load_csv
 from ochre.utils.units import kwh_to_therms
 import ochre.utils.equipment as utils_equipment
-from ochre.Equipment import Equipment
+from ochre.Equipment import ThermostaticLoad
 
 SPEED_TYPES = {
     1: 'Single',
@@ -18,7 +18,7 @@ cp_air = 1.005  # kJ/kg-K
 rho_air = 1.2041  # kg/m^3
 
 
-class HVAC(Equipment):
+class HVAC(ThermostaticLoad):
     """
     Base HVAC Equipment Class. Options for static and ideal capacity. `end_use` must be specified in child classes.
 
@@ -43,9 +43,8 @@ class HVAC(Equipment):
         # Building envelope parameters - required for calculating ideal capacity
         # FUTURE: For now, require envelope model. In future, could use ext_model to provide all schedule values
         assert self.zone_name == 'Indoor' and envelope_model is not None
-        self.envelope_model = envelope_model
 
-        super().__init__(envelope_model=envelope_model, **kwargs)
+        super().__init__(thermal_model=envelope_model, envelope_model=envelope_model, **kwargs)
 
         # Capacity parameters
         self.speed_idx = 1  # speed index, 0=Off, 1=lowest speed, max=n_speeds
@@ -121,7 +120,7 @@ class HVAC(Equipment):
         # Duct location and distribution system efficiency (DSE)
         ducts = kwargs.get('Ducts', {'DSE (-)': 1})
         self.duct_dse = ducts.get('DSE (-)')  # Duct distribution system efficiency
-        self.duct_zone = self.envelope_model.zones.get(ducts.get('Zone'))
+        self.duct_zone = self.thermal_model.zones.get(ducts.get('Zone'))
         if self.duct_dse is None:
             # Calculate DSE using ASHRAE 152
             self.duct_dse = utils_equipment.calculate_duct_dse(self, ducts, **kwargs)
@@ -131,7 +130,7 @@ class HVAC(Equipment):
             self.duct_zone = None
 
         # basement zone heat fraction
-        basement_zone = self.envelope_model.zones.get('Foundation')
+        basement_zone = self.thermal_model.zones.get('Foundation')
         if basement_zone:
             default_basement_frac = 0.2 if basement_zone.zone_type == 'Finished Basement' and self.is_heater else 0
             self.basement_heat_frac = kwargs.get('Basement Airflow Ratio (-)', default_basement_frac)
@@ -180,7 +179,7 @@ class HVAC(Equipment):
 
         # if main simulator, add envelope as sub simulator
         if self.main_simulator:
-            self.sub_simulators.append(self.envelope_model)
+            self.sub_simulators.append(self.thermal_model)
 
         # Use ideal or static/dynamic capacity depending on time resolution and number of speeds
         # 4 speeds are used for variable speed equipment, which must use ideal capacity
@@ -330,13 +329,12 @@ class HVAC(Equipment):
             self.temp_setpoint = t_set
 
         # set envelope comfort limits
-        if self.envelope_model is not None:
-            if self.is_heater:
-                self.envelope_model.heating_setpoint = self.temp_setpoint
-                self.envelope_model.heating_deadband = self.temp_deadband
-            else:
-                self.envelope_model.cooling_setpoint = self.temp_setpoint
-                self.envelope_model.cooling_deadband = self.temp_deadband
+        if self.is_heater:
+            self.thermal_model.heating_setpoint = self.temp_setpoint
+            self.thermal_model.heating_deadband = self.temp_deadband
+        else:
+            self.thermal_model.cooling_setpoint = self.temp_setpoint
+            self.thermal_model.cooling_deadband = self.temp_deadband
 
     def run_thermostat_control(self, setpoint=None):
         if setpoint is None:
@@ -368,7 +366,7 @@ class HVAC(Equipment):
         zone_ratios = list(self.zone_fractions.values())
 
         # Note: h_desired should be equal to self.delivered_heat
-        h_desired = self.envelope_model.solve_for_inputs(self.zone.t_idx, zone_idxs, x_desired, zone_ratios)  # in W
+        h_desired = self.thermal_model.solve_for_inputs(self.zone.t_idx, zone_idxs, x_desired, zone_ratios)  # in W
 
         # Account for fan power and SHR - slightly different for heating/cooling
         # assumes SHR and EIR from previous time step

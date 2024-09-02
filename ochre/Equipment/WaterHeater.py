@@ -9,11 +9,11 @@ import datetime as dt
 
 from ochre.utils import OCHREException
 from ochre.utils.units import convert, kwh_to_therms
-from ochre.Equipment import Equipment
+from ochre.Equipment import ThermostaticLoad
 from ochre.Models import OneNodeWaterModel, TwoNodeWaterModel, StratifiedWaterModel, IdealWaterModel
 
 
-class WaterHeater(Equipment):
+class WaterHeater(ThermostaticLoad):
     name = 'Water Heater'
     end_use = 'Water Heating'
     default_capacity = 4500  # in W
@@ -41,11 +41,9 @@ class WaterHeater(Equipment):
             'name': None,
             **kwargs.get('Water Tank', {}),
         }
-        self.model = model_class(**water_tank_args)
+        thermal_model = model_class(**water_tank_args)
 
-        super().__init__(**kwargs)
-
-        self.sub_simulators.append(self.model)
+        super().__init__(model=thermal_model, **kwargs)
 
         # By default, use ideal capacity if time resolution > 5 minutes
         if use_ideal_capacity is None:

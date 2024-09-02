@@ -75,7 +75,7 @@ class HVACTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.hvac.fan_power_max, 75, places=1)
 
         self.assertIsNone(self.hvac.Ao_list)
-        self.assertIsNotNone(self.hvac.envelope_model)
+        self.assertIsNotNone(self.hvac.thermal_model)
         self.assertEqual(self.hvac.zone, envelope.indoor_zone)
 
     def test_update_external_control(self):
