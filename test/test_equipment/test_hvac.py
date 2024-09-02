@@ -71,7 +71,7 @@ class HVACTestCase(unittest.TestCase):
 
     def test_init(self):
         self.assertTrue(self.hvac.is_heater)
-        self.assertFalse(self.hvac.use_ideal_capacity)
+        self.assertFalse(self.hvac.use_ideal_mode)
         self.assertAlmostEqual(self.hvac.fan_power_max, 75, places=1)
 
         self.assertIsNone(self.hvac.Ao_list)
@@ -212,7 +212,7 @@ class HVACTestCase(unittest.TestCase):
 class IdealHeaterTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.hvac = Heater(use_ideal_capacity=True, **init_args)
+        self.hvac = Heater(use_ideal_mode=True, **init_args)
 
     def test_run_duty_cycle_control(self):
         self.hvac.mode = 'Off'
@@ -267,7 +267,7 @@ class IdealHeaterTestCase(unittest.TestCase):
 class IdealCoolerTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.hvac = Cooler(use_ideal_capacity=True, **init_args)
+        self.hvac = Cooler(use_ideal_mode=True, **init_args)
 
     def test_solve_ideal_capacity(self):
         self.hvac.temp_setpoint = 21
@@ -326,7 +326,7 @@ class DynamicHVACTestCase(unittest.TestCase):
     def test_init(self):
         self.assertAlmostEqual(self.hvac.Ao_list, 0.495, places=3)
         self.assertAlmostEqual(self.hvac.biquad_params[0]['eir_t'][0], -0.30428)
-        self.assertEqual(self.hvac.use_ideal_capacity, False)
+        self.assertEqual(self.hvac.use_ideal_mode, False)
 
     def test_calculate_biquadratic_param(self):
         self.hvac.mode = 'On'
@@ -521,7 +521,7 @@ class VariableSpeedHVACTestCase(unittest.TestCase):
     def test_init(self):
         self.assertAlmostEqual(self.hvac.Ao_list, 0.495, places=3)
         self.assertEqual(self.hvac.n_speeds, 4)
-        self.assertEqual(self.hvac.use_ideal_capacity, True)
+        self.assertEqual(self.hvac.use_ideal_mode, True)
         self.assertAlmostEqual(self.hvac.capacity_list[0], 5000 / 4, places=3)
 
     def test_run_duty_cycle_control(self):
@@ -745,7 +745,7 @@ class ASHPHeaterTestCase(unittest.TestCase):
 
 class VariableSpeedASHPHeaterTestCase(unittest.TestCase):
     def setUp(self):
-        self.hvac = ASHPHeater(use_ideal_capacity=True, **init_args)
+        self.hvac = ASHPHeater(use_ideal_mode=True, **init_args)
 
     def test_run_duty_cycle_control(self):
         mode = self.hvac.run_duty_cycle_control(update_args_heat, {'Duty Cycle': 0})

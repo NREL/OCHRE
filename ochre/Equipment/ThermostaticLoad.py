@@ -15,7 +15,7 @@ class ThermostaticLoad(Equipment):
         "Zone Temperature (C)",  # Needed for Water tank model
     ]  
     
-    def __init__(self, thermal_model=None, use_ideal_capacity=None, **kwargs):
+    def __init__(self, thermal_model=None, use_ideal_mode=None, prevent_overshoot=True, **kwargs):
         """
         Equipment that controls a StateSpaceModel using thermostatic control
         methods. Equipment thermal capacity and power may be controlled
@@ -41,10 +41,13 @@ class ThermostaticLoad(Equipment):
         self.thermal_model = thermal_model
         self.sub_simulators.append(self.thermal_model)
 
-        # By default, use ideal capacity if time resolution > 5 minutes
-        if use_ideal_capacity is None:
-            use_ideal_capacity = self.time_res >= dt.timedelta(minutes=5)
-        self.use_ideal_capacity = use_ideal_capacity
+        # By default, use ideal mode if time resolution >= 15 minutes
+        if use_ideal_mode is None:
+            use_ideal_mode = self.time_res >= dt.timedelta(minutes=15)
+        self.use_ideal_mode = use_ideal_mode
+        
+        # By default, prevent overshoot in tstat mode
+        self.prevent_overshoot = prevent_overshoot
 
         # Control parameters
         # note: bottom of deadband is (setpoint_temp - deadband_temp)
@@ -128,7 +131,7 @@ class ThermostaticLoad(Equipment):
             )
             return "Off"
 
-        if self.use_ideal_capacity:
+        if self.use_ideal_mode:
             # Set capacity directly from duty cycle
             self.update_duty_cycles(*duty_cycles)
             return [mode for mode, duty_cycle in self.duty_cycle_by_mode.items() if duty_cycle > 0][0]
@@ -197,7 +200,7 @@ class ThermostaticLoad(Equipment):
     def update_internal_control(self):
         self.update_setpoint()
 
-        if self.use_ideal_capacity:
+        if self.use_ideal_mode:
             if self.thermal_model.n_nodes == 1:
                 # FUTURE: remove if not being used
                 # calculate ideal capacity based on tank model - more accurate than self.solve_ideal_capacity

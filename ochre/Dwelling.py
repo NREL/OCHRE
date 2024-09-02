@@ -142,7 +142,7 @@ class Dwelling(Simulator):
 
         for name, eq in self.equipment.items():
             # if time step is large, check that ideal equipment is being used
-            ideal = eq.use_ideal_capacity if isinstance(eq, (HVAC, WaterHeater)) else True
+            ideal = eq.use_ideal_mode if isinstance(eq, (HVAC, WaterHeater)) else True
             if not ideal:
                 if self.time_res >= dt.timedelta(minutes=15):
                     raise OCHREException(f'Cannot use non-ideal equipment {name} with large time step of'
@@ -158,7 +158,7 @@ class Dwelling(Simulator):
 
         # force ideal HVAC equipment to go last - so all heat from other equipment is known during update
         for eq in self.equipment.values():
-            if isinstance(eq, HVAC) and eq.use_ideal_capacity:
+            if isinstance(eq, HVAC) and eq.use_ideal_mode:
                 self.sub_simulators.pop(self.sub_simulators.index(eq))
                 self.sub_simulators.append(eq)
         # force generator/battery to go last - so it can run self-consumption controller

@@ -37,7 +37,7 @@ class WaterHeaterTestCase(unittest.TestCase):
         self.wh = WaterHeater(**init_args)
 
     def test_init(self):
-        self.assertFalse(self.wh.use_ideal_capacity)
+        self.assertFalse(self.wh.use_ideal_mode
         self.assertTrue(isinstance(self.wh.model, TwoNodeWaterModel))
         self.assertEqual(self.wh.h_upper_idx, 0)
         self.assertEqual(self.wh.h_lower_idx, 1)
@@ -155,13 +155,13 @@ class IdealWaterHeaterTestCase(unittest.TestCase):
     """
 
     def setUp(self):
-        self.wh = WaterHeater(use_ideal_capacity=True, **init_args)
+        self.wh = WaterHeater(use_ideal_mode=True, **init_args)
 
         # update initial state to top of deadband (for 1-node model)
         self.wh.model.states[self.wh.t_upper_idx] = self.wh.setpoint_temp
 
     def test_init(self):
-        self.assertTrue(self.wh.use_ideal_capacity)
+        self.assertTrue(self.wh.use_ideal_mode
         self.assertTrue(isinstance(self.wh.model, TwoNodeWaterModel))
         self.assertEqual(self.wh.h_lower_idx, 1)
         self.assertEqual(self.wh.h_upper_idx, 0)
@@ -365,7 +365,7 @@ class HPWaterHeaterTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.wh.electric_kw, 1.05, places=2)
 
         # test with ideal capacity
-        self.wh.use_ideal_capacity = True
+        self.wh.use_ideal_moderue
         self.wh.duty_cycle_by_mode['Heat Pump On'] = 0
         self.wh.calculate_power_and_heat(update_args_no_draw)
         self.assertAlmostEqual(self.wh.delivered_heat, 0, places=-1)
@@ -413,7 +413,7 @@ class GasWaterHeaterTestCase(unittest.TestCase):
         self.assertEqual(self.wh.electric_kw, 0)
 
         # Test with ideal capacity
-        self.wh.use_ideal_capacity = True
+        self.wh.use_ideal_moderue
         self.wh.duty_cycle_by_mode['On'] = 0.125
         self.wh.mode = 'On'
         self.wh.calculate_power_and_heat(update_args_no_draw)
@@ -430,7 +430,7 @@ class TanklessWaterHeaterTestCase(unittest.TestCase):
         self.wh = TanklessWaterHeater(**init_args)
 
     def test_init(self):
-        self.assertEqual(self.wh.use_ideal_capacity, True)
+        self.assertEqual(self.wh.use_ideal_modeue)
         self.assertTrue(isinstance(self.wh.model, IdealWaterModel))
 
     def test_update_internal_control(self):

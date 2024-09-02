@@ -24,7 +24,7 @@ class WaterHeater(ThermostaticLoad):
         "Zone Temperature (C)",  # Needed for Water tank model
     ]  
     
-    def __init__(self, use_ideal_capacity=None, model_class=None, **kwargs):
+    def __init__(self, model_class=None, **kwargs):
         # Create water tank model
         if model_class is None:
             nodes = kwargs.get('water_nodes', 2)
@@ -44,11 +44,6 @@ class WaterHeater(ThermostaticLoad):
         thermal_model = model_class(**water_tank_args)
 
         super().__init__(model=thermal_model, **kwargs)
-
-        # By default, use ideal capacity if time resolution > 5 minutes
-        if use_ideal_capacity is None:
-            use_ideal_capacity = self.time_res >= dt.timedelta(minutes=5)
-        self.use_ideal_capacity = use_ideal_capacity
 
         # Get tank nodes for upper and lower heat injections
         upper_node = '3' if self.model.n_nodes >= 12 else '1'
@@ -150,7 +145,7 @@ class WaterHeater(ThermostaticLoad):
             )
             return "Off"
 
-        if self.use_ideal_capacity:
+        if self.use_ideal_mode:
             # Set capacity directly from duty cycle
             self.update_duty_cycles(*duty_cycles)
             return [mode for mode, duty_cycle in self.duty_cycle_by_mode.items() if duty_cycle > 0][0]
@@ -219,7 +214,7 @@ class WaterHeater(ThermostaticLoad):
     def update_internal_control(self):
         self.update_setpoint()
 
-        if self.use_ideal_capacity:
+        if self.use_ideal_mode:
             if self.model.n_nodes == 1:
                 # FUTURE: remove if not being used
                 # calculate ideal capacity based on tank model - more accurate than self.solve_ideal_capacity
@@ -255,7 +250,7 @@ class WaterHeater(ThermostaticLoad):
 
     def calculate_power_and_heat(self):
         # get heat injections from water heater
-        if self.use_ideal_capacity and self.mode != 'Off':
+        if self.use_ideal_mode and self.mode != 'Off':
             heats_to_tank = np.zeros(self.model.n_nodes, dtype=float)
             for mode, duty_cycle in self.duty_cycle_by_mode.items():
                 heats_to_tank = self.add_heat_from_mode(mode, heats_to_tank, duty_cycle)
@@ -334,7 +329,7 @@ class ElectricResistanceWaterHeater(WaterHeater):
     def run_duty_cycle_control(self, duty_cycles):
         if len(duty_cycles) == len(self.modes) - 2:
             d_er_total = duty_cycles[-1]
-            if self.use_ideal_capacity:
+            if self.use_ideal_mode:
                 # determine optimal allocation of upper/lower elements
                 self.solve_ideal_capacity()
 
@@ -350,7 +345,7 @@ class ElectricResistanceWaterHeater(WaterHeater):
 
         mode = super().run_duty_cycle_control(duty_cycles)
 
-        if not self.use_ideal_capacity:
+        if not self.use_ideal_mode:
             # If duty cycle forces WH on, may need to swap to lower element
             t_upper = self.model.states[self.t_upper_idx]
             if mode == 'Upper On' and t_upper > self.setpoint_temp:
@@ -591,7 +586,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         heats_to_model = super().calculate_power_and_heat()
 
         # get HP and ER delivered heat and power
-        if self.use_ideal_capacity:
+        if self.use_ideal_mode:
             d_hp = self.duty_cycle_by_mode['Heat Pump On']
             d_er = self.duty_cycle_by_mode['Upper On'] + self.duty_cycle_by_mode['Lower On']
         else:
@@ -634,7 +629,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
     def generate_results(self):
         results = super().generate_results()
         if self.verbosity >= 6:
-            if self.use_ideal_capacity:
+            if self.use_ideal_mode:
                 hp_on_frac = self.duty_cycle_by_mode['Heat Pump On']
             else:
                 hp_on_frac = 1 if 'Heat Pump' in self.mode else 0
@@ -671,7 +666,7 @@ class TanklessWaterHeater(WaterHeater):
     default_capacity = 20000  # in W
 
     def __init__(self, **kwargs):
-        kwargs.update({'use_ideal_capacity': True,
+        kwargs.update({'use_ideal_mode': True,
                        'model_class': IdealWaterModel})
         super().__init__(**kwargs)
         self.heat_from_draw = 0  # Used to determine current capacity

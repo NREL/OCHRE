@@ -27,7 +27,7 @@ dwelling_args = {
     'metrics_verbosity': 9,  # verbosity of results file (0-9)
 }
 
-test_equipment = {'Air Source Heat Pump': {'use_ideal_capacity': True},
+test_equipment = {'Air Source Heat Pump': {'use_ideal_mode': True},
                   }
 
 
