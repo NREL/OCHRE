@@ -97,7 +97,7 @@ class StratifiedWaterModelTestCase(unittest.TestCase):
         self.assertLess(result[0], 0)
 
         # Tempered water draw - low setpoint
-        self.model.tempered_draw_temp = 40
+        self.model.fixture_draw_temp = 40
         result = self.model.update_water_draw(update_args_tempered_draw)
         self.assertLess(self.model.draw_total, 1)
         self.assertAlmostEqual(self.model.h_delivered, 2091.5, places=0)
@@ -106,7 +106,7 @@ class StratifiedWaterModelTestCase(unittest.TestCase):
 
         # Tempered water draw - high setpoint
         self.model.states[0] = 55  # reset state
-        self.model.tempered_draw_temp = 60
+        self.model.fixture_draw_temp = 60
         self.model.update_water_draw(update_args_tempered_draw)
         self.assertEqual(self.model.draw_total, 1)
         self.assertAlmostEqual(self.model.h_unmet_load, 348.6, places=1)

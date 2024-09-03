@@ -413,12 +413,8 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
     def __init__(self, hp_only_mode=False, water_nodes=12, **kwargs):
         super().__init__(water_nodes=water_nodes, **kwargs)
 
-        self.low_power_hpwh = kwargs.get('Low Power HPWH', False)
-
         # Control parameters
         self.hp_only_mode = hp_only_mode
-        if self.low_power_hpwh:
-            self.hp_only_mode = True
         self.er_only_mode = False  # True when ambient temp is very hot or cold, forces HP off
         hp_on_time = kwargs.get('HPWH Minimum On Time (min)', 10)
         hp_off_time = kwargs.get('HPWH Minimum Off Time (min)', 0)
@@ -428,26 +424,19 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         self.deadband_temp = kwargs.get('Deadband Temperature (C)', 8.17)  # different default than ERWH
 
         # Nominal COP based on simulation of the UEF test procedure at varying COPs
-        if self.low_power_hpwh: #TODO: can read a lot of these directly when properly integrated into HPXML
-            self.cop_nominal = 4.2
-            self.hp_cop = self.cop_nominal
-            self.hp_capacity_nominal = 1499.4
-            hp_power_nominal =  self.hp_capacity_nominal / self.cop_nominal # in W
-            self.hp_capacity_nominal = hp_power_nominal * self.hp_cop  # in W
-            self.hp_capacity = self.hp_capacity_nominal  # in W
-        else:
-            self.cop_nominal = kwargs['HPWH COP (-)']
-            self.hp_cop = self.cop_nominal
-            if self.cop_nominal < 2:
-                self.warn("Low Nominal COP:", self.cop_nominal)
+        self.low_power_hpwh = kwargs.get('Low Power HPWH', False)
+        self.cop_nominal = kwargs['HPWH COP (-)']
+        self.hp_cop = self.cop_nominal
+        if self.cop_nominal < 2:
+            self.warn("Low Nominal COP:", self.cop_nominal)
 
-            # Heat pump capacity and power parameters - hardcoded for now
-            if 'HPWH Capacity (W)' in kwargs:
-                self.hp_capacity_nominal = kwargs['HPWH Capacity (W)']  # max heating capacity, in W
-            else:
-                hp_power_nominal = kwargs.get('HPWH Power (W)', 500)  # in W
-                self.hp_capacity_nominal = hp_power_nominal * self.hp_cop  # in W
-            self.hp_capacity = self.hp_capacity_nominal  # in W
+        # Heat pump capacity and power parameters - hardcoded for now
+        if 'HPWH Capacity (W)' in kwargs:
+            self.hp_capacity_nominal = kwargs['HPWH Capacity (W)']  # max heating capacity, in W
+        else:
+            hp_power_nominal = kwargs.get('HPWH Power (W)', 500)  # in W
+            self.hp_capacity_nominal = hp_power_nominal * self.hp_cop  # in W
+        self.hp_capacity = self.hp_capacity_nominal  # in W
         self.parasitic_power = kwargs.get('HPWH Parasitics (W)', 1)  # Standby power in W
         self.fan_power = kwargs.get('HPWH Fan Power (W)', 35)  # in W
 
