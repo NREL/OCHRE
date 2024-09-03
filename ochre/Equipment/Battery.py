@@ -214,9 +214,9 @@ class Battery(Generator):
         power_setpoint = power_dc / efficiency if power_dc > 0 else power_dc * efficiency
         return power_setpoint
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         # get setpoint from self-consumption or power setpoint
-        super().update_internal_control()
+        super().run_internal_control()
 
         if f"{self.end_use} Min SOC (-)" in self.current_schedule:
             self.soc_min_ctrl = self.current_schedule[f"{self.end_use} Min SOC (-)"]

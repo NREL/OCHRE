@@ -101,16 +101,16 @@ class EVTestCase(unittest.TestCase):
         self.ev.parse_control_signal({}, {'SOC Rate': 0.2})
         self.assertAlmostEqual(self.ev.setpoint_power, 1.444, places=3)
 
-    def test_update_internal_control(self):
+    def test_run_internal_control(self):
         # test outside of event
-        mode = self.ev.update_internal_control({})
+        mode = self.ev.run_internal_control({})
         self.assertEqual(mode, 'Off')
         self.assertIsNone(self.ev.setpoint_power)
 
         # test event start
         self.ev.current_time = self.ev.event_start + dt.timedelta(minutes=2)
         self.soc = 0.5
-        mode = self.ev.update_internal_control({})
+        mode = self.ev.run_internal_control({})
         self.assertEqual(mode, 'On')
         self.assertIsNone(self.ev.setpoint_power)
         self.assertNotEqual(self.ev.soc, 0.5)
@@ -118,7 +118,7 @@ class EVTestCase(unittest.TestCase):
         # test event end with unmet load
         self.ev.current_time = self.ev.event_end + dt.timedelta(minutes=2)
         self.ev.soc = 0.1
-        mode = self.ev.update_internal_control({})
+        mode = self.ev.run_internal_control({})
         self.assertEqual(mode, 'Off')
         self.assertGreater(self.ev.unmet_load, 0)
 

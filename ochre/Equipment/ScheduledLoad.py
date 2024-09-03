@@ -98,7 +98,7 @@ class ScheduledLoad(Equipment):
         if gas_set_ext is not None and self.is_gas:
             self.current_schedule[self.gas] = gas_set_ext
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         if self.is_electric:
             self.p_set_point = self.current_schedule[self.electric_name]
             if abs(self.p_set_point) > 20:

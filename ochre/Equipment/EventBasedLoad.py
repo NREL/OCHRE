@@ -151,7 +151,7 @@ class EventBasedLoad(Equipment):
                         self.warn('Event is delayed beyond event end time. Ignoring event.')
                         self.event_start = self.event_end
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         if self.current_time < self.event_start:
             # waiting for next event to start
             return 'Off'

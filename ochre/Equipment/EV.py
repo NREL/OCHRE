@@ -265,7 +265,7 @@ class ElectricVehicle(EventBasedLoad):
                 setpoint = self.max_power if setpoint >= self.max_power / 2 else 0
             self.current_schedule["EV Max Power (kW)"] = setpoint
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         self.unmet_load = 0
 
         # update control parameters from schedule
@@ -274,7 +274,7 @@ class ElectricVehicle(EventBasedLoad):
         if "EV Max SOC (-)" in self.current_schedule:
             self.soc_max_ctrl = self.current_schedule["EV Max SOC (-)"]
 
-        return super().update_internal_control()
+        return super().run_internal_control()
 
     def calculate_power_and_heat(self):
         # Note: this is copied from the battery model, but they are not linked at all

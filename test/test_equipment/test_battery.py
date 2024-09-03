@@ -50,30 +50,30 @@ class BatteryTestCase(unittest.TestCase):
         self.battery.parse_control_signal({}, {'SOC Rate': -0.2})
         self.assertAlmostEqual(self.battery.power_setpoint, -1.926, places=3)
 
-    def test_update_internal_control(self):
+    def test_run_internal_control(self):
         # test self-consumption with charge_from_solar
         self.battery.control_type = 'Self-Consumption'
         self.battery.parameters['charge_from_solar'] = 1
-        mode = self.battery.update_internal_control({'net_power': -1})
+        mode = self.battery.run_internal_control({'net_power': -1})
         self.assertEqual(mode, 'Off')
         self.assertAlmostEqual(self.battery.power_setpoint, 0)
 
-        mode = self.battery.update_internal_control({'net_power': -1, 'pv_power': -2})
+        mode = self.battery.run_internal_control({'net_power': -1, 'pv_power': -2})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.battery.power_setpoint, 1)
 
-        mode = self.battery.update_internal_control({'net_power': -2, 'pv_power': -1})
+        mode = self.battery.run_internal_control({'net_power': -2, 'pv_power': -1})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.battery.power_setpoint, 1)
 
         self.battery.parameters['charge_from_solar'] = 0
-        mode = self.battery.update_internal_control({'net_power': -2, 'pv_power': -1})
+        mode = self.battery.run_internal_control({'net_power': -2, 'pv_power': -1})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.battery.power_setpoint, 2)
 
         # test SOC limits
         self.battery.soc = self.battery.soc_max
-        mode = self.battery.update_internal_control({'net_power': -1})
+        mode = self.battery.run_internal_control({'net_power': -1})
         self.assertEqual(mode, 'Off')
         self.assertEqual(self.battery.power_setpoint, 0)
 

@@ -53,12 +53,12 @@ class ScheduledLoadTestCase(unittest.TestCase):
         self.assertEqual(mode, 'Off')
         self.assertAlmostEqual(self.equipment.p_set_point, 0)
 
-    def test_update_internal_control(self):
-        mode = self.equipment.update_internal_control({'plug_loads': 100})
+    def test_run_internal_control(self):
+        mode = self.equipment.run_internal_control({'plug_loads': 100})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.equipment.p_set_point, 0.1)
 
-        mode = self.equipment.update_internal_control({'plug_loads': 0})
+        mode = self.equipment.run_internal_control({'plug_loads': 0})
         self.assertEqual(mode, 'Off')
         self.assertAlmostEqual(self.equipment.p_set_point, 0)
 
@@ -99,8 +99,8 @@ class ScheduleFileLoadTestCase(unittest.TestCase):
         p = next(self.equipment.schedule_iterable)
         self.assertEqual(p, 0.2)
 
-    def test_update_internal_control(self):
-        mode = self.equipment.update_internal_control({})
+    def test_run_internal_control(self):
+        mode = self.equipment.run_internal_control({})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.equipment.p_set_point, 0.2)
 

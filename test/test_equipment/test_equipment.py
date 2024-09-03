@@ -15,7 +15,7 @@ class TestEquipment(Equipment):
 
         self.max_p = max_p
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         # Turns on for 5 minutes, then off for 5 minutes
         if self.current_time.minute % 10 >= 5:
             return 'Off'

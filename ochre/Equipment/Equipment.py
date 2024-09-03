@@ -20,7 +20,7 @@ class Equipment(Simulator):
         All equipment must have:
          - A set of modes (default is ['On', 'Off'])
          - Fuel variables (by default, is_electric=True, is_gas=False)
-         - A control algorithm to determine the mode (update_internal_control)
+         - A control algorithm to determine the mode (run_internal_control)
          - A method to determine the power and heat outputs (calculate_power_and_heat)
         Optional features for equipment include:
          - A control algorithm to use for external control (parse_control_signal)
@@ -95,7 +95,7 @@ class Equipment(Simulator):
         # Overwrite if external control might exist
         raise OCHREException('Must define external control algorithm for {}'.format(self.name))
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         # Returns the equipment mode; can return None if the mode doesn't change
         # Overwrite if internal control exists
         raise NotImplementedError()
@@ -136,7 +136,7 @@ class Equipment(Simulator):
             self.parse_control_signal(control_signal)
             
         # run equipment controller to determine mode
-        mode = self.update_internal_control()
+        mode = self.run_internal_control()
 
         if mode is not None and self.time_in_mode < self.min_time_in_mode[self.mode]:
             # Don't change mode if minimum on/off time isn't met

@@ -195,9 +195,9 @@ class PV(ScheduledLoad):
             else:
                 self.warn(f'Invalid priority type: {priority}')
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         # Set P to maximum power from schedule
-        super().update_internal_control()
+        super().run_internal_control()
 
         # Update P and Q from setpoints
         if "PV P Setpoint (kW)" in self.current_schedule:

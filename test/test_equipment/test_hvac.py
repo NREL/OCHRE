@@ -103,8 +103,8 @@ class HVACTestCase(unittest.TestCase):
         self.assertEqual(self.hvac.temp_setpoint, 22)
         self.assertEqual(self.hvac.temp_deadband, 2)
 
-    def test_update_internal_control(self):
-        mode = self.hvac.update_internal_control(update_args_heat)
+    def test_run_internal_control(self):
+        mode = self.hvac.run_internal_control(update_args_heat)
         self.assertEqual(mode, 'On')
 
     def test_update_setpoint(self):
@@ -193,14 +193,14 @@ class IdealHeaterTestCase(unittest.TestCase):
     def setUp(self):
         self.hvac = Heater(use_ideal_mode=True, **init_args)
 
-    def test_update_internal_control(self):
-        mode = self.hvac.update_internal_control(update_args_heat)
+    def test_run_internal_control(self):
+        mode = self.hvac.run_internal_control(update_args_heat)
         self.assertEqual(mode, 'On')
 
-        mode = self.hvac.update_internal_control(update_args_inside)
+        mode = self.hvac.run_internal_control(update_args_inside)
         self.assertEqual(mode, 'On')
 
-        mode = self.hvac.update_internal_control(update_args_cool)
+        mode = self.hvac.run_internal_control(update_args_cool)
         self.assertEqual(mode, 'Off')
 
     def test_solve_ideal_capacity(self):
@@ -602,37 +602,37 @@ class ASHPHeaterTestCase(unittest.TestCase):
     def setUp(self):
         self.hvac = ASHPHeater(**init_args)
 
-    def test_update_internal_control(self):
+    def test_run_internal_control(self):
         self.hvac.mode = 'Off'
-        mode = self.hvac.update_internal_control(update_args_heat)
+        mode = self.hvac.run_internal_control(update_args_heat)
         self.assertEqual(mode, 'HP On')
 
         self.hvac.mode = 'HP and ER On'
-        mode = self.hvac.update_internal_control(update_args_heat)
+        mode = self.hvac.run_internal_control(update_args_heat)
         self.assertEqual(mode, 'HP and ER On')
 
         self.hvac.mode = 'HP and ER On'
-        mode = self.hvac.update_internal_control(update_args_inside)
+        mode = self.hvac.run_internal_control(update_args_inside)
         self.assertEqual(mode, 'HP On')
 
         self.hvac.mode = 'HP On'
-        mode = self.hvac.update_internal_control(update_args_inside)
+        mode = self.hvac.run_internal_control(update_args_inside)
         self.assertEqual(mode, 'HP On')
 
         self.hvac.mode = 'HP and ER On'
-        mode = self.hvac.update_internal_control(update_args_cool)
+        mode = self.hvac.run_internal_control(update_args_cool)
         self.assertEqual(mode, 'Off')
 
         # test with cold indoor temperature
         update_args = update_args_heat.copy()
         self.hvac.zone.temperature = 16
-        mode = self.hvac.update_internal_control(update_args)
+        mode = self.hvac.run_internal_control(update_args)
         self.assertEqual(mode, 'HP and ER On')
 
         # test with cold outdoor temperature
         self.hvac.zone.temperature = 18
         update_args['ambient_dry_bulb'] = -20
-        mode = self.hvac.update_internal_control(update_args)
+        mode = self.hvac.run_internal_control(update_args)
         self.assertEqual(mode, 'ER On')
 
         # reset zone temperature
@@ -688,25 +688,25 @@ class VariableSpeedASHPHeaterTestCase(unittest.TestCase):
     def setUp(self):
         self.hvac = ASHPHeater(use_ideal_mode=True, **init_args)
 
-    def test_update_internal_control(self):
-        mode = self.hvac.update_internal_control(update_args_heat)
+    def test_run_internal_control(self):
+        mode = self.hvac.run_internal_control(update_args_heat)
         self.assertEqual(mode, 'HP and ER On')
 
-        mode = self.hvac.update_internal_control(update_args_inside)
+        mode = self.hvac.run_internal_control(update_args_inside)
         self.assertEqual(mode, 'HP On')
 
-        mode = self.hvac.update_internal_control(update_args_cool)
+        mode = self.hvac.run_internal_control(update_args_cool)
         self.assertEqual(mode, 'Off')
 
         # test with cold indoor temperature
         update_args = update_args_heat.copy()
         update_args['heating_setpoint'] = 22
-        mode = self.hvac.update_internal_control(update_args)
+        mode = self.hvac.run_internal_control(update_args)
         self.assertEqual(mode, 'HP and ER On')
 
         # test with cold outdoor temperature
         update_args['ambient_dry_bulb'] = -20
-        mode = self.hvac.update_internal_control(update_args)
+        mode = self.hvac.run_internal_control(update_args)
         self.assertEqual(mode, 'ER On')
 
     def test_update_capacity(self):

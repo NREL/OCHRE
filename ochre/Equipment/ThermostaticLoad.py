@@ -152,7 +152,7 @@ class ThermostaticLoad(Equipment):
         if t_lower > self.temp_setpoint:
             return 'Off'
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         self.update_setpoint()
 
         if self.use_ideal_mode:

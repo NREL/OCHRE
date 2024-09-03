@@ -93,7 +93,7 @@ class Generator(Equipment):
         if power_setpoint is not None:
             self.current_schedule[f"{self.end_use} Electric Power (kW)"] = power_setpoint
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         if f"{self.end_use} Max Import Limit (kW)" in self.current_schedule:
             self.import_limit = self.current_schedule[f"{self.end_use} Max Import Limit (kW)"]
         if f"{self.end_use} Max Export Limit (kW)" in self.current_schedule:

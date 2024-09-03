@@ -48,21 +48,21 @@ class EventBasedLoadTestCase(unittest.TestCase):
         self.assertEqual(self.e.event_start, self.e.current_time)
         self.assertEqual(mode, 'On')
 
-    def test_update_internal_control(self):
+    def test_run_internal_control(self):
         first_event_start = self.e.event_start
         current_index = self.e.event_index
 
-        mode = self.e.update_internal_control({})
+        mode = self.e.run_internal_control({})
         self.assertEqual(mode, 'Off')
         self.assertEqual(self.e.event_index, current_index)
 
         self.e.current_time = self.e.event_start
-        mode = self.e.update_internal_control({})
+        mode = self.e.run_internal_control({})
         self.assertEqual(mode, 'On')
         self.assertEqual(self.e.event_index, current_index)
 
         self.e.current_time = self.e.event_end
-        mode = self.e.update_internal_control({})
+        mode = self.e.run_internal_control({})
         self.assertEqual(mode, 'Off')
         self.assertEqual(self.e.event_index, current_index + 1)
         self.assertNotEqual(self.e.event_start, first_event_start)

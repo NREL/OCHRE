@@ -252,9 +252,9 @@ class HVAC(ThermostaticLoad):
         elif load_fraction != 1:
             raise OCHREException(f"{self.name} can't handle non-integer load fractions")
 
-        return self.update_internal_control()
+        return self.run_internal_control()
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         # Update setpoint from schedule
         self.update_setpoint()
 
@@ -1056,9 +1056,9 @@ class ASHPHeater(HeatPumpHeater):
         
         return super().parse_control_signal(control_signal)
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         if self.use_ideal_mode:
-            # Note: not calling super().update_internal_control
+            # Note: not calling super().run_internal_control
             # Update setpoint from schedule
             self.update_setpoint()
 
@@ -1070,7 +1070,7 @@ class ASHPHeater(HeatPumpHeater):
             er_on = er_capacity > 0
         else:
             # get HP and ER modes separately
-            hp_mode = super().update_internal_control()
+            hp_mode = super().run_internal_control()
             hp_on = hp_mode in ['On', 'HP On'] if hp_mode is not None else 'HP' in self.mode
             er_mode = self.run_er_thermostat_control()
             er_on = er_mode == 'On' if er_mode is not None else 'ER' in self.mode

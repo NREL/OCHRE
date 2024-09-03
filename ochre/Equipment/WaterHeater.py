@@ -170,7 +170,7 @@ class WaterHeater(ThermostaticLoad):
         if t_lower > self.temp_setpoint:
             return 'Off'
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         self.update_setpoint()
 
         if self.use_ideal_mode:
@@ -495,7 +495,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         elif t_upper >= self.temp_setpoint + 1:  # TODO: Could mess with this a little
             return 'Off'
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         # operate as ERWH when ambient temperatures are out of bounds
         t_amb = self.current_schedule['Zone Temperature (C)']
         if t_amb < 7.222 or t_amb > 43.333:
@@ -503,7 +503,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         else:
             self.er_only_mode = False
 
-        return super().update_internal_control()
+        return super().run_internal_control()
 
     def add_heat_from_mode(self, mode, heats_to_tank=None, duty_cycle=1):
         heats_to_tank = super().add_heat_from_mode(mode, heats_to_tank, duty_cycle)
@@ -617,7 +617,7 @@ class TanklessWaterHeater(WaterHeater):
         # update initial state to top of deadband (for 1-node model)
         self.model.states[self.t_upper_idx] = self.temp_setpoint
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         self.update_setpoint()
         self.model.states[self.t_upper_idx] = self.temp_setpoint
 

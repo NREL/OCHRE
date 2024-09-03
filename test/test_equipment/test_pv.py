@@ -68,8 +68,8 @@ class PVTestCase(unittest.TestCase):
         self.pv.parse_control_signal({}, {'Priority': 'CPF'})
         self.assertEqual(self.pv.inverter_priority, 'CPF')
 
-    def test_update_internal_control(self):
-        mode = self.pv.update_internal_control({})
+    def test_run_internal_control(self):
+        mode = self.pv.run_internal_control({})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.pv.p_set_point, -8.16, places=2)
         self.assertAlmostEqual(self.pv.q_set_point, 0)
@@ -131,8 +131,8 @@ class ScheduledPVTestCase(unittest.TestCase):
         self.assertEqual(len(self.pv.schedule), 4 * 24)
         self.assertAlmostEqual(self.pv.schedule[init_args['start_time'] + dt.timedelta(hours=12)], -2.01, places=2)
 
-    def test_update_internal_control(self):
-        mode = self.pv.update_internal_control({})
+    def test_run_internal_control(self):
+        mode = self.pv.run_internal_control({})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.pv.p_set_point, -2.01, places=2)
         self.assertAlmostEqual(self.pv.q_set_point, 0)
