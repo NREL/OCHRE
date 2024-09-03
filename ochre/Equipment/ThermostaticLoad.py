@@ -164,7 +164,7 @@ class ThermostaticLoad(Equipment):
                 h_desired = self.thermal_model.solve_for_input(self.thermal_model.t_1_idx, self.thermal_model.h_1_idx, self.temp_setpoint,
                                                        solve_as_output=False)
 
-                # Only allow heating, convert to duty cycle
+                # Save capacity, within bounds
                 self.capacity = min(max(h_desired, 0), self.capacity_rated)
             else:
                 self.capacity = self.solve_ideal_capacity()

@@ -14,7 +14,6 @@ dwelling_args = {
     'start_time': dt.datetime(2019, 5, 5, 12, 0, 0),  # May 5, 12:00PM
     'time_res': dt.timedelta(minutes=15),
     'duration': dt.timedelta(days=1),
-    'ext_time_res': dt.timedelta(hours=1),
 
     # Input and Output Files
     'output_path': test_output_path,

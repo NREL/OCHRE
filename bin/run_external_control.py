@@ -9,7 +9,6 @@ from bin.run_dwelling import dwelling_args
 dwelling_args.update(
     {
         "time_res": dt.timedelta(minutes=10),
-        "ext_time_res": dt.timedelta(minutes=60),  # for duty cycle control only
         "Equipment": {
             "EV": {
                 'vehicle_type': 'BEV',

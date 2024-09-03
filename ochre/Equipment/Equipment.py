@@ -14,7 +14,7 @@ class Equipment(Simulator):
     modes = ['On', 'Off']  # On and Off assumed as default modes
     zone_name = 'Indoor'
 
-    def __init__(self, zone_name=None, envelope_model=None, ext_time_res=None, save_ebm_results=False, **kwargs):
+    def __init__(self, zone_name=None, envelope_model=None, save_ebm_results=False, **kwargs):
         """
         Base class for all equipment in a dwelling.
         All equipment must have:
@@ -64,6 +64,7 @@ class Equipment(Simulator):
         self.latent_gain = 0  # in W
 
         # Mode and controller parameters (assuming a duty cycle)
+        # TODO: convert to self.on = bool
         self.mode = 'Off'
         self.time_in_mode = dt.timedelta(minutes=0)
         # self.tot_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
@@ -74,9 +75,6 @@ class Equipment(Simulator):
         off_time = kwargs.get(self.end_use + ' Minimum Off Time', 0)
         self.min_time_in_mode = {mode: dt.timedelta(minutes=on_time) for mode in self.modes}
         self.min_time_in_mode['Off'] = dt.timedelta(minutes=off_time)
-
-        self.ext_time_res = ext_time_res
-        self.ext_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
 
     def initialize_parameters(self, parameter_file=None, name_col='Name', value_col='Value', **kwargs):
         if parameter_file is None:
@@ -159,9 +157,6 @@ class Equipment(Simulator):
             self.time_in_mode = self.time_res
             self.mode_cycles[self.mode] += 1
 
-        if control_signal:
-            self.ext_mode_counters[self.mode] += self.time_res
-
         # calculate electric and gas power and heat gains
         heat_data = self.calculate_power_and_heat()
 
@@ -228,5 +223,4 @@ class Equipment(Simulator):
 
         self.time_in_mode = dt.timedelta(minutes=0)
         self.mode_cycles = {mode: 0 for mode in self.modes}
-        self.ext_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
         # self.tot_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}

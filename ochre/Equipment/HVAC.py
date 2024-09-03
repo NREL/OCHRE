@@ -174,7 +174,6 @@ class HVAC(ThermostaticLoad):
         # Thermostat Control Parameters
         self.temp_setpoint = initial_setpoint
         self.temp_deadband = kwargs.get('Deadband Temperature (C)', 1)
-        self.ext_ignore_thermostat = kwargs.get('ext_ignore_thermostat', False)
         self.setpoint_ramp_rate = kwargs.get('setpoint_ramp_rate')  # max setpoint ramp rate, in C/min
         self.temp_indoor_prev = self.temp_setpoint
         self.ext_capacity = None  # Option to set capacity directly, ideal capacity only
@@ -210,7 +209,6 @@ class HVAC(ThermostaticLoad):
         #   - Resets every time step
         # - Max Capacity Fraction: Limits HVAC max capacity, ideal capacity only
         #   - Only resets if it is in the schedule
-        # TODO: remove duty cycle, ext_time_res, ext_ignore_thermostat
 
         ext_setpoint = control_signal.get('Setpoint')
         if ext_setpoint is not None:

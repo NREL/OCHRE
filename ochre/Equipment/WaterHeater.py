@@ -310,12 +310,6 @@ class ElectricResistanceWaterHeater(WaterHeater):
             if mode == 'Upper On' and t_upper > self.temp_setpoint:
                 mode = 'Lower On'
 
-            # If mode is ER, add time to both mode_counters
-            if mode == 'Upper On':
-                self.ext_mode_counters['Lower On'] += self.time_res
-            if mode == 'Lower On':
-                self.ext_mode_counters['Upper On'] += self.time_res
-
         return mode
 
     def solve_ideal_capacity(self):
