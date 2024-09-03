@@ -150,14 +150,13 @@ class PV(ScheduledLoad):
 
         return super().initialize_schedule(schedule, equipment_schedule_file, **kwargs)
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # External PV control options:
         # - P/Q Setpoint: set P and Q directly from external controller (assumes positive = consuming)
         # - P Curtailment: set P by specifying curtailment in kW or %
         # - Power Factor: set Q based on P setpoint (internal or external) and given power factor
         # - Priority: set inverter_priority to 'Watt' or 'Var'
-
-        self.update_internal_control()
+        p_max = self.current_schedule[self.electric_name]
 
         # Update P from external control
         if 'P Setpoint' in control_signal:
@@ -165,24 +164,29 @@ class PV(ScheduledLoad):
             if p_set > 0:
                 self.warn('Setpoint should be negative (i.e. generating power). Reversing sign to be negative.')
                 p_set *= -1
-            # if p_set < self.p_set_point - 0.1:
+            # if p_set < p_max - 0.1:
             #     # Print warning if setpoint is significantly larger than max power
-            #     self.warn('Setpoint ({}) is larger than max power ({})'.format(p_set, self.p_set_point))
-            self.p_set_point = max(self.p_set_point, p_set)
+            #     self.warn('Setpoint ({}) is larger than max power ({})'.format(p_set, p_max))
+            self.current_schedule["PV P Setpoint (kW)"] = p_set
         elif 'P Curtailment (kW)' in control_signal:
-            p_curt = min(max(control_signal['P Curtailment (kW)'], 0), -self.p_set_point)
-            self.p_set_point += p_curt
+            p_curt = max(control_signal['P Curtailment (kW)'], 0)
+            p_set = p_max + p_curt
+            self.current_schedule["PV P Setpoint (kW)"] = min(p_set, 0)
         elif 'P Curtailment (%)' in control_signal:
             pct_curt = min(max(control_signal['P Curtailment (%)'], 0), 100)
-            self.p_set_point *= 1 - pct_curt / 100
+            p_set = p_max * (1 - pct_curt) / 100
+            self.current_schedule["PV P Setpoint (kW)"] = p_set
+        else:
+            p_set = p_max
 
         # Update Q from external control
         if 'Q Setpoint' in control_signal:
-            self.q_set_point = control_signal['Q Setpoint']
+            self.current_schedule["PV Q Setpoint (kW)"] = control_signal["Q Setpoint"]
         elif 'Power Factor' in control_signal:
             # Note: power factor should be negative for generating P/consuming Q
             pf = control_signal['Power Factor']
-            self.q_set_point = ((1 / pf ** 2) - 1) ** 0.5 * self.p_set_point * (pf / abs(pf))
+            q_set = ((1 / pf**2) - 1) ** 0.5 * p_set * (pf / abs(pf))
+            self.current_schedule["PV Q Setpoint (kW)"] = q_set
 
         if 'Priority' in control_signal:
             priority = control_signal['Priority']
@@ -191,13 +195,16 @@ class PV(ScheduledLoad):
             else:
                 self.warn(f'Invalid priority type: {priority}')
 
-        return 'On' if self.p_set_point != 0 else 'Off'
-
     def update_internal_control(self):
-        # Set to maximum P, Q=0
+        # Set P to maximum power from schedule
         super().update_internal_control()
-        self.p_set_point = min(self.p_set_point, 0)
-        self.q_set_point = 0
+
+        # Update P and Q from setpoints
+        if "PV P Setpoint (kW)" in self.current_schedule:
+            p_set = self.current_schedule["PV P Setpoint (kW)"]
+            self.p_set_point = max(self.p_set_point, p_set)  # min(abs(value)), both are negative
+        self.q_set_point = self.current_schedule.get("PV Q Setpoint (kW)", 0)
+
         return 'On' if self.p_set_point < 0 else 'Off'
 
     def calculate_power_and_heat(self):

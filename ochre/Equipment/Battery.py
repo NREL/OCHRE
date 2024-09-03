@@ -178,12 +178,12 @@ class Battery(Generator):
             self.capacity_kwh = self.capacity_rated
             self.capacity_kwh_nominal = self.capacity_rated
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # Options for external control signals:
         # - SOC: Solves for power setpoint to achieve desired SOC, in 1/hour
         # - Min SOC: Minimum SOC limit for self-consumption mode
         # - Max SOC: Maximum SOC limit for self-consumption mode
-        # - See additional controls in Generator.update_external_control
+        # - See additional controls in Generator.parse_control_signal
         #   - Note: still subject to SOC limits and charge/discharge limits
 
         min_soc = control_signal.get("Min SOC")
@@ -203,10 +203,10 @@ class Battery(Generator):
         # Note: P Setpoint overrides SOC control.
         soc = control_signal.get("SOC")
         if soc is not None and "P Setpoint" not in control_signal:
-            self.power_setpoint = self.get_setpoint_from_soc(soc)
-            return "On" if self.power_setpoint != 0 else "Off"
+            power_setpoint = self.get_setpoint_from_soc(soc)
+            self.current_schedule[f"{self.end_use} Electric Power (kW)"] = power_setpoint
 
-        return super().update_external_control(control_signal)
+        return super().parse_control_signal(control_signal)
 
     def get_setpoint_from_soc(self, soc):
         power_dc = (soc - self.soc) * self.capacity_kwh / self.time_res_hours  # in kW, DC

@@ -60,45 +60,45 @@ class EVTestCase(unittest.TestCase):
         # test with overlap
         self.ev.generate_all_events(probabilities, event_data, None)
 
-    def test_update_external_control(self):
+    def test_parse_control_signal(self):
         start = self.ev.event_start
         end = self.ev.event_end
         one_min = dt.timedelta(minutes=1)
 
         # test outside of event
-        self.ev.update_external_control({}, {'Delay': False})
+        self.ev.parse_control_signal({}, {'Delay': False})
         self.assertEqual(self.ev.event_start, start)
         self.assertEqual(self.ev.event_end, end)
         self.assertEqual(self.ev.setpoint_power, None)
 
-        self.ev.update_external_control({}, {'Delay': True})
+        self.ev.parse_control_signal({}, {'Delay': True})
         self.assertEqual(self.ev.event_start, start + one_min)
         self.assertEqual(self.ev.event_end, end)
 
-        self.ev.update_external_control({}, {'Delay': 2})
+        self.ev.parse_control_signal({}, {'Delay': 2})
         self.assertEqual(self.ev.event_start, start + one_min * 3)
         self.assertEqual(self.ev.event_end, end)
 
-        self.ev.update_external_control({}, {'Delay': 10000})
+        self.ev.parse_control_signal({}, {'Delay': 10000})
         self.assertEqual(self.ev.event_start, end)
         self.assertEqual(self.ev.event_end, end)
 
         # setpoint control
-        self.ev.update_external_control({}, {'P Setpoint': 1})
+        self.ev.parse_control_signal({}, {'P Setpoint': 1})
         self.assertEqual(self.ev.setpoint_power, None)
 
         # setpoint with part load enabled
         self.ev.event_start = self.ev.current_time
-        self.ev.update_external_control({}, {'P Setpoint': 1})
+        self.ev.parse_control_signal({}, {'P Setpoint': 1})
         self.assertEqual(self.ev.setpoint_power, 1.4)
 
         self.ev.enable_part_load = True
-        self.ev.update_external_control({}, {'P Setpoint': 1})
+        self.ev.parse_control_signal({}, {'P Setpoint': 1})
         self.assertEqual(self.ev.setpoint_power, 1)
 
         # SOC rate control
         self.ev.event_start = self.ev.current_time
-        self.ev.update_external_control({}, {'SOC Rate': 0.2})
+        self.ev.parse_control_signal({}, {'SOC Rate': 0.2})
         self.assertAlmostEqual(self.ev.setpoint_power, 1.444, places=3)
 
     def test_update_internal_control(self):

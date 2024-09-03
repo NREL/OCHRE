@@ -125,7 +125,7 @@ class EventBasedLoad(Equipment):
     #     # function to set next event start and end time
     #     raise NotImplementedError
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # If Delay=dt.timedelta, extend start time by that time
         # If Delay=True, delay for self.time_res
         # If Delay=int, delay for int * self.time_res
@@ -141,17 +141,15 @@ class EventBasedLoad(Equipment):
                 raise OCHREException(f'Unknown delay for {self.name}: {delay}')
 
             if delay:
+                self.event_start += delay
+
                 if self.delay_event_end:
                     self.event_end += delay
                 else:
                     # ensure that start time doesn't exceed end time
-                    if self.event_start + delay > self.event_end:
+                    if self.event_start > self.event_end:
                         self.warn('Event is delayed beyond event end time. Ignoring event.')
-                        delay = self.event_end - self.event_start
-
-                self.event_start += delay
-
-        return self.update_internal_control()
+                        self.event_start = self.event_end
 
     def update_internal_control(self):
         if self.current_time < self.event_start:

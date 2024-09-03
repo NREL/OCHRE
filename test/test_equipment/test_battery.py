@@ -42,12 +42,12 @@ class BatteryTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.battery.voc_curve(0.5), 3.7, places=1)
         self.assertAlmostEqual(self.battery.uneg_curve(0.5), 0.12, places=2)
 
-    def test_update_external_control(self):
+    def test_parse_control_signal(self):
         # test SOC Rate control
-        self.battery.update_external_control({}, {'SOC Rate': 0.2})
+        self.battery.parse_control_signal({}, {'SOC Rate': 0.2})
         self.assertAlmostEqual(self.battery.power_setpoint, 2.077, places=3)
 
-        self.battery.update_external_control({}, {'SOC Rate': -0.2})
+        self.battery.parse_control_signal({}, {'SOC Rate': -0.2})
         self.assertAlmostEqual(self.battery.power_setpoint, -1.926, places=3)
 
     def test_update_internal_control(self):

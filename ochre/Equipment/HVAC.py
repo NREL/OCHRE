@@ -199,7 +199,7 @@ class HVAC(ThermostaticLoad):
 
         return super().initialize_schedule(schedule, required_inputs=required_inputs, **kwargs)
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # Options for external control signals:
         # - Load Fraction: 1 (no effect) or 0 (forces HVAC off)
         # - Setpoint: Updates heating (cooling) setpoint temperature from the dwelling schedule (in C)
@@ -738,7 +738,7 @@ class DynamicHVAC(HVAC):
 
         return biquad_params
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # Options for external control signals:
         # - Disable Speed X: if True, disables speed X (for 2 speed control, X=1 or 2)
         #   - Note: Can be used for ideal equipment (reduces max capacity) or dynamic equipment
@@ -746,7 +746,7 @@ class DynamicHVAC(HVAC):
         for idx in range(self.n_speeds):
             self.disable_speeds[idx] = bool(control_signal.get(f'Disable Speed {idx + 1}'))
 
-        return super().update_external_control(control_signal)
+        return super().parse_control_signal(control_signal)
 
     def run_two_speed_control(self):
         mode = super().run_thermostat_control()  # Can be On, Off, or None
@@ -1049,7 +1049,7 @@ class ASHPHeater(HeatPumpHeater):
         # - Max ER Capacity Fraction: Limits ER max capacity, ideal capacity only
         #   - Recommended to set to 0 to disable ER element
         #   - For now, does not get reset
-        # - ER Duty Cycle: Combines with "Duty Cycle" control, see HVAC.update_external_control
+        # - ER Duty Cycle: Combines with "Duty Cycle" control, see HVAC.parse_control_signal
     ]
 
     def __init__(self, **kwargs):
@@ -1072,13 +1072,13 @@ class ASHPHeater(HeatPumpHeater):
         self.min_time_in_mode['HP and ER On'] = dt.timedelta(minutes=er_on_time)
         self.min_time_in_mode['ER On'] = dt.timedelta(minutes=er_on_time)
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # Additional options for ASHP external control signals:
         # - ER Capacity: Sets ER capacity directly, ideal capacity only
         #   - Resets every time step
         # - Max ER Capacity Fraction: Limits ER max capacity, ideal capacity only
         #   - Recommended to set to 0 to disable ER element
-        # - ER Duty Cycle: Combines with "Duty Cycle" control, see HVAC.update_external_control
+        # - ER Duty Cycle: Combines with "Duty Cycle" control, see HVAC.parse_control_signal
 
         capacity_frac = control_signal.get("Max ER Capacity Fraction")
         if capacity_frac is not None:
@@ -1104,7 +1104,7 @@ class ASHPHeater(HeatPumpHeater):
             else:
                 self.er_ext_capacity = capacity
         
-        return super().update_external_control(control_signal)
+        return super().parse_control_signal(control_signal)
 
     def parse_duty_cycles(self, control_signal):
         # If duty cycles exist, combine duty cycles for HP and ER modes

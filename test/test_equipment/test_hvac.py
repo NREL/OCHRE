@@ -78,27 +78,27 @@ class HVACTestCase(unittest.TestCase):
         self.assertIsNotNone(self.hvac.thermal_model)
         self.assertEqual(self.hvac.zone, envelope.indoor_zone)
 
-    def test_update_external_control(self):
+    def test_parse_control_signal(self):
         # test with load fraction
-        mode = self.hvac.update_external_control(update_args_heat, {'Load Fraction': 0})
+        mode = self.hvac.parse_control_signal(update_args_heat, {'Load Fraction': 0})
         self.assertEqual(mode, 'Off')
 
         with self.assertRaises(Exception):
-            self.hvac.update_external_control(update_args_heat, {'Load Fraction': 0.5})
+            self.hvac.parse_control_signal(update_args_heat, {'Load Fraction': 0.5})
 
         # test with setpoint and deadband
         self.hvac.mode = 'Off'
-        mode = self.hvac.update_external_control(update_args_inside, {'Setpoint': 18})
+        mode = self.hvac.parse_control_signal(update_args_inside, {'Setpoint': 18})
         self.assertEqual(mode, 'Off')
         self.assertEqual(self.hvac.temp_setpoint, 18)
         self.assertEqual(self.hvac.temp_deadband, 1)
 
-        mode = self.hvac.update_external_control(update_args_inside, {'Deadband': 2})
+        mode = self.hvac.parse_control_signal(update_args_inside, {'Deadband': 2})
         self.assertEqual(mode, None)
         self.assertEqual(self.hvac.temp_setpoint, 19.9)
         self.assertEqual(self.hvac.temp_deadband, 2)
 
-        mode = self.hvac.update_external_control(update_args_inside, {'Setpoint': 22})
+        mode = self.hvac.parse_control_signal(update_args_inside, {'Setpoint': 22})
         self.assertEqual(mode, 'On')
         self.assertEqual(self.hvac.temp_setpoint, 22)
         self.assertEqual(self.hvac.temp_deadband, 2)
@@ -386,14 +386,14 @@ class TwoSpeedHVACTestCase(unittest.TestCase):
         self.assertListEqual(self.hvac.capacity_list, [2500, 5000])
         self.assertEqual(self.hvac.min_time_in_speed[0], dt.timedelta(minutes=5))
 
-    def test_update_external_control(self):
+    def test_parse_control_signal(self):
         # test disable speeds
-        mode = self.hvac.update_external_control(update_args_cool, {'Disable Speed 1': 1})
+        mode = self.hvac.parse_control_signal(update_args_cool, {'Disable Speed 1': 1})
         self.assertEqual(mode, 'On')
         self.assertEqual(self.hvac.speed_idx, 1)
         self.assertListEqual(list(self.hvac.disable_speeds), [True, False])
 
-        mode = self.hvac.update_external_control(update_args_cool, {'Disable Speed 1': 0, 'Disable Speed 2': 1})
+        mode = self.hvac.parse_control_signal(update_args_cool, {'Disable Speed 1': 0, 'Disable Speed 2': 1})
         self.assertEqual(mode, 'On')
         self.assertEqual(self.hvac.speed_idx, 0)
         self.assertListEqual(list(self.hvac.disable_speeds), [False, True])

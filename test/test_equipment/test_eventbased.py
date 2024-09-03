@@ -28,23 +28,23 @@ class EventBasedLoadTestCase(unittest.TestCase):
         self.assertEqual(self.e.event_start.date(), self.e.current_time.date())
         self.assertEqual(self.e.event_end - self.e.event_start, init_args['event_duration'])
 
-    def test_update_external_control(self):
+    def test_parse_control_signal(self):
         first_event_start = self.e.event_start
 
-        mode = self.e.update_external_control({}, {'nothing': 0})
+        mode = self.e.parse_control_signal({}, {'nothing': 0})
         self.assertEqual(self.e.event_start, first_event_start)
         self.assertEqual(mode, 'Off')
 
-        mode = self.e.update_external_control({}, {'Delay': True})
+        mode = self.e.parse_control_signal({}, {'Delay': True})
         self.assertEqual(self.e.event_start, first_event_start + equip_init_args['time_res'])
         self.assertEqual(mode, 'Off')
 
-        mode = self.e.update_external_control({}, {'Delay': 2})
+        mode = self.e.parse_control_signal({}, {'Delay': 2})
         self.assertEqual(self.e.event_start, first_event_start + 3 * equip_init_args['time_res'])
         self.assertEqual(mode, 'Off')
 
         # negative delay - start immediately
-        mode = self.e.update_external_control({}, {'Delay': self.e.current_time - self.e.event_start})
+        mode = self.e.parse_control_signal({}, {'Delay': self.e.current_time - self.e.event_start})
         self.assertEqual(self.e.event_start, self.e.current_time)
         self.assertEqual(mode, 'On')
 

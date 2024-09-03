@@ -78,27 +78,25 @@ class ScheduledLoad(Equipment):
 
         return super().initialize_schedule(schedule, required_inputs=required_inputs, **kwargs)
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # Control options for changing power:
         #  - Load Fraction: gets multiplied by power from schedule, unitless (applied to electric AND gas)
         #  - P Setpoint: overwrites electric power from schedule, in kW
         #  - Gas Setpoint: overwrites gas power from schedule, in therms/hour
-        self.update_internal_control()
-
         load_fraction = control_signal.get('Load Fraction')
         if load_fraction is not None:
-            self.p_set_point *= load_fraction
-            self.gas_set_point *= load_fraction
+            if self.is_electric:
+                self.current_schedule[self.electric_name] *= load_fraction
+            if self.is_gas:
+                self.current_schedule[self.gas] *= load_fraction
 
         p_set_ext = control_signal.get('P Setpoint')
-        if p_set_ext is not None:
-            self.p_set_point = p_set_ext
+        if p_set_ext is not None and self.is_electric:
+            self.current_schedule[self.electric_name] = p_set_ext
 
         gas_set_ext = control_signal.get('Gas Setpoint')
-        if gas_set_ext is not None:
-            self.gas_set_point = gas_set_ext
-
-        return 'On' if self.p_set_point + self.gas_set_point != 0 else 'Off'
+        if gas_set_ext is not None and self.is_gas:
+            self.current_schedule[self.gas] = gas_set_ext
 
     def update_internal_control(self):
         if self.is_electric:

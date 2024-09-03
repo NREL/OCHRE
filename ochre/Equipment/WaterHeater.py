@@ -61,11 +61,11 @@ class WaterHeater(ThermostaticLoad):
 
         # Control parameters
         # note: bottom of deadband is (setpoint_temp - deadband_temp)
-        self.setpoint_temp = kwargs['Setpoint Temperature (C)']
-        self.setpoint_temp_ext = None
-        self.max_temp = kwargs.get('Max Tank Temperature (C)', convert(140, 'degF', 'degC'))
+        self.temp_setpoint = kwargs['Setpoint Temperature (C)']
+        self.temp_setpoint_ext = None
+        self.temp_max = kwargs.get('Max Tank Temperature (C)', convert(140, 'degF', 'degC'))
         self.setpoint_ramp_rate = kwargs.get('Max Setpoint Ramp Rate (C/min)')  # max setpoint ramp rate, in C/min
-        self.deadband_temp = kwargs.get('Deadband Temperature (C)', 5.56)  # deadband range, in delta degC, i.e. Kelvin
+        self.temp_deadband = kwargs.get('Deadband Temperature (C)', 5.56)  # deadband range, in delta degC, i.e. Kelvin
         self.max_power = kwargs.get('Max Power (kW)')
 
     def update_inputs(self, schedule_inputs=None):
@@ -75,7 +75,7 @@ class WaterHeater(ThermostaticLoad):
     
         super().update_inputs(schedule_inputs)
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # Options for external control signals:
         # - Load Fraction: 1 (no effect) or 0 (forces WH off)
         # - Setpoint: Updates setpoint temperature from the default (in C)
@@ -92,23 +92,18 @@ class WaterHeater(ThermostaticLoad):
 
         ext_setpoint = control_signal.get("Setpoint")
         if ext_setpoint is not None:
-            if ext_setpoint > self.max_temp:
-                self.warn(
-                    f"Setpoint cannot exceed {self.max_temp}C. Setting setpoint to maximum value."
-                )
-                ext_setpoint = self.max_temp
             if "Water Heating Setpoint (C)" in self.current_schedule:
                 self.current_schedule["Water Heating Setpoint (C)"] = ext_setpoint
             else:
                 # Note that this overrides the ramp rate
-                self.setpoint_temp = ext_setpoint
+                self.temp_setpoint = ext_setpoint
 
         ext_db = control_signal.get("Deadband")
         if ext_db is not None:
             if "Water Heating Deadband (C)" in self.current_schedule:
                 self.current_schedule["Water Heating Deadband (C)"] = ext_db
             else:
-                self.deadband_temp = ext_db
+                self.temp_deadband = ext_db
 
         max_power = control_signal.get("Max Power")
         if max_power is not None:
@@ -139,9 +134,9 @@ class WaterHeater(ThermostaticLoad):
     def run_duty_cycle_control(self, duty_cycles):
         # Force off if temperature exceeds maximum, and print warning
         t_tank = self.model.states[self.t_upper_idx]
-        if t_tank > self.max_temp:
+        if t_tank > self.temp_max:
             self.warn(
-                f"Temperature over maximum temperature ({self.max_temp}C), forcing off"
+                f"Temperature over maximum temperature ({self.temp_max}C), forcing off"
             )
             return "Off"
 
@@ -166,16 +161,21 @@ class WaterHeater(ThermostaticLoad):
         if "Water Heating Setpoint (C)" in self.current_schedule:
             t_set_new = self.current_schedule["Water Heating Setpoint (C)"]
         else:
-            t_set_new = self.setpoint_temp
-        
+            t_set_new = self.temp_setpoint
+        if t_set_new > self.temp_max:
+            self.warn(
+                f"Setpoint cannot exceed {self.temp_max}C. Setting setpoint to maximum value."
+            )
+            t_set_new = self.temp_max
+
         # update setpoint with ramp rate
-        if self.setpoint_ramp_rate and self.setpoint_temp != t_set_new:
+        if self.setpoint_ramp_rate and self.temp_setpoint != t_set_new:
             delta_t = self.setpoint_ramp_rate * self.time_res.total_seconds() / 60  # in C
-            self.setpoint_temp = min(max(t_set_new, self.setpoint_temp - delta_t),
-                                     self.setpoint_temp + delta_t,
+            self.temp_setpoint = min(max(t_set_new, self.temp_setpoint - delta_t),
+                                     self.temp_setpoint + delta_t,
             )
         else:
-            self.setpoint_temp = t_set_new
+            self.temp_setpoint = t_set_new
         
         # get other controls from schedule - deadband and max power
         if "Water Heating Deadband (C)" in self.current_schedule:
@@ -190,7 +190,7 @@ class WaterHeater(ThermostaticLoad):
         off_states = self.model.next_states
 
         # calculate heat needed to reach setpoint - only use nodes at and above lower node
-        set_states = np.ones(len(off_states)) * self.setpoint_temp
+        set_states = np.ones(len(off_states)) * self.temp_setpoint
         h_desired = np.dot(set_states[:self.t_lower_idx + 1] - off_states[:self.t_lower_idx + 1],  # in W
                            self.model.capacitances[:self.t_lower_idx + 1]) / self.time_res.total_seconds()
 
@@ -206,9 +206,9 @@ class WaterHeater(ThermostaticLoad):
             # take average of lower node and node above
             t_lower = (self.model.states[self.t_lower_idx] + self.model.states[self.t_lower_idx - 1]) / 2
 
-        if t_lower < self.setpoint_temp - self.deadband_temp:
+        if t_lower < self.temp_setpoint - self.temp_deadband:
             return 'On'
-        if t_lower > self.setpoint_temp:
+        if t_lower > self.temp_setpoint:
             return 'Off'
 
     def update_internal_control(self):
@@ -220,7 +220,7 @@ class WaterHeater(ThermostaticLoad):
                 # calculate ideal capacity based on tank model - more accurate than self.solve_ideal_capacity
 
                 # Solve for desired heat delivered, subtracting external gains
-                h_desired = self.model.solve_for_input(self.model.t_1_idx, self.model.h_1_idx, self.setpoint_temp,
+                h_desired = self.model.solve_for_input(self.model.t_1_idx, self.model.h_1_idx, self.temp_setpoint,
                                                        solve_as_output=False)
 
                 # Only allow heating, convert to duty cycle
@@ -294,8 +294,8 @@ class WaterHeater(ThermostaticLoad):
             cop = self.delivered_heat / (self.electric_kw * 1000) if self.electric_kw > 0 else 0
             results[f'{self.end_use} COP (-)'] = cop
             results[f'{self.end_use} Total Sensible Heat Gain (W)'] = self.sensible_gain
-            results[f'{self.end_use} Deadband Upper Limit (C)'] = self.setpoint_temp
-            results[f'{self.end_use} Deadband Lower Limit (C)'] = self.setpoint_temp - self.deadband_temp
+            results[f'{self.end_use} Deadband Upper Limit (C)'] = self.temp_setpoint
+            results[f'{self.end_use} Deadband Lower Limit (C)'] = self.temp_setpoint - self.temp_deadband
 
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())
@@ -314,8 +314,8 @@ class WaterHeater(ThermostaticLoad):
         baseline_power = (self.model.h_loss + self.model.h_delivered) / 1000  # from conduction losses and water draw
         return {
             f'{self.end_use} EBM Energy (kWh)': total_cap * (tank_temp - ref_temp),
-            f'{self.end_use} EBM Min Energy (kWh)': total_cap * (self.setpoint_temp - self.deadband_temp - ref_temp),
-            f'{self.end_use} EBM Max Energy (kWh)': total_cap * (self.setpoint_temp - ref_temp),
+            f'{self.end_use} EBM Min Energy (kWh)': total_cap * (self.temp_setpoint - self.temp_deadband - ref_temp),
+            f'{self.end_use} EBM Max Energy (kWh)': total_cap * (self.temp_setpoint - ref_temp),
             f'{self.end_use} EBM Max Power (kW)': self.capacity_rated / self.efficiency / 1000,
             f'{self.end_use} EBM Efficiency (-)': self.efficiency,
             f'{self.end_use} EBM Baseline Power (kW)': baseline_power,
@@ -348,7 +348,7 @@ class ElectricResistanceWaterHeater(WaterHeater):
         if not self.use_ideal_mode:
             # If duty cycle forces WH on, may need to swap to lower element
             t_upper = self.model.states[self.t_upper_idx]
-            if mode == 'Upper On' and t_upper > self.setpoint_temp:
+            if mode == 'Upper On' and t_upper > self.temp_setpoint:
                 mode = 'Lower On'
 
             # If mode is ER, add time to both mode_counters
@@ -366,7 +366,7 @@ class ElectricResistanceWaterHeater(WaterHeater):
         off_states = self.model.next_states
 
         # calculate heat needed to reach setpoint - only use nodes at and above upper/lower nodes
-        set_states = np.ones(len(off_states)) * self.setpoint_temp
+        set_states = np.ones(len(off_states)) * self.temp_setpoint
         h_total = np.dot(set_states[:self.t_lower_idx + 1] - off_states[:self.t_lower_idx + 1],  # in W
                          self.model.capacitances[:self.t_lower_idx + 1]) / self.time_res.total_seconds()
         h_upper = np.dot(set_states[:self.t_upper_idx + 1] - off_states[:self.t_upper_idx + 1],  # in W
@@ -387,14 +387,14 @@ class ElectricResistanceWaterHeater(WaterHeater):
             # take average of lower node and node above
             t_lower = (self.model.states[self.t_lower_idx] + self.model.states[self.t_lower_idx - 1]) / 2
 
-        lower_threshold_temp = self.setpoint_temp - self.deadband_temp
-        if t_upper < lower_threshold_temp or (self.mode == 'Upper On' and t_upper < self.setpoint_temp):
+        lower_threshold_temp = self.temp_setpoint - self.temp_deadband
+        if t_upper < lower_threshold_temp or (self.mode == 'Upper On' and t_upper < self.temp_setpoint):
             return 'Upper On'
         if t_lower < lower_threshold_temp:
             return 'Lower On'
-        if self.mode == 'Upper On' and t_upper > self.setpoint_temp:
+        if self.mode == 'Upper On' and t_upper > self.temp_setpoint:
             return 'Off'
-        if t_lower > self.setpoint_temp:
+        if t_lower > self.temp_setpoint:
             return 'Off'
 
 
@@ -472,7 +472,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
 
         super().update_inputs(schedule_inputs)
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         if any([dc in control_signal for dc in ['HP Duty Cycle', 'ER Duty Cycle']]):
             # Add HP duty cycle to ERWH control
             duty_cycles = [control_signal.get('HP Duty Cycle', 0),
@@ -480,7 +480,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
             # TODO: update schedule, not control signal
             control_signal['Duty Cycle'] = duty_cycles
 
-        return super().update_external_control(control_signal)
+        return super().parse_control_signal(control_signal)
 
     def solve_ideal_capacity(self):
         # calculate ideal capacity based on future thermostat control
@@ -500,7 +500,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         hp_mode = self.run_thermostat_control(use_future_states=True)
 
         # aim 1/4 of deadband below setpoint to reduce temps at top of tank.
-        set_states = np.ones(len(off_states)) * (self.setpoint_temp - self.deadband_temp / 4)
+        set_states = np.ones(len(off_states)) * (self.temp_setpoint - self.deadband_temp / 4)
 
         if not self.hp_only_mode and hp_mode == 'Upper On':
             # determine ER duty cycle to achieve setpoint temp
@@ -540,16 +540,16 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         t_control = (3 / 4) * t_upper + (1 / 4) * t_lower
 
         if not self.hp_only_mode:
-            if t_upper < self.setpoint_temp - 13 or (self.mode == 'Upper On' and t_upper < self.setpoint_temp):
+            if t_upper < self.temp_setpoint - 13 or (self.mode == 'Upper On' and t_upper < self.temp_setpoint):
                 return 'Upper On'
-            elif self.mode in ['Upper On', 'Lower On'] and t_lower < self.setpoint_temp - 15:
+            elif self.mode in ['Upper On', 'Lower On'] and t_lower < self.temp_setpoint - 15:
                 return 'Lower On'
 
-        if self.mode in ['Upper On', 'Lower On'] or t_control < self.setpoint_temp - self.deadband_temp:
+        if self.mode in ['Upper On', 'Lower On'] or t_control < self.temp_setpoint - self.deadband_temp:
             return 'Heat Pump On'
-        elif t_control >= self.setpoint_temp:
+        elif t_control >= self.temp_setpoint:
             return 'Off'
-        elif t_upper >= self.setpoint_temp + 1:  # TODO: Could mess with this a little
+        elif t_upper >= self.temp_setpoint + 1:  # TODO: Could mess with this a little
             return 'Off'
 
     def update_internal_control(self):
@@ -672,11 +672,11 @@ class TanklessWaterHeater(WaterHeater):
         self.heat_from_draw = 0  # Used to determine current capacity
 
         # update initial state to top of deadband (for 1-node model)
-        self.model.states[self.t_upper_idx] = self.setpoint_temp
+        self.model.states[self.t_upper_idx] = self.temp_setpoint
 
     def update_internal_control(self):
         self.update_setpoint()
-        self.model.states[self.t_upper_idx] = self.setpoint_temp
+        self.model.states[self.t_upper_idx] = self.temp_setpoint
 
         self.heat_from_draw = -self.model.update_water_draw()[0]
         self.heat_from_draw = max(self.heat_from_draw, 0)
@@ -694,7 +694,7 @@ class TanklessWaterHeater(WaterHeater):
             self.delivered_heat = 0
         elif self.heat_from_draw > self.capacity_rated:
             # cannot meet setpoint temperature. Update outlet temp for 1 time step
-            t_set = self.setpoint_temp
+            t_set = self.temp_setpoint
             t_mains = self.model.current_schedule['Mains Temperature (C)']
             t_outlet = t_mains + (t_set - t_mains) * (self.capacity_rated / self.heat_from_draw)
             self.model.states[self.model.t_1_idx] = t_outlet

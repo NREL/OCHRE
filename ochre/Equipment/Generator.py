@@ -63,7 +63,7 @@ class Generator(Equipment):
         self.import_limit = self.parameters.get("import_limit", 0)
         self.export_limit = self.parameters.get("export_limit", 0)
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # Options for external control signals:
         # - P Setpoint: Directly sets power setpoint, in kW
         #   - Note: still subject to SOC limits and charge/discharge limits
@@ -91,13 +91,7 @@ class Generator(Equipment):
         # Note: this overrides self consumption mode, it will always set the setpoint directly
         power_setpoint = control_signal.get("P Setpoint")
         if power_setpoint is not None:
-            if f"{self.end_use} Electric Power (kW)" in self.current_schedule:
-                self.current_schedule[f"{self.end_use} Electric Power (kW)"] = power_setpoint
-
-            self.power_setpoint = power_setpoint
-            return "On" if self.power_setpoint != 0 else "Off"
-
-        return self.update_internal_control()
+            self.current_schedule[f"{self.end_use} Electric Power (kW)"] = power_setpoint
 
     def update_internal_control(self):
         if f"{self.end_use} Max Import Limit (kW)" in self.current_schedule:

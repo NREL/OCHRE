@@ -37,35 +37,35 @@ class PVTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.pv.schedule[init_args['start_time'] + dt.timedelta(hours=12)], -8.16, places=2)
         self.assertAlmostEqual(self.pv.inverter_min_pf_factor, 0.75, places=2)
 
-    def test_update_external_control(self):
-        mode = self.pv.update_external_control({}, {'P Setpoint': -5, 'Q Setpoint': 1})
+    def test_parse_control_signal(self):
+        mode = self.pv.parse_control_signal({}, {'P Setpoint': -5, 'Q Setpoint': 1})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.pv.p_set_point, -5)
         self.assertAlmostEqual(self.pv.q_set_point, 1)
 
-        mode = self.pv.update_external_control({}, {'P Setpoint': -20, 'Q Setpoint': 1})
+        mode = self.pv.parse_control_signal({}, {'P Setpoint': -20, 'Q Setpoint': 1})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.pv.p_set_point, -8.22, places=2)
         self.assertAlmostEqual(self.pv.q_set_point, 1)
 
         # test PV curtailment
-        mode = self.pv.update_external_control({}, {'P Curtailment (kW)': 1})
+        mode = self.pv.parse_control_signal({}, {'P Curtailment (kW)': 1})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.pv.p_set_point, -7.25, places=2)
 
         # test PV curtailment
-        mode = self.pv.update_external_control({}, {'P Curtailment (%)': 50})
+        mode = self.pv.parse_control_signal({}, {'P Curtailment (%)': 50})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.pv.p_set_point, -4.13, places=2)
 
         # test power factor
-        mode = self.pv.update_external_control({}, {'Power Factor': -0.95})
+        mode = self.pv.parse_control_signal({}, {'Power Factor': -0.95})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.pv.p_set_point, -6.37, places=2)
         self.assertAlmostEqual(self.pv.q_set_point, 2.09, places=2)
 
         # test priority
-        self.pv.update_external_control({}, {'Priority': 'CPF'})
+        self.pv.parse_control_signal({}, {'Priority': 'CPF'})
         self.assertEqual(self.pv.inverter_priority, 'CPF')
 
     def test_update_internal_control(self):

@@ -40,16 +40,16 @@ class ScheduledLoadTestCase(unittest.TestCase):
         self.assertEqual(self.equipment.schedule_name, 'plug_loads')
         self.assertEqual(self.equipment.sensible_gain_fraction, 0.5)
 
-    def test_update_external_control(self):
-        mode = self.equipment.update_external_control({'plug_loads': 100}, {'Load Fraction': 1})
+    def test_parse_control_signal(self):
+        mode = self.equipment.parse_control_signal({'plug_loads': 100}, {'Load Fraction': 1})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.equipment.p_set_point, 0.1)
 
-        mode = self.equipment.update_external_control({'plug_loads': 200}, {'Load Fraction': 0.5})
+        mode = self.equipment.parse_control_signal({'plug_loads': 200}, {'Load Fraction': 0.5})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.equipment.p_set_point, 0.2 * 0.5)
 
-        mode = self.equipment.update_external_control({'plug_loads': 200}, {'Load Fraction': 0})
+        mode = self.equipment.parse_control_signal({'plug_loads': 200}, {'Load Fraction': 0})
         self.assertEqual(mode, 'Off')
         self.assertAlmostEqual(self.equipment.p_set_point, 0)
 

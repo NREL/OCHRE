@@ -20,29 +20,29 @@ class GasGeneratorTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.generator.efficiency_rated, 0.95)
         self.assertEqual(self.generator.control_type, 'Off')
 
-    def test_update_external_control(self):
+    def test_parse_control_signal(self):
         # test setpoint control
-        mode = self.generator.update_external_control({}, {'P Setpoint': -2})
+        mode = self.generator.parse_control_signal({}, {'P Setpoint': -2})
         self.assertEqual(mode, 'On')
         self.assertEqual(self.generator.power_setpoint, -2)
 
-        mode = self.generator.update_external_control({}, {'P Setpoint': 0})
+        mode = self.generator.parse_control_signal({}, {'P Setpoint': 0})
         self.assertEqual(mode, 'Off')
 
         # test control type
         control_signal = {'Control Type': 'Schedule'}
-        mode = self.generator.update_external_control({}, control_signal)
+        mode = self.generator.parse_control_signal({}, control_signal)
         self.assertEqual(mode, 'Off')
         self.assertEqual(self.generator.control_type, 'Schedule')
 
         control_signal = {'Control Type': 'Other'}
-        mode = self.generator.update_external_control({}, control_signal)
+        mode = self.generator.parse_control_signal({}, control_signal)
         self.assertEqual(mode, 'Off')
         self.assertEqual(self.generator.control_type, 'Schedule')
 
         # test parameter update
         control_signal = {'Parameters': {'charge_start_hour': 0}}
-        mode = self.generator.update_external_control({}, control_signal)
+        mode = self.generator.parse_control_signal({}, control_signal)
         self.assertEqual(mode, 'On')
         self.assertEqual(self.generator.control_type, 'Schedule')
         self.assertEqual(self.generator.power_setpoint, 1)

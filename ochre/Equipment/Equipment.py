@@ -23,7 +23,7 @@ class Equipment(Simulator):
          - A control algorithm to determine the mode (update_internal_control)
          - A method to determine the power and heat outputs (calculate_power_and_heat)
         Optional features for equipment include:
-         - A control algorithm to use for external control (update_external_control)
+         - A control algorithm to use for external control (parse_control_signal)
          - A ZIP model for voltage-dependent real and reactive power
          - A parameters file to get loaded as self.parameters
         Equipment can use data from:
@@ -140,7 +140,7 @@ class Equipment(Simulator):
 
         return modes_with_time
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # Overwrite if external control might exist
         raise OCHREException('Must define external control algorithm for {}'.format(self.name))
 
@@ -180,11 +180,12 @@ class Equipment(Simulator):
             self.electric_kw = self.electric_kw * zip_q.dot(v_quadratic)
 
     def update_model(self, control_signal=None):
-        # run equipment controller to determine mode
+        # update equipment based on control signal
         if control_signal:
-            mode = self.update_external_control(control_signal)
-        else:
-            mode = self.update_internal_control()
+            self.parse_control_signal(control_signal)
+            
+        # run equipment controller to determine mode
+        mode = self.update_internal_control()
 
         if mode is not None and self.time_in_mode < self.min_time_in_mode[self.mode]:
             # Don't change mode if minimum on/off time isn't met
