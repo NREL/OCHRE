@@ -1,15 +1,19 @@
+import datetime as dt
+
 from ochre import Dwelling, CreateFigures
 from ochre.Models import TankWithPCM
 from bin.run_dwelling import dwelling_args
 
 
-# Test scripts to run single piece of equipment, examples include:
-#  - Battery (with daily schedule and external control)
-#  - Water Heater
-#  - EV
+dwelling_args.update(
+    {
+        "time_res": dt.timedelta(minutes=1),  # time resolution of the simulation
+        "duration": dt.timedelta(days=1),  # duration of the simulation
+        "verbosity": 9,
+    }
+)
 
-
-def add_pcm_model():
+def add_pcm_model(dwelling_args):
     dwelling_args["Equipment"]["Water Heating"] = {
         "model_class": TankWithPCM,
         "Water Tank": {
@@ -18,8 +22,10 @@ def add_pcm_model():
         },
     }
 
+    return dwelling_args
 
-def run_water_heater():
+
+def run_water_heater(dwelling_args):
     # Create Dwelling from input files, see bin/run_dwelling.py
     dwelling = Dwelling(**dwelling_args)
 
@@ -43,5 +49,7 @@ def run_water_heater():
 
 
 if __name__ == '__main__':
-    add_pcm_model()
-    run_water_heater()
+    run_water_heater(dwelling_args)
+
+    dwelling_args = add_pcm_model(dwelling_args)
+    run_water_heater(dwelling_args)
