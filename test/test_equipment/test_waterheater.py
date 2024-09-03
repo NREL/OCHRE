@@ -78,23 +78,6 @@ class WaterHeaterTestCase(unittest.TestCase):
         self.assertEqual(self.wh.setpoint_temp, 60)
         self.assertEqual(self.wh.deadband_temp, 4)
 
-    def test_run_duty_cycle_control(self):
-        self.wh.mode = 'Off'
-        mode = self.wh.parse_control_signal(update_args_no_draw, {'Duty Cycle': 0.5})
-        self.assertEqual(mode, 'Off')
-
-        mode = self.wh.parse_control_signal(update_args_no_draw, {'Duty Cycle': [1, 0]})
-        self.assertEqual(mode, 'On')
-
-        self.wh.mode = 'On'
-        mode = self.wh.parse_control_signal(update_args_no_draw, {'Duty Cycle': 0.5})
-        self.assertEqual(mode, 'On')
-
-        self.wh.mode = 'On'
-        self.wh.model.states[self.wh.t_lower_idx] = self.wh.setpoint_temp + 1
-        mode = self.wh.parse_control_signal(update_args_no_draw, {'Duty Cycle': 0.5})
-        self.assertEqual(mode, 'Off')
-
     def test_run_thermostat_control(self):
         self.wh.mode = 'Off'
         mode = self.wh.run_thermostat_control(update_args_no_draw)
@@ -161,24 +144,10 @@ class IdealWaterHeaterTestCase(unittest.TestCase):
         self.wh.model.states[self.wh.t_upper_idx] = self.wh.setpoint_temp
 
     def test_init(self):
-        self.assertTrue(self.wh.use_ideal_mode
+        self.assertTrue(self.wh.use_ideal_mode)
         self.assertTrue(isinstance(self.wh.model, TwoNodeWaterModel))
         self.assertEqual(self.wh.h_lower_idx, 1)
         self.assertEqual(self.wh.h_upper_idx, 0)
-
-    def test_run_duty_cycle_control(self):
-        self.wh.mode = 'Off'
-        mode = self.wh.parse_control_signal(update_args_no_draw, {'Duty Cycle': 0.5})
-        self.assertEqual(self.wh.duty_cycle_by_mode['On'], 0.5)
-        self.assertEqual(mode, 'On')
-
-        mode = self.wh.parse_control_signal(update_args_no_draw, {'Duty Cycle': [1, 0]})
-        self.assertEqual(self.wh.duty_cycle_by_mode['On'], 1)
-        self.assertEqual(mode, 'On')
-
-        mode = self.wh.parse_control_signal(update_args_no_draw, {'Duty Cycle': 0})
-        self.assertEqual(self.wh.duty_cycle_by_mode['On'], 0)
-        self.assertEqual(mode, 'Off')
 
     def test_update_internal_control(self):
         self.wh.mode = 'Off'
@@ -230,20 +199,7 @@ class ERWaterHeaterTestCase(unittest.TestCase):
     def setUp(self):
         self.wh = ElectricResistanceWaterHeater(**init_args)
 
-    def test_parse_control_signal(self):
-        self.wh.mode = 'Off'
-        control_signal = {'Duty Cycle': 1}
-        mode = self.wh.parse_control_signal(update_args_no_draw, control_signal)
-        self.assertEqual(mode, 'Upper On')
-        self.assertEqual(self.wh.ext_mode_counters['Upper On'], dt.timedelta(minutes=0))  # gets updated later
-        self.assertEqual(self.wh.ext_mode_counters['Lower On'], dt.timedelta(minutes=1))
-
-        # test swap from upper to lower
-        self.wh.mode = 'Upper On'
-        self.wh.model.states[self.wh.t_upper_idx] = self.wh.setpoint_temp + 1
-        control_signal = {'Duty Cycle': 1}
-        mode = self.wh.parse_control_signal(update_args_no_draw, control_signal)
-        self.assertEqual(mode, 'Lower On')
+    # def test_parse_control_signal(self):
 
     def test_update_internal_control(self):
         self.wh.mode = 'Lower On'
@@ -268,39 +224,7 @@ class HPWaterHeaterTestCase(unittest.TestCase):
     def setUp(self):
         self.wh = HeatPumpWaterHeater(**hpwh_init_args)
 
-    def test_parse_control_signal(self):
-        self.wh.mode = 'Off'
-        control_signal = {'HP Duty Cycle': 0, 'ER Duty Cycle': 0.9}
-        mode = self.wh.parse_control_signal(update_args_no_draw, control_signal)
-        self.assertEqual(mode, 'Off')
-
-        self.wh.mode = 'Off'
-        control_signal = {'HP Duty Cycle': 0.6, 'ER Duty Cycle': 0.4}
-        mode = self.wh.parse_control_signal(update_args_no_draw, control_signal)
-        self.assertEqual(mode, 'Heat Pump On')
-
-        self.wh.mode = 'Upper On'
-        control_signal = {'HP Duty Cycle': 0.5, 'ER Duty Cycle': 0}
-        mode = self.wh.parse_control_signal(update_args_no_draw, control_signal)
-        self.assertEqual(mode, 'Heat Pump On')
-
-        self.wh.mode = 'Heat Pump On'
-        self.wh.model.states[self.wh.t_upper_idx] = 60
-        control_signal = {'HP Duty Cycle': 0.5, 'ER Duty Cycle': 0}
-        mode = self.wh.parse_control_signal(update_args_no_draw, control_signal)
-        self.assertEqual(mode, 'Off')
-
-        # test HP only mode
-        self.wh.hp_only_mode = True
-        self.wh.mode = 'Off'
-        control_signal = {'HP Duty Cycle': 1, 'ER Duty Cycle': 1}
-        mode = self.wh.parse_control_signal(update_args_no_draw, control_signal)
-        self.assertEqual(mode, 'Heat Pump On')
-
-        self.wh.mode = 'Off'
-        control_signal = {'HP Duty Cycle': 0, 'ER Duty Cycle': 1}
-        mode = self.wh.parse_control_signal(update_args_no_draw, control_signal)
-        self.assertEqual(mode, 'Off')
+    # def test_parse_control_signal(self):
 
     def test_update_internal_control(self):
         # TODO: Jeff - may need more tests here to make sure HP thermostat control works

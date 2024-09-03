@@ -128,7 +128,6 @@ def get_hvac_controls(hour_of_day, occupancy, heating_setpoint, **unused_inputs)
                 # 'Setpoint': heating_setpoint,
                 #  'Deadband': 2,
                 # 'Load Fraction': 0,  # Set to 0 for force heater off
-                # 'Duty Cycle': 0.5,  # Sets fraction of on-time explicitly
             },
             # 'HVAC Cooling': {...},
         }

@@ -103,27 +103,6 @@ class HVACTestCase(unittest.TestCase):
         self.assertEqual(self.hvac.temp_setpoint, 22)
         self.assertEqual(self.hvac.temp_deadband, 2)
 
-    def test_run_duty_cycle_control(self):
-        self.hvac.mode = 'Off'
-        mode = self.hvac.run_duty_cycle_control(update_args_inside, {'Duty Cycle': 0.99})
-        self.assertEqual(mode, 'Off')
-
-        mode = self.hvac.run_duty_cycle_control(update_args_inside, {'Duty Cycle': 1})
-        self.assertEqual(mode, 'On')
-
-        self.hvac.mode = 'On'
-        mode = self.hvac.run_duty_cycle_control(update_args_inside, {'Duty Cycle': 0.5})
-        self.assertEqual(mode, 'On')
-
-        self.hvac.mode = 'Off'
-        mode = self.hvac.run_duty_cycle_control(update_args_heat, {'Duty Cycle': 0.5})
-        self.assertEqual(mode, 'On')
-
-        # test ignoring current mode
-        self.hvac.ext_ignore_thermostat = True
-        mode = self.hvac.run_duty_cycle_control(update_args_heat, {'Duty Cycle': 0.5})
-        self.assertEqual(mode, 'Off')
-
     def test_update_internal_control(self):
         mode = self.hvac.update_internal_control(update_args_heat)
         self.assertEqual(mode, 'On')
@@ -213,17 +192,6 @@ class IdealHeaterTestCase(unittest.TestCase):
 
     def setUp(self):
         self.hvac = Heater(use_ideal_mode=True, **init_args)
-
-    def test_run_duty_cycle_control(self):
-        self.hvac.mode = 'Off'
-        mode = self.hvac.run_duty_cycle_control(update_args_inside, {'Duty Cycle': 0.5})
-        self.assertEqual(mode, 'On')
-        self.assertEqual(self.hvac.ext_capacity, 2500)
-
-        self.hvac.mode = 'Off'
-        mode = self.hvac.run_duty_cycle_control(update_args_inside, {'Duty Cycle': 0})
-        self.assertEqual(mode, 'Off')
-        self.assertEqual(self.hvac.ext_capacity, 0)
 
     def test_update_internal_control(self):
         mode = self.hvac.update_internal_control(update_args_heat)
@@ -524,13 +492,6 @@ class VariableSpeedHVACTestCase(unittest.TestCase):
         self.assertEqual(self.hvac.use_ideal_mode, True)
         self.assertAlmostEqual(self.hvac.capacity_list[0], 5000 / 4, places=3)
 
-    def test_run_duty_cycle_control(self):
-        # test update max capacity
-        mode = self.hvac.run_duty_cycle_control(update_args_inside, {'Duty Cycle': 0.5})
-        self.assertEqual(mode, 'On')
-        self.assertAlmostEqual(self.hvac.capacity_max, 6010, places=-1)
-        self.assertAlmostEqual(self.hvac.ext_capacity, 3000, places=-1)
-
     def test_update_capacity(self):
         # Capacity should follow ideal update
         self.hvac.temp_setpoint = 19.8
@@ -641,26 +602,6 @@ class ASHPHeaterTestCase(unittest.TestCase):
     def setUp(self):
         self.hvac = ASHPHeater(**init_args)
 
-    def test_run_duty_cycle_control(self):
-        mode = self.hvac.run_duty_cycle_control(update_args_heat, {'Duty Cycle': 0})
-        self.assertEqual(mode, 'Off')
-
-        self.hvac.mode = 'HP and ER On'
-        mode = self.hvac.run_duty_cycle_control(update_args_heat, {'Duty Cycle': 0.5})
-        self.assertEqual(mode, 'HP On')
-        self.assertEqual(self.hvac.ext_mode_counters['HP On'], dt.timedelta(minutes=0))
-        self.assertEqual(self.hvac.ext_mode_counters['HP and ER On'], dt.timedelta(minutes=1))
-
-        self.hvac.mode = 'HP On'
-        mode = self.hvac.run_duty_cycle_control(update_args_heat, {'ER Duty Cycle': 0.5})
-        self.assertEqual(mode, 'ER On')
-        self.assertEqual(self.hvac.ext_mode_counters['HP and ER On'], dt.timedelta(minutes=1))
-
-        # test HP mode counter
-        mode = self.hvac.run_duty_cycle_control(update_args_heat, {'Duty Cycle': 0.5, 'ER Duty Cycle': 1})
-        self.assertEqual(mode, 'HP and ER On')
-        self.assertEqual(self.hvac.ext_mode_counters['HP On'], dt.timedelta(minutes=1))
-
     def test_update_internal_control(self):
         self.hvac.mode = 'Off'
         mode = self.hvac.update_internal_control(update_args_heat)
@@ -746,19 +687,6 @@ class ASHPHeaterTestCase(unittest.TestCase):
 class VariableSpeedASHPHeaterTestCase(unittest.TestCase):
     def setUp(self):
         self.hvac = ASHPHeater(use_ideal_mode=True, **init_args)
-
-    def test_run_duty_cycle_control(self):
-        mode = self.hvac.run_duty_cycle_control(update_args_heat, {'Duty Cycle': 0})
-        self.assertEqual(mode, 'Off')
-
-        mode = self.hvac.run_duty_cycle_control(update_args_heat, {'Duty Cycle': 0.5})
-        self.assertEqual(mode, 'HP On')
-
-        mode = self.hvac.run_duty_cycle_control(update_args_heat, {'ER Duty Cycle': 0.5})
-        self.assertEqual(mode, 'ER On')
-
-        mode = self.hvac.run_duty_cycle_control(update_args_heat, {'Duty Cycle': 0.5, 'ER Duty Cycle': 0.5})
-        self.assertEqual(mode, 'HP and ER On')
 
     def test_update_internal_control(self):
         mode = self.hvac.update_internal_control(update_args_heat)

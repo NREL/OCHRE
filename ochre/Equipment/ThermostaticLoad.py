@@ -60,7 +60,8 @@ class ThermostaticLoad(Equipment):
         self.force_off = False
 
         # Thermal model parameters
-        self.delivered_heat = 0  # heat delivered to the model, in W
+        self.capacity = 0  # heat output from main element, in W
+        self.delivered_heat = 0  # total heat delivered to the model, in W
 
     def parse_control_signal(self, control_signal):
         # Options for external control signals:
@@ -72,10 +73,6 @@ class ThermostaticLoad(Equipment):
         # - Max Power: Updates maximum allowed power (in kW)
         #   - Note: Max Power will only be reset if it is in the schedule
         #   - Note: Will not work for HPWH in HP mode
-        # - Duty Cycle: Forces WH on for fraction of external time step (as fraction [0,1])
-        #   - If 0 < Duty Cycle < 1, the equipment will cycle once every 2 external time steps
-        #   - For HPWH: Can supply HP and ER duty cycles
-        #   - Note: does not use clock on/off time
 
         ext_setpoint = control_signal.get("Setpoint")
         if ext_setpoint is not None:
@@ -105,33 +102,6 @@ class ThermostaticLoad(Equipment):
             self.current_schedule[f"{self.end_use} Max Power (kW)"] = 0
         elif load_fraction != 1:
             raise OCHREException(f"{self.name} can't handle non-integer load fractions")
-
-        if 'Duty Cycle' in control_signal:
-            # Parse duty cycles into list for each mode
-            duty_cycles = control_signal.get('Duty Cycle')
-            if isinstance(duty_cycles, (int, float)):
-                duty_cycles = [duty_cycles]
-            if not isinstance(duty_cycles, list) or not (0 <= sum(duty_cycles) <= 1):
-                raise OCHREException('Error parsing {} duty cycle control: {}'.format(self.name, duty_cycles))
-
-            self.run_duty_cycle_control(duty_cycles)
-
-    def run_duty_cycle_control(self, duty_cycles):
-        if self.use_ideal_mode:
-            # Set capacity directly from duty cycle
-            self.update_duty_cycles(*duty_cycles)
-            return [mode for mode, duty_cycle in self.duty_cycle_by_mode.items() if duty_cycle > 0][0]
-
-        else:
-            # Use internal mode if available, otherwise use mode with highest priority
-            mode_priority = self.calculate_mode_priority(*duty_cycles)
-            internal_mode = self.update_internal_control()
-            if internal_mode is None:
-                internal_mode = self.mode
-            if internal_mode in mode_priority:
-                return internal_mode
-            else:
-                return mode_priority[0]  # take highest priority mode (usually current mode)
 
     def update_setpoint(self):
         # get setpoint from schedule
@@ -166,9 +136,8 @@ class ThermostaticLoad(Equipment):
         h_desired = np.dot(set_states[:self.t_lower_idx + 1] - off_states[:self.t_lower_idx + 1],  # in W
                            self.thermal_model.capacitances[:self.t_lower_idx + 1]) / self.time_res.total_seconds()
 
-        # Convert to duty cycle, maintain min/max bounds
-        duty_cycle = min(max(h_desired / self.capacity_rated, 0), 1)
-        self.duty_cycle_by_mode = {'On': duty_cycle, 'Off': 1 - duty_cycle}
+        # return ideal capacity, maintain min/max bounds
+        return min(max(h_desired, 0), self.capacity_rated)
 
     def run_thermostat_control(self):
         # use thermostat with deadband control
@@ -196,15 +165,11 @@ class ThermostaticLoad(Equipment):
                                                        solve_as_output=False)
 
                 # Only allow heating, convert to duty cycle
-                h_desired = min(max(h_desired, 0), self.capacity_rated)
-                duty_cycle = h_desired / self.capacity_rated
-                self.duty_cycle_by_mode = {mode: 0 for mode in self.modes}
-                self.duty_cycle_by_mode[self.modes[0]] = duty_cycle
-                self.duty_cycle_by_mode['Off'] = 1 - duty_cycle
+                self.capacity = min(max(h_desired, 0), self.capacity_rated)
             else:
-                self.solve_ideal_capacity()
+                self.capacity = self.solve_ideal_capacity()
 
-            return [mode for mode, duty_cycle in self.duty_cycle_by_mode.items() if duty_cycle > 0][0]
+            return "On" if self.capacity > 0 else "Off"
         else:
             return self.run_thermostat_control()
 

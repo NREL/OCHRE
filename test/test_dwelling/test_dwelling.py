@@ -182,14 +182,6 @@ class DwellingWithEquipmentTestCase(unittest.TestCase):
         for e in self.dwelling.equipment:
             self.assertEquals(e.current_time, self.dwelling.current_time)
 
-    def test_update_external(self):
-        control = {'HVAC Heating': {'Duty Cycle': 0.3}, 'Load Fractions': {'Lighting': 0, 'Exterior Lighting': 0}}
-        results = self.dwelling.update(control_signal=control)
-        self.assertEqual(results['HVAC Heating Mode'], 'HP On')
-        self.assertAlmostEqual(results['Total Electric Power (kW)'], 12, places=0)
-        self.assertAlmostEqual(results['Total Reactive Power (kVAR)'], 0.3, places=1)
-        self.assertEqual(results['Lighting Electric Power (kW)'], 0)
-
     def test_simulate(self):
         t0 = time.time()
         df, metrics, hourly = self.dwelling.simulate()

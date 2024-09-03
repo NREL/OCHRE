@@ -210,10 +210,7 @@ class HVAC(ThermostaticLoad):
         #   - Resets every time step
         # - Max Capacity Fraction: Limits HVAC max capacity, ideal capacity only
         #   - Only resets if it is in the schedule
-        # - Duty Cycle: Forces HVAC on for fraction of external time step (as fraction [0,1]), non-ideal capacity only
-        #   - If 0 < Duty Cycle < 1, the equipment will cycle once every 2 external time steps
-        #   - For ASHP: Can supply HP and ER duty cycles
-        #   - Note: does not use clock on/off time
+        # TODO: remove duty cycle, ext_time_res, ext_ignore_thermostat
 
         ext_setpoint = control_signal.get('Setpoint')
         if ext_setpoint is not None:
@@ -231,7 +228,7 @@ class HVAC(ThermostaticLoad):
             if not self.use_ideal_mode:
                 raise IOError(
                     f"Cannot set {self.name} Max Capacity Fraction. "
-                    'Set `use_ideal_mode` to True or control "Duty Cycle".'
+                    'Set `use_ideal_mode` to True.'
                 )
             if f"{self.end_use} Max Capacity Fraction (-)" in self.current_schedule:
                 self.current_schedule[f"{self.end_use} Max Capacity Fraction (-)"] = capacity_frac
@@ -243,7 +240,7 @@ class HVAC(ThermostaticLoad):
             if not self.use_ideal_mode:
                 raise IOError(
                     f"Cannot set {self.name} Capacity. "
-                    'Set `use_ideal_mode` to True or control "Duty Cycle".'
+                    'Set `use_ideal_mode` to True.'
                 )
             if f"{self.end_use} Capacity (W)" in self.current_schedule:
                 self.current_schedule[f"{self.end_use} Capacity (W)"] = capacity
@@ -257,47 +254,7 @@ class HVAC(ThermostaticLoad):
         elif load_fraction != 1:
             raise OCHREException(f"{self.name} can't handle non-integer load fractions")
 
-        if any(['Duty Cycle' in key for key in control_signal]):
-            if self.use_ideal_mode:
-                raise IOError(
-                    f"Cannot set {self.name} Duty Cycle. "
-                    'Set `use_ideal_mode` to False or use "Capacity" control.'
-                )
-            duty_cycles = self.parse_duty_cycles(control_signal)
-            return self.run_duty_cycle_control(duty_cycles)
-
         return self.update_internal_control()
-
-    def parse_duty_cycles(self, control_signal):
-        return control_signal.get('Duty Cycle', 0)
-    
-    def run_duty_cycle_control(self, duty_cycles):
-        if duty_cycles == 0:
-            self.speed_idx = 0
-            return 'Off'
-        if duty_cycles == 1:
-            self.speed_idx = self.n_speeds  # max speed
-            return 'On'
-
-        # Parse duty cycles
-        if isinstance(duty_cycles, (int, float)):
-            duty_cycles = [duty_cycles]
-        assert 0 <= sum(duty_cycles) <= 1
-
-        # Set mode based on duty cycle from external controller
-        mode_priority = self.calculate_mode_priority(*duty_cycles)
-        self.update_setpoint()
-        thermostat_mode = self.run_thermostat_control()
-        thermostat_mode = thermostat_mode if thermostat_mode is not None else self.mode
-
-        # take thermostat mode if it exists in priority stack, or take highest priority mode (usually current mode)
-        mode = thermostat_mode if (thermostat_mode in mode_priority and
-                                    not self.ext_ignore_thermostat) else mode_priority[0]
-
-        # by default, turn on to max speed
-        self.speed_idx = self.n_speeds if 'On' in mode else 0
-
-        return mode
 
     def update_internal_control(self):
         # Update setpoint from schedule
@@ -1045,11 +1002,6 @@ class ASHPHeater(HeatPumpHeater):
     optional_inputs = Heater.optional_inputs + [
         "HVAC Heating ER Capacity (W)",
         "HVAC Heating Max ER Capacity Fraction (-)",
-        "HVAC Heating ER Duty Cycle (-)",
-        # - Max ER Capacity Fraction: Limits ER max capacity, ideal capacity only
-        #   - Recommended to set to 0 to disable ER element
-        #   - For now, does not get reset
-        # - ER Duty Cycle: Combines with "Duty Cycle" control, see HVAC.parse_control_signal
     ]
 
     def __init__(self, **kwargs):
@@ -1078,14 +1030,14 @@ class ASHPHeater(HeatPumpHeater):
         #   - Resets every time step
         # - Max ER Capacity Fraction: Limits ER max capacity, ideal capacity only
         #   - Recommended to set to 0 to disable ER element
-        # - ER Duty Cycle: Combines with "Duty Cycle" control, see HVAC.parse_control_signal
+        #   - Only resets if in the schedule
 
         capacity_frac = control_signal.get("Max ER Capacity Fraction")
         if capacity_frac is not None:
             if not self.use_ideal_mode:
                 raise IOError(
                     f"Cannot set {self.name} Max ER Capacity Fraction. "
-                    'Set `use_ideal_mode` to True or control "ER Duty Cycle".'
+                    'Set `use_ideal_mode` to True.'
                 )
             if f"{self.end_use} Max ER Capacity Fraction (-)" in self.current_schedule:
                 self.current_schedule[f"{self.end_use} Max ER Capacity Fraction (-)"] = capacity_frac
@@ -1097,7 +1049,7 @@ class ASHPHeater(HeatPumpHeater):
             if not self.use_ideal_mode:
                 raise IOError(
                     f"Cannot set {self.name} ER Capacity. "
-                    'Set `use_ideal_mode` to True or control "ER Duty Cycle".'
+                    'Set `use_ideal_mode` to True.'
                 )
             if f"{self.end_use} Capacity (W)" in self.current_schedule:
                 self.current_schedule[f"{self.end_use} Capacity (W)"] = capacity
@@ -1105,20 +1057,6 @@ class ASHPHeater(HeatPumpHeater):
                 self.er_ext_capacity = capacity
         
         return super().parse_control_signal(control_signal)
-
-    def parse_duty_cycles(self, control_signal):
-        # If duty cycles exist, combine duty cycles for HP and ER modes
-        er_duty_cycle = control_signal.get('ER Duty Cycle', 0)
-        hp_duty_cycle = control_signal.get('Duty Cycle', 0)
-        if er_duty_cycle + hp_duty_cycle > 1:
-            combo_duty_cycle = 1 - er_duty_cycle - hp_duty_cycle
-            er_duty_cycle -= combo_duty_cycle
-            hp_duty_cycle -= combo_duty_cycle
-            duty_cycles = [hp_duty_cycle, combo_duty_cycle, er_duty_cycle, 0]
-        else:
-            duty_cycles = [hp_duty_cycle, 0, er_duty_cycle, 1 - er_duty_cycle - hp_duty_cycle]
-        assert sum(duty_cycles) == 1
-        return duty_cycles
 
     def update_internal_control(self):
         if self.use_ideal_mode:

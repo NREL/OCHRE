@@ -85,10 +85,6 @@ class WaterHeater(ThermostaticLoad):
         # - Max Power: Updates maximum allowed power (in kW)
         #   - Note: Max Power will only be reset if it is in the schedule
         #   - Note: Will not work for HPWH in HP mode
-        # - Duty Cycle: Forces WH on for fraction of external time step (as fraction [0,1])
-        #   - If 0 < Duty Cycle < 1, the equipment will cycle once every 2 external time steps
-        #   - For HPWH: Can supply HP and ER duty cycles
-        #   - Note: does not use clock on/off time
 
         ext_setpoint = control_signal.get("Setpoint")
         if ext_setpoint is not None:
@@ -118,43 +114,6 @@ class WaterHeater(ThermostaticLoad):
             return "Off"
         elif load_fraction != 1:
             raise OCHREException(f"{self.name} can't handle non-integer load fractions")
-
-        if 'Duty Cycle' in control_signal:
-            # Parse duty cycles into list for each mode
-            duty_cycles = control_signal.get('Duty Cycle')
-            if isinstance(duty_cycles, (int, float)):
-                duty_cycles = [duty_cycles]
-            if not isinstance(duty_cycles, list) or not (0 <= sum(duty_cycles) <= 1):
-                raise OCHREException('Error parsing {} duty cycle control: {}'.format(self.name, duty_cycles))
-
-            return self.run_duty_cycle_control(duty_cycles)
-        else:
-            return self.update_internal_control()
-
-    def run_duty_cycle_control(self, duty_cycles):
-        # Force off if temperature exceeds maximum, and print warning
-        t_tank = self.model.states[self.t_upper_idx]
-        if t_tank > self.temp_max:
-            self.warn(
-                f"Temperature over maximum temperature ({self.temp_max}C), forcing off"
-            )
-            return "Off"
-
-        if self.use_ideal_mode:
-            # Set capacity directly from duty cycle
-            self.update_duty_cycles(*duty_cycles)
-            return [mode for mode, duty_cycle in self.duty_cycle_by_mode.items() if duty_cycle > 0][0]
-
-        else:
-            # Use internal mode if available, otherwise use mode with highest priority
-            mode_priority = self.calculate_mode_priority(*duty_cycles)
-            internal_mode = self.update_internal_control()
-            if internal_mode is None:
-                internal_mode = self.mode
-            if internal_mode in mode_priority:
-                return internal_mode
-            else:
-                return mode_priority[0]  # take highest priority mode (usually current mode)
 
     def update_setpoint(self):
         # get setpoint from schedule
@@ -471,16 +430,6 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
             schedule_inputs['Zone Wet Bulb Temperature (C)'] = schedule_inputs[f'{self.zone_name} Wet Bulb Temperature (C)']
 
         super().update_inputs(schedule_inputs)
-
-    def parse_control_signal(self, control_signal):
-        if any([dc in control_signal for dc in ['HP Duty Cycle', 'ER Duty Cycle']]):
-            # Add HP duty cycle to ERWH control
-            duty_cycles = [control_signal.get('HP Duty Cycle', 0),
-                           control_signal.get('ER Duty Cycle', 0) if not self.hp_only_mode else 0]
-            # TODO: update schedule, not control signal
-            control_signal['Duty Cycle'] = duty_cycles
-
-        return super().parse_control_signal(control_signal)
 
     def solve_ideal_capacity(self):
         # calculate ideal capacity based on future thermostat control

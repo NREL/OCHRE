@@ -112,39 +112,6 @@ class EquipmentTestCase(unittest.TestCase):
         results = self.equipment.generate_results(9)
         self.assertDictEqual(results, {'Test Equipment Mode': 'On'})
 
-    def test_calculate_mode_priority(self):
-        self.assertDictEqual(self.equipment.ext_mode_counters, {mode: dt.timedelta(0) for mode in self.equipment.modes})
-        self.equipment.current_time += dt.timedelta(minutes=1)
-
-        duty_cycle = 1 / 2
-        self.equipment.mode = 'Off'
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['Off', 'On'])
-
-        self.equipment.mode = 'On'
-        self.equipment.ext_mode_counters['On'] = dt.timedelta(minutes=7)
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['On', 'Off'])
-
-        self.equipment.ext_mode_counters['On'] = dt.timedelta(minutes=8)
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['Off'])
-
-        duty_cycle = 1 / 5
-        self.equipment.mode = 'On'
-        self.equipment.ext_mode_counters['On'] = dt.timedelta(minutes=2)
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['On', 'Off'])
-
-        self.equipment.ext_mode_counters['On'] = dt.timedelta(minutes=3)
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['Off'])
-
-        duty_cycle = 1
-        self.equipment.mode = 'Off'
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['On'])
-
     def test_run_zip(self):
         pf_multiplier = 0.48432210483785254
         self.equipment.electric_kw = 2

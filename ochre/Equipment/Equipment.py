@@ -77,8 +77,6 @@ class Equipment(Simulator):
 
         self.ext_time_res = ext_time_res
         self.ext_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
-        self.duty_cycle_by_mode = {mode: 0 for mode in self.modes}  # fraction of time per mode, should sum to 1
-        self.duty_cycle_by_mode['Off'] = 1
 
     def initialize_parameters(self, parameter_file=None, name_col='Name', value_col='Value', **kwargs):
         if parameter_file is None:
@@ -94,51 +92,6 @@ class Equipment(Simulator):
             # update parameters from kwargs (overrides the parameters file values)
             parameters.update({key: val for key, val in kwargs.items() if key in parameters})
             return parameters
-
-    def update_duty_cycles(self, *duty_cycles):
-        duty_cycles = list(duty_cycles)
-        if len(duty_cycles) == len(self.modes) - 1:
-            duty_cycles.append(1 - sum(duty_cycles))
-        if len(duty_cycles) != len(self.modes):
-            raise OCHREException('Error parsing duty cycles. Expected a list of length equal or 1 less than ' +
-                                     'the number of modes ({}): {}'.format(len(self.modes), duty_cycles))
-
-        self.duty_cycle_by_mode = dict(zip(self.modes, duty_cycles))
-
-    def calculate_mode_priority(self, *duty_cycles):
-        """
-        Calculates the mode priority based on duty cycles from external controller. Always prioritizes current mode
-        first. Other modes are prioritized based on the order of Equipment.modes. Excludes modes that have already
-        "used up" their time in the external control cycle.
-        :param duty_cycles: iterable of duty cycles from external controller, as decimals. Order should follow the order
-        of Equipment.modes. Length of list must be equal to or 1 less than the number of modes. If length is 1 less, the
-        final mode duty cycle is equal to 1 - sum(duty_cycles).
-        :return: list of mode names in order of priority
-        """
-        if self.ext_time_res is None:
-            raise OCHREException('External control time resolution is not defined for {}.'.format(self.name))
-        if duty_cycles:
-            self.update_duty_cycles(*duty_cycles)
-
-        if (self.current_time - self.start_time) % self.ext_time_res == 0 or \
-                sum(self.ext_mode_counters.values(), dt.timedelta(0)) >= self.ext_time_res:
-            # reset mode counters
-            self.ext_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
-
-        modes_with_time = [mode for mode in self.modes
-                           if self.ext_mode_counters[mode] / self.ext_time_res < self.duty_cycle_by_mode[mode]]
-
-        # move previous mode to top of priority list
-        if self.mode in modes_with_time and modes_with_time[0] != self.mode:
-            modes_with_time.pop(modes_with_time.index(self.mode))
-            modes_with_time = [self.mode] + modes_with_time
-
-        if not len(modes_with_time):
-            self.warn('No available modes, keeping the current mode. '
-                      'Duty cycles: {}; Time per mode: {}'.format(duty_cycles, self.ext_mode_counters))
-            modes_with_time.append(self.mode)
-
-        return modes_with_time
 
     def parse_control_signal(self, control_signal):
         # Overwrite if external control might exist
