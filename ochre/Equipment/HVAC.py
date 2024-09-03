@@ -200,26 +200,11 @@ class HVAC(ThermostaticLoad):
 
     def parse_control_signal(self, control_signal):
         # Options for external control signals:
-        # - Load Fraction: 1 (no effect) or 0 (forces HVAC off)
-        # - Setpoint: Updates heating (cooling) setpoint temperature from the dwelling schedule (in C)
-        #   - Note: Setpoint must be provided every timestep or it will revert back to the dwelling schedule
-        # - Deadband: Updates heating (cooling) deadband temperature (in C)
-        #   - Only resets if it is in the schedule
         # - Capacity: Sets HVAC capacity directly, ideal capacity only
         #   - Resets every time step
         # - Max Capacity Fraction: Limits HVAC max capacity, ideal capacity only
         #   - Only resets if it is in the schedule
-
-        ext_setpoint = control_signal.get('Setpoint')
-        if ext_setpoint is not None:
-            self.current_schedule[f'{self.end_use} Setpoint (C)'] = ext_setpoint
-
-        ext_db = control_signal.get('Deadband')
-        if ext_db is not None:
-            if f'{self.end_use} Deadband (C)' in self.current_schedule:
-                self.current_schedule[f'{self.end_use} Deadband (C)'] = ext_db
-            else:
-                self.temp_deadband = ext_db
+        # - Other signals, see ThermostaticLoad.parse_control_signal
 
         capacity_frac = control_signal.get('Max Capacity Fraction')
         if capacity_frac is not None:
@@ -245,14 +230,7 @@ class HVAC(ThermostaticLoad):
             else:
                 self.ext_capacity = capacity
 
-        # If load fraction = 0, force off
-        load_fraction = control_signal.get("Load Fraction", 1)
-        if load_fraction == 0:
-            self.ext_capacity = 0
-        elif load_fraction != 1:
-            raise OCHREException(f"{self.name} can't handle non-integer load fractions")
-
-        return self.run_internal_control()
+        super().parse_control_signal(control_signal)
 
     def run_internal_control(self):
         # Update setpoint from schedule
@@ -270,18 +248,7 @@ class HVAC(ThermostaticLoad):
             return self.run_thermostat_control()
 
     def update_setpoint(self):
-        t_set = self.current_schedule[f'{self.end_use} Setpoint (C)']
-        if f'{self.end_use} Deadband (C)' in self.current_schedule:
-            self.temp_deadband = self.current_schedule[f'{self.end_use} Deadband (C)']
-
-        # updates setpoint with ramp rate constraints
-        # TODO: create temp_setpoint_old and update in update_results. 
-        # Could get run multiple times per time step in update_model
-        if self.setpoint_ramp_rate is not None:
-            delta_t = self.setpoint_ramp_rate * self.time_res.total_seconds() / 60  # in C
-            self.temp_setpoint = min(max(t_set, self.temp_setpoint - delta_t), self.temp_setpoint + delta_t)
-        else:
-            self.temp_setpoint = t_set
+        super().update_setpoint()
 
         # set envelope comfort limits
         if self.is_heater:

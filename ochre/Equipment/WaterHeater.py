@@ -62,7 +62,6 @@ class WaterHeater(ThermostaticLoad):
         # Control parameters
         # note: bottom of deadband is (setpoint_temp - deadband_temp)
         self.temp_setpoint = kwargs['Setpoint Temperature (C)']
-        self.temp_setpoint_ext = None
         self.temp_max = kwargs.get('Max Tank Temperature (C)', convert(140, 'degF', 'degC'))
         self.setpoint_ramp_rate = kwargs.get('Max Setpoint Ramp Rate (C/min)')  # max setpoint ramp rate, in C/min
         self.temp_deadband = kwargs.get('Deadband Temperature (C)', 5.56)  # deadband range, in delta degC, i.e. Kelvin
@@ -74,73 +73,6 @@ class WaterHeater(ThermostaticLoad):
             schedule_inputs['Zone Temperature (C)'] = schedule_inputs[f'{self.zone_name} Temperature (C)']
     
         super().update_inputs(schedule_inputs)
-
-    def parse_control_signal(self, control_signal):
-        # Options for external control signals:
-        # - Load Fraction: 1 (no effect) or 0 (forces WH off)
-        # - Setpoint: Updates setpoint temperature from the default (in C)
-        #   - Note: Setpoint will only reset back to default value when {'Setpoint': None} is passed.
-        # - Deadband: Updates deadband temperature (in C)
-        #   - Note: Deadband will only be reset if it is in the schedule
-        # - Max Power: Updates maximum allowed power (in kW)
-        #   - Note: Max Power will only be reset if it is in the schedule
-        #   - Note: Will not work for HPWH in HP mode
-
-        ext_setpoint = control_signal.get("Setpoint")
-        if ext_setpoint is not None:
-            if "Water Heating Setpoint (C)" in self.current_schedule:
-                self.current_schedule["Water Heating Setpoint (C)"] = ext_setpoint
-            else:
-                # Note that this overrides the ramp rate
-                self.temp_setpoint = ext_setpoint
-
-        ext_db = control_signal.get("Deadband")
-        if ext_db is not None:
-            if "Water Heating Deadband (C)" in self.current_schedule:
-                self.current_schedule["Water Heating Deadband (C)"] = ext_db
-            else:
-                self.temp_deadband = ext_db
-
-        max_power = control_signal.get("Max Power")
-        if max_power is not None:
-            if "Water Heating Max Power (kW)" in self.current_schedule:
-                self.current_schedule["Water Heating Max Power (kW)"] = max_power
-            else:
-                self.max_power = max_power
-
-        # If load fraction = 0, force off
-        load_fraction = control_signal.get("Load Fraction", 1)
-        if load_fraction == 0:
-            return "Off"
-        elif load_fraction != 1:
-            raise OCHREException(f"{self.name} can't handle non-integer load fractions")
-
-    def update_setpoint(self):
-        # get setpoint from schedule
-        if "Water Heating Setpoint (C)" in self.current_schedule:
-            t_set_new = self.current_schedule["Water Heating Setpoint (C)"]
-        else:
-            t_set_new = self.temp_setpoint
-        if t_set_new > self.temp_max:
-            self.warn(
-                f"Setpoint cannot exceed {self.temp_max}C. Setting setpoint to maximum value."
-            )
-            t_set_new = self.temp_max
-
-        # update setpoint with ramp rate
-        if self.setpoint_ramp_rate and self.temp_setpoint != t_set_new:
-            delta_t = self.setpoint_ramp_rate * self.time_res.total_seconds() / 60  # in C
-            self.temp_setpoint = min(max(t_set_new, self.temp_setpoint - delta_t),
-                                     self.temp_setpoint + delta_t,
-            )
-        else:
-            self.temp_setpoint = t_set_new
-        
-        # get other controls from schedule - deadband and max power
-        if "Water Heating Deadband (C)" in self.current_schedule:
-            self.temp_deadband = self.current_schedule["Water Heating Deadband (C)"]
-        if "Water Heating Max Power (kW)" in self.current_schedule:
-            self.max_power = self.current_schedule["Water Heating Max Power (kW)"]
 
     def solve_ideal_capacity(self):
         # calculate ideal capacity based on achieving lower node setpoint temperature

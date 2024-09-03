@@ -130,6 +130,20 @@ class Equipment(Simulator):
             self.reactive_kvar = self.electric_kw * pf_mult * zip_p.dot(v_quadratic)
             self.electric_kw = self.electric_kw * zip_q.dot(v_quadratic)
 
+    def update_time_in_mode(self, mode):
+        if mode is None or mode == self.mode:
+            self.time_in_mode += self.time_res
+        else:
+            if mode not in self.modes:
+                raise OCHREException(
+                    "Can't set {} mode to {}. Valid modes are: {}".format(
+                        self.name, mode, self.modes
+                    )
+                )
+            self.mode = mode
+            self.time_in_mode = self.time_res
+            self.mode_cycles[self.mode] += 1
+
     def update_model(self, control_signal=None):
         # update equipment based on control signal
         if control_signal:
@@ -138,24 +152,16 @@ class Equipment(Simulator):
         # run equipment controller to determine mode
         mode = self.run_internal_control()
 
+        # Keep mode if minimum time in mode limit isn't reached
         if mode is not None and self.time_in_mode < self.min_time_in_mode[self.mode]:
-            # Don't change mode if minimum on/off time isn't met
             mode = self.mode
 
         # Get voltage, if disconnected then set mode to off
-        voltage = self.current_schedule.get('Voltage (-)', 1)
+        voltage = self.current_schedule.get("Voltage (-)", 1)
         if voltage == 0:
-            mode = 'Off'
+            mode = "Off"
 
-        if mode is None or mode == self.mode:
-            self.time_in_mode += self.time_res
-        else:
-            if mode not in self.modes:
-                raise OCHREException(
-                    "Can't set {} mode to {}. Valid modes are: {}".format(self.name, mode, self.modes))
-            self.mode = mode
-            self.time_in_mode = self.time_res
-            self.mode_cycles[self.mode] += 1
+        self.update_time_in_mode(mode)
 
         # calculate electric and gas power and heat gains
         heat_data = self.calculate_power_and_heat()
