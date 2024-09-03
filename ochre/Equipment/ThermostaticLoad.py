@@ -52,8 +52,8 @@ class ThermostaticLoad(Equipment):
         self.temp_setpoint_old = self.temp_setpoint
         self.setpoint_ramp_rate = kwargs.get('Max Setpoint Ramp Rate (C/min)')  # max setpoint ramp rate, in C/min
         self.temp_deadband_range = kwargs.get('Deadband Temperature (C)', 5.56)  # deadband range, in delta degC, i.e. Kelvin
-        self.temp_deadband_low = None
-        self.temp_deadband_high = None
+        self.temp_deadband_on = None
+        self.temp_deadband_off = None
         self.set_deadband_limits()
 
         # Other control parameters
@@ -65,8 +65,8 @@ class ThermostaticLoad(Equipment):
         self.delivered_heat = 0  # total heat delivered to the model, in W
 
     def set_deadband_limits(self):
-        self.temp_deadband_high = self.temp_setpoint + (1 - self.setpoint_deadband_position) * self.temp_deadband_range * self.heat_mult
-        self.temp_deadband_low = self.temp_setpoint - self.setpoint_deadband_position * self.temp_deadband_range * self.heat_mult
+        self.temp_deadband_off = self.temp_setpoint + (1 - self.setpoint_deadband_position) * self.temp_deadband_range * self.heat_mult
+        self.temp_deadband_on = self.temp_setpoint - self.setpoint_deadband_position * self.temp_deadband_range * self.heat_mult
 
     def parse_control_signal(self, control_signal):
         # Options for external control signals:
@@ -131,24 +131,29 @@ class ThermostaticLoad(Equipment):
             self.max_power = self.current_schedule[f"{self.end_use} Max Power (kW)"]
 
     def solve_ideal_capacity(self):
-        # This may not be necessary
-        raise NotImplementedError()
+        # Solve thermal model for input heat injection to achieve setpoint
+        capacity = self.thermal_model.solve_for_input(
+            self.t_control_idx,
+            self.h_control_idx,
+            self.temp_setpoint,
+            solve_as_output=False,
+        )
+        return capacity
 
     def update_capacity(self):
-        raise NotImplementedError()
+        return self.solve_ideal_capacity()
 
     def run_thermostat_control(self):
         # use thermostat with deadband control
-        if self.thermal_model.n_nodes <= 2:
-            t_lower = self.thermal_model.states[self.t_lower_idx]
-        else:
-            # take average of lower node and node above
-            t_lower = (self.thermal_model.states[self.t_lower_idx] + self.thermal_model.states[self.t_lower_idx - 1]) / 2
+        t_control = self.thermal_model.states[self.t_control_idx]
 
-        if t_lower < self.temp_setpoint - self.temp_deadband_range:
-            return 'On'
-        if t_lower > self.temp_setpoint:
-            return 'Off'
+        if (t_control - self.temp_deadband_on) * self.heat_mult < 0:
+            return "On"
+        elif (t_control - self.temp_deadband_off) * self.heat_mult > 0:
+            return "Off"
+        else:
+            # maintains existing mode
+            return None
 
     def run_internal_control(self):
         # Update setpoint from schedule
