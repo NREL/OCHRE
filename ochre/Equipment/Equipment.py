@@ -11,21 +11,20 @@ class Equipment(Simulator):
     end_use = 'Other'
     is_electric = True
     is_gas = False
-    modes = ['On', 'Off']  # On and Off assumed as default modes
     zone_name = 'Indoor'
 
     def __init__(self, zone_name=None, envelope_model=None, save_ebm_results=False, **kwargs):
         """
-        Base class for all equipment in a dwelling.
-        All equipment must have:
-         - A set of modes (default is ['On', 'Off'])
+        Base class for all equipment in a dwelling. All equipment must have:
          - Fuel variables (by default, is_electric=True, is_gas=False)
-         - A control algorithm to determine the mode (run_internal_control)
+         - A control algorithm to turn on (run_internal_control)
          - A method to determine the power and heat outputs (calculate_power_and_heat)
+        
         Optional features for equipment include:
-         - A control algorithm to use for external control (parse_control_signal)
+         - Control parameters provided by an external control (parse_control_signal)
          - A ZIP model for voltage-dependent real and reactive power
          - A parameters file to get loaded as self.parameters
+        
         Equipment can use data from:
          - The dwelling schedule (or from a player file)
          - Any other information from the dwelling (passed through house_args)
@@ -63,18 +62,16 @@ class Equipment(Simulator):
         self.sensible_gain = 0  # in W
         self.latent_gain = 0  # in W
 
-        # Mode and controller parameters (assuming a duty cycle)
+        # On time and controller parameters
         # TODO: convert to self.on = bool
-        self.mode = 'Off'
-        self.time_in_mode = dt.timedelta(minutes=0)
-        # self.tot_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
-        self.mode_cycles = {mode: 0 for mode in self.modes}
+        self.on = 1  # fraction of time on (0-1)
+        self.time_on = dt.timedelta(minutes=0)  # time continuously on
+        self.time_off = dt.timedelta(minutes=0)  # time continuously off
+        self.cycles = 0
 
         # Minimum On/Off Times
-        on_time = kwargs.get(self.end_use + ' Minimum On Time', 0)
-        off_time = kwargs.get(self.end_use + ' Minimum Off Time', 0)
-        self.min_time_in_mode = {mode: dt.timedelta(minutes=on_time) for mode in self.modes}
-        self.min_time_in_mode['Off'] = dt.timedelta(minutes=off_time)
+        self.min_on_time = kwargs.get(self.end_use + ' Minimum On Time', 0)
+        self.min_off_time = kwargs.get(self.end_use + ' Minimum Off Time', 0)
 
     def initialize_parameters(self, parameter_file=None, name_col='Name', value_col='Value', **kwargs):
         if parameter_file is None:
@@ -96,11 +93,11 @@ class Equipment(Simulator):
         raise OCHREException('Must define external control algorithm for {}'.format(self.name))
 
     def run_internal_control(self):
-        # Returns the equipment mode; can return None if the mode doesn't change
-        # Overwrite if internal control exists
+        # Returns the equipment mode (0 or 1); can return None if the mode doesn't change
         raise NotImplementedError()
 
     def calculate_power_and_heat(self):
+        # Sets equipment power and thermal gains to zone
         raise NotImplementedError()
 
     def add_gains_to_zone(self):
@@ -130,18 +127,24 @@ class Equipment(Simulator):
             self.reactive_kvar = self.electric_kw * pf_mult * zip_p.dot(v_quadratic)
             self.electric_kw = self.electric_kw * zip_q.dot(v_quadratic)
 
-    def update_time_in_mode(self, mode):
-        if mode is None or mode == self.mode:
-            self.time_in_mode += self.time_res
+    def update_mode_times(self, on):
+        # returns on time fraction
+        if on:
+            self.time_on += self.time_res * on
+            if self.time_off:
+                self.time_off = dt.timedelta(minutes=0)
         else:
-            if mode not in self.modes:
+            self.time_on += self.time_res * on
+
+        else:
+            if on not in self.modes:
                 raise OCHREException(
                     "Can't set {} mode to {}. Valid modes are: {}".format(
-                        self.name, mode, self.modes
+                        self.name, on, self.modes
                     )
                 )
-            self.mode = mode
-            self.time_in_mode = self.time_res
+            self.mode = on
+            self.time_on = self.time_res
             self.mode_cycles[self.mode] += 1
 
     def update_model(self, control_signal=None):
@@ -149,19 +152,23 @@ class Equipment(Simulator):
         if control_signal:
             self.parse_control_signal(control_signal)
             
-        # run equipment controller to determine mode
-        mode = self.run_internal_control()
+        # run equipment controller to determine on/off control
+        on = self.run_internal_control()
 
-        # Keep mode if minimum time in mode limit isn't reached
-        if mode is not None and self.time_in_mode < self.min_time_in_mode[self.mode]:
-            mode = self.mode
+        # Keep existing on fraction if not defined or if minimum time limit isn't reached
+        if on is None:
+            on = self.on
+        elif not on and self.time_on < self.min_on_time:
+            on = self.on
+        elif on and self.time_off < self.min_off_time:
+            on = self.on
 
         # Get voltage, if disconnected then set mode to off
         voltage = self.current_schedule.get("Voltage (-)", 1)
         if voltage == 0:
-            mode = "Off"
+            on = 0
 
-        self.update_time_in_mode(mode)
+        self.on = self.update_mode_times(on)
 
         # calculate electric and gas power and heat gains
         heat_data = self.calculate_power_and_heat()
@@ -230,6 +237,6 @@ class Equipment(Simulator):
         if mode is not None:
             self.mode = mode
 
-        self.time_in_mode = dt.timedelta(minutes=0)
+        self.time_on = dt.timedelta(minutes=0)
         self.mode_cycles = {mode: 0 for mode in self.modes}
         # self.tot_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}

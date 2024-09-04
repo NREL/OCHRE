@@ -59,7 +59,7 @@ class EquipmentTestCase(unittest.TestCase):
             self.equipment.update_model({})
         self.assertEqual(self.equipment.current_time, equip_init_args['start_time'] + equip_init_args['time_res'] * 3)
         self.assertEqual(self.equipment.mode, 'On')
-        self.assertEqual(self.equipment.time_in_mode, equip_init_args['time_res'] * 3)
+        self.assertEqual(self.equipment.time_on, equip_init_args['time_res'] * 3)
         self.assertDictEqual(self.equipment.mode_cycles, {'On': 1, 'Off': 0})
         self.assertEqual(self.equipment.electric_kw, 2)
 
@@ -69,24 +69,24 @@ class EquipmentTestCase(unittest.TestCase):
             self.equipment.update_model({})
         self.assertEqual(self.equipment.current_time, equip_init_args['start_time'] + equip_init_args['time_res'] * 8)
         self.assertEqual(self.equipment.mode, 'Off')
-        self.assertEqual(self.equipment.time_in_mode, equip_init_args['time_res'] * 3)
+        self.assertEqual(self.equipment.time_on, equip_init_args['time_res'] * 3)
         self.assertDictEqual(self.equipment.mode_cycles, {'On': 1, 'Off': 1})
         self.assertEqual(self.equipment.electric_kw, 0)
 
         # Test with minimum on/off times
         self.equipment.mode = 'On'
-        self.equipment.time_in_mode = dt.timedelta(minutes=0)
+        self.equipment.time_on = dt.timedelta(minutes=0)
         self.equipment.min_time_in_mode = {'On': dt.timedelta(minutes=2),
                                            'Off': dt.timedelta(minutes=2)}
 
         self.equipment.update(1, {}, {})
         self.assertEqual(self.equipment.mode, 'On')
-        self.assertEqual(self.equipment.time_in_mode, equip_init_args['time_res'])
+        self.assertEqual(self.equipment.time_on, equip_init_args['time_res'])
 
-        self.equipment.time_in_mode = dt.timedelta(minutes=2)
+        self.equipment.time_on = dt.timedelta(minutes=2)
         self.equipment.update(1, {}, {})
         self.assertEqual(self.equipment.mode, 'Off')
-        self.assertEqual(self.equipment.time_in_mode, equip_init_args['time_res'])
+        self.assertEqual(self.equipment.time_on, equip_init_args['time_res'])
 
     def test_simulate(self):
         results = self.equipment.simulate(duration=dt.timedelta(hours=1))
