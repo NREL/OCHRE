@@ -48,7 +48,7 @@ SCHEDULE_NAMES = {
     },
     "Water": {
         "hot_water_fixtures": "Water Fixtures",
-        # "hot_water_showers": "Showers",  # for unmet loads only
+        "hot_water_showers": "Showers",  # for unmet loads only
         "hot_water_clothes_washer": "Clothes Washer",
         "hot_water_dishwasher": "Dishwasher",
     },
