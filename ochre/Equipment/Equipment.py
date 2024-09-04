@@ -218,6 +218,9 @@ class Equipment(Simulator):
         if self.verbosity >= 6:
             results[f'{self.results_name} Mode'] = self.mode
 
+        if self.save_ebm_results:
+            results.update(self.make_equivalent_battery_model())
+
         return results
 
     def reset_time(self, start_time=None, mode=None, **kwargs):

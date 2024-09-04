@@ -116,15 +116,15 @@ class WaterHeater(ThermostaticLoad):
         else:
             return self.solve_ideal_capacity()
 
-    def add_heat_from_mode(self, mode, heats_to_tank=None, duty_cycle=1):
+    def add_heat_from_mode(self, mode, heats_to_tank=None, pct_time_on=1):
         if heats_to_tank is None:
             heats_to_tank = np.zeros(self.thermal_model.n_nodes, dtype=float)
 
         if mode == 'Upper On':
-            heats_to_tank[self.h_upper_idx] += self.capacity_rated * duty_cycle
+            heats_to_tank[self.h_upper_idx] += self.capacity_rated * pct_time_on
         elif mode in ['On', 'Lower On']:
             # Works for 'On' or 'Lower On', treated the same
-            heats_to_tank[self.h_lower_idx] += self.capacity_rated * duty_cycle
+            heats_to_tank[self.h_lower_idx] += self.capacity_rated * pct_time_on
 
         return heats_to_tank
 
@@ -177,8 +177,6 @@ class WaterHeater(ThermostaticLoad):
             results[f'{self.end_use} Deadband Upper Limit (C)'] = self.temp_setpoint
             results[f'{self.end_use} Deadband Lower Limit (C)'] = self.temp_setpoint - self.temp_deadband
 
-        if self.save_ebm_results:
-            results.update(self.make_equivalent_battery_model())
 
         return results
 
@@ -205,33 +203,6 @@ class WaterHeater(ThermostaticLoad):
 class ElectricResistanceWaterHeater(WaterHeater):
     name = 'Electric Resistance Water Heater'
     modes = ['Upper On', 'Lower On', 'Off']
-
-    def run_duty_cycle_control(self, duty_cycles):
-        if len(duty_cycles) == len(self.modes) - 2:
-            d_er_total = duty_cycles[-1]
-            if self.use_ideal_mode:
-                # determine optimal allocation of upper/lower elements
-                self.solve_ideal_capacity()
-
-                # keep upper duty cycle as is, update lower based on external control
-                d_upper = self.duty_cycle_by_mode['Upper On']
-                d_lower = d_er_total - d_upper
-                self.duty_cycle_by_mode['Lower On'] = d_lower
-                self.duty_cycle_by_mode['Off'] = 1 - d_er_total
-            else:
-                # copy duty cycle for Upper On and Lower On, and calculate Off duty cycle
-                duty_cycles.append(d_er_total)
-                duty_cycles.append(1 - sum(duty_cycles[:-1]))
-
-        mode = super().run_duty_cycle_control(duty_cycles)
-
-        if not self.use_ideal_mode:
-            # If duty cycle forces WH on, may need to swap to lower element
-            t_upper = self.thermal_model.states[self.t_upper_idx]
-            if mode == 'Upper On' and t_upper > self.temp_setpoint:
-                mode = 'Lower On'
-
-        return mode
 
     def solve_ideal_capacity(self):
         # calculate ideal capacity based on upper and lower node setpoint temperatures

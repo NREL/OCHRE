@@ -167,21 +167,3 @@ class ThermostaticLoad(Equipment):
         else:
             # Run thermostat controller and set speed
             return self.run_thermostat_control()
-
-    def generate_results(self):
-        results = super().generate_results()
-
-        # Note: using end use, not equipment name, for all results
-        if self.verbosity >= 3:
-            results[f'{self.end_use} Delivered (W)'] = self.delivered_heat
-        if self.verbosity >= 6:
-            cop = self.delivered_heat / (self.electric_kw * 1000) if self.electric_kw > 0 else 0
-            results[f'{self.end_use} COP (-)'] = cop
-            results[f'{self.end_use} Total Sensible Heat Gain (W)'] = self.sensible_gain
-            results[f'{self.end_use} Deadband Upper Limit (C)'] = self.temp_setpoint
-            results[f'{self.end_use} Deadband Lower Limit (C)'] = self.temp_setpoint - self.temp_deadband_range
-
-        if self.save_ebm_results:
-            results.update(self.make_equivalent_battery_model())
-
-        return results
