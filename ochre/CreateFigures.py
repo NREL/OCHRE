@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.cm as cm
 
-default_colors = cm.get_cmap('tab10').colors  # discrete color map with 10 colors
+default_colors = cm.tab10.colors  # discrete color map with 10 colors
 register_matplotlib_converters()
 locator = mdates.AutoDateLocator()
 formatter = mdates.ConciseDateFormatter(locator, show_offset=False)
@@ -64,7 +64,7 @@ def plot_daily_profile(df_raw, column, plot_average=True, plot_singles=True, plo
     fig, ax = plt.subplots()
 
     if plot_singles:
-        df_singles = pd.pivot(df, 'Time of Day', 'Date', column)
+        df_singles = pd.pivot(df, index="Time of Day", columns="Date", values=column)
         alpha = kwargs.pop('singles_alpha', 1 / len(df_singles.columns))
         for col in df_singles.columns:
             ax.plot(times, df_singles[col], 'k', alpha=alpha, label=None)

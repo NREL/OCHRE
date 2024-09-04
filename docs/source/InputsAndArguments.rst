@@ -485,6 +485,8 @@ optional equipment-specific arguments for EVs.
 +--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
 | ``capacity or mileage``  | number        | Yes       | 100 miles if HPXML Annual EV Energy < 1500 kWh, otherwise 250 miles | EV battery capacity in kWh or mileage in miles        |
 +--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
+| ``event_day_ratio``      | number        | No        | 0.2-0.9, depending on charging level and capacity                   | Ratio of days with at least 1 charging event          |
++--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
 | ``enable_part_load``     | boolean       | No        | True if charging_level = Level 2                                    | Allows EV to charge at partial load                   |
 +--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
 | ``ambient_ev_temp``      | number        | No        | Taken from schedule, or 20 C                                        | Ambient temperature used to estimate EV usage per day |

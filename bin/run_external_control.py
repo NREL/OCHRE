@@ -82,6 +82,37 @@ def run_constant_control_signal(control_signal=None):
     CreateFigures.plt.show()
 
 
+def run_with_cooptimization():
+    # Initialization
+    dwelling = Dwelling(name="OCHRE with Controller", **dwelling_args)
+
+    # Simulation
+    for t in dwelling.sim_times:
+        # set up simulation time step (only run once)
+        dwelling.update_inputs()
+
+        # simulate 1 time step with different controls
+        control_signal = {}
+        converged = False
+        while not converged:
+            # run model and get results without advancing time
+            dwelling.update_model(control_signal)
+            house_status = dwelling.generate_results()
+
+            # check house_status for convergence
+            if True:
+                converged = True
+            else:
+                # change control if necessary
+                control_signal = {}
+
+        # complete time step and get results
+        house_status = dwelling.update_results()
+    
+    # Finalize simulation
+    return dwelling.finalize()
+
+
 def get_hvac_controls(hour_of_day, occupancy, heating_setpoint, **unused_inputs):
     # Use some of the controller_inputs to determine setpoints (or other control signals)
     if 14 <= hour_of_day < 20:  # 2PM-8PM
