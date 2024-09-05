@@ -62,9 +62,9 @@ class Equipment(Simulator):
         self.sensible_gain = 0  # in W
         self.latent_gain = 0  # in W
 
-        # On time and controller parameters
-        # TODO: convert to self.on = bool
-        self.on = 1  # fraction of time on (0-1)
+        # Mode and controller parameters
+        self.on = 0  # fraction of time on (0-1)
+        self.on_new = 0  # fraction of time on (0-1)
         self.time_on = dt.timedelta(minutes=0)  # time continuously on
         self.time_off = dt.timedelta(minutes=0)  # time continuously off
         self.cycles = 0
@@ -127,48 +127,40 @@ class Equipment(Simulator):
             self.reactive_kvar = self.electric_kw * pf_mult * zip_p.dot(v_quadratic)
             self.electric_kw = self.electric_kw * zip_q.dot(v_quadratic)
 
-    def update_mode_times(self, on):
-        # returns on time fraction
-        if on:
-            self.time_on += self.time_res * on
-            if self.time_off:
+    def update_mode_times(self):
+        # updates mode times
+        if self.on_new:
+            self.time_on += self.time_res * self.on_new
+            if not self.on:
                 self.time_off = dt.timedelta(minutes=0)
+                # increase number of cycles if equipment was off and turns on
+                self.cycles += 1
         else:
-            self.time_on += self.time_res * on
+            self.time_off += self.time_res
+            if self.on:
+                self.time_on = dt.timedelta(minutes=0)
 
-        else:
-            if on not in self.modes:
-                raise OCHREException(
-                    "Can't set {} mode to {}. Valid modes are: {}".format(
-                        self.name, on, self.modes
-                    )
-                )
-            self.mode = on
-            self.time_on = self.time_res
-            self.mode_cycles[self.mode] += 1
 
     def update_model(self, control_signal=None):
         # update equipment based on control signal
         if control_signal:
             self.parse_control_signal(control_signal)
             
-        # run equipment controller to determine on/off control
-        on = self.run_internal_control()
+        # run equipment controller to determine on/off mode
+        self.on_new = self.run_internal_control()
 
         # Keep existing on fraction if not defined or if minimum time limit isn't reached
-        if on is None:
-            on = self.on
-        elif not on and self.time_on < self.min_on_time:
-            on = self.on
-        elif on and self.time_off < self.min_off_time:
-            on = self.on
+        if self.on_new is None:
+            self.on_new = self.on
+        elif not self.on_new and self.time_on < self.min_on_time:
+            self.on_new = self.on
+        elif self.on_new and self.time_off < self.min_off_time:
+            self.on_new = self.on
 
-        # Get voltage, if disconnected then set mode to off
+        # Get voltage, if disconnected then set to off
         voltage = self.current_schedule.get("Voltage (-)", 1)
         if voltage == 0:
-            on = 0
-
-        self.on = self.update_mode_times(on)
+            self.on_new = 0
 
         # calculate electric and gas power and heat gains
         heat_data = self.calculate_power_and_heat()
@@ -210,6 +202,12 @@ class Equipment(Simulator):
             # f'{self.results_name} EBM Discharge Efficiency (-)': 1,
         }
 
+    def update_results(self):
+        self.update_mode_times()
+        self.on = self.on_new
+
+        return super().update_results()
+    
     def generate_results(self):
         results = super().generate_results()
 
@@ -238,5 +236,4 @@ class Equipment(Simulator):
             self.mode = mode
 
         self.time_on = dt.timedelta(minutes=0)
-        self.mode_cycles = {mode: 0 for mode in self.modes}
         # self.tot_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
