@@ -116,7 +116,7 @@ class Generator(Equipment):
                 f"{self.end_use} Electric Power (kW)", 0
             )
 
-        return "On" if self.power_setpoint != 0 else "Off"
+        return 1 if self.power_setpoint != 0 else 0
 
     def get_power_limits(self):
         # Minimum (i.e. generating) output power limit based on capacity and ramp rate
@@ -172,7 +172,7 @@ class Generator(Equipment):
             )
 
     def calculate_power_and_heat(self):
-        if self.mode == "Off":
+        if not self.on:
             self.electric_kw = 0
         else:
             # force ac power within limits

@@ -185,7 +185,7 @@ class HVACTestCase(unittest.TestCase):
         results = self.hvac.generate_results(6)
         self.assertEqual(len(results), 9)
         self.assertAlmostEqual(results['HVAC Heating COP (-)'], 2.0)
-        self.assertEqual(results['HVAC Heating Mode'], 'On')
+        self.assertEqual(results["HVAC Heating On-Time Fraction (-)"], 1)
 
 
 class IdealHeaterTestCase(unittest.TestCase):

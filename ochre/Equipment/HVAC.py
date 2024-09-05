@@ -681,7 +681,7 @@ class DynamicHVAC(HVAC):
         prev_speed_idx = self.speed_idx
         if self.control_type == 'Time':
             # Time-based 2-speed HVAC control: High speed turns on if temp continues to drop (for heating)
-            if self.mode == 'Off':
+            if not self.on:
                 speed = 1
             elif self.hvac_mult * (self.zone.temperature - self.temp_indoor_prev) < 0:
                 speed = 2
@@ -689,7 +689,7 @@ class DynamicHVAC(HVAC):
                 speed = self.speed_idx
         # elif self.control_type == 'Time-old':
         #     # Time-based 2-speed HVAC control: High speed turns on if temp continues to drop (for heating)
-        #     if self.mode == 'Off':
+        #     if not self.on:
         #         speed_idx = 0
         #     elif self.hvac_mult * (self.zone.temperature - self.temp_indoor_prev) < 0:
         #         speed_idx = 1
@@ -706,7 +706,7 @@ class DynamicHVAC(HVAC):
                 speed = self.speed_idx
         elif self.control_type == 'Time2':
             # Old time-based 2-speed HVAC control
-            if self.mode == 'Off':
+            if not self.on:
                 speed = 1
             else:
                 speed = 2
@@ -857,7 +857,7 @@ class AirConditioner(DynamicHVAC, Cooler):
         # add crankcase power when AC is off and outdoor temp is below threshold
         # no impact on sensible heat for now
         if self.crankcase_kw:
-            if self.mode == 'Off' and self.current_schedule['Ambient Dry Bulb (C)'] < self.crankcase_temp:
+            if not self.on and self.current_schedule['Ambient Dry Bulb (C)'] < self.crankcase_temp:
                 self.electric_kw += self.crankcase_kw * self.space_fraction
 
 

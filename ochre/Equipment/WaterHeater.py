@@ -524,7 +524,7 @@ class TanklessWaterHeater(WaterHeater):
         if self.max_power and power > self.max_power:
             self.heat_from_draw *= self.max_power / power
 
-        if self.mode == 'Off':
+        if not self.on:
             # do not update heat, force water heater off
             self.delivered_heat = 0
         elif self.heat_from_draw > self.capacity_rated:
@@ -571,7 +571,7 @@ class GasTanklessWaterHeater(TanklessWaterHeater):
 
         # electric power is constant
         self.electric_kw = self.parasitic_power
-        # if self.mode == 'On':
+        # if self.on:
         #     self.electric_kw = 65 / 1000  # hardcoded parasitic electric power
         # else:
         #     self.electric_kw = 5 / 1000  # hardcoded electric power

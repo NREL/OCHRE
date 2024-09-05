@@ -104,7 +104,7 @@ class EVTestCase(unittest.TestCase):
     def test_run_internal_control(self):
         # test outside of event
         mode = self.ev.run_internal_control({})
-        self.assertEqual(mode, 'Off')
+        self.assertEqual(mode, 0)
         self.assertIsNone(self.ev.setpoint_power)
 
         # test event start
@@ -119,11 +119,11 @@ class EVTestCase(unittest.TestCase):
         self.ev.current_time = self.ev.event_end + dt.timedelta(minutes=2)
         self.ev.soc = 0.1
         mode = self.ev.run_internal_control({})
-        self.assertEqual(mode, 'Off')
+        self.assertEqual(mode, 0)
         self.assertGreater(self.ev.unmet_load, 0)
 
     def test_calculate_power_and_heat(self):
-        self.ev.mode = 'Off'
+        self.ev.mode = 0
         self.ev.calculate_power_and_heat({})
         self.assertEqual(self.ev.electric_kw, 0)
 
@@ -165,9 +165,9 @@ class EVTestCase(unittest.TestCase):
 
         self.assertEqual(results['EV SOC (-)'].max(), 1)
         self.assertEqual(results['EV SOC (-)'].min(), 0)
-        self.assertAlmostEqual((results['EV Mode'] == 'On').mean(), 0.28, places=2)
+        self.assertAlmostEqual((results["EV On-Time Fraction (-)"] == 1).mean(), 0.28, places=2)
 
-        self.assertDictEqual(self.ev.mode_cycles, {'On': 1, 'Off': 0})
+        self.assertDictEqual(self.ev.mode_cycles, {'On': 1, 0: 0})
 
 
 class ScheduledEVTestCase(unittest.TestCase):

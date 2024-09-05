@@ -278,7 +278,7 @@ class ElectricVehicle(EventBasedLoad):
 
     def calculate_power_and_heat(self):
         # Note: this is copied from the battery model, but they are not linked at all
-        if self.mode == 'Off':
+        if not self.on:
             return super().calculate_power_and_heat()
 
         # force ac power within kw capacity and SOC limits, no discharge allowed

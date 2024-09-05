@@ -42,28 +42,28 @@ class ScheduledLoadTestCase(unittest.TestCase):
 
     def test_parse_control_signal(self):
         mode = self.equipment.parse_control_signal({'plug_loads': 100}, {'Load Fraction': 1})
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.equipment.p_set_point, 0.1)
 
         mode = self.equipment.parse_control_signal({'plug_loads': 200}, {'Load Fraction': 0.5})
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.equipment.p_set_point, 0.2 * 0.5)
 
         mode = self.equipment.parse_control_signal({'plug_loads': 200}, {'Load Fraction': 0})
-        self.assertEqual(mode, 'Off')
+        self.assertEqual(mode, 0)
         self.assertAlmostEqual(self.equipment.p_set_point, 0)
 
     def test_run_internal_control(self):
         mode = self.equipment.run_internal_control({'plug_loads': 100})
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.equipment.p_set_point, 0.1)
 
         mode = self.equipment.run_internal_control({'plug_loads': 0})
-        self.assertEqual(mode, 'Off')
+        self.assertEqual(mode, 0)
         self.assertAlmostEqual(self.equipment.p_set_point, 0)
 
     def test_calculate_power_and_heat(self):
-        self.equipment.mode = 'On'
+        self.equipment.on = 'O1
         self.equipment.p_set_point = 2
         self.equipment.calculate_power_and_heat({})
         self.assertAlmostEqual(self.equipment.sensible_gain, 1000)
@@ -101,7 +101,7 @@ class ScheduleFileLoadTestCase(unittest.TestCase):
 
     def test_run_internal_control(self):
         mode = self.equipment.run_internal_control({})
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.equipment.p_set_point, 0.2)
 
 

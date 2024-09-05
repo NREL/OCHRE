@@ -165,9 +165,9 @@ class DwellingWithEquipmentTestCase(unittest.TestCase):
         self.assertAlmostEqual(results['Total Reactive Power (kVAR)'], 0.3, places=1)
         self.assertAlmostEqual(results['Lighting Electric Power (kW)'], 0.1, places=1)
         self.assertAlmostEqual(results['Temperature - Indoor (C)'], 22.2, places=1)
-        self.assertEqual(results['HVAC Heating Mode'], 'Off')
-        self.assertEqual(results['HVAC Cooling Mode'], 'On')
-        self.assertEqual(results['Water Heating Mode'], 'Upper On')
+        self.assertEqual(results["HVAC Heating On-Time Fraction (-)"], 0)
+        self.assertEqual(results["HVAC Cooling On-Time Fraction (-)"], 1)
+        self.assertEqual(results["Water Heating On-Time Fraction (-)"], 1)
         for e in self.dwelling.equipment:
             self.assertEquals(e.current_time, self.dwelling.current_time)
 
@@ -177,7 +177,7 @@ class DwellingWithEquipmentTestCase(unittest.TestCase):
         self.assertAlmostEqual(results['Total Reactive Power (kVAR)'], 0, places=2)
         self.assertAlmostEqual(results['Temperature - Indoor (C)'], 22.2, places=1)
         self.assertAlmostEqual(self.dwelling.envelope.indoor_zone.temperature, 23.1, places=1)
-        self.assertEqual(results['HVAC Cooling Mode'], 'Off')
+        self.assertEqual(results["HVAC Cooling On-Time Fraction (-)"], 0)
         for e in self.dwelling.equipment:
             self.assertEquals(e.current_time, self.dwelling.current_time)
 

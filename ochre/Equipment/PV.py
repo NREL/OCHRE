@@ -205,7 +205,7 @@ class PV(ScheduledLoad):
             self.p_set_point = max(self.p_set_point, p_set)  # min(abs(value)), both are negative
         self.q_set_point = self.current_schedule.get("PV Q Setpoint (kW)", 0)
 
-        return 'On' if self.p_set_point < 0 else 'Off'
+        return 1 if self.p_set_point < 0 else 0
 
     def calculate_power_and_heat(self):
         super().calculate_power_and_heat()

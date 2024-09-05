@@ -39,28 +39,28 @@ class PVTestCase(unittest.TestCase):
 
     def test_parse_control_signal(self):
         mode = self.pv.parse_control_signal({}, {'P Setpoint': -5, 'Q Setpoint': 1})
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.pv.p_set_point, -5)
         self.assertAlmostEqual(self.pv.q_set_point, 1)
 
         mode = self.pv.parse_control_signal({}, {'P Setpoint': -20, 'Q Setpoint': 1})
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.pv.p_set_point, -8.22, places=2)
         self.assertAlmostEqual(self.pv.q_set_point, 1)
 
         # test PV curtailment
         mode = self.pv.parse_control_signal({}, {'P Curtailment (kW)': 1})
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.pv.p_set_point, -7.25, places=2)
 
         # test PV curtailment
         mode = self.pv.parse_control_signal({}, {'P Curtailment (%)': 50})
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.pv.p_set_point, -4.13, places=2)
 
         # test power factor
         mode = self.pv.parse_control_signal({}, {'Power Factor': -0.95})
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.pv.p_set_point, -6.37, places=2)
         self.assertAlmostEqual(self.pv.q_set_point, 2.09, places=2)
 
@@ -70,7 +70,7 @@ class PVTestCase(unittest.TestCase):
 
     def test_run_internal_control(self):
         mode = self.pv.run_internal_control({})
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.pv.p_set_point, -8.16, places=2)
         self.assertAlmostEqual(self.pv.q_set_point, 0)
 
@@ -133,7 +133,7 @@ class ScheduledPVTestCase(unittest.TestCase):
 
     def test_run_internal_control(self):
         mode = self.pv.run_internal_control({})
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.pv.p_set_point, -2.01, places=2)
         self.assertAlmostEqual(self.pv.q_set_point, 0)
 

@@ -127,7 +127,7 @@ class WaterHeaterTestCase(unittest.TestCase):
 
         results = self.wh.generate_results(6)
         self.assertEqual(len(results), 16)
-        self.assertIn('Water Heating Mode', results)
+        self.assertIn('Water Heating On-Time Fraction (-)', results)
         self.assertIn('Hot Water Delivered (L/min)', results)
         self.assertIn('Water Heating COP (-)', results)
 
