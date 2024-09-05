@@ -221,19 +221,23 @@ class Equipment(Simulator):
                 results[f'{self.results_name} Gas Power (therms/hour)'] = self.gas_therms_per_hour
 
         if self.verbosity >= 6:
-            results[f'{self.results_name} Mode'] = self.mode
+            results[f'{self.results_name} On-Time Fraction (-)'] = self.on
 
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())
 
         return results
 
-    def reset_time(self, start_time=None, mode=None, **kwargs):
-        # TODO: option to remove equipment mode, set initial state
+    def reset_time(self, start_time=None, on_previous=False, **kwargs):
+        # TODO: option to set initial state
         super().reset_time(start_time=start_time, **kwargs)
 
-        if mode is not None:
-            self.mode = mode
+        # set previous mode, defaults to off
+        self.on = int(on_previous)
 
+        # reset mode times and cycles
+        if start_time is not None and start_time != self.start_time:
+            self.warn("Resetting mode times and number of cycles")
         self.time_on = dt.timedelta(minutes=0)
-        # self.tot_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
+        self.time_off = dt.timedelta(minutes=0)
+        self.cycles = 0
