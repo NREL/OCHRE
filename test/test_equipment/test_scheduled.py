@@ -63,7 +63,7 @@ class ScheduledLoadTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.equipment.p_set_point, 0)
 
     def test_calculate_power_and_heat(self):
-        self.equipment.on = 'O1
+        self.equipment.on_frac = 'O1
         self.equipment.p_set_point = 2
         self.equipment.calculate_power_and_heat({})
         self.assertAlmostEqual(self.equipment.sensible_gain, 1000)

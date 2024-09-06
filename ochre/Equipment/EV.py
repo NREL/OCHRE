@@ -274,11 +274,11 @@ class ElectricVehicle(EventBasedLoad):
         if "EV Max SOC (-)" in self.current_schedule:
             self.soc_max_ctrl = self.current_schedule["EV Max SOC (-)"]
 
-        return super().run_internal_control()
+        super().run_internal_control()
 
     def calculate_power_and_heat(self):
         # Note: this is copied from the battery model, but they are not linked at all
-        if not self.on:
+        if not self.on_frac_new:
             return super().calculate_power_and_heat()
 
         # force ac power within kw capacity and SOC limits, no discharge allowed

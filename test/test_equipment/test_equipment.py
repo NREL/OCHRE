@@ -18,12 +18,12 @@ class TestEquipment(Equipment):
     def run_internal_control(self):
         # Turns on for 5 minutes, then off for 5 minutes
         if self.current_time.minute % 10 >= 5:
-            return 0
+            self.on_frac_new = 0
         else:
-            return 1
+            self.on_frac_new = 1
 
     def calculate_power_and_heat(self):
-        if self.on:
+        if self.on_frac_new:
             self.electric_kw = min(self.current_time.minute, self.max_p)
         else:
             self.electric_kw = 0
@@ -57,7 +57,7 @@ class EquipmentTestCase(unittest.TestCase):
             self.equipment.update(1, {}, {})
             self.equipment.update_model({})
         self.assertEqual(self.equipment.current_time, equip_init_args['start_time'] + equip_init_args['time_res'] * 3)
-        self.assertEqual(self.equipment.on, 1)
+        self.assertEqual(self.equipment.on_frac, 1)
         self.assertEqual(self.equipment.time_on, equip_init_args['time_res'] * 3)
         self.assertEqual(self.equipment.electric_kw, 2)
 
@@ -71,13 +71,13 @@ class EquipmentTestCase(unittest.TestCase):
         self.assertEqual(self.equipment.electric_kw, 0)
 
         # Test with minimum on/off times
-        self.equipment.on = 1
+        self.equipment.on_frac = 1
         self.equipment.time_on = dt.timedelta(minutes=0)
         self.equipment.min_time_in_mode = {1: dt.timedelta(minutes=2),
                                            0: dt.timedelta(minutes=2)}
 
         self.equipment.update(1, {}, {})
-        self.assertEqual(self.equipment.on, 1)
+        self.assertEqual(self.equipment.on_frac, 1)
         self.assertEqual(self.equipment.time_on, equip_init_args['time_res'])
 
         self.equipment.time_on = dt.timedelta(1tes=2)

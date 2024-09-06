@@ -68,7 +68,7 @@ class EventBasedLoadTestCase(unittest.TestCase):
         self.assertNotEqual(self.e.event_start, first_event_start)
 
     def test_calculate_power_and_heat(self):
-        self.e.on = 1
+        self.e.on_frac = 1
         self.e.calculate_power_and_heat({})
         self.assertEqual(self.e.electric_kw, init_args['max_power'])
         self.assertEqual(self.e.sensible_gain, 0)

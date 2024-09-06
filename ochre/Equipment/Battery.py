@@ -256,7 +256,7 @@ class Battery(Generator):
         if self.power_setpoint < 0 and self.soc <= self.soc_min:
             self.power_setpoint = 0
 
-        return 1 if self.power_setpoint != 0 else 0
+        self.on_frac_new = 1 if self.power_setpoint != 0 else 0
 
     def get_kwh_remaining(self, discharge=True, include_efficiency=True, max_power=None):
         # returns the remaining SOC, in units of kWh. Option for remaining charging/discharging

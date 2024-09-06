@@ -205,15 +205,15 @@ class IdealHeaterTestCase(unittest.TestCase):
 
     def test_solve_ideal_capacity(self):
         self.hvac.temp_setpoint = 19
-        capacity = self.hvac.solve_ideal_capacity()
+        capacity = self.hvac.run_ideal_control()
         self.assertAlmostEqual(capacity, -6000, places=-2)
 
         self.hvac.temp_setpoint = 20
-        capacity = self.hvac.solve_ideal_capacity()
+        capacity = self.hvac.run_ideal_control()
         self.assertAlmostEqual(capacity, 700, places=-2)
 
         self.hvac.temp_setpoint = 21
-        capacity = self.hvac.solve_ideal_capacity()
+        capacity = self.hvac.run_ideal_control()
         self.assertAlmostEqual(capacity, 7400, places=-2)
 
     def test_update_capacity(self):
@@ -239,15 +239,15 @@ class IdealCoolerTestCase(unittest.TestCase):
 
     def test_solve_ideal_capacity(self):
         self.hvac.temp_setpoint = 21
-        capacity = self.hvac.solve_ideal_capacity()
+        capacity = self.hvac.run_ideal_control()
         self.assertAlmostEqual(capacity, -8500, places=-2)
 
         self.hvac.temp_setpoint = 20
-        capacity = self.hvac.solve_ideal_capacity()
+        capacity = self.hvac.run_ideal_control()
         self.assertAlmostEqual(capacity, -800, places=-2)
 
         self.hvac.temp_setpoint = 19
-        capacity = self.hvac.solve_ideal_capacity()
+        capacity = self.hvac.run_ideal_control()
         self.assertAlmostEqual(capacity, 6900, places=-2)
 
 

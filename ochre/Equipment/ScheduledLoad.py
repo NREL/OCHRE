@@ -113,10 +113,10 @@ class ScheduledLoad(Equipment):
                 if abs(self.gas_set_point) > 1:
                     raise OCHREException(f'{self.name} gas power is too large: {self.gas_set_point} therms/hour.')
 
-        return 1 if self.p_set_point + self.gas_set_point != 0 else 0
+        self.on_frac_new = 1 if self.p_set_point + self.gas_set_point != 0 else 0
 
     def calculate_power_and_heat(self):
-        if self.on:
+        if self.on_frac_new:
             self.electric_kw = self.p_set_point if self.is_electric else 0
             self.gas_therms_per_hour = self.gas_set_point if self.is_gas else 0
         else:

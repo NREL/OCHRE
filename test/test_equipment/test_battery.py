@@ -96,7 +96,7 @@ class BatteryTestCase(unittest.TestCase):
     def test_calculate_power_and_heat(self):
         self.battery.soc = 0.5
         self.battery.power_setpoint = -10
-        self.battery.on = 1
+        self.battery.on_frac = 1
         self.battery.calculate_power_and_heat({})
         self.assertAlmostEqual(self.battery.capacity_kwh_nominal, self.battery.parameters['capacity_kwh'])
         self.assertAlmostEqual(self.battery.capacity_kwh, self.battery.parameters['capacity_kwh'])
@@ -145,7 +145,7 @@ class BatteryTestCase(unittest.TestCase):
         # test SOC limit
         self.battery.soc = self.battery.soc_max - 0.005
         self.battery.power_setpoint = 5
-        self.battery.on = 1
+        self.battery.on_frac = 1
         self.battery.calculate_power_and_heat({})
         self.assertAlmostEquals(self.battery.electric_kw, 3.1, places=1)
         self.battery.update_model({})
@@ -185,7 +185,7 @@ class BatteryThermalModelTestCase(unittest.TestCase):
     def test_calculate_power_and_heat(self):
         self.battery.soc = 0.5
         self.battery.power_setpoint = -15
-        self.battery.on = 1
+        self.battery.on_frac = 1
         self.battery.thermal_model.states[0] = 20
         self.battery.calculate_power_and_heat(update_args)
         self.assertAlmostEqual(self.battery.capacity_kwh_nominal, self.battery.parameters['capacity_kwh'])

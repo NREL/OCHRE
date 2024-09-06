@@ -132,7 +132,7 @@ class EventBasedLoad(Equipment):
         if 'Delay' in control_signal:
             delay = control_signal['Delay']
 
-            if delay and self.on:
+            if delay and self.on_frac:
                 self.warn('Ignoring delay signal, event has already started.')
                 delay = False
             if isinstance(delay, (int, bool)):
@@ -154,18 +154,18 @@ class EventBasedLoad(Equipment):
     def run_internal_control(self):
         if self.current_time < self.event_start:
             # waiting for next event to start
-            return 0
+            self.on_frac_new = 0
         elif self.current_time < self.event_end:
-            if not self.on:
+            if not self.on_frac:
                 self.start_event()
-            return 1
+            self.on_frac_new = 1
         else:
             # event has ended, move to next event
             self.end_event()
-            return 0
+            self.on_frac_new = 0
 
     def calculate_power_and_heat(self):
-        if self.on:
+        if self.on_frac_new:
             power = self.event_schedule.loc[self.event_index, 'power']
         else:
             power = 0

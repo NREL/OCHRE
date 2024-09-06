@@ -116,7 +116,7 @@ class Generator(Equipment):
                 f"{self.end_use} Electric Power (kW)", 0
             )
 
-        return 1 if self.power_setpoint != 0 else 0
+        self.on_frac_new = 1 if self.power_setpoint != 0 else 0
 
     def get_power_limits(self):
         # Minimum (i.e. generating) output power limit based on capacity and ramp rate
@@ -172,12 +172,12 @@ class Generator(Equipment):
             )
 
     def calculate_power_and_heat(self):
-        if not self.on:
-            self.electric_kw = 0
-        else:
+        if self.on_frac_new:
             # force ac power within limits
             min_power, max_power = self.get_power_limits()
             self.electric_kw = min(max(self.power_setpoint, min_power), max_power)
+        else:
+            self.electric_kw = 0
 
         # calculate input (gas) power and CHP power
         self.efficiency = self.calculate_efficiency()

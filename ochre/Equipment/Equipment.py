@@ -63,8 +63,8 @@ class Equipment(Simulator):
         self.latent_gain = 0  # in W
 
         # Mode and controller parameters
-        self.on = 0  # fraction of time on (0-1)
-        self.on_new = 0  # fraction of time on (0-1)
+        self.on_frac = 0  # fraction of time on (0-1)
+        self.on_frac_new = 0  # fraction of time on (0-1)
         self.time_on = dt.timedelta(minutes=0)  # time continuously on
         self.time_off = dt.timedelta(minutes=0)  # time continuously off
         self.cycles = 0
@@ -93,8 +93,8 @@ class Equipment(Simulator):
         raise OCHREException('Must define external control algorithm for {}'.format(self.name))
 
     def run_internal_control(self):
-        # Returns the equipment mode (0 or 1); can return None if the mode doesn't change
-        raise NotImplementedError()
+        # Set the equipment on fraction (0 or 1); can set to None if there is no change
+        self.on_frac_new = None
 
     def calculate_power_and_heat(self):
         # Sets equipment power and thermal gains to zone
@@ -129,15 +129,15 @@ class Equipment(Simulator):
 
     def update_mode_times(self):
         # updates mode times
-        if self.on_new:
-            self.time_on += self.time_res * self.on_new
-            if not self.on:
+        if self.on_frac_new:
+            self.time_on += self.time_res * self.on_frac_new
+            if not self.on_frac:
                 self.time_off = dt.timedelta(minutes=0)
                 # increase number of cycles if equipment was off and turns on
                 self.cycles += 1
         else:
             self.time_off += self.time_res
-            if self.on:
+            if self.on_frac:
                 self.time_on = dt.timedelta(minutes=0)
 
 
@@ -146,21 +146,21 @@ class Equipment(Simulator):
         if control_signal:
             self.parse_control_signal(control_signal)
             
-        # run equipment controller to determine on/off mode
-        self.on_new = self.run_internal_control()
+        # run equipment controller and set equipment mode (self.on_frac_new)
+        self.run_internal_control()
 
         # Keep existing on fraction if not defined or if minimum time limit isn't reached
-        if self.on_new is None:
-            self.on_new = self.on
-        elif not self.on_new and self.time_on < self.min_on_time:
-            self.on_new = self.on
-        elif self.on_new and self.time_off < self.min_off_time:
-            self.on_new = self.on
+        if self.on_frac_new is None:
+            self.on_frac_new = self.on_frac
+        elif not self.on_frac_new and self.time_on < self.min_on_time:
+            self.on_frac_new = self.on_frac
+        elif self.on_frac_new and self.time_off < self.min_off_time:
+            self.on_frac_new = self.on_frac
 
         # Get voltage, if disconnected then set to off
         voltage = self.current_schedule.get("Voltage (-)", 1)
         if voltage == 0:
-            self.on_new = 0
+            self.on_frac_new = 0
 
         # calculate electric and gas power and heat gains
         heat_data = self.calculate_power_and_heat()
@@ -204,7 +204,7 @@ class Equipment(Simulator):
 
     def update_results(self):
         self.update_mode_times()
-        self.on = self.on_new
+        self.on_frac = self.on_frac_new
 
         return super().update_results()
     
@@ -221,7 +221,7 @@ class Equipment(Simulator):
                 results[f'{self.results_name} Gas Power (therms/hour)'] = self.gas_therms_per_hour
 
         if self.verbosity >= 6:
-            results[f'{self.results_name} On-Time Fraction (-)'] = self.on
+            results[f'{self.results_name} On-Time Fraction (-)'] = self.on_frac
 
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())
@@ -233,7 +233,7 @@ class Equipment(Simulator):
         super().reset_time(start_time=start_time, **kwargs)
 
         # set previous mode, defaults to off
-        self.on = int(on_previous)
+        self.on_frac = int(on_previous)
 
         # reset mode times and cycles
         if start_time is not None and start_time != self.start_time:
