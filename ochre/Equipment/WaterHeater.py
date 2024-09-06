@@ -61,10 +61,6 @@ class WaterHeater(ThermostaticLoad):
         self.t_control_idx = self.t_lower_idx
         self.h_control_idx = self.h_lower_idx
 
-        # Capacity and efficiency parameters
-        self.efficiency = kwargs.get('Efficiency (-)', 1)  # unitless
-        self.capacity_rated = kwargs.get('Capacity (W)', self.default_capacity)  # maximum heat delivered, in W
-
         # Control parameters
         # note: bottom of deadband is (setpoint_temp - deadband_temp)
         self.temp_max = kwargs.get('Max Tank Temperature (C)', convert(140, 'degF', 'degC'))
@@ -78,7 +74,7 @@ class WaterHeater(ThermostaticLoad):
     
         super().update_inputs(schedule_inputs)
 
-    def solve_ideal_capacity(self):
+    def run_ideal_control(self):
         # calculate ideal capacity based on achieving lower node setpoint temperature
         # Run model with heater off, updates next_states
         self.thermal_model.update_model()
@@ -109,12 +105,13 @@ class WaterHeater(ThermostaticLoad):
             return None
 
     def update_capacity(self):
+        # TODO: merge with solve_ideal_capacity?
         if self.thermal_model.n_nodes == 1:
             # calculate ideal capacity using tank model directly
             #  - more accurate than self.solve_ideal_capacity
-            return ThermostaticLoad.solve_ideal_capacity(self)
+            return ThermostaticLoad.run_ideal_control(self)
         else:
-            return self.solve_ideal_capacity()
+            return self.run_ideal_control()
 
     def add_heat_from_mode(self, mode, heats_to_tank=None, pct_time_on=1):
         if heats_to_tank is None:
@@ -204,7 +201,7 @@ class ElectricResistanceWaterHeater(WaterHeater):
     name = 'Electric Resistance Water Heater'
     modes = ['Upper On', 'Lower On', 'Off']
 
-    def solve_ideal_capacity(self):
+    def run_ideal_control(self):
         # calculate ideal capacity based on upper and lower node setpoint temperatures
         # Run model with heater off
         self.thermal_model.update_model()
@@ -317,10 +314,10 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
 
         super().update_inputs(schedule_inputs)
 
-    def solve_ideal_capacity(self):
+    def run_ideal_control(self):
         # calculate ideal capacity based on future thermostat control
         if self.er_only_mode:
-            super().solve_ideal_capacity()
+            super().run_ideal_control()
             self.duty_cycle_by_mode['Heat Pump On'] = 0
             return
 
@@ -524,7 +521,7 @@ class TanklessWaterHeater(WaterHeater):
         if self.max_power and power > self.max_power:
             self.heat_from_draw *= self.max_power / power
 
-        if not self.on:
+        if not self.on_frac:
             # do not update heat, force water heater off
             self.delivered_heat = 0
         elif self.heat_from_draw > self.capacity_rated:

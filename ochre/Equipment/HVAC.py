@@ -277,7 +277,7 @@ class HVAC(ThermostaticLoad):
         else:
             return None
 
-    def solve_ideal_capacity(self):
+    def run_ideal_control(self):
         # Update capacity using ideal algorithm - maintains setpoint exactly
         x_desired = self.temp_setpoint
 
@@ -300,7 +300,7 @@ class HVAC(ThermostaticLoad):
     def update_capacity(self):
         if self.use_ideal_mode:
             # Solve for capacity to meet setpoint
-            self.capacity_ideal = self.solve_ideal_capacity()
+            self.capacity_ideal = self.run_ideal_control()
             capacity = self.capacity_ideal
             
             # Update from direct capacity controls
@@ -681,7 +681,7 @@ class DynamicHVAC(HVAC):
         prev_speed_idx = self.speed_idx
         if self.control_type == 'Time':
             # Time-based 2-speed HVAC control: High speed turns on if temp continues to drop (for heating)
-            if not self.on:
+            if not self.on_frac:
                 speed = 1
             elif self.hvac_mult * (self.zone.temperature - self.temp_indoor_prev) < 0:
                 speed = 2
@@ -706,7 +706,7 @@ class DynamicHVAC(HVAC):
                 speed = self.speed_idx
         elif self.control_type == 'Time2':
             # Old time-based 2-speed HVAC control
-            if not self.on:
+            if not self.on_frac:
                 speed = 1
             else:
                 speed = 2
@@ -857,7 +857,7 @@ class AirConditioner(DynamicHVAC, Cooler):
         # add crankcase power when AC is off and outdoor temp is below threshold
         # no impact on sensible heat for now
         if self.crankcase_kw:
-            if not self.on and self.current_schedule['Ambient Dry Bulb (C)'] < self.crankcase_temp:
+            if not self.on_frac and self.current_schedule['Ambient Dry Bulb (C)'] < self.crankcase_temp:
                 self.electric_kw += self.crankcase_kw * self.space_fraction
 
 
