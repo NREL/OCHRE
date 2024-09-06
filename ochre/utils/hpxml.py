@@ -1038,7 +1038,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
         "Fuel": water_heater["FuelType"].capitalize(),
         "Zone": parse_zone_name(water_heater["Location"]),
         "Setpoint Temperature (C)": t_set,
-        "Tempering Valve Setpoint (C)": None,
+        "Tempering Valve Setpoint (C)": t_set,
         # 'Heat Transfer Coefficient (W/m^2/K)': u,
         "UA (W/K)": convert(ua, "Btu/hour/degR", "W/K"),
         "Efficiency (-)": eta_c,
