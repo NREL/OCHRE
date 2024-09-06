@@ -106,7 +106,7 @@ def run_multiple_local(main_folder, overwrite='False', n_parallel=1, n_max=None,
     my_print('All processes finished, exiting.')
 
 
-def run_single_building(input_path, size, der_type='ev', sim_type='ev_control', tech1='Cooking Range', tech2='Clothes Dryer', simulation_name='ochre', output_path=None):
+def run_single_building(input_path, size, der_type, charging_level, sim_type='ev_control', tech1='Cooking Range', tech2='Clothes Dryer', simulation_name='ochre', output_path=None):
     # run individual building case
     my_print(f'Running OCHRE for building {simulation_name} ({input_path})')
     if not os.path.isabs(input_path):
@@ -116,7 +116,7 @@ def run_single_building(input_path, size, der_type='ev', sim_type='ev_control', 
         # Timing parameters      
         'start_time': dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
         'time_res': dt.timedelta(minutes=2),         # time resolution of the simulation
-        'duration': dt.timedelta(days=10),             # duration of the simulation
+        'duration': dt.timedelta(days=365),             # duration of the simulation
         'initialization_time': dt.timedelta(days=1),  # used to create realistic starting temperature
 
         # Input parameters
@@ -144,7 +144,7 @@ def run_single_building(input_path, size, der_type='ev', sim_type='ev_control', 
     
     # create OCHRE building based on der type
     if der_type == 'ev':
-        dwelling = setup_ev_run(dwelling_args)
+        dwelling = setup_ev_run(dwelling_args, charging_level)
     else: 
         # baseline ResStock dwelling
         dwelling = Dwelling(**dwelling_args)           
@@ -186,14 +186,14 @@ def change_end_use_power(dwelling, end_use):
     return dwelling
     
     
-def setup_ev_run(dwelling_args):
+def setup_ev_run(dwelling_args, charging_level):
 
 
     equipment_args = {
         'Electric Vehicle':{
             # Equipment parameters
             'vehicle_type': 'BEV',
-            'charging_level': 'Level 2',
+            'charging_level': charging_level,
             "capacity": 57.5,
         }
     }
@@ -543,9 +543,9 @@ if __name__ == "__main__":
     # print(scenarios)
     
     # find the controller type based on building id and upgrade number, ignore multiple controllers for now
-    for l in range(len(scenarios[137:138])):
+    for l in range(len(scenarios[3640:])):
         
-        k=scenarios[137:138].index[l]
+        k=scenarios[3640:].index[l]
         bldg_id = scenarios['building_id'].iloc[k]
         # print(l, k, bldg_id)
         
@@ -563,14 +563,25 @@ if __name__ == "__main__":
             schedule['clothes_dryer'] = schedule['clothes_dryer']/2
             schedule.to_csv(os.path.join(input_path, 'schedules.csv'), index=False)
         
-        if scenarios['circuit_pause'].iloc[k] > 1:
-            continue
-        elif (scenarios['circuit_pause'].iloc[k] == 1) and (scenarios['circuit_share'].iloc[k] == 1):
-            continue
-        elif scenarios['circuit_pause'].iloc[k] == 1:
-            run_single_building(input_path, sim_type='circuit_pausing', tech1=scenarios['circuit_pause_name'].iloc[k], size=size)
+        # determine ev level
+        if scenarios['ev_level'].iloc[k] == 'L0':
+            der_type=None
+            charging_level=None
+        elif scenarios['ev_level'].iloc[k] == 'L1':
+            der_type='ev'
+            charging_level='Level 1'
+        else:
+            der_type='ev'
+            charging_level='Level 2'
+            
+        # determine control type
+        if scenarios['circuit_pause'].iloc[k] == 1:
+            if scenarios['circuit_pause_name'].iloc[k] == 'EV':
+                run_single_building(input_path, size, der_type, charging_level, sim_type='ev_control', tech1='EV')
+            else:
+                run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_pausing', tech1=scenarios['circuit_pause_name'].iloc[k])
         elif scenarios['circuit_share'].iloc[k] == 1:
-            run_single_building(input_path, sim_type='circuit_sharing', tech1=scenarios['primary_cs_load_name'].iloc[k], tech2=scenarios['secondary_cs_load_name'].iloc[k], size=size)
+            run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_sharing', tech1=scenarios['primary_cs_load_name'].iloc[k], tech2=scenarios['secondary_cs_load_name'].iloc[k])
         else:
             continue
         
