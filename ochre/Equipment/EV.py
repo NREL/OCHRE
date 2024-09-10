@@ -284,7 +284,7 @@ class ElectricVehicle(EventBasedLoad):
         # force ac power within kw capacity and SOC limits, no discharge allowed
         hours = self.time_res.total_seconds() / 3600
         ac_power = (self.soc_max_ctrl - self.soc) * self.capacity / hours / EV_EFFICIENCY
-        ac_power = min(max(ac_power, 0), self.max_power_ctrl)
+        ac_power = min(max(ac_power, 0), max(self.max_power_ctrl, 0))
         self.electric_kw = ac_power
 
         # update SOC for next time step, check with upper and lower bound of usable SOC
