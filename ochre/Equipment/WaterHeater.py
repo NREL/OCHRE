@@ -18,6 +18,7 @@ class WaterHeater(ThermostaticLoad):
     end_use = 'Water Heating'
     default_capacity = 4500  # in W
     default_deadband = 5.56  # in C
+    setpoint_deadband_position = 1  # setpoint at top of the deadband range
     optional_inputs = [
         "Water Heating Setpoint (C)",
         "Water Heating Deadband (C)",
@@ -44,28 +45,17 @@ class WaterHeater(ThermostaticLoad):
         }
         thermal_model = model_class(**water_tank_args)
 
-        super().__init__(model=thermal_model, **kwargs)
+        super().__init__(thermal_model=thermal_model, **kwargs)
 
-        # Get tank nodes for upper and lower heat injections
-        upper_node = '3' if self.thermal_model.n_nodes >= 12 else '1'
-        self.t_upper_idx = self.thermal_model.state_names.index('T_WH' + upper_node)
-        self.h_upper_idx = (
-            self.thermal_model.input_names.index("H_WH" + upper_node) - self.thermal_model.h_1_idx
-        )
-
-        lower_node = '10' if self.thermal_model.n_nodes >= 12 else str(self.thermal_model.n_nodes)
-        self.t_lower_idx = self.thermal_model.state_names.index('T_WH' + lower_node)
-        self.h_lower_idx = (
+        # Set control node to the bottom of the tank (for gas WH or 1-node model)
+        lower_node = str(self.thermal_model.n_nodes)
+        self.t_control_idx = self.thermal_model.state_names.index("T_WH" + lower_node)
+        self.h_control_idx = (
             self.thermal_model.input_names.index("H_WH" + lower_node) - self.thermal_model.h_1_idx
         )
-        self.t_control_idx = self.t_lower_idx
-        self.h_control_idx = self.h_lower_idx
 
         # Control parameters
-        # note: bottom of deadband is (setpoint_temp - deadband_temp)
         self.temp_max = kwargs.get('Max Tank Temperature (C)', convert(140, 'degF', 'degC'))
-        # deadband range, in delta degC, i.e. Kelvin
-        self.temp_deadband = kwargs.get('Deadband Temperature (C)', self.default_deadband)
 
     def update_inputs(self, schedule_inputs=None):
         # Add zone temperature to schedule inputs for water tank
@@ -74,88 +64,52 @@ class WaterHeater(ThermostaticLoad):
     
         super().update_inputs(schedule_inputs)
 
-    def run_ideal_control(self):
-        # calculate ideal capacity based on achieving lower node setpoint temperature
-        # Run model with heater off, updates next_states
-        self.thermal_model.update_model()
-        off_states = self.thermal_model.next_states
+    def solve_ideal_capacity_by_mode(self, setpoint=None, mode=None, lowest_node=None):
+        if setpoint is None:
+            setpoint = self.temp_setpoint
+        if lowest_node is None:
+            lowest_node = self.t_control_idx
 
-        # calculate heat needed to reach setpoint - only use nodes at and above lower node
-        set_states = np.ones(len(off_states)) * self.temp_setpoint
-        n_states = self.t_lower_idx + 1
-        h_desired = np.dot(set_states[:n_states] - off_states[:n_states],  # in W
-                           self.thermal_model.capacitances[:n_states]) / self.time_res.total_seconds()
+        # get next tank states based on mode
+        if mode is None:
+            # default is off - no heat added from water heater
+            self.thermal_model.update_model()
+        else:
+            raise NotImplementedError()
+        next_states = self.thermal_model.next_states
 
+        # get ideal setpoint states
+        set_states = np.ones(len(next_states)) * setpoint
+
+        # get thermal energy to achieve setpoint states
+        delta_t = set_states[: lowest_node + 1] - next_states[: lowest_node + 1]
+        capacitances = self.thermal_model.capacitances[: lowest_node + 1]
+        q_desired = np.dot(delta_t, capacitances)  # in J
+
+        # return thermal capacity to achieve setpoint states, in W
+        h_desired = q_desired / self.time_res.total_seconds()
+        h_desired = max(h_desired, 0)
         return h_desired
 
-    def run_thermostat_control(self):
-        # use thermostat with deadband control
-        if self.thermal_model.n_nodes <= 2:
-            t_lower = self.thermal_model.states[self.t_lower_idx]
-        else:
-            # take average of lower node and node above
-            t_lower = (self.thermal_model.states[self.t_lower_idx] + self.thermal_model.states[self.t_lower_idx - 1]) / 2
-
-        if (t_lower - self.temp_deadband_on) * self.heat_mult < 0:
-            return "On"
-        elif (t_lower - self.temp_deadband_off) * self.heat_mult > 0:
-            return "Off"
-        else:
-            # maintains existing mode
-            return None
-
-    def update_capacity(self):
-        # TODO: merge with solve_ideal_capacity?
+    def solve_ideal_capacity(self, setpoint=None):
         if self.thermal_model.n_nodes == 1:
             # calculate ideal capacity using tank model directly
-            #  - more accurate than self.solve_ideal_capacity
-            return ThermostaticLoad.run_ideal_control(self)
-        else:
-            return self.run_ideal_control()
+            # more accurate than code below
+            return super().solve_ideal_capacity(setpoint)
 
-    def add_heat_from_mode(self, mode, heats_to_tank=None, pct_time_on=1):
-        if heats_to_tank is None:
-            heats_to_tank = np.zeros(self.thermal_model.n_nodes, dtype=float)
+        # calculate heat needed to reach setpoint 
+        #  - only use nodes at and above control node
+        return self.solve_ideal_capacity_by_mode(setpoint)
 
-        if mode == 'Upper On':
-            heats_to_tank[self.h_upper_idx] += self.capacity_rated * pct_time_on
-        elif mode in ['On', 'Lower On']:
-            # Works for 'On' or 'Lower On', treated the same
-            heats_to_tank[self.h_lower_idx] += self.capacity_rated * pct_time_on
+    def solve_deadband_mode(self, t_control=None, on_limit=None, off_limit=None):
+        if t_control is None and self.thermal_model.n_nodes > 2:
+            # take average of lower node and node above
+            t_control = 1 / 2 * (
+                self.thermal_model.states[self.t_control_idx]
+                + self.thermal_model.states[self.t_control_idx - 1]
+            )
 
-        return heats_to_tank
-
-    def calculate_power_and_heat(self):
-        # get heat injections from water heater
-        if self.use_ideal_mode and self.mode != 'Off':
-            heats_to_tank = np.zeros(self.thermal_model.n_nodes, dtype=float)
-            for mode, duty_cycle in self.duty_cycle_by_mode.items():
-                heats_to_tank = self.add_heat_from_mode(mode, heats_to_tank, duty_cycle)
-        else:
-            heats_to_tank = self.add_heat_from_mode(self.mode)
-
-        self.delivered_heat = heats_to_tank.sum()
-        power = self.delivered_heat / self.efficiency / 1000  # in kW
-
-        # clip power and heat by max power
-        if self.max_power and power > self.max_power and 'Heat Pump' not in self.mode:
-            heats_to_tank *= self.max_power / power
-            self.delivered_heat *= self.max_power / power
-            power = self.max_power
-
-        if self.is_gas:
-            # note: no sensible gains from heater (all is vented)
-            self.gas_therms_per_hour = power * kwh_to_therms  # in therms/hour
-            self.sensible_gain = 0
-        else:
-            self.electric_kw = power
-            self.sensible_gain = power * 1000 - self.delivered_heat  # in W
-
-        self.latent_gain = 0
-
-        # send heat gain inputs to tank model
-        # note: heat losses from tank are added to sensible gains in parse_sub_update
-        return {self.thermal_model.name: heats_to_tank}
+        return super().solve_deadband_mode(t_control, on_limit, off_limit)
 
     def finish_sub_update(self, sub):
         # add heat losses from model to sensible gains
@@ -173,7 +127,6 @@ class WaterHeater(ThermostaticLoad):
             results[f'{self.end_use} Total Sensible Heat Gain (W)'] = self.sensible_gain
             results[f'{self.end_use} Deadband Upper Limit (C)'] = self.temp_setpoint
             results[f'{self.end_use} Deadband Lower Limit (C)'] = self.temp_setpoint - self.temp_deadband
-
 
         return results
 
@@ -201,43 +154,169 @@ class ElectricResistanceWaterHeater(WaterHeater):
     name = 'Electric Resistance Water Heater'
     modes = ['Upper On', 'Lower On', 'Off']
 
-    def run_ideal_control(self):
-        # calculate ideal capacity based on upper and lower node setpoint temperatures
-        # Run model with heater off
-        self.thermal_model.update_model()
-        off_states = self.thermal_model.next_states
+    def __init__(self, model_class=None, **kwargs):
+        super().__init__(model_class, **kwargs)
 
-        # calculate heat needed to reach setpoint - only use nodes at and above upper/lower nodes
-        set_states = np.ones(len(off_states)) * self.temp_setpoint
-        h_total = np.dot(set_states[:self.t_lower_idx + 1] - off_states[:self.t_lower_idx + 1],  # in W
-                         self.thermal_model.capacitances[:self.t_lower_idx + 1]) / self.time_res.total_seconds()
-        h_upper = np.dot(set_states[:self.t_upper_idx + 1] - off_states[:self.t_upper_idx + 1],  # in W
-                         self.thermal_model.capacitances[:self.t_upper_idx + 1]) / self.time_res.total_seconds()
-        h_lower = h_total - h_upper
+        # Get tank nodes for upper and lower heat injections
+        upper_node = "3" if self.thermal_model.n_nodes >= 12 else "1"
+        self.t_upper_idx = self.thermal_model.state_names.index("T_WH" + upper_node)
+        self.h_upper_idx = (
+            self.thermal_model.input_names.index("H_WH" + upper_node) - self.thermal_model.h_1_idx
+        )
 
-        # Convert to duty cycle, maintain min/max bounds, upper gets priority
-        d_upper = min(max(h_upper / self.capacity_rated, 0), 1)
-        d_lower = min(max(h_lower / self.capacity_rated, 0), 1 - d_upper)
-        self.duty_cycle_by_mode = {'Upper On': d_upper, 'Lower On': d_lower, 'Off': 1 - d_upper - d_lower}
+        lower_node = "10" if self.thermal_model.n_nodes >= 12 else str(self.thermal_model.n_nodes)
+        self.t_lower_idx = self.thermal_model.state_names.index("T_WH" + lower_node)
+        self.h_lower_idx = (
+            self.thermal_model.input_names.index("H_WH" + lower_node) - self.thermal_model.h_1_idx
+        )
+
+        # Mode and control parameters - for upper and lower elements
+        # TODO: add these anywhere regular parameters are found
+        self.capacity_upper = 0  # heat output from upper element, in W
+        self.upper_on_frac = 0  # fraction of time on (0-1)
+        self.upper_on_frac_new = 0  # fraction of time on (0-1)
+        self.capacity_lower = 0  # heat output from lower element, in W
+        self.lower_on_frac = 0  # fraction of time on (0-1)
+        self.lower_on_frac_new = 0  # fraction of time on (0-1)
+        self.upper_cycles = 0
+        self.lower_cycles = 0
+
+    def run_ideal_control(self, setpoint=None):
+        if self.thermal_model.n_nodes == 1:
+            return super().run_ideal_control(setpoint)
+
+        # calculate heat for full tank to reach setpoint
+        h_total = self.solve_ideal_capacity_by_mode(setpoint, lowest_node=self.t_lower_idx)
+
+        # calculate heat for upper portion of tank to reach setpoint
+        h_upper = self.solve_ideal_capacity_by_mode(setpoint, lowest_node=self.t_upper_idx)
+
+        # constraint and save capacities
+        if h_total > self.capacity_rated:
+            # can't reach setpoint, prioritize upper element
+            self.capacity = self.capacity_rated
+            self.capacity_upper = min(h_upper, self.capacity_rated)
+            self.capacity_lower = self.capacity - self.capacity_upper
+        else:
+            # can reach setpoint, prioritize lower element
+            self.capacity = h_total
+            self.capacity_upper = 0
+            self.capacity_lower = h_total
+
+        # save upper/lower on fractions
+        self.upper_on_frac_new = self.capacity_upper / self.capacity_rated
+        self.lower_on_frac_new = self.capacity_lower / self.capacity_rated
+
+        # return total on fraction
+        return self.capacity / self.capacity_rated
+
+    def solve_deadband_mode(self, t_control=None, on_limit=None, off_limit=None):
+        if t_control is None: 
+            if self.thermal_model.n_nodes <= 2:
+                # use lower index, not t_control_idx
+                t_control = self.thermal_model.states[self.t_lower_idx]
+            else:
+                # take average of lower node and node above
+                t_control = 1 / 2 * (
+                    self.thermal_model.states[self.t_lower_idx]
+                    + self.thermal_model.states[self.t_lower_idx - 1]
+                )
+
+        return super().solve_deadband_mode(t_control, on_limit, off_limit)
 
     def run_thermostat_control(self):
-        # use thermostat with deadband control, upper element gets priority over lower element
-        t_upper = self.thermal_model.states[self.t_upper_idx]
-        if self.thermal_model.n_nodes <= 2:
-            t_lower = self.thermal_model.states[self.t_lower_idx]
-        else:
-            # take average of lower node and node above
-            t_lower = (self.thermal_model.states[self.t_lower_idx] + self.thermal_model.states[self.t_lower_idx - 1]) / 2
+        if self.thermal_model.n_nodes == 1:
+            return super().run_thermostat_control()
 
-        lower_threshold_temp = self.temp_setpoint - self.temp_deadband
-        if t_upper < lower_threshold_temp or (self.mode == 'Upper On' and t_upper < self.temp_setpoint):
-            return 'Upper On'
-        if t_lower < lower_threshold_temp:
-            return 'Lower On'
-        if self.mode == 'Upper On' and t_upper > self.temp_setpoint:
-            return 'Off'
-        if t_lower > self.temp_setpoint:
-            return 'Off'
+        # check if upper and lower tank temperatures are within deadband
+        self.lower_on_frac_new = self.solve_deadband_mode()
+        t_upper = self.thermal_model.states[self.t_upper_idx]
+        self.upper_on_frac_new = self.solve_deadband_mode(t_upper)
+
+        # update on fractions from last time step
+        if self.upper_on_frac_new is None:
+            self.upper_on_frac_new = self.upper_on_frac
+        if self.lower_on_frac_new is None:
+            self.lower_on_frac_new = self.lower_on_frac
+
+        # prioritize upper element if both should be on
+        if self.upper_on_frac_new and self.lower_on_frac_new:
+            self.lower_on_frac_new = 0
+
+        # Set capacities from on fraction
+        on_frac_new = self.upper_on_frac_new + self.lower_on_frac_new
+        self.capacity = on_frac_new * self.capacity_rated
+        self.capacity_upper = self.upper_on_frac_new * self.capacity_rated
+        self.capacity_lower = self.lower_on_frac_new * self.capacity_rated
+
+        # return main on fraction
+        return on_frac_new
+
+    def limit_overshoot(self):
+        if self.thermal_model.n_nodes == 1:
+            return super().limit_overshoot()
+
+        # check if upper or lower deadband limits are hit
+        lower_on_frac_new = self.solve_deadband_mode()
+        t_upper = self.thermal_model.states[self.t_upper_idx]
+        upper_on_frac_new = self.solve_deadband_mode(t_upper)
+
+        if lower_on_frac_new is None and upper_on_frac_new is None:
+            # no overshoot, no change in mode
+            return
+        elif lower_on_frac_new == 1 and upper_on_frac_new == 0:
+            # determine upper on fraction at deadband off temp
+            self.on_frac_new = self.run_ideal_control(setpoint=self.temp_deadband_off)
+            upper_on_tmp = self.upper_on_frac_new
+
+            # determine lower on fraction at deadband on temp
+            self.on_frac_new = self.run_ideal_control(setpoint=self.temp_deadband_on)
+            
+            # reset upper on fraction and capacity
+            # may overestimate lower tank temp
+            self.upper_on_frac_new = upper_on_tmp
+            self.capacity_upper = self.upper_on_frac_new * self.capacity_rated
+            self.on_frac_new = self.upper_on_frac_new + self.lower_on_frac_new
+            self.capacity = self.on_frac_new * self.capacity_rated
+            if self.capacity > self.capacity_rated:
+                # reduce lower on fraction
+                self.on_frac_new = 1
+                self.capacity = self.capacity_rated
+                self.capacity_lower = self.capacity - self.capacity_upper
+                self.lower_on_frac_new = 1 - self.upper_on_frac_new
+
+        elif lower_on_frac_new == 1:
+            # reached lower deadband limit, turn lower on at end of time step
+            self.on_frac_new = self.run_ideal_control(setpoint=self.temp_deadband_on)
+            self.on_at_end = True
+
+        elif upper_on_frac_new == 0:
+            # reached upper deadband limit, turn off at end of time step
+            self.on_frac_new = self.run_ideal_control(setpoint=self.temp_deadband_off)
+            self.on_at_end = False
+        else:
+            # unexpected, print warning and do nothing
+            self.warn(f"Unexpected on fractions for upper ({upper_on_frac_new}) "
+                      f"and lower ({lower_on_frac_new}) elements")
+
+    def add_heat_from_mode(self, mode, heats_to_tank=None, pct_time_on=1):
+        if heats_to_tank is None:
+            heats_to_tank = np.zeros(self.thermal_model.n_nodes, dtype=float)
+
+        if mode == "Upper On":
+            heats_to_tank[self.h_upper_idx] += self.capacity_rated * pct_time_on
+        elif mode in ["On", "Lower On"]:
+            # Works for 'On' or 'Lower On', treated the same
+            heats_to_tank[self.h_lower_idx] += self.capacity_rated * pct_time_on
+
+        return heats_to_tank
+
+    def get_heat_to_model(self):
+        if self.thermal_model.n_nodes == 1:
+            return super().get_heat_to_model()
+        
+        return {self.h_upper_idx: self.capacity_upper,
+                self.h_lower_idx: self.capacity_lower}
 
 
 class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
@@ -492,7 +571,6 @@ class GasWaterHeater(WaterHeater):
         self.sensible_gain = sub.h_loss * self.skin_loss_frac
 
 
-# TODO: Tankless probably shouldn't have a WaterTank model, maybe don't inherit from TankWaterHeater?
 class TanklessWaterHeater(WaterHeater):
     name = 'Tankless Water Heater'
     default_capacity = 20000  # in W
@@ -501,52 +579,36 @@ class TanklessWaterHeater(WaterHeater):
         kwargs.update({'use_ideal_mode': True,
                        'model_class': IdealWaterModel})
         super().__init__(**kwargs)
-        self.heat_from_draw = 0  # Used to determine current capacity
 
         # update initial state to top of deadband (for 1-node model)
-        self.thermal_model.states[self.t_upper_idx] = self.temp_setpoint
+        self.thermal_model.states[self.t_control_idx] = self.temp_setpoint
 
-    def run_internal_control(self):
-        self.update_setpoint()
-        self.thermal_model.states[self.t_upper_idx] = self.temp_setpoint
+    def update_setpoint(self):
+        super().update_setpoint()
 
-        self.heat_from_draw = -self.thermal_model.update_water_draw()[0]
-        self.heat_from_draw = max(self.heat_from_draw, 0)
+        # set state to setpoint temperature
+        self.thermal_model.states[self.t_control_idx] = self.temp_setpoint
 
-        return 'On' if self.heat_from_draw > 0 else 'Off'
+    def solve_ideal_capacity(self, setpoint=None):
+        capacity = super().solve_ideal_capacity(setpoint)
 
-    def calculate_power_and_heat(self):
-        # clip heat by max power
-        power = self.heat_from_draw / self.efficiency / 1000  # in kW
-        if self.max_power and power > self.max_power:
-            self.heat_from_draw *= self.max_power / power
-
-        if not self.on_frac:
-            # do not update heat, force water heater off
-            self.delivered_heat = 0
-        elif self.heat_from_draw > self.capacity_rated:
-            # cannot meet setpoint temperature. Update outlet temp for 1 time step
+        if capacity > self.capacity_rated:
+            # cannot meet setpoint temperature. Update outlet temp for unmet loads
             t_set = self.temp_setpoint
             t_mains = self.thermal_model.current_schedule['Mains Temperature (C)']
-            t_outlet = t_mains + (t_set - t_mains) * (self.capacity_rated / self.heat_from_draw)
+            t_outlet = t_mains + (t_set - t_mains) * (self.capacity_rated / self.capacity)
             self.thermal_model.states[self.thermal_model.t_1_idx] = t_outlet
             self.thermal_model.update_water_draw()
 
-            # Reset tank model and update delivered heat
-            self.thermal_model.states[self.thermal_model.t_1_idx] = t_set
-            self.delivered_heat = self.capacity_rated
-        else:
-            self.delivered_heat = self.heat_from_draw
+        return capacity
 
-        self.electric_kw = self.delivered_heat / self.efficiency / 1000
+    def update_results(self):
+        current_results = super().update_results()
 
-        # for now, no extra heat gains for tankless water heater
-        # self.sensible_gain = self.delivered_heat * (1 / self.efficiency - 1)
-        self.sensible_gain = 0
+        # Reset tank model to setpoint temperature
+        self.thermal_model.states[self.thermal_model.t_1_idx] = self.temp_setpoint
 
-        # send heat gain inputs to tank model
-        # note: heat losses from tank are added to sensible gains in update_results
-        return {self.thermal_model.name: np.array([self.delivered_heat])}
+        return current_results
 
 
 class GasTanklessWaterHeater(TanklessWaterHeater):
@@ -562,15 +624,7 @@ class GasTanklessWaterHeater(TanklessWaterHeater):
     def calculate_power_and_heat(self):
         heats_to_model = super().calculate_power_and_heat()
 
-        # gas power in therms/hour
-        power_kw = self.delivered_heat / self.efficiency / 1000
-        self.gas_therms_per_hour = power_kw * kwh_to_therms
-
-        # electric power is constant
+        # add constant parasitic power
         self.electric_kw = self.parasitic_power
-        # if self.on:
-        #     self.electric_kw = 65 / 1000  # hardcoded parasitic electric power
-        # else:
-        #     self.electric_kw = 5 / 1000  # hardcoded electric power
 
         return heats_to_model
