@@ -11,21 +11,20 @@ class Equipment(Simulator):
     end_use = 'Other'
     is_electric = True
     is_gas = False
-    modes = ['On', 'Off']  # On and Off assumed as default modes
     zone_name = 'Indoor'
 
-    def __init__(self, zone_name=None, envelope_model=None, ext_time_res=None, save_ebm_results=False, **kwargs):
+    def __init__(self, zone_name=None, envelope_model=None, save_ebm_results=False, **kwargs):
         """
-        Base class for all equipment in a dwelling.
-        All equipment must have:
-         - A set of modes (default is ['On', 'Off'])
+        Base class for all equipment in a dwelling. All equipment must have:
          - Fuel variables (by default, is_electric=True, is_gas=False)
-         - A control algorithm to determine the mode (update_internal_control)
+         - A control algorithm to turn on (run_internal_control)
          - A method to determine the power and heat outputs (calculate_power_and_heat)
+        
         Optional features for equipment include:
-         - A control algorithm to use for external control (update_external_control)
+         - Control parameters provided by an external control (parse_control_signal)
          - A ZIP model for voltage-dependent real and reactive power
          - A parameters file to get loaded as self.parameters
+        
         Equipment can use data from:
          - The dwelling schedule (or from a player file)
          - Any other information from the dwelling (passed through house_args)
@@ -63,22 +62,16 @@ class Equipment(Simulator):
         self.sensible_gain = 0  # in W
         self.latent_gain = 0  # in W
 
-        # Mode and controller parameters (assuming a duty cycle)
-        self.mode = 'Off'
-        self.time_in_mode = dt.timedelta(minutes=0)
-        # self.tot_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
-        self.mode_cycles = {mode: 0 for mode in self.modes}
+        # Mode and controller parameters
+        self.on_frac = 0  # fraction of time on (0-1)
+        self.on_frac_new = 0  # fraction of time on (0-1)
+        self.time_on = dt.timedelta(minutes=0)  # time continuously on
+        self.time_off = dt.timedelta(minutes=0)  # time continuously off
+        self.cycles = 0
 
         # Minimum On/Off Times
-        on_time = kwargs.get(self.end_use + ' Minimum On Time', 0)
-        off_time = kwargs.get(self.end_use + ' Minimum Off Time', 0)
-        self.min_time_in_mode = {mode: dt.timedelta(minutes=on_time) for mode in self.modes}
-        self.min_time_in_mode['Off'] = dt.timedelta(minutes=off_time)
-
-        self.ext_time_res = ext_time_res
-        self.ext_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
-        self.duty_cycle_by_mode = {mode: 0 for mode in self.modes}  # fraction of time per mode, should sum to 1
-        self.duty_cycle_by_mode['Off'] = 1
+        self.min_on_time = kwargs.get(self.end_use + ' Minimum On Time', 0)
+        self.min_off_time = kwargs.get(self.end_use + ' Minimum Off Time', 0)
 
     def initialize_parameters(self, parameter_file=None, name_col='Name', value_col='Value', **kwargs):
         if parameter_file is None:
@@ -95,61 +88,16 @@ class Equipment(Simulator):
             parameters.update({key: val for key, val in kwargs.items() if key in parameters})
             return parameters
 
-    def update_duty_cycles(self, *duty_cycles):
-        duty_cycles = list(duty_cycles)
-        if len(duty_cycles) == len(self.modes) - 1:
-            duty_cycles.append(1 - sum(duty_cycles))
-        if len(duty_cycles) != len(self.modes):
-            raise OCHREException('Error parsing duty cycles. Expected a list of length equal or 1 less than ' +
-                                     'the number of modes ({}): {}'.format(len(self.modes), duty_cycles))
-
-        self.duty_cycle_by_mode = dict(zip(self.modes, duty_cycles))
-
-    def calculate_mode_priority(self, *duty_cycles):
-        """
-        Calculates the mode priority based on duty cycles from external controller. Always prioritizes current mode
-        first. Other modes are prioritized based on the order of Equipment.modes. Excludes modes that have already
-        "used up" their time in the external control cycle.
-        :param duty_cycles: iterable of duty cycles from external controller, as decimals. Order should follow the order
-        of Equipment.modes. Length of list must be equal to or 1 less than the number of modes. If length is 1 less, the
-        final mode duty cycle is equal to 1 - sum(duty_cycles).
-        :return: list of mode names in order of priority
-        """
-        if self.ext_time_res is None:
-            raise OCHREException('External control time resolution is not defined for {}.'.format(self.name))
-        if duty_cycles:
-            self.update_duty_cycles(*duty_cycles)
-
-        if (self.current_time - self.start_time) % self.ext_time_res == 0 or \
-                sum(self.ext_mode_counters.values(), dt.timedelta(0)) >= self.ext_time_res:
-            # reset mode counters
-            self.ext_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
-
-        modes_with_time = [mode for mode in self.modes
-                           if self.ext_mode_counters[mode] / self.ext_time_res < self.duty_cycle_by_mode[mode]]
-
-        # move previous mode to top of priority list
-        if self.mode in modes_with_time and modes_with_time[0] != self.mode:
-            modes_with_time.pop(modes_with_time.index(self.mode))
-            modes_with_time = [self.mode] + modes_with_time
-
-        if not len(modes_with_time):
-            self.warn('No available modes, keeping the current mode. '
-                      'Duty cycles: {}; Time per mode: {}'.format(duty_cycles, self.ext_mode_counters))
-            modes_with_time.append(self.mode)
-
-        return modes_with_time
-
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # Overwrite if external control might exist
         raise OCHREException('Must define external control algorithm for {}'.format(self.name))
 
-    def update_internal_control(self):
-        # Returns the equipment mode; can return None if the mode doesn't change
-        # Overwrite if internal control exists
-        raise NotImplementedError()
+    def run_internal_control(self):
+        # Set the equipment on fraction (0 or 1); can set to None if there is no change
+        self.on_frac_new = None
 
     def calculate_power_and_heat(self):
+        # Sets equipment power and thermal gains to zone
         raise NotImplementedError()
 
     def add_gains_to_zone(self):
@@ -179,34 +127,40 @@ class Equipment(Simulator):
             self.reactive_kvar = self.electric_kw * pf_mult * zip_p.dot(v_quadratic)
             self.electric_kw = self.electric_kw * zip_q.dot(v_quadratic)
 
+    def update_mode_times(self):
+        # updates mode times
+        if self.on_frac_new:
+            self.time_on += self.time_res * self.on_frac_new
+            if not self.on_frac:
+                self.time_off = dt.timedelta(minutes=0)
+                # increase number of cycles if equipment was off and turns on
+                self.cycles += 1
+        else:
+            self.time_off += self.time_res
+            if self.on_frac:
+                self.time_on = dt.timedelta(minutes=0)
+
+
     def update_model(self, control_signal=None):
-        # run equipment controller to determine mode
+        # update equipment based on control signal
         if control_signal:
-            mode = self.update_external_control(control_signal)
-        else:
-            mode = self.update_internal_control()
+            self.parse_control_signal(control_signal)
+            
+        # run equipment controller and set equipment mode (self.on_frac_new)
+        self.run_internal_control()
 
-        if mode is not None and self.time_in_mode < self.min_time_in_mode[self.mode]:
-            # Don't change mode if minimum on/off time isn't met
-            mode = self.mode
+        # Keep existing on fraction if not defined or if minimum time limit isn't reached
+        if self.on_frac_new is None:
+            self.on_frac_new = self.on_frac
+        elif not self.on_frac_new and self.time_on < self.min_on_time:
+            self.on_frac_new = self.on_frac
+        elif self.on_frac_new and self.time_off < self.min_off_time:
+            self.on_frac_new = self.on_frac
 
-        # Get voltage, if disconnected then set mode to off
-        voltage = self.current_schedule.get('Voltage (-)', 1)
+        # Get voltage, if disconnected then set to off
+        voltage = self.current_schedule.get("Voltage (-)", 1)
         if voltage == 0:
-            mode = 'Off'
-
-        if mode is None or mode == self.mode:
-            self.time_in_mode += self.time_res
-        else:
-            if mode not in self.modes:
-                raise OCHREException(
-                    "Can't set {} mode to {}. Valid modes are: {}".format(self.name, mode, self.modes))
-            self.mode = mode
-            self.time_in_mode = self.time_res
-            self.mode_cycles[self.mode] += 1
-
-        if control_signal:
-            self.ext_mode_counters[self.mode] += self.time_res
+            self.on_frac_new = 0
 
         # calculate electric and gas power and heat gains
         heat_data = self.calculate_power_and_heat()
@@ -248,6 +202,14 @@ class Equipment(Simulator):
             # f'{self.results_name} EBM Discharge Efficiency (-)': 1,
         }
 
+    def update_results(self):
+        current_results = super().update_results()
+
+        self.update_mode_times()
+        self.on_frac = self.on_frac_new
+
+        return current_results
+    
     def generate_results(self):
         results = super().generate_results()
 
@@ -261,18 +223,23 @@ class Equipment(Simulator):
                 results[f'{self.results_name} Gas Power (therms/hour)'] = self.gas_therms_per_hour
 
         if self.verbosity >= 6:
-            results[f'{self.results_name} Mode'] = self.mode
+            results[f'{self.results_name} On-Time Fraction (-)'] = self.on_frac
+
+        if self.save_ebm_results:
+            results.update(self.make_equivalent_battery_model())
 
         return results
 
-    def reset_time(self, start_time=None, mode=None, **kwargs):
-        # TODO: option to remove equipment mode, set initial state
+    def reset_time(self, start_time=None, on_previous=False, **kwargs):
+        # TODO: option to set initial state
         super().reset_time(start_time=start_time, **kwargs)
 
-        if mode is not None:
-            self.mode = mode
+        # set previous mode, defaults to off
+        self.on_frac = int(on_previous)
 
-        self.time_in_mode = dt.timedelta(minutes=0)
-        self.mode_cycles = {mode: 0 for mode in self.modes}
-        self.ext_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
-        # self.tot_mode_counters = {mode: dt.timedelta(minutes=0) for mode in self.modes}
+        # reset mode times and cycles
+        if start_time is not None and start_time != self.start_time:
+            self.warn("Resetting mode times and number of cycles")
+        self.time_on = dt.timedelta(minutes=0)
+        self.time_off = dt.timedelta(minutes=0)
+        self.cycles = 0

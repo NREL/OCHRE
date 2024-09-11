@@ -20,73 +20,73 @@ class GasGeneratorTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.generator.efficiency_rated, 0.95)
         self.assertEqual(self.generator.control_type, 'Off')
 
-    def test_update_external_control(self):
+    def test_parse_control_signal(self):
         # test setpoint control
-        mode = self.generator.update_external_control({}, {'P Setpoint': -2})
-        self.assertEqual(mode, 'On')
+        mode = self.generator.parse_control_signal({}, {'P Setpoint': -2})
+        self.assertEqual(mode, 1
         self.assertEqual(self.generator.power_setpoint, -2)
 
-        mode = self.generator.update_external_control({}, {'P Setpoint': 0})
-        self.assertEqual(mode, 'Off')
+        mode = self.generator.parse_control_signal({}, {'P Setpoint': 0})
+        self.assertEqual(mode, 0)
 
         # test control type
         control_signal = {'Control Type': 'Schedule'}
-        mode = self.generator.update_external_control({}, control_signal)
-        self.assertEqual(mode, 'Off')
+        mode = self.generator.parse_control_signal({}, control_signal)
+        self.assertEqual(mode, 0)
         self.assertEqual(self.generator.control_type, 'Schedule')
 
         control_signal = {'Control Type': 'Other'}
-        mode = self.generator.update_external_control({}, control_signal)
-        self.assertEqual(mode, 'Off')
+        mode = self.generator.parse_control_signal({}, control_signal)
+        self.assertEqual(mode, 0)
         self.assertEqual(self.generator.control_type, 'Schedule')
 
         # test parameter update
         control_signal = {'Parameters': {'charge_start_hour': 0}}
-        mode = self.generator.update_external_control({}, control_signal)
-        self.assertEqual(mode, 'On')
+        mode = self.generator.parse_control_signal({}, control_signal)
+        self.assertEqual(mode, 1)
         self.assertEqual(self.generator.control_type, 'Schedule')
         self.assertEqual(self.generator.power_setpoint, 1)
 
-    def test_update_internal_control(self):
+    def test_run_internal_control(self):
         # test schedule-based control
         self.generator.control_type = 'Schedule'
-        mode = self.generator.update_internal_control({})
-        self.assertEqual(mode, 'Off')
+        mode = self.generator.run_internal_control({})
+        self.assertEqual(mode, 0)
         self.assertEqual(self.generator.power_setpoint, 0)
 
         self.generator.current_time = init_args['start_time'] + dt.timedelta(
             hours=self.generator.parameters['discharge_start_hour'])
-        mode = self.generator.update_internal_control({})
-        self.assertEqual(mode, 'On')
+        mode = self.generator.run_internal_control({})
+        self.assertEqual(mode, 1)
         self.assertEqual(self.generator.power_setpoint, - self.generator.parameters['discharge_power'])
 
         # test self-consumption control
         self.generator.control_type = 'Self-Consumption'
-        mode = self.generator.update_internal_control({})
-        self.assertEqual(mode, 'Off')
+        mode = self.generator.run_internal_control({})
+        self.assertEqual(mode, 0)
 
-        mode = self.generator.update_internal_control({'net_power': 2})
-        self.assertEqual(mode, 'On')
+        mode = self.generator.run_internal_control({'net_power': 2})
+        self.assertEqual(mode, 1)
         self.assertEqual(self.generator.power_setpoint, -2)
 
-        mode = self.generator.update_internal_control({'net_power': -1})
-        self.assertEqual(mode, 'On')
+        mode = self.generator.run_internal_control({'net_power': -1})
+        self.assertEqual(mode, 1)
         self.assertEqual(self.generator.power_setpoint, 1)
 
         # test self-consumption with export limit
         self.generator.parameters['export_limit'] = 1
-        mode = self.generator.update_internal_control({'net_power': 3})
-        self.assertEqual(mode, 'On')
+        mode = self.generator.run_internal_control({'net_power': 3})
+        self.assertEqual(mode, 1)
         self.assertAlmostEqual(self.generator.power_setpoint, -2)
 
-        mode = self.generator.update_internal_control({'net_power': 0.9})
-        self.assertEqual(mode, 'Off')
+        mode = self.generator.run_internal_control({'net_power': 0.9})
+        self.assertEqual(mode, 0)
         self.assertAlmostEqual(self.generator.power_setpoint, 0)
 
         # test off
         self.generator.control_type = 'Off'
-        mode = self.generator.update_internal_control({})
-        self.assertEqual(mode, 'Off')
+        mode = self.generator.run_internal_control({})
+        self.assertEqual(mode, 0)
 
     def test_get_power_limits(self):
         # test without ramp rate
@@ -114,13 +114,13 @@ class GasGeneratorTestCase(unittest.TestCase):
         self.assertEqual(p_max, -1)
 
     def test_calculate_power_and_heat(self):
-        self.generator.mode = 'Off'
+        self.generator.mode = 0
         self.generator.calculate_power_and_heat({})
         self.assertEqual(self.generator.electric_kw, 0)
         self.assertEqual(self.generator.sensible_gain, 0)
 
         # test generation - with ramp rate
-        self.generator.mode = 'On'
+        self.generator.on = 'O1
         self.generator.power_setpoint = -2
         self.generator.electric_kw = -1
         self.generator.calculate_power_and_heat({})
@@ -128,7 +128,7 @@ class GasGeneratorTestCase(unittest.TestCase):
         self.assertAlmostEquals(self.generator.sensible_gain, 58, places=0)
 
         # test consumption - not allowed for generators
-        self.generator.mode = 'On'
+        self.generator.on = 'O1
         self.generator.power_setpoint = 2
         self.generator.calculate_power_and_heat({})
         self.assertAlmostEquals(self.generator.electric_kw, 0)

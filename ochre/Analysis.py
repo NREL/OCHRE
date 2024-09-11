@@ -438,21 +438,14 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
 
     # Equipment cycling metrics
     if metrics_verbosity >= 5:
-        mode_cols = [col for col in results if ' Mode' in col]
+        mode_cols = [col for col in results if " On-Time Fraction (-)" in col]
         for mode_col in mode_cols:
-            name = re.fullmatch('(.*) Mode', mode_col).group(1)
-            modes = results[mode_col]
-            unique_modes = [mode for mode in modes.unique() if mode != 'Off']
-            for unique_mode in unique_modes:
-                on = modes == unique_mode
-                cycle_starts = on & (~on).shift()
-                cycles = cycle_starts.sum()
-                if cycles <= 1:
-                    continue
-                elif len(unique_modes) == 1:
-                    metrics[f'{name} Cycles'] = cycles
-                else:
-                    metrics[f'{name} "{unique_mode}" Cycles'] = cycles
+            name = re.fullmatch("(.*) On-Time Fraction (-)", mode_col).group(1)
+            on_frac = results[mode_col].astype(bool)
+            cycle_starts = on_frac & (~on_frac).shift()
+            cycles = cycle_starts.sum()
+            if cycles > 0:
+                metrics[f"{name} Cycles"] = cycles
 
     # FUTURE: add rates, emissions, other post processing
     # print('Loading rate file...')

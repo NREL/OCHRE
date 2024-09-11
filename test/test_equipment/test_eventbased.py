@@ -28,47 +28,47 @@ class EventBasedLoadTestCase(unittest.TestCase):
         self.assertEqual(self.e.event_start.date(), self.e.current_time.date())
         self.assertEqual(self.e.event_end - self.e.event_start, init_args['event_duration'])
 
-    def test_update_external_control(self):
+    def test_parse_control_signal(self):
         first_event_start = self.e.event_start
 
-        mode = self.e.update_external_control({}, {'nothing': 0})
+        mode = self.e.parse_control_signal({}, {'nothing': 0})
         self.assertEqual(self.e.event_start, first_event_start)
-        self.assertEqual(mode, 'Off')
+        self.assertEqual(mode, 0)
 
-        mode = self.e.update_external_control({}, {'Delay': True})
+        mode = self.e.parse_control_signal({}, {'Delay': True})
         self.assertEqual(self.e.event_start, first_event_start + equip_init_args['time_res'])
-        self.assertEqual(mode, 'Off')
+        self.assertEqual(mode, 0)
 
-        mode = self.e.update_external_control({}, {'Delay': 2})
+        mode = self.e.parse_control_signal({}, {'Delay': 2})
         self.assertEqual(self.e.event_start, first_event_start + 3 * equip_init_args['time_res'])
-        self.assertEqual(mode, 'Off')
+        self.assertEqual(mode, 0)
 
         # negative delay - start immediately
-        mode = self.e.update_external_control({}, {'Delay': self.e.current_time - self.e.event_start})
+        mode = self.e.parse_control_signal({}, {'Delay': self.e.current_time - self.e.event_start})
         self.assertEqual(self.e.event_start, self.e.current_time)
-        self.assertEqual(mode, 'On')
+        self.assertEqual(mode, 1)
 
-    def test_update_internal_control(self):
+    def test_run_internal_control(self):
         first_event_start = self.e.event_start
         current_index = self.e.event_index
 
-        mode = self.e.update_internal_control({})
-        self.assertEqual(mode, 'Off')
+        mode = self.e.run_internal_control({})
+        self.assertEqual(mode, 0)
         self.assertEqual(self.e.event_index, current_index)
 
         self.e.current_time = self.e.event_start
-        mode = self.e.update_internal_control({})
-        self.assertEqual(mode, 'On')
+        mode = self.e.run_internal_control({})
+        self.assertEqual(mode, 1)
         self.assertEqual(self.e.event_index, current_index)
 
         self.e.current_time = self.e.event_end
-        mode = self.e.update_internal_control({})
-        self.assertEqual(mode, 'Off')
+        mode = self.e.run_internal_control({})
+        self.assertEqual(mode, 0)
         self.assertEqual(self.e.event_index, current_index + 1)
         self.assertNotEqual(self.e.event_start, first_event_start)
 
     def test_calculate_power_and_heat(self):
-        self.e.mode = 'On'
+        self.e.on_frac = 1
         self.e.calculate_power_and_heat({})
         self.assertEqual(self.e.electric_kw, init_args['max_power'])
         self.assertEqual(self.e.sensible_gain, 0)

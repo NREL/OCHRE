@@ -125,14 +125,14 @@ class EventBasedLoad(Equipment):
     #     # function to set next event start and end time
     #     raise NotImplementedError
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # If Delay=dt.timedelta, extend start time by that time
         # If Delay=True, delay for self.time_res
         # If Delay=int, delay for int * self.time_res
         if 'Delay' in control_signal:
             delay = control_signal['Delay']
 
-            if delay and self.mode == 'On':
+            if delay and self.on_frac:
                 self.warn('Ignoring delay signal, event has already started.')
                 delay = False
             if isinstance(delay, (int, bool)):
@@ -141,33 +141,31 @@ class EventBasedLoad(Equipment):
                 raise OCHREException(f'Unknown delay for {self.name}: {delay}')
 
             if delay:
+                self.event_start += delay
+
                 if self.delay_event_end:
                     self.event_end += delay
                 else:
                     # ensure that start time doesn't exceed end time
-                    if self.event_start + delay > self.event_end:
+                    if self.event_start > self.event_end:
                         self.warn('Event is delayed beyond event end time. Ignoring event.')
-                        delay = self.event_end - self.event_start
+                        self.event_start = self.event_end
 
-                self.event_start += delay
-
-        return self.update_internal_control()
-
-    def update_internal_control(self):
+    def run_internal_control(self):
         if self.current_time < self.event_start:
             # waiting for next event to start
-            return 'Off'
+            self.on_frac_new = 0
         elif self.current_time < self.event_end:
-            if self.mode == 'Off':
+            if not self.on_frac:
                 self.start_event()
-            return 'On'
+            self.on_frac_new = 1
         else:
             # event has ended, move to next event
             self.end_event()
-            return 'Off'
+            self.on_frac_new = 0
 
     def calculate_power_and_heat(self):
-        if self.mode == 'On':
+        if self.on_frac_new:
             power = self.event_schedule.loc[self.event_index, 'power']
         else:
             power = 0

@@ -14,7 +14,6 @@ dwelling_args = {
     'start_time': dt.datetime(2019, 5, 5, 12, 0, 0),  # May 5, 12:00PM
     'time_res': dt.timedelta(minutes=15),
     'duration': dt.timedelta(days=1),
-    'ext_time_res': dt.timedelta(hours=1),
 
     # Input and Output Files
     'output_path': test_output_path,
@@ -27,7 +26,7 @@ dwelling_args = {
     'metrics_verbosity': 9,  # verbosity of results file (0-9)
 }
 
-test_equipment = {'Air Source Heat Pump': {'use_ideal_capacity': True},
+test_equipment = {'Air Source Heat Pump': {'use_ideal_mode': True},
                   }
 
 
@@ -166,9 +165,9 @@ class DwellingWithEquipmentTestCase(unittest.TestCase):
         self.assertAlmostEqual(results['Total Reactive Power (kVAR)'], 0.3, places=1)
         self.assertAlmostEqual(results['Lighting Electric Power (kW)'], 0.1, places=1)
         self.assertAlmostEqual(results['Temperature - Indoor (C)'], 22.2, places=1)
-        self.assertEqual(results['HVAC Heating Mode'], 'Off')
-        self.assertEqual(results['HVAC Cooling Mode'], 'On')
-        self.assertEqual(results['Water Heating Mode'], 'Upper On')
+        self.assertEqual(results["HVAC Heating On-Time Fraction (-)"], 0)
+        self.assertEqual(results["HVAC Cooling On-Time Fraction (-)"], 1)
+        self.assertEqual(results["Water Heating On-Time Fraction (-)"], 1)
         for e in self.dwelling.equipment:
             self.assertEquals(e.current_time, self.dwelling.current_time)
 
@@ -178,17 +177,9 @@ class DwellingWithEquipmentTestCase(unittest.TestCase):
         self.assertAlmostEqual(results['Total Reactive Power (kVAR)'], 0, places=2)
         self.assertAlmostEqual(results['Temperature - Indoor (C)'], 22.2, places=1)
         self.assertAlmostEqual(self.dwelling.envelope.indoor_zone.temperature, 23.1, places=1)
-        self.assertEqual(results['HVAC Cooling Mode'], 'Off')
+        self.assertEqual(results["HVAC Cooling On-Time Fraction (-)"], 0)
         for e in self.dwelling.equipment:
             self.assertEquals(e.current_time, self.dwelling.current_time)
-
-    def test_update_external(self):
-        control = {'HVAC Heating': {'Duty Cycle': 0.3}, 'Load Fractions': {'Lighting': 0, 'Exterior Lighting': 0}}
-        results = self.dwelling.update(control_signal=control)
-        self.assertEqual(results['HVAC Heating Mode'], 'HP On')
-        self.assertAlmostEqual(results['Total Electric Power (kW)'], 12, places=0)
-        self.assertAlmostEqual(results['Total Reactive Power (kVAR)'], 0.3, places=1)
-        self.assertEqual(results['Lighting Electric Power (kW)'], 0)
 
     def test_simulate(self):
         t0 = time.time()

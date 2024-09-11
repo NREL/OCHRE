@@ -15,15 +15,15 @@ class TestEquipment(Equipment):
 
         self.max_p = max_p
 
-    def update_internal_control(self):
+    def run_internal_control(self):
         # Turns on for 5 minutes, then off for 5 minutes
         if self.current_time.minute % 10 >= 5:
-            return 'Off'
+            self.on_frac_new = 0
         else:
-            return 'On'
+            self.on_frac_new = 1
 
     def calculate_power_and_heat(self):
-        if self.mode == 'On':
+        if self.on_frac_new:
             self.electric_kw = min(self.current_time.minute, self.max_p)
         else:
             self.electric_kw = 0
@@ -38,8 +38,7 @@ class EquipmentTestCase(unittest.TestCase):
         self.equipment = TestEquipment(15, **equip_init_args)
 
     def test_initialize(self):
-        self.assertEqual(self.equipment.mode, 'Off')
-        self.assertListEqual(self.equipment.modes, ['On', 'Off'])
+        self.assertEqual(self.equipment.mode, 0)
         self.assertEqual(self.equipment.current_time, equip_init_args['start_time'])
         self.assertEqual(self.equipment.zone_name, 'Indoor')
         self.assertDictEqual(self.equipment.parameters, {})
@@ -58,9 +57,8 @@ class EquipmentTestCase(unittest.TestCase):
             self.equipment.update(1, {}, {})
             self.equipment.update_model({})
         self.assertEqual(self.equipment.current_time, equip_init_args['start_time'] + equip_init_args['time_res'] * 3)
-        self.assertEqual(self.equipment.mode, 'On')
-        self.assertEqual(self.equipment.time_in_mode, equip_init_args['time_res'] * 3)
-        self.assertDictEqual(self.equipment.mode_cycles, {'On': 1, 'Off': 0})
+        self.assertEqual(self.equipment.on_frac, 1)
+        self.assertEqual(self.equipment.time_on, equip_init_args['time_res'] * 3)
         self.assertEqual(self.equipment.electric_kw, 2)
 
         # run for 5 time steps
@@ -68,40 +66,39 @@ class EquipmentTestCase(unittest.TestCase):
             self.equipment.update(1, {}, {})
             self.equipment.update_model({})
         self.assertEqual(self.equipment.current_time, equip_init_args['start_time'] + equip_init_args['time_res'] * 8)
-        self.assertEqual(self.equipment.mode, 'Off')
-        self.assertEqual(self.equipment.time_in_mode, equip_init_args['time_res'] * 3)
-        self.assertDictEqual(self.equipment.mode_cycles, {'On': 1, 'Off': 1})
+        self.assertEqual(self.equipment.mode, 0)
+        self.assertEqual(self.equipment.time_on, equip_init_args['time_res'] * 3)
         self.assertEqual(self.equipment.electric_kw, 0)
 
         # Test with minimum on/off times
-        self.equipment.mode = 'On'
-        self.equipment.time_in_mode = dt.timedelta(minutes=0)
-        self.equipment.min_time_in_mode = {'On': dt.timedelta(minutes=2),
-                                           'Off': dt.timedelta(minutes=2)}
+        self.equipment.on_frac = 1
+        self.equipment.time_on = dt.timedelta(minutes=0)
+        self.equipment.min_time_in_mode = {1: dt.timedelta(minutes=2),
+                                           0: dt.timedelta(minutes=2)}
 
         self.equipment.update(1, {}, {})
-        self.assertEqual(self.equipment.mode, 'On')
-        self.assertEqual(self.equipment.time_in_mode, equip_init_args['time_res'])
+        self.assertEqual(self.equipment.on_frac, 1)
+        self.assertEqual(self.equipment.time_on, equip_init_args['time_res'])
 
-        self.equipment.time_in_mode = dt.timedelta(minutes=2)
+        self.equipment.time_on = dt.timedelta(1tes=2)
         self.equipment.update(1, {}, {})
-        self.assertEqual(self.equipment.mode, 'Off')
-        self.assertEqual(self.equipment.time_in_mode, equip_init_args['time_res'])
+        self.assertEqual(self.equipment.mode, 0)
+        self.assertEqual(self.equipment.time_on, equip_init_args['time_res'])
 
     def test_simulate(self):
         results = self.equipment.simulate(duration=dt.timedelta(hours=1))
         self.assertEqual(len(results), 60)
         self.assertIn('Test Equipment Electric Power (kW)', results.columns)
-        self.assertIn('Test Equipment Mode', results.columns)
+        self.assertIn("Test Equipment On-Time Fraction (-)", results.columns)
         self.assertNotIn('Test Equipment Gas Power (therms/hour)', results.columns)
 
-        modes = (['On'] * 5 + ['Off'] * 5) * 6
-        self.assertListEqual(results['Test Equipment Mode'].values.tolist(), modes)
+        modes = ([1] * 5 + [0] * 5) * 6
+        self.assertListEqual(results["Test Equipment On-Time Fraction (-)"].values.tolist(), modes)
 
         powers = [min(i, 15) if m == 'On' else 0 for i, m in enumerate(modes)]
         self.assertListEqual(results['Test Equipment Electric Power (kW)'].values.tolist(), powers)
 
-    def test_generate_results(self):
+    def test_generate_results(self):1
         self.equipment.update({}, {})
 
         # low verbosity
@@ -110,40 +107,7 @@ class EquipmentTestCase(unittest.TestCase):
 
         # high verbosity
         results = self.equipment.generate_results(9)
-        self.assertDictEqual(results, {'Test Equipment Mode': 'On'})
-
-    def test_calculate_mode_priority(self):
-        self.assertDictEqual(self.equipment.ext_mode_counters, {mode: dt.timedelta(0) for mode in self.equipment.modes})
-        self.equipment.current_time += dt.timedelta(minutes=1)
-
-        duty_cycle = 1 / 2
-        self.equipment.mode = 'Off'
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['Off', 'On'])
-
-        self.equipment.mode = 'On'
-        self.equipment.ext_mode_counters['On'] = dt.timedelta(minutes=7)
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['On', 'Off'])
-
-        self.equipment.ext_mode_counters['On'] = dt.timedelta(minutes=8)
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['Off'])
-
-        duty_cycle = 1 / 5
-        self.equipment.mode = 'On'
-        self.equipment.ext_mode_counters['On'] = dt.timedelta(minutes=2)
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['On', 'Off'])
-
-        self.equipment.ext_mode_counters['On'] = dt.timedelta(minutes=3)
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['Off'])
-
-        duty_cycle = 1
-        self.equipment.mode = 'Off'
-        mode_priority = self.equipment.calculate_mode_priority(duty_cycle)
-        self.assertListEqual(mode_priority, ['On'])
+        self.assertDictEqual(results, {"Test Equipment On-Time Fraction (-)": 1})
 
     def test_run_zip(self):
         pf_multiplier = 0.48432210483785254

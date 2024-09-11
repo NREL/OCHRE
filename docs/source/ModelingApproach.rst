@@ -187,9 +187,6 @@ All HVAC equipment can be externally controlled by updating the thermostat
 setpoints and deadband or by direct load control (i.e., shut-off). Specific
 speeds can be disabled in multi-speed equipment. Equipment capacity can also
 be set directly or controlled using a maximum capacity fraction in ideal mode.
-In thermostatic mode, duty cycle controls can determine the equipment state.
-The equipment will follow the duty cycle control exactly while minimizing
-cycling and temperature deviation from setpoint. 
 
 Ducts
 ~~~~~
@@ -255,8 +252,7 @@ schedule.
 
 Similar to HVAC equipment, water heater equipment has a thermostat control,
 and can be externally controlled by updating the thermostat setpoints and
-deadband, specifying a duty cycle, or direct shut-off. Tankless equipment can
-only be controlled through thermostat control and direct-shut-off.
+deadband or direct shut-off.
 
 Electric Vehicles
 -----------------
