@@ -203,10 +203,12 @@ class Equipment(Simulator):
         }
 
     def update_results(self):
+        current_results = super().update_results()
+
         self.update_mode_times()
         self.on_frac = self.on_frac_new
 
-        return super().update_results()
+        return current_results
     
     def generate_results(self):
         results = super().generate_results()

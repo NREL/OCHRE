@@ -37,8 +37,8 @@ class ThermostaticLoad(Equipment):
         self.sub_simulators.append(self.thermal_model)
 
         # Model parameters
-        self.t_control_idx = None  # state index for thermostat control
-        self.h_control_idx = None  # input index for thermostat control
+        self.t_control_idx = 0  # state index for thermostat control
+        self.h_control_idx = 0  # input index for thermostat control
 
         # By default, use ideal mode if time resolution >= 15 minutes
         if use_ideal_mode is None:
@@ -165,17 +165,54 @@ class ThermostaticLoad(Equipment):
         # return on fraction
         return self.capacity / self.capacity_rated
 
-    def run_thermostat_control(self):
-        # use thermostat with deadband control
-        t_control = self.thermal_model.states[self.t_control_idx]
+    def solve_deadband_mode(self, t_control=None, on_limit=None, off_limit=None):
+        if t_control is None:
+            t_control = self.thermal_model.states[self.t_control_idx]
+        if on_limit is None:
+            on_limit = self.temp_deadband_on
+        if off_limit is None:
+            off_limit = self.temp_deadband_off
 
-        if (t_control - self.temp_deadband_on) * self.heat_mult < 0:
+        if (t_control - on_limit) * self.heat_mult < 0:
+            # turn on if below the on limit (for heaters)
             return 1
-        elif (t_control - self.temp_deadband_off) * self.heat_mult > 0:
+        elif (t_control - off_limit) * self.heat_mult > 0:
+            # turn off if below the off limit (for heaters)
             return 0
         else:
             # maintains existing mode
             return None
+
+    def run_thermostat_control(self):
+        # use thermostat with deadband control
+        on_frac_new = self.solve_deadband_mode()
+        
+        if on_frac_new is None:
+            on_frac_new = self.on_frac
+
+        # Set capacity from on fraction
+        self.capacity = on_frac_new * self.capacity_rated
+
+        return on_frac_new
+
+    def limit_overshoot(self):
+        # check if deadband limits are hit
+        next_on_frac = self.solve_deadband_mode()
+        if next_on_frac is None:
+            return
+
+        # run in ideal mode at deadband limits
+        if not self.on_frac_new and next_on_frac == 1:
+            # reached lower deadband limit (for heaters), turn on at end of time step
+            self.on_frac_new = self.run_ideal_control(setpoint=self.temp_deadband_on)
+            self.on_at_end = True
+        elif self.on_frac_new and next_on_frac == 0:
+            # reached upper deadband limit (for heaters), turn off at end of time step
+            self.on_frac_new = self.run_ideal_control(setpoint=self.temp_deadband_off)
+            self.on_at_end = False
+        else:
+            # Note: deadband limits may not be met and unmet loads may exist
+            pass
 
     def run_internal_control(self):
         # Update setpoint from schedule
@@ -185,11 +222,8 @@ class ThermostaticLoad(Equipment):
         if self.use_ideal_mode:
             self.on_frac_new = self.run_ideal_control()
         else:
-            # Run thermostat controller and set on fraction
+            # Run thermostat controller and set on fraction and output capacity
             self.on_frac_new = self.run_thermostat_control()
-            if self.on_frac_new is None:
-                self.on_frac_new = self.on_frac
-            self.capacity = self.on_frac_new * self.capacity_rated
 
             # check new states and prevent overshoot by running in ideal mode
             if self.prevent_overshoot:
@@ -197,14 +231,11 @@ class ThermostaticLoad(Equipment):
                 heat_data = self.calculate_power_and_heat()
                 super().update_model(heat_data)
 
-                # if overshoot, run in ideal mode at deadband limit
-                t_control = self.thermal_model.new_states[self.t_control_idx]
-                if not self.on_frac_new and (t_control - self.temp_deadband_on) * self.heat_mult < 0:
-                    self.on_frac_new = self.run_ideal_control(setpoint=self.temp_deadband_on)
-                    self.on_at_end = True
-                elif self.on_frac_new and (t_control - self.temp_deadband_off) * self.heat_mult > 0:
-                    self.on_frac_new = self.run_ideal_control(setpoint=self.temp_deadband_off)
-                    self.on_at_end = False
+                # check for overshoot, limit on fraction
+                self.limit_overshoot()
+
+    def get_heat_to_model(self):
+        return {self.h_control_idx: self.delivered_heat}
 
     def calculate_power_and_heat(self):
         self.delivered_heat = self.capacity
@@ -218,7 +249,7 @@ class ThermostaticLoad(Equipment):
             self.delivered_heat *= self.max_power / power
 
         # get heat injection to the thermal model, based on capacity
-        heat_to_model = {self.h_control_idx: self.delivered_heat}
+        heat_to_model = self.get_heat_to_model()
 
         if self.is_gas:
             # by default, no sensible gains from gas equipment (assume vented)
