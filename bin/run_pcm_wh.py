@@ -8,7 +8,7 @@ from bin.run_dwelling import dwelling_args
 dwelling_args.update(
     {
         "time_res": dt.timedelta(minutes=1),  # time resolution of the simulation
-        "duration": dt.timedelta(days=1),  # duration of the simulation
+        "duration": dt.timedelta(days=2),  # duration of the simulation
         "verbosity": 9,
     }
 )
@@ -37,7 +37,10 @@ def run_water_heater(dwelling_args):
     equipment.results_file = dwelling.results_file
 
     # If necessary, update equipment schedule
-    equipment.model.schedule['Zone Temperature (C)'] = 20
+    equipment.model.schedule['Zone Temperature (C)'] = 19.722222 #from the UEF standard https://www.energy.gov/eere/buildings/articles/2014-06-27-issuance-test-procedures-residential-and-commercial-water
+    #equipment.model.schedule['Water Use Schedule (L/min)'] = #file_name_here.csv * 3.78541 #could also use "convert" built in function to go gal>L, or just convert the schedule files directly to L/min
+    equipment.model.schedule['Mains Temperature (C)'] = 14.4444
+    #TODO: 50% RH schedule? Will have some impact on HP performance, but not much
     equipment.reset_time()
 
     # Simulate equipment
