@@ -847,6 +847,34 @@ def parse_hvac(hvac_type, hvac_all):
             'Weekend Setpoints (C)': [convert(weekend_setpoint, 'degF', 'degC')] * 24,
         })
 
+
+
+
+# trying 
+    if has_heat_pump:
+        print("yes heat pump")
+
+        if heat_pump.get("CoolingDetailedPerformanceData") is not None:
+            print("Cooling detailed performanced data")
+            cooling_detailed_performance_data = heat_pump.get("CoolingDetailedPerformanceData")
+            print(cooling_detailed_performance_data)
+            cooling_performance_data_point = cooling_detailed_performance_data.get("PerformanceDataPoint")
+            outdoor_temperature = cooling_performance_data_point.get("OutdoorTemperature")
+            capacity_data_point = cooling_performance_data_point.get("Capacity")
+            capacity_description = cooling_performance_data_point.get("CapacityDescription")
+            efficiency_data_point = cooling_performance_data_point.get("Efficiency")
+            efficiency_units = efficiency_data_point.get("Units")
+            efficiency_value = efficiency_data_point.get("Value")
+            print(efficiency_value)
+    else:
+        print("no heat pump")
+# i don't understand how to get outputs to print ? what file do i run to test with hpxml file ?
+# variable names ?
+# then do i make a dict of each the data points so it it (performance data) = {outdoor temp: [5, 47, ...], capacity: [19000, 11000, ....]} for example ?
+
+
+
+
     if has_heat_pump and hvac_type == 'Heating':
         backup_capacity = heat_pump.get('BackupHeatingCapacity', 0)
         backup_fuel = heat_pump.get('BackupSystemFuel')
@@ -875,7 +903,7 @@ def parse_hvac(hvac_type, hvac_all):
              if parse_zone_name(d.get('DuctLocation')) not in ['Indoor', None]]
 
     if f'Annual{hvac_type}DistributionSystemEfficiency' in distribution:
-        # Note, ducts are assumed to be in ambient space, DSE losses aren't added to another zone
+        # Note, ducts are assumed to be in ambient space, DSE l=osses aren't added to another zone
         out['Ducts'] = {
             'DSE (-)': distribution[f'Annual{hvac_type}DistributionSystemEfficiency'],
             'Zone': None,
