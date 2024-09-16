@@ -848,31 +848,25 @@ def parse_hvac(hvac_type, hvac_all):
         })
 
 
-
-
-# trying 
     if has_heat_pump:
         print("yes heat pump")
 
         if heat_pump.get("CoolingDetailedPerformanceData") is not None:
-            print("Cooling detailed performanced data")
             cooling_detailed_performance_data = heat_pump.get("CoolingDetailedPerformanceData")
-            print(cooling_detailed_performance_data)
-            cooling_performance_data_point = cooling_detailed_performance_data.get("PerformanceDataPoint")
-            outdoor_temperature = cooling_performance_data_point.get("OutdoorTemperature")
-            capacity_data_point = cooling_performance_data_point.get("Capacity")
-            capacity_description = cooling_performance_data_point.get("CapacityDescription")
-            efficiency_data_point = cooling_performance_data_point.get("Efficiency")
-            efficiency_units = efficiency_data_point.get("Units")
-            efficiency_value = efficiency_data_point.get("Value")
-            print(efficiency_value)
+            cooling_performance = {}
+            for n in range(len(cooling_detailed_performance_data)):
+                if cooling_detailed_performance_data[n]["Efficiency"]["Units"] != "COP":
+                    print("non cop efficiency units") # is this an issue ? doesn't fit dictionary format but that can change
+
+                if (cooling_detailed_performance_data[n]['OutdoorTemperature']) not in cooling_performance.keys():
+                    cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']] = {}
+
+                cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']][f"{cooling_detailed_performance_data[n]['CapacityDescription']}_capacity"] = [cooling_detailed_performance_data[n]['Capacity']]
+                cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']][f"{cooling_detailed_performance_data[n]['CapacityDescription']}_COP"] = [f"{cooling_detailed_performance_data[n]['Efficiency']['Value']}"]
+              
+        print("cooling performance", cooling_performance)
     else:
         print("no heat pump")
-# i don't understand how to get outputs to print ? what file do i run to test with hpxml file ?
-# variable names ?
-# then do i make a dict of each the data points so it it (performance data) = {outdoor temp: [5, 47, ...], capacity: [19000, 11000, ....]} for example ?
-
-
 
 
     if has_heat_pump and hvac_type == 'Heating':
