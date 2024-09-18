@@ -23,8 +23,8 @@ dwelling_args = {
     'time_zone': None,                            # option to specify daylight savings, in development
 
     # Input parameters - Sample building (uses HPXML file and time series schedule file)
-    'hpxml_file': os.path.join('C:/Users/kbaertle/OneDrive - NREL', 'detailed heat pump performance.xml'), 
-    'schedule_input_file': os.path.join('C:/Users/kbaertle/OneDrive - NREL', 'detailed heat pump performance.csv'),
+    'hpxml_file': os.path.join(default_input_path, 'Input Files',  'detailed-heat-pump-performance.xml'), 
+    'schedule_input_file': os.path.join(default_input_path, 'Input Files', 'sample_resstock_schedule.csv'),
 
     # Input parameters - weather (note weather_path can be used when Weather Station is specified in HPXML file)
     # 'weather_path': weather_path,
