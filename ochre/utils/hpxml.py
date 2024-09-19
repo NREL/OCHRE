@@ -849,25 +849,34 @@ def parse_hvac(hvac_type, hvac_all):
 
 
     if has_heat_pump:
-        print("yes heat pump")
-
         if heat_pump.get("CoolingDetailedPerformanceData") is not None:
             cooling_detailed_performance_data = heat_pump.get("CoolingDetailedPerformanceData")
             cooling_performance = {}
             for n in range(len(cooling_detailed_performance_data)):
                 if cooling_detailed_performance_data[n]["Efficiency"]["Units"] != "COP":
-                    print("non cop efficiency units") # is this an issue ? doesn't fit dictionary format but that can change
+                    print("non cop efficiency units") # FIXME: This should probably crash the sim. Unlikely we'll ever get something other than COP, but it's what we're expecting
 
                 if (cooling_detailed_performance_data[n]['OutdoorTemperature']) not in cooling_performance.keys():
                     cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']] = {}
 
                 cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']][f"{cooling_detailed_performance_data[n]['CapacityDescription']}_capacity"] = [cooling_detailed_performance_data[n]['Capacity']]
                 cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']][f"{cooling_detailed_performance_data[n]['CapacityDescription']}_COP"] = [f"{cooling_detailed_performance_data[n]['Efficiency']['Value']}"]
-              
-        print("cooling performance", cooling_performance)
-    else:
-        print("no heat pump")
+            out['CoolingDetailedPerformance'] = cooling_performance
+        
+        #TODO: else? Right now we'd keep things as is, but we might want to change default to match changes Yueyue made in OS-HPXML
+        if heat_pump.get("HeatingDetailedPerformanceData") is not None:
+            heating_detailed_performance_data = heat_pump.get("HeatingDetailedPerformanceData")
+            heating_performance = {}
+            for n in range(len(cooling_detailed_performance_data)):
+                if heating_detailed_performance_data[n]["Efficiency"]["Units"] != "COP":
+                    print("non cop efficiency units") # FIXME: This should probably crash the sim. Unlikely we'll ever get something other than COP, but it's what we're expecting
 
+                if (heating_detailed_performance_data[n]['OutdoorTemperature']) not in heating_performance.keys():
+                    heating_performance[heating_detailed_performance_data[n]['OutdoorTemperature']] = {}
+
+                heating_performance[heating_detailed_performance_data[n]['OutdoorTemperature']][f"{heating_detailed_performance_data[n]['CapacityDescription']}_capacity"] = [heating_detailed_performance_data[n]['Capacity']]
+                heating_performance[heating_detailed_performance_data[n]['OutdoorTemperature']][f"{heating_detailed_performance_data[n]['CapacityDescription']}_COP"] = [f"{heating_detailed_performance_data[n]['Efficiency']['Value']}"]
+            out['HeatingDetailedPerformance'] = heating_performance
 
     if has_heat_pump and hvac_type == 'Heating':
         backup_capacity = heat_pump.get('BackupHeatingCapacity', 0)
