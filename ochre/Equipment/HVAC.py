@@ -674,6 +674,16 @@ class DynamicHVAC(HVAC):
         min_time_in_low = kwargs.get('Minimum Low Time (minutes)', 5)
         min_time_in_high = kwargs.get('Minimum High Time (minutes)', 5)
         self.min_time_in_speed = [dt.timedelta(minutes=min_time_in_low), dt.timedelta(minutes=min_time_in_high)]
+        
+        # not sure about the format of this
+        if kwargs.get('CoolingDetailedPerformance'):
+            self.cooling_detailed_performance = kwargs.get('CoolingDetailedPerformance')
+        else:
+            self.cooling_detailed_performance = None
+        if kwargs.get('HeatingDetailedPerformance'):
+            self.heating_detailed_performance = kwargs.get('HeatingDetailedPerformance')
+        else:
+            self.heating_detailed_performance = None
 
         # Load biquadratic parameters from file - only keep those with the correct speed type
         if not kwargs.get('Disable HVAC Biquadratics', False):
@@ -827,6 +837,126 @@ class DynamicHVAC(HVAC):
         else:
             raise OCHREException('Incompatible number of speeds for dynamic equipment:', self.n_speeds)
 
+    def calculate_odb_at_zero_cop_or_capacity(self, detailed_performance_data, user_odbs, property, find_high, min_cop_or_capacity=0): # os hpxml : https://github.com/NREL/OpenStudio-HPXML/blob/afdd3884ed151f1e985c90c85921d1a9eecd0548/HPXMLtoOpenStudio/resources/hvac.rb#L2921
+    # allow it to calculate min temp where cop is at a defined value (less than backup efficiency) (rn set to default of 1)
+
+    # find -> first one that fits condition.
+        if find_high: 
+            if user_odbs[-1] in detailed_performance_data:
+                odb_1 = user_odbs[-1] # temperature
+                odb_dp1 = detailed_performance_data[user_odbs[-1]] # data
+            else:
+                odb_dp1 = None # insufficient input ?
+            if user_odbs[-2] in detailed_performance_data:
+                odb_2 = user_odbs[-2]
+                odb_dp2 = detailed_performance_data[user_odbs[-2]]
+            else:
+                odb_dp2 = None # insufficient input ?
+        else:
+            if user_odbs[0] in detailed_performance_data:
+                odb_1 = user_odbs[0]
+                odb_dp1 = detailed_performance_data[user_odbs[0]]
+            else:
+                odb_dp1 = None # insufficient input ?
+            if user_odbs[1] in detailed_performance_data:
+                odb_2 = user_odbs[1]
+                odb_dp2 = detailed_performance_data[user_odbs[1]]
+            else:
+                odb_dp2 = None # insufficient input ?
+        v1 = float(odb_dp1[property][0]) 
+        v2 = float(odb_dp2[property][0])
+        slope = (float(odb_dp2[property][0]) - float(odb_dp1[property][0])) / (odb_2 - odb_1) # syntax ?
+
+        if find_high == True and slope >= 0:
+            return 999999.0
+        elif find_high == False and slope <= 0:
+            return -999999.0
+
+        # solve for intercept
+        intercept = float(odb_dp2[property][0]) - slope*odb_2
+        # find target odb 
+        target_odb = (min_cop_or_capacity-intercept)/slope
+        # add small buffer
+        delta_odb = 1.0
+        if find_high:
+            return target_odb - delta_odb
+        else:
+            return target_odb + delta_odb
+
+    def interpolate_to_odb_table_point(self, detailed_performance_data, property, target_odb): # os hpxml: https://github.com/NREL/OpenStudio-HPXML/blob/afdd3884ed151f1e985c90c85921d1a9eecd0548/HPXMLtoOpenStudio/resources/hvac.rb#L2958
+        # removed capacity description as our property/capacity description are together (max cop / min capacity)
+        if target_odb in detailed_performance_data.keys():
+            return detailed_performance_data[target_odb][property]
+        
+        user_odbs = sorted(set(list(detailed_performance_data.keys())))
+        if max(user_odbs) < target_odb:
+            right_odb = user_odbs[-1]
+            left_odb = user_odbs[-2]
+        elif (min(user_odbs) > target_odb):
+            right_odb = user_odbs[1]
+            left_odb = user_odbs[0]
+        else:
+            right_odb = max(user_odbs)
+            left_odb = min(user_odbs)    
+        
+        slope = (detailed_performance_data[right_odb][property] - detailed_performance_data[left_odb][property]) / (right_odb - left_odb)
+        val = (target_odb - left_odb) * slope + detailed_performance_data[left_odb][property]
+
+        return val
+
+    def interpolate_to_odb_table_points(self, detailed_performance_data): #, compressor_lockout_temp, weather_temp): # os hpxml https://github.com/NREL/OpenStudio-HPXML/blob/afdd3884ed151f1e985c90c85921d1a9eecd0548/HPXMLtoOpenStudio/resources/hvac.rb#L2872
+        user_odbs = list(detailed_performance_data.keys())
+
+        # can do this or just code the variable names into the high/low odb at zero cop/capacity variables
+        properties = list(detailed_performance_data[list(detailed_performance_data.keys())[0]].keys())
+        # for property in range(len(properties)):   
+            # if "min" in properties[property] and "COP" in properties[property]:
+            #     low_cop = property
+            # elif "max" in properties[property] and "COP" in properties[property]:
+            #     high_cop = property
+            # elif "min" in properties[property] and "cap" in properties[property]:
+            #     low_capacity = property
+            # elif "max" in properties[property] and "cap" in properties[property]:
+            #     high_capacity = property
+            # else:
+            #     (print(property))
+        if self.end_use == 'HVAC Cooling':
+            outdoor_dry_bulbs = []
+            # calculate zero cop/capacity stuff
+            # do with gross eventually
+            high_odb_at_zero_cop = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'maximum_COP', True)
+            high_odb_at_zero_capacity = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'maximum_capacity', True)
+            low_odb_at_zero_cop = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'minimum_COP', False)
+            low_odb_at_zero_capacity = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'minimum_capacity', False)
+
+            outdoor_dry_bulbs += [max(low_odb_at_zero_cop, low_odb_at_zero_capacity, 55)] # min cooling odb
+            outdoor_dry_bulbs += [min(high_odb_at_zero_cop, high_odb_at_zero_capacity)] #, weather_temp)] # max cooling odb
+        else:   
+            outdoor_dry_bulbs = []
+            # calculate zero cop/capacity stuff
+            # do with gross eventually
+            high_odb_at_zero_cop = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'maximum_COP', False)
+            high_odb_at_zero_capacity = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'maximum_capacity', False)
+            low_odb_at_zero_cop = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'minimum_COP', True)
+            low_odb_at_zero_capacity = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'minimum_capacity', True)
+
+            outdoor_dry_bulbs += [max(low_odb_at_zero_cop, low_odb_at_zero_capacity)] #, compressor_lockout_temp, weather_temp)] # min heating odb
+            outdoor_dry_bulbs += [min(high_odb_at_zero_cop, high_odb_at_zero_capacity, 60)] # max heating odb
+        
+        print("high odb zero cop", high_odb_at_zero_cop)
+        print("high odb zero cap", high_odb_at_zero_capacity)
+        print("low odb zero cop", low_odb_at_zero_cop)
+        print("low odb zero cap", low_odb_at_zero_capacity)
+
+
+        for target_odb in outdoor_dry_bulbs:
+            if target_odb not in user_odbs:
+                #make new sub dictionary for this in the detailed performance data dictionary
+                detailed_performance_data[target_odb] = {}
+                for property in properties: # do with gross eventually
+                    detailed_performance_data[target_odb][property] = self.interpolate_to_odb_table_point(detailed_performance_data, property, target_odb)
+
+
     def calculate_biquadratic_param(self, param, speed_idx, flow_fraction=1, part_load_ratio=1):
         # runs biquadratic equation for EIR or capacity given the speed index
         # param is 'cap' or 'eir'
@@ -842,6 +972,10 @@ class DynamicHVAC(HVAC):
         if speed_idx == 0 or self.biquad_params is None:
             return rated
 
+        # flag + interpolation here
+        testval = self.interpolate_to_odb_table_points(self.cooling_detailed_performance)
+        print(testval)
+        
         # get biquadratic parameters for current speed
         params = self.biquad_params[speed_idx]
 
