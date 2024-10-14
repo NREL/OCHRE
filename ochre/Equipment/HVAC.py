@@ -865,12 +865,13 @@ class DynamicHVAC(HVAC):
                 odb_dp2 = None # insufficient input ?
         v1 = float(odb_dp1[property][0]) 
         v2 = float(odb_dp2[property][0])
-        slope = (float(odb_dp2[property][0]) - float(odb_dp1[property][0])) / (odb_2 - odb_1) # syntax ?
+        slope = (float(odb_dp1[property][0]) - float(odb_dp2[property][0])) / (odb_1 - odb_2) # syntax ?
 
-        if find_high == True and slope >= 0:
-            return 999999.0
-        elif find_high == False and slope <= 0:
-            return -999999.0
+        # # Datapoints don't trend toward zero COP?
+        # if find_high == True and slope >= 0:
+        #     return 999999.0
+        # elif find_high == False and slope <= 0:
+        #     return -999999.0
 
         # solve for intercept
         intercept = float(odb_dp2[property][0]) - slope*odb_2
@@ -935,10 +936,10 @@ class DynamicHVAC(HVAC):
             outdoor_dry_bulbs = []
             # calculate zero cop/capacity stuff
             # do with gross eventually
-            high_odb_at_zero_cop = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'maximum_COP', False)
-            high_odb_at_zero_capacity = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'maximum_capacity', False)
-            low_odb_at_zero_cop = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'minimum_COP', True)
-            low_odb_at_zero_capacity = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'minimum_capacity', True)
+            high_odb_at_zero_cop = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'maximum_COP', True)
+            high_odb_at_zero_capacity = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'maximum_capacity', True)
+            low_odb_at_zero_cop = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'minimum_COP', False)
+            low_odb_at_zero_capacity = self.calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, 'minimum_capacity', False)
 
             outdoor_dry_bulbs += [max(low_odb_at_zero_cop, low_odb_at_zero_capacity)] #, compressor_lockout_temp, weather_temp)] # min heating odb
             outdoor_dry_bulbs += [min(high_odb_at_zero_cop, high_odb_at_zero_capacity, 60)] # max heating odb
@@ -973,7 +974,12 @@ class DynamicHVAC(HVAC):
             return rated
 
         # flag + interpolation here
-        testval = self.interpolate_to_odb_table_points(self.cooling_detailed_performance)
+        if self.end_use == 'HVAC Cooling':
+            testval = self.interpolate_to_odb_table_points(self.cooling_detailed_performance)
+        elif self.end_use == 'HVAC Heating':
+            testval = self.interpolate_to_odb_table_points(self.heating_detailed_performance)
+        else:
+            raise OCHREException('Unable to determine if detailed data is heating or cooling', self.end_use)
         print(testval)
         
         # get biquadratic parameters for current speed
