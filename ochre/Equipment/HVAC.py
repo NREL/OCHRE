@@ -1165,9 +1165,13 @@ class ASHPHeater(HeatPumpHeater):
             else:
                 return 'Off'
 
-    def run_er_thermostat_control(self):
+    def run_er_thermostat_control(self, temperature_offset=2):
         # run thermostat control for ER element - lower the setpoint by the deadband
         # TODO: add option to keep setpoint as is, e.g. when using external control
+        # input for how far off of setpoint (setpoint - user input)
+        # lockout after setpoint changes
+        # checking indoor temp
+        # staged backup (gradually increasing amount of capacity available) (lowest priority)
         er_setpoint = self.temp_setpoint - self.temp_deadband
         temp_indoor = self.zone.temperature
 
