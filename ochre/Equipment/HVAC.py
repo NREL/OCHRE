@@ -123,8 +123,11 @@ class HVAC(Equipment):
         self.duct_dse = ducts.get('DSE (-)')  # Duct distribution system efficiency
         self.duct_zone = self.envelope_model.zones.get(ducts.get('Zone'))
         if self.duct_dse is None:
-            # Calculate DSE using ASHRAE 152
-            self.duct_dse = utils_equipment.calculate_duct_dse(self, ducts, **kwargs)
+            if self.name == 'Room AC':
+                self.duct_dse = 1
+            else:
+                # Calculate DSE using ASHRAE 152
+                self.duct_dse = utils_equipment.calculate_duct_dse(self, ducts, **kwargs)
         if self.duct_dse < 1 and self.duct_zone == self.zone:
             self.warn(f'Ignoring duct DSE because ducts are in {self.zone.name} zone.')
             self.duct_dse = 1
@@ -687,7 +690,7 @@ class DynamicHVAC(HVAC):
                                         (df_speed['HVAC Efficiency'] == rated_efficiency) &
                                         (df_speed['Number of Speeds'] == self.n_speeds)]
             if not len(speed_params):
-                raise OCHREException(f'Cannot find multispeed parameters for {rated_efficiency} {self.name}')
+                raise OCHREException(f'Cannot find multispeed parameters for {self.n_speeds}-speed {rated_efficiency} {self.name}')
             assert len(speed_params) == 1
             speed_params = speed_params.iloc[0].to_dict()
             
@@ -1162,9 +1165,13 @@ class ASHPHeater(HeatPumpHeater):
             else:
                 return 'Off'
 
-    def run_er_thermostat_control(self):
+    def run_er_thermostat_control(self, temperature_offset=2):
         # run thermostat control for ER element - lower the setpoint by the deadband
         # TODO: add option to keep setpoint as is, e.g. when using external control
+        # input for how far off of setpoint (setpoint - user input)
+        # lockout after setpoint changes
+        # checking indoor temp
+        # staged backup (gradually increasing amount of capacity available) (lowest priority)
         er_setpoint = self.temp_setpoint - self.temp_deadband
         temp_indoor = self.zone.temperature
 
