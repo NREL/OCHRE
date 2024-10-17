@@ -841,6 +841,7 @@ class DynamicHVAC(HVAC):
     # allow it to calculate min temp where cop is at a defined value (less than backup efficiency) (rn set to default of 1)
 
     # find -> first one that fits condition.
+        print("loop")
         if find_high: 
             if user_odbs[-1] in detailed_performance_data:
                 odb_1 = user_odbs[-1] # temperature
@@ -868,9 +869,9 @@ class DynamicHVAC(HVAC):
         slope = (float(odb_dp1[property][0]) - float(odb_dp2[property][0])) / (odb_1 - odb_2) # syntax ?
 
         # # Datapoints don't trend toward zero COP?
-        # if find_high == True and slope >= 0:
+        # if find_high == True and slope >= 0: # should this be "if cooling & pos slope " ? check return value also
         #     return 999999.0
-        # elif find_high == False and slope <= 0:
+        # elif find_high == False and slope <= 0: # should this be "if heating and neg slope" ? check return value also
         #     return -999999.0
 
         # solve for intercept
@@ -886,6 +887,7 @@ class DynamicHVAC(HVAC):
 
     def interpolate_to_odb_table_point(self, detailed_performance_data, property, target_odb): # os hpxml: https://github.com/NREL/OpenStudio-HPXML/blob/afdd3884ed151f1e985c90c85921d1a9eecd0548/HPXMLtoOpenStudio/resources/hvac.rb#L2958
         # removed capacity description as our property/capacity description are together (max cop / min capacity)
+        print("point")
         if target_odb in detailed_performance_data.keys():
             return detailed_performance_data[target_odb][property]
         
@@ -900,12 +902,13 @@ class DynamicHVAC(HVAC):
             right_odb = max(user_odbs)
             left_odb = min(user_odbs)    
         
-        slope = (detailed_performance_data[right_odb][property] - detailed_performance_data[left_odb][property]) / (right_odb - left_odb)
-        val = (target_odb - left_odb) * slope + detailed_performance_data[left_odb][property]
+        slope = (float(detailed_performance_data[right_odb][property][0]) - float(detailed_performance_data[left_odb][property][0])) / (right_odb - left_odb)
+        val = (target_odb - left_odb) * slope + float(detailed_performance_data[left_odb][property][0])
 
         return val
 
     def interpolate_to_odb_table_points(self, detailed_performance_data): #, compressor_lockout_temp, weather_temp): # os hpxml https://github.com/NREL/OpenStudio-HPXML/blob/afdd3884ed151f1e985c90c85921d1a9eecd0548/HPXMLtoOpenStudio/resources/hvac.rb#L2872
+        print("points")
         user_odbs = list(detailed_performance_data.keys())
 
         # can do this or just code the variable names into the high/low odb at zero cop/capacity variables
@@ -953,9 +956,11 @@ class DynamicHVAC(HVAC):
         for target_odb in outdoor_dry_bulbs:
             if target_odb not in user_odbs:
                 #make new sub dictionary for this in the detailed performance data dictionary
-                detailed_performance_data[target_odb] = {}
+                temp_dict = {}
+                temp_dict[target_odb] = {}
                 for property in properties: # do with gross eventually
-                    detailed_performance_data[target_odb][property] = self.interpolate_to_odb_table_point(detailed_performance_data, property, target_odb)
+                    temp_dict[target_odb][property] = self.interpolate_to_odb_table_point(detailed_performance_data, property, target_odb)
+                detailed_performance_data.update(temp_dict)
 
 
     def calculate_biquadratic_param(self, param, speed_idx, flow_fraction=1, part_load_ratio=1):
@@ -974,13 +979,16 @@ class DynamicHVAC(HVAC):
             return rated
 
         # flag + interpolation here
-        if self.end_use == 'HVAC Cooling':
-            testval = self.interpolate_to_odb_table_points(self.cooling_detailed_performance)
-        elif self.end_use == 'HVAC Heating':
-            testval = self.interpolate_to_odb_table_points(self.heating_detailed_performance)
-        else:
-            raise OCHREException('Unable to determine if detailed data is heating or cooling', self.end_use)
-        print(testval)
+        detailed_data = True
+
+        if detailed_data == True:
+            if self.end_use == 'HVAC Cooling':
+                testval = self.interpolate_to_odb_table_points(self.cooling_detailed_performance)
+            elif self.end_use == 'HVAC Heating':
+                testval = self.interpolate_to_odb_table_points(self.heating_detailed_performance)
+            else:
+                raise OCHREException('Unable to determine if detailed data is heating or cooling', self.end_use)
+            print(testval)
         
         # get biquadratic parameters for current speed
         params = self.biquad_params[speed_idx]
@@ -1305,9 +1313,13 @@ class ASHPHeater(HeatPumpHeater):
             else:
                 return 'Off'
 
-    def run_er_thermostat_control(self):
+    def run_er_thermostat_control(self, temperature_offset=2):
         # run thermostat control for ER element - lower the setpoint by the deadband
         # TODO: add option to keep setpoint as is, e.g. when using external control
+        # input for how far off of setpoint (setpoint - user input)
+        # lockout after setpoint changes
+        # checking indoor temp
+        # staged backup (gradually increasing amount of capacity available) (lowest priority)
         er_setpoint = self.temp_setpoint - self.temp_deadband
         temp_indoor = self.zone.temperature
 
