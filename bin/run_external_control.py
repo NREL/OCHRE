@@ -166,4 +166,4 @@ if __name__ == '__main__':
     # run_with_schedule_control()
     run_constant_control_signal(example_control_signal)
     # run_with_hvac_controller()
-    # run_controls_from_file(external_control_file='path/to/control_file.csv')
+    # run_controls_from_file('path/to/control_file.csv')

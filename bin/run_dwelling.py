@@ -23,7 +23,7 @@ dwelling_args = {
     'time_zone': None,                            # option to specify daylight savings, in development
 
     # Input parameters - Sample building (uses HPXML file and time series schedule file)
-    'hpxml_file': os.path.join(default_input_path, 'Input Files', 'sample_resstock_properties.xml'),
+    'hpxml_file': os.path.join(default_input_path, 'Input Files',  'detailed-heat-pump-performance.xml'), 
     'schedule_input_file': os.path.join(default_input_path, 'Input Files', 'sample_resstock_schedule.csv'),
 
     # Input parameters - weather (note weather_path can be used when Weather Station is specified in HPXML file)
@@ -51,6 +51,11 @@ dwelling_args = {
     #     'zones': {'Indoor': {
     #         'enable_humidity': False,
     #     }},
+    # },
+
+    # Occupancy parameters
+    # 'Occupancy': {
+    #     'Number of Occupants (-)': 3,
     # },
 
     # Equipment parameters
@@ -81,7 +86,7 @@ dwelling_args = {
         #     'save_ebm_results': True,
         # },
         # 'Heat Pump Water Heater': {
-        #     'HPWH COP': 4.5,
+        #     'HPWH COP (-)': 4.5,
         #     # 'hp_only_mode': True
         # },
         # 'Electric Resistance Water Heater': {

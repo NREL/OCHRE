@@ -9,7 +9,7 @@ import ochre.utils.envelope as utils_envelope
 
 
 ZONE_NAME_OPTIONS = {
-    'Indoor': ['living', 'living space'],
+    'Indoor': ['conditioned space'],
     'Foundation': ['crawlspace', 'basement', 'finishedbasement', 'basement - conditioned', 'basement - unconditioned',
                    'crawlspace - vented', 'crawlspace - unvented'],
     'Garage': ['garage'],
@@ -98,7 +98,7 @@ def get_boundaries_by_zones(boundaries, default_int_zone='Indoor', default_ext_z
     return bd_by_zones
 
 
-def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
+def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls, adj_walls):
     # for windows and doors, determine interior zone based on attached wall zone
     ext_bd, gar_bd, attic_bd = {}, {}, {}
     for name, boundary in boundaries.items():
@@ -116,6 +116,9 @@ def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
             boundary['Interior Zone'] = 'Attic'
             attic_bd[name] = boundary
             attic_walls[wall]['Area'] -= boundary['Area']
+        elif wall in adj_walls:
+            # skip doors on adjacent (adiabatic) walls
+            pass
         else:
             raise OCHREException(f'Unknown attached wall for {name}: {wall}')
     
@@ -324,13 +327,17 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
 
     # Get windows (only accepts windows to indoor zone for now), and subtract wall area
     all_windows = enclosure.get('Windows', {})
-    windows, gar_windows, attic_windows = get_boundaries_by_wall(all_windows, ext_walls, gar_walls, attic_walls)
+    windows, gar_windows, attic_windows = get_boundaries_by_wall(
+        all_windows, ext_walls, gar_walls, attic_walls, adj_walls
+    )
     assert not gar_windows
     assert not attic_windows
     
     # Get doors (only accepts doors to indoor zone and garage), and subtract wall area
     all_doors = enclosure.get('Doors', {})
-    doors, gar_doors, attic_doors = get_boundaries_by_wall(all_doors, ext_walls, gar_walls, attic_walls)
+    doors, gar_doors, attic_doors = get_boundaries_by_wall(
+        all_doors, ext_walls, gar_walls, attic_walls, adj_walls
+    )
     assert not attic_doors
 
     boundaries = {
@@ -840,6 +847,37 @@ def parse_hvac(hvac_type, hvac_all):
             'Weekend Setpoints (C)': [convert(weekend_setpoint, 'degF', 'degC')] * 24,
         })
 
+
+    if has_heat_pump:
+        if heat_pump.get("CoolingDetailedPerformanceData") is not None:
+            cooling_detailed_performance_data = heat_pump.get("CoolingDetailedPerformanceData")
+            cooling_performance = {}
+            for n in range(len(cooling_detailed_performance_data)):
+                if cooling_detailed_performance_data[n]["Efficiency"]["Units"] != "COP":
+                    print("non cop efficiency units") # FIXME: This should probably crash the sim. Unlikely we'll ever get something other than COP, but it's what we're expecting
+                    # raise OCHREException("Efficiency units not COP") #not sure format of this
+                if (cooling_detailed_performance_data[n]['OutdoorTemperature']) not in cooling_performance.keys():
+                    cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']] = {}
+
+                cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']][f"{cooling_detailed_performance_data[n]['CapacityDescription']}_capacity"] = [cooling_detailed_performance_data[n]['Capacity']]
+                cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']][f"{cooling_detailed_performance_data[n]['CapacityDescription']}_COP"] = [f"{cooling_detailed_performance_data[n]['Efficiency']['Value']}"]
+            out['CoolingDetailedPerformance'] = cooling_performance
+        
+        #TODO: else? Right now we'd keep things as is, but we might want to change default to match changes Yueyue made in OS-HPXML
+        if heat_pump.get("HeatingDetailedPerformanceData") is not None:
+            heating_detailed_performance_data = heat_pump.get("HeatingDetailedPerformanceData")
+            heating_performance = {}
+            for n in range(len(cooling_detailed_performance_data)):
+                if heating_detailed_performance_data[n]["Efficiency"]["Units"] != "COP":
+                    print("non cop efficiency units") # FIXME: This should probably crash the sim. Unlikely we'll ever get something other than COP, but it's what we're expecting
+                    # raise OCHREException("Efficiency units not COP")
+                if (heating_detailed_performance_data[n]['OutdoorTemperature']) not in heating_performance.keys():
+                    heating_performance[heating_detailed_performance_data[n]['OutdoorTemperature']] = {}
+
+                heating_performance[heating_detailed_performance_data[n]['OutdoorTemperature']][f"{heating_detailed_performance_data[n]['CapacityDescription']}_capacity"] = [heating_detailed_performance_data[n]['Capacity']]
+                heating_performance[heating_detailed_performance_data[n]['OutdoorTemperature']][f"{heating_detailed_performance_data[n]['CapacityDescription']}_COP"] = [f"{heating_detailed_performance_data[n]['Efficiency']['Value']}"]
+            out['HeatingDetailedPerformance'] = heating_performance
+
     if has_heat_pump and hvac_type == 'Heating':
         backup_capacity = heat_pump.get('BackupHeatingCapacity', 0)
         backup_fuel = heat_pump.get('BackupSystemFuel')
@@ -868,7 +906,7 @@ def parse_hvac(hvac_type, hvac_all):
              if parse_zone_name(d.get('DuctLocation')) not in ['Indoor', None]]
 
     if f'Annual{hvac_type}DistributionSystemEfficiency' in distribution:
-        # Note, ducts are assumed to be in ambient space, DSE losses aren't added to another zone
+        # Note, ducts are assumed to be in ambient space, DSE l=osses aren't added to another zone
         out['Ducts'] = {
             'DSE (-)': distribution[f'Annual{hvac_type}DistributionSystemEfficiency'],
             'Zone': None,
@@ -897,6 +935,121 @@ def parse_hvac(hvac_type, hvac_all):
 
     return out
 
+# def calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, property, find_high, min_cop_or_capacity=0):
+#     # allow it to calculate min temp where cop is at a defined value (less than backup efficiency) (rn set to default of 1)
+
+#     # find -> first one that fits condition.
+#     if find_high: 
+#         if user_odbs[-1] in detailed_performance_data:
+#             odb_1 = user_odbs[-1] # temperature
+#             odb_dp1 = detailed_performance_data[user_odbs[-1]] # data
+#         else:
+#             odb_dp1 = None # insufficient input ?
+#         if user_odbs[-2] in detailed_performance_data:
+#             odb_2 = user_odbs[-2]
+#             odb_dp2 = detailed_performance_data[user_odbs[-2]]
+#         else:
+#             odb_dp2 = None # insufficient input ?
+#     else:
+#         if user_odbs[0] in detailed_performance_data:
+#             odb_1 = user_odbs[0]
+#             odb_dp1 = detailed_performance_data[user_odbs[0]]
+#         else:
+#             odb_dp1 = None # insufficient input ?
+#         if user_odbs[1] in detailed_performance_data:
+#             odb_12 = user_odbs[1]
+#             odb_dp2 = detailed_performance_data[user_odbs[1]]
+#         else:
+#             odb_dp2 = None # insufficient input ?
+    
+#     slope = (odb_dp1[property] - odb_dp2[property]) / (odb_1 - odb_2) # syntax ?
+
+#     if (find_high & slope >= 0):
+#         return 999999.0
+#     elif (not find_high & slope <= 0):
+#         return -999999.0
+
+#     # solve for intercept
+#     intercept = odb_dp2[property] - slope*odb_2
+#     # find target odb 
+#     target_odb = (min_cop_or_capacity-intercept)/slope
+#     # add small buffer
+#     delta_odb = 1.0
+#     if find_high:
+#       return target_odb - delta_odb
+#     else:
+#       return target_odb + delta_odb
+
+# def interpolate_to_odb_table_point(detailed_performance_data, property, target_odb): # removed capacity description as our property/capacity description are together (max cop / min capacity)
+#     if target_odb in detailed_performance_data.keys():
+#         return detailed_performance_data[target_odb][property]
+    
+#     user_odbs = sorted(set(list(detailed_performance_data.keys())))
+#     if max(user_odbs) < target_odb:
+#         right_odb = user_odbs[-1]
+#         left_odb = user_odbs[-2]
+#     elif (min(user_odbs) > target_odb):
+#         right_odb = user_odbs[1]
+#         left_odb = user_odbs[0]
+#     else:
+#         right_odb = max(user_odbs)
+#         left_odb = min(user_odbs)    
+    
+#     slope = (detailed_performance_data[right_odb][property] - detailed_performance_data[left_odb][property]) / (right_odb - left_odb)
+#     val = (target_odb - left_odb) * slope + detailed_performance_data[left_odb][property]
+
+#     return val
+
+# def interpolate_to_odb_table_points(detailed_performance_data, mode, compressor_lockout_temp, weather_temp):
+#     user_odbs = list(detailed_performance_data.keys())
+
+#     # can do this or just code the variable names into the high/low odb at zero cop/capacity variables
+#     properties = list(detailed_performance_data[list(detailed_performance_data.keys())[0]].keys())
+#     for property in properties:   
+#         if "min" in properties[property] and "cop" in properties[property]:
+#             low_cop = property
+#         elif "max" in properties[property] and "cop" in properties[property]:
+#             high_cop = property
+#         elif "min" in properties[property] and "cap" in properties[property]:
+#             low_capacity = property
+#         elif "max" in properties[property] and "cap" in properties[property]:
+#             high_capacity = property
+
+#     if mode=="cooling":
+#         outdoor_dry_bulbs = []
+#         # calculate zero cop/capacity stuff
+#         # do with gross eventually
+#         high_odb_at_zero_cop = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, high_cop, True)
+#         high_odb_at_zero_capacity = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, high_capacity, True)
+#         low_odb_at_zero_cop = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, low_cop, False)
+#         low_odb_at_zero_capacity = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, low_capacity, False)
+
+#         outdoor_dry_bulbs += [max(low_odb_at_zero_cop, low_odb_at_zero_capacity, 55)] # min cooling odb
+#         outdoor_dry_bulbs += [min(high_odb_at_zero_cop, high_odb_at_zero_capacity, weather_temp)] # max cooling odb
+#     else:   
+#         outdoor_dry_bulbs = []
+#         # calculate zero cop/capacity stuff
+#         # do with gross eventually
+#         high_odb_at_zero_cop = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, high_cop, False)
+#         high_odb_at_zero_capacity = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, high_capacity, False)
+#         low_odb_at_zero_cop = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, low_cop, True)
+#         low_odb_at_zero_capacity = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, low_capacity, True)
+
+#         outdoor_dry_bulbs += [max(low_odb_at_zero_cop, low_odb_at_zero_capacity, compressor_lockout_temp, weather_temp)] # min heating odb
+#         outdoor_dry_bulbs += [min(high_odb_at_zero_cop, high_odb_at_zero_capacity, 60)] # max heating odb
+    
+#     print("high odb zero cop", high_odb_at_zero_cop)
+#     print("high odb zero cap", high_odb_at_zero_capacity)
+#     print("low odb zero cop", low_odb_at_zero_cop)
+#     print("low odb zero cap", low_odb_at_zero_capacity)
+
+
+#     for target_odb in outdoor_dry_bulbs:
+#         if target_odb not in user_odbs:
+#             #make new sub dictionary for this in the detailed performance data dictionary
+#             detailed_performance_data[target_odb] = {}
+#             for property in properties: # do with gross eventually
+#                 detailed_performance_data[target_odb][property] = interpolate_to_odb_table_point(detailed_performance_data, property, target_odb)
 
 def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     # Returns a dictionary of calculated water heater/water tank properties
@@ -1289,7 +1442,7 @@ def parse_cooking_range(range_dict, oven_dict, n_bedrooms):
     is_induction = range_dict.get('IsInduction', False)
     is_convection = oven_dict.get('IsConvection', False)
     multiplier = range_dict.get('extension', {}).get('UsageMultiplier', 1)
-    assert 'living' in range_dict.get('Location', 'living')
+    assert parse_zone_name(range_dict.get('Location')) in ['Indoor', None]
 
     # get total energy usage
     burner_ef = 0.91 if is_induction else 1
@@ -1437,21 +1590,20 @@ def parse_ev(ev):
 
 
 def parse_pool_equipment(hpxml):
-    # Get pool and hot tub equipment
+    # Get pool and spa equipment
     pool_equipment = {}
-    for ochre_name in ['Pool', 'Hot Tub']:
-        hpxml_name = ochre_name.replace(' ', '')
+    for hpxml_name in ['Pool', 'Spa']:
         pool_list = list(hpxml.get(f'{hpxml_name}s', {}).values())
         if not pool_list or pool_list[0].get('Type', 'none') == 'none':
             continue
 
-        pump = list(pool_list[0][f'{hpxml_name}Pumps'].values())[0]
+        pump = list(pool_list[0]['Pumps'].values())[0]
         heater = pool_list[0]['Heater']
         assert len(pool_list) == 1 and isinstance(pump, dict) and isinstance(heater, dict)
-        if 'Load' in pump:
-            pool_equipment[f'{ochre_name} Pump'] = parse_mel(pump, f'{hpxml_name}Pump')
-        if 'Load' in heater:
-            pool_equipment[f'{ochre_name} Heater'] = parse_mel(heater, f'{hpxml_name}Heater')
+        if 'Load' in pump and pump.get('Type', 'none') != 'none':
+            pool_equipment[f'{hpxml_name} Pump'] = parse_mel(pump, f'{hpxml_name} Pump')
+        if 'Load' in heater and heater.get('Type', 'none') != 'none':
+            pool_equipment[f'{hpxml_name} Heater'] = parse_mel(heater, f'{hpxml_name} Heater')
 
     return pool_equipment
 
@@ -1574,7 +1726,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     mgls = parse_mels(mgl_dict, is_gas=True)
     equipment.update(mgls)
 
-    # Add pool/hot tub equipment: pumps and heaters
+    # Add pool/spa equipment: pumps and heaters
     pool_equipment = parse_pool_equipment(hpxml)
     equipment.update(pool_equipment)
 
@@ -1609,6 +1761,8 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
 
     # Parse occupancy
     occupancy = parse_hpxml_occupancy(hpxml)
+    if 'Occupancy' in house_args:
+        occupancy = nested_update(occupancy, house_args.pop('Occupancy'))
 
     # Parse envelope properties and merge with house_args
     boundaries, zones, construction = parse_hpxml_envelope(hpxml, occupancy, **house_args)
