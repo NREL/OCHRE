@@ -79,8 +79,8 @@ def run_water_heater():
     times = pd.date_range(default_args['start_time'], default_args['start_time'] + default_args['duration'], 
                           freq=time_res)
     water_draw_magnitude = 12  # L/min
-    withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=len(times))
-    #withdraw_rate = pd.read_csv('C:/OCHRE-pcm-13node/ochre/defaults/Input Files/MediumUse_L_per_min.csv')
+    #withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=len(times))
+    withdraw_rate = pd.read_csv('C:/OCHRE-pcm-13node/ochre/defaults/Input Files/MediumUseL.csv.csv')
     schedule = pd.DataFrame({
         'Water Heating (L/min)': withdraw_rate,
         'Zone Temperature (C)': 20,
