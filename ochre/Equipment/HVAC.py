@@ -178,6 +178,10 @@ class HVAC(Equipment):
         self.ext_capacity = None  # Option to set capacity directly, ideal capacity only
         self.ext_capacity_frac = 1  # Option to limit max capacity, ideal capacity only
 
+        # Electric Resistance Control
+        self.timestep_count = 1
+        self.prev_setpoint = None 
+
         # Results options
         self.show_eir_shr = kwargs.get('show_eir_shr', False)
 
@@ -1165,23 +1169,43 @@ class ASHPHeater(HeatPumpHeater):
             else:
                 return 'Off'
 
-    def run_er_thermostat_control(self, setpoint_lower=True, temperature_offset=2):
+    def run_er_thermostat_control(self, temperature_offset=None, min_setpoint_change_duration = 15):
         # TODO: add option to keep setpoint as is, e.g. when using external control
-        # input for how far off of setpoint (setpoint - user input)
-        # lockout after setpoint changes # self.temp_setpoint ? 
-        # checking indoor temp
-        # staged backup (gradually increasing amount of capacity available) (lowest priority)
-        
-        # run thermostat control for ER element - lower the setpoint by the deadband
-        if setpoint_lower==True:
-            er_setpoint = self.temp_setpoint - self.temp_deadband
-            # if temperature_offset is not None:
-            #     er_setpoint = self.temp_setpoint - temperature_offset
-            # else:
-            #    er_setpoint = self.temp_setpoint - self.temp_deadband 
-            #    # or would this be an error?
+        # TODO: input for how far off of setpoint (setpoint - user input)
+        # TODO: lockout after setpoint changes # self.temp_setpoint ? 
+        # TODO: checking indoor temp
+        # TODO: staged backup (gradually increasing amount of capacity available) (lowest priority
+
+        # run thermostat control for ER element - lower the setpoint by the deadband or user input
+        if temperature_offset is not None:
+                er_setpoint = self.temp_setpoint - temperature_offset
         else:
-            er_setpoint = self.temp_setpoint
+            er_setpoint = self.temp_setpoint - self.temp_deadband
+
+        # Determine if setpoint has changed recently
+        if self.prev_setpoint is not None: 
+            min_interval = dt.timedelta(minutes=min_setpoint_change_duration) # minimum amount of time after a setpoint change that er stays off
+            if self.end_use == 'HVAC Heating':
+                if self.temp_setpoint > self.prev_setpoint: # turned up the heat
+                    if (self.time_res > min_interval) or (self.timestep_count * self.time_res > min_interval): # enough time has passed
+                            self.timestep_count = 1 # reset timestep count
+                            # control by temp_turn_on/temp_turn_off
+                    else:
+                        self.timestep_count += 1 # wait longer
+                        return 'Off'
+                elif self.temp_setpoint < self.prev_setpoint: # turned down the heat
+                    return 'Off'
+            elif self.end_use == 'HVAC Cooling':
+                if self.temp_setpoint < self.prev_setpoint: # turned up the ac
+                    if self.timestep_count*self.time_res > min_interval: # enough time has passed
+                        self.timestep_count = 1 # reset timestep count
+                        # control by temp_turn_on/temp_turn_off
+                    else:
+                        self.timestep_count += 1 # wait longer
+                        return 'Off'     
+                elif self.temp_setpoint > self.prev_setpoint: # turned down the ac
+                    return 'Off'  
+
         temp_indoor = self.zone.temperature
 
         # On and off limits depend on heating vs. cooling
@@ -1190,8 +1214,10 @@ class ASHPHeater(HeatPumpHeater):
 
         # Determine mode
         if self.hvac_mult * (temp_indoor - temp_turn_on) < 0:
+            self.prev_setpoint = self.temp_setpoint
             return 'On'
         if self.hvac_mult * (temp_indoor - temp_turn_off) > 0:
+            self.prev_setpoint = self.temp_setpoint
             return 'Off'
 
     def update_er_capacity(self, hp_capacity):
