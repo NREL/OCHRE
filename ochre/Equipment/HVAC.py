@@ -839,31 +839,31 @@ class DynamicHVAC(HVAC):
 
     def calculate_odb_at_zero_cop_or_capacity(self, detailed_performance_data, user_odbs, property, find_high, min_cop_or_capacity=0): # os hpxml : https://github.com/NREL/OpenStudio-HPXML/blob/afdd3884ed151f1e985c90c85921d1a9eecd0548/HPXMLtoOpenStudio/resources/hvac.rb#L2921
         if find_high: 
+            if detailed_performance_data is None:
+                raise OCHREException('Unable to process heat pump detailed performance data', detailed_performance_data)
+            if user_odbs is None:
+                raise OCHREException('Unable to process User ODBs', user_odbs)    
             if user_odbs[-1] in detailed_performance_data:
-                odb_1 = user_odbs[-1] # temperature
+                odb_1 = user_odbs[-1]
                 odb_dp1 = detailed_performance_data[user_odbs[-1]] # data
             else:
                 odb_dp1 = None 
-                # raise OCHREException('Unable to process User ODBs', user_odbs) # unsure if we want this
             if user_odbs[-2] in detailed_performance_data:
                 odb_2 = user_odbs[-2]
                 odb_dp2 = detailed_performance_data[user_odbs[-2]]
             else:
                 odb_dp2 = None
-                # raise OCHREException('Unable to process User ODBs', user_odbs)  # unsure if we want this
         else:
             if user_odbs[0] in detailed_performance_data:
                 odb_1 = user_odbs[0]
                 odb_dp1 = detailed_performance_data[user_odbs[0]]
             else:
                 odb_dp1 = None 
-                # raise OCHREException('Unable to process User ODBs', user_odbs)  # unsure if we want this
             if user_odbs[1] in detailed_performance_data:
                 odb_2 = user_odbs[1]
                 odb_dp2 = detailed_performance_data[user_odbs[1]]
             else:
                 odb_dp2 = None 
-                # raise OCHREException('Unable to process User ODBs', user_odbs)  # unsure if we want this
         v1 = float(odb_dp1[property][0]) 
         v2 = float(odb_dp2[property][0])
         slope = (float(odb_dp1[property][0]) - float(odb_dp2[property][0])) / (odb_1 - odb_2) # syntax ?
