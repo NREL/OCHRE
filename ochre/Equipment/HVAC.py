@@ -1142,6 +1142,10 @@ class ASHPHeater(HeatPumpHeater):
             hp_capacity = HeatPumpHeater.update_capacity(self)
             hp_on = hp_capacity > 0
 
+            # PUT HERE JUST FOR TESTING PURPOSE
+            er_mode_testing = self.run_er_thermostat_control()
+            print(er_mode_testing)
+
             er_capacity = self.update_er_capacity(hp_capacity)
             er_on = er_capacity > 0
         else:
@@ -1174,7 +1178,7 @@ class ASHPHeater(HeatPumpHeater):
         # TODO: input for how far off of setpoint (setpoint - user input)
         # TODO: lockout after setpoint changes # self.temp_setpoint ? 
         # TODO: checking indoor temp
-        # TODO: staged backup (gradually increasing amount of capacity available) (lowest priority
+        # TODO: staged backup (gradually increasing amount of capacity available) (lowest priority)
 
         # run thermostat control for ER element - lower the setpoint by the deadband or user input
         if temperature_offset is not None:
@@ -1190,20 +1194,30 @@ class ASHPHeater(HeatPumpHeater):
                     if (self.time_res > min_interval) or (self.timestep_count * self.time_res > min_interval): # enough time has passed
                             self.timestep_count = 1 # reset timestep count
                             # control by temp_turn_on/temp_turn_off
+                            # print("ifh")
                     else:
                         self.timestep_count += 1 # wait longer
+                        # print("elseh")
                         return 'Off'
                 elif self.temp_setpoint < self.prev_setpoint: # turned down the heat
+                    # print("elifh")
+                    self.prev_setpoint = self.temp_setpoint
+                    self.timestep_count = 1
                     return 'Off'
             elif self.end_use == 'HVAC Cooling':
                 if self.temp_setpoint < self.prev_setpoint: # turned up the ac
                     if self.timestep_count*self.time_res > min_interval: # enough time has passed
                         self.timestep_count = 1 # reset timestep count
                         # control by temp_turn_on/temp_turn_off
+                        # print("ifc")
                     else:
                         self.timestep_count += 1 # wait longer
+                        # print("elsec")
                         return 'Off'     
                 elif self.temp_setpoint > self.prev_setpoint: # turned down the ac
+                    # print("elifc")
+                    self.prev_setpoint = self.temp_setpoint
+                    self.timestep_count = 1
                     return 'Off'  
 
         temp_indoor = self.zone.temperature
@@ -1215,10 +1229,45 @@ class ASHPHeater(HeatPumpHeater):
         # Determine mode
         if self.hvac_mult * (temp_indoor - temp_turn_on) < 0:
             self.prev_setpoint = self.temp_setpoint
+            # print("modeon")
+            self.timestep_count = 1
             return 'On'
         if self.hvac_mult * (temp_indoor - temp_turn_off) > 0:
             self.prev_setpoint = self.temp_setpoint
+            # print("modeoff")
+            self.timestep_count = 1
             return 'Off'
+        
+    def staged_backup(self, existing_stages=0, number_stages=1, capacities=[]):
+        # TODO: figure out existing_stages: make it a self variable ? 
+        # TODO: reset existing_stages to zero every time it's off?
+        if number_stages < 1:
+            raise OCHREException("Invalid input for number of electric resistance backup stages. Must be 1+", number_stages)
+        elif number_stages==1:
+            return 1
+        else:
+            if len(capacities)==0: # default if all the stages have the same capacity
+                if existing_stages == number_stages:
+                    return 1
+                elif existing_stages > 0:
+                    multiplier = existing_stages + 1/number_stages
+                    if multiplier > 1: #do i need this check?
+                        existing_stages = number_stages
+                        return 1
+                    else:
+                        existing_stages += 1
+                        return multiplier
+                else:   
+                    existing_stages += 1
+                    return 1/number_stages
+            else:
+                if existing_stages > 0:
+                    net_capacity = sum(capacities)
+                    # TODO: figure out how to calculate which one is on. 
+                else:
+                    existing_stages += 1
+                    return min(capacities)/sum(capacities)
+
 
     def update_er_capacity(self, hp_capacity):
         if self.use_ideal_capacity:
