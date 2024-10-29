@@ -21,7 +21,8 @@ dwelling_args.update(
         "time_res": dt.timedelta(minutes=1),  # time resolution of the simulation
         "duration": dt.timedelta(days=2),  # duration of the simulation
         "verbosity": 9,
-    }
+        "schedule_input_file": load_profile #changes the default load profile in run_dwelling.py for this code to call the UEF load_profile
+        }
 )
 
 def add_pcm_model(dwelling_args):
@@ -49,7 +50,7 @@ def run_water_heater(dwelling_args,plot_title,load_profile_in):
 
     # If necessary, update equipment schedule
     equipment.model.schedule['Zone Temperature (C)'] = 19.722222 #from the UEF standard https://www.energy.gov/eere/buildings/articles/2014-06-27-issuance-test-procedures-residential-and-commercial-water
-    equipment.model.schedule['Water Use Schedule (L/min)'] = load_profile_in #converted the schedule files directly to L/min
+   # equipment.model.schedule['Water Use Schedule (L/min)'] = load_profile_in #converted the schedule files directly to L/min
     equipment.model.schedule['Mains Temperature (C)'] = 14.4444
     #TODO: 50% RH schedule? Will have some impact on HP performance, but not much
     equipment.reset_time()
