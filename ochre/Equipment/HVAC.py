@@ -181,6 +181,7 @@ class HVAC(Equipment):
         # Electric Resistance Control
         self.timestep_count = 1
         self.prev_setpoint = None 
+        self.existing_stages = 0 # staged backup, number of stages on 
 
         # Results options
         self.show_eir_shr = kwargs.get('show_eir_shr', False)
@@ -1142,10 +1143,6 @@ class ASHPHeater(HeatPumpHeater):
             hp_capacity = HeatPumpHeater.update_capacity(self)
             hp_on = hp_capacity > 0
 
-            # PUT HERE JUST FOR TESTING PURPOSE
-            er_mode_testing = self.run_er_thermostat_control()
-            print(er_mode_testing)
-
             er_capacity = self.update_er_capacity(hp_capacity)
             er_on = er_capacity > 0
         else:
@@ -1173,18 +1170,18 @@ class ASHPHeater(HeatPumpHeater):
             else:
                 return 'Off'
 
-    def run_er_thermostat_control(self, temperature_offset=None, min_setpoint_change_duration = 15):
+    def run_er_thermostat_control(self, temperature_offset=None, min_setpoint_change_duration = 15, staged=False):
         # TODO: add option to keep setpoint as is, e.g. when using external control
         # TODO: input for how far off of setpoint (setpoint - user input)
         # TODO: lockout after setpoint changes # self.temp_setpoint ? 
-        # TODO: checking indoor temp
+        # TODO: checking indoor temp (update_internal_control ?)
         # TODO: staged backup (gradually increasing amount of capacity available) (lowest priority)
 
         # run thermostat control for ER element - lower the setpoint by the deadband or user input
         if temperature_offset is not None:
-                er_setpoint = self.temp_setpoint - temperature_offset
+            er_setpoint = self.temp_setpoint - temperature_offset/2
         else:
-            er_setpoint = self.temp_setpoint - self.temp_deadband
+            er_setpoint = self.temp_setpoint - self.temp_deadband 
 
         # Determine if setpoint has changed recently
         if self.prev_setpoint is not None: 
@@ -1194,37 +1191,39 @@ class ASHPHeater(HeatPumpHeater):
                     if (self.time_res > min_interval) or (self.timestep_count * self.time_res > min_interval): # enough time has passed
                             self.timestep_count = 1 # reset timestep count
                             # control by temp_turn_on/temp_turn_off
-                            # print("ifh")
                     else:
                         self.timestep_count += 1 # wait longer
-                        # print("elseh")
+                        self.existing_stages = 0 # no staged
                         return 'Off'
                 elif self.temp_setpoint < self.prev_setpoint: # turned down the heat
-                    # print("elifh")
                     self.prev_setpoint = self.temp_setpoint
                     self.timestep_count = 1
+                    self.existing_stages = 0 # no staged
                     return 'Off'
             elif self.end_use == 'HVAC Cooling':
                 if self.temp_setpoint < self.prev_setpoint: # turned up the ac
                     if self.timestep_count*self.time_res > min_interval: # enough time has passed
                         self.timestep_count = 1 # reset timestep count
                         # control by temp_turn_on/temp_turn_off
-                        # print("ifc")
                     else:
                         self.timestep_count += 1 # wait longer
-                        # print("elsec")
+                        self.existing_stages = 0 # no staged
                         return 'Off'     
                 elif self.temp_setpoint > self.prev_setpoint: # turned down the ac
-                    # print("elifc")
                     self.prev_setpoint = self.temp_setpoint
                     self.timestep_count = 1
+                    self.existing_stages = 0 # no staged
                     return 'Off'  
 
         temp_indoor = self.zone.temperature
 
         # On and off limits depend on heating vs. cooling
-        temp_turn_on = er_setpoint - self.hvac_mult * self.temp_deadband / 2
-        temp_turn_off = er_setpoint + self.hvac_mult * self.temp_deadband / 2
+        if temperature_offset is not None:
+            temp_turn_on = er_setpoint - self.hvac_mult * temperature_offset / 2
+            temp_turn_off = er_setpoint + self.hvac_mult * temperature_offset / 2
+        else:
+            temp_turn_on = er_setpoint - self.hvac_mult * self.temp_deadband / 2
+            temp_turn_off = er_setpoint + self.hvac_mult * self.temp_deadband / 2
 
         # Determine mode
         if self.hvac_mult * (temp_indoor - temp_turn_on) < 0:
@@ -1236,38 +1235,36 @@ class ASHPHeater(HeatPumpHeater):
             self.prev_setpoint = self.temp_setpoint
             # print("modeoff")
             self.timestep_count = 1
+            self.existing_stages = 0 # no staged
             return 'Off'
         
-    def staged_backup(self, existing_stages=0, number_stages=1, capacities=[]):
-        # TODO: figure out existing_stages: make it a self variable ? 
-        # TODO: reset existing_stages to zero every time it's off?
-        if number_stages < 1:
-            raise OCHREException("Invalid input for number of electric resistance backup stages. Must be 1+", number_stages)
-        elif number_stages==1:
-            return 1
-        else:
-            if len(capacities)==0: # default if all the stages have the same capacity
-                if existing_stages == number_stages:
-                    return 1
-                elif existing_stages > 0:
-                    multiplier = existing_stages + 1/number_stages
-                    if multiplier > 1: #do i need this check?
-                        existing_stages = number_stages
-                        return 1
-                    else:
-                        existing_stages += 1
-                        return multiplier
-                else:   
-                    existing_stages += 1
-                    return 1/number_stages
-            else:
-                if existing_stages > 0:
-                    net_capacity = sum(capacities)
-                    # TODO: figure out how to calculate which one is on. 
-                else:
-                    existing_stages += 1
-                    return min(capacities)/sum(capacities)
+        # if staged==True:
+            # amount_on = self.staged_backup(hvac capacity) #not sure what variable to use for this
+        # else: # continue with normal
+        
+    def staged_backup(self, total_capacity, capacity_per_stage=5): # Returns partial capacity based on amount of stages currently on/total amount of stages
+        # make sure existing_stages resets to zero every time it's off?
+        number_stages = total_capacity//capacity_per_stage #rounding to lowest integer
 
+        if number_stages < 1:
+            raise OCHREException("Invalid input for capacity of electric resistance backup stages. Stage capacity is larger than total capcity", capacity_per_stage)
+            # or could just make the capacity_per_stage smaller/return 1
+        elif number_stages==1:
+            return total_capacity
+        else:
+            if self.existing_stages == number_stages: # fully on
+                return total_capacity
+            elif self.existing_stages > 0: #already partially on
+                self.existing_stages += 1
+                multiplier = self.existing_stages/number_stages
+                if multiplier > 1:
+                    self.existing_stages = number_stages
+                    return total_capacity
+                else:
+                    return multiplier*capacity_per_stage
+            else: # turning on, perviously off
+                existing_stages += 1
+                return capacity_per_stage
 
     def update_er_capacity(self, hp_capacity):
         if self.use_ideal_capacity:
