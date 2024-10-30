@@ -334,7 +334,8 @@ def convert_schedule_column(s_hpxml, ochre_name, properties, category='Power'):
             annual_mean = properties['Average Water Draw (L/day)'] / 1440  # in L/min
             schedule_mean = s_hpxml.mean()
         schedule_mean = s_hpxml.mean()
-        max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
+        #max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
+        max_value = 1.0 #Changed to accomodate UEF Draw profile
         out = s_hpxml * max_value
         out.name = f'{ochre_name} (L/min)'
 

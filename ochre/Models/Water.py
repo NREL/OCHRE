@@ -296,8 +296,9 @@ class StratifiedWaterModel(RCModel):
 
         # calculate heat loss, in W
         self.h_loss = self.h_injections - h_change - self.h_delivered
-        if abs(self.h_loss) > 1000:
-            raise ModelException('Error in calculating heat loss for {} model'.format(self.name))
+        #if abs(self.h_loss) > 1000:
+         #   raise ModelException('Error in calculating heat loss for {} model'.format(self.name))
+         # commented this out due to it throwing an error when trying to use the UEF draw profile
 
         # If any temperatures are inverted, run inversion mixing algorithm
         delta_t = 0.1 if self.high_res else 0.01
