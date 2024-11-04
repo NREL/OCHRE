@@ -281,7 +281,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     adj_walls = all_walls.pop(('Indoor', 'Indoor'), {})
     adj_attic_walls = all_walls.pop(('Attic', 'Attic'), {})
     adj_gar_walls = all_walls.pop(('Garage', 'Garage'), {})
-    attic_gar_walls = all_walls.pop(('Attic', 'Garage'), {}) #FIXME: What do we do with these walls?
+    attic_gar_walls = all_walls.pop(('Garage', 'Attic'), {}) #FIXME: What do we do with these walls?
     assert not all_walls  # verifies that all boundaries are accounted for
 
     # Get foundation walls
@@ -535,7 +535,7 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
         attic = attics[0]
 
         # Get gable wall areas for attic and (possibly) garage
-        if len(boundaries.get('Attic Garage Wall', {}).get('Area (m^2)')) > 0: #TODO: for now, if we see walls between attic and garage, calculated geometry differently. May be neglecting some heat transfer between garage/attic boundary
+        if boundaries.get('Attic Garage Wall', {}).get('Area (m^2)') is not None: #TODO: for now, if we see walls between attic and garage, calculated geometry differently. May be neglecting some heat transfer between garage/attic boundary
             attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
                                 boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', [])  + 
                                 boundaries.get('Attic Garage Wall', {}).get('Area (m^2)', []))
@@ -879,6 +879,7 @@ def parse_hvac(hvac_type, hvac_all):
             })
 
     # Get duct info for calculating DSE
+    
     distribution = hvac_all.get('HVACDistribution', {})
     distribution_type = distribution.get('DistributionSystemType', {})
     air_distribution = distribution_type.get('AirDistribution', {})
