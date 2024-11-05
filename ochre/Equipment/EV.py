@@ -76,7 +76,7 @@ class ElectricVehicle(EventBasedLoad):
         self.soc = 1  # unitless
         self.next_soc = 1  # unitless
         self.soc_max_ctrl = 1  # unitless
-        self.unmet_load = 0  # lost charging from delays, in kW
+        self.unmet_load = 0  # lost charging from delays, in kWh
 
         # initialize events
         super().__init__(equipment_event_file=equipment_event_file, **kwargs)
@@ -208,7 +208,7 @@ class ElectricVehicle(EventBasedLoad):
         next_start_soc = self.event_schedule.loc[self.event_index, 'start_soc'] - soc_reduction
         if next_start_soc < 0:
             # Unmet loads exist, set unmet loads for 1 time step only
-            self.unmet_load = -next_start_soc
+            self.unmet_load = -next_start_soc * self.capacity
             self.event_schedule.loc[self.event_index, 'start_soc'] = 0
         else:
             self.event_schedule.loc[self.event_index, 'start_soc'] = min(next_start_soc, 1)
@@ -315,7 +315,7 @@ class ElectricVehicle(EventBasedLoad):
         if self.verbosity >= 3:
             results[f'{self.end_use} SOC (-)'] = self.soc
             results[f'{self.end_use} Parked'] = self.in_event
-            results[f'{self.end_use} Unmet Load (kW)'] = self.unmet_load
+            results[f'{self.end_use} Unmet Load (kWh)'] = self.unmet_load
         if self.verbosity >= 6:
             # results[f'{self.end_use} Setpoint Power (kW)'] = self.setpoint_power or 0
             results[f'{self.end_use} Start Time'] = self.event_start
