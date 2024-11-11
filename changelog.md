@@ -2,8 +2,14 @@
 
 ### New from PRs
 
+- Updated EV model to accept new EV charging data
+- Added EV `event_day_ratio` and `max_power` parameters
+- added EV average SOC and unmet load metrics
+- Updated PV model to use latitude/south for tilt/azimuth if no roof model exists
+- Enabled .epw files with leap year data (we remove Feb 29, similar to Cambium)
 - Added multi-speed HVAC parameters for ResStock 2024 dataset
 - Updated with OS-HPXML v1.7 naming conventions (e.g., spa equipment, indoor zone)
+- Fixed EV unmet load units
 - Fixed garage interior ceiling connections
 - Fixed issue with adjacent doors (e.g., for multi-family units, hallways)
 - Allowed "Occupancy" adjustments in input arguments

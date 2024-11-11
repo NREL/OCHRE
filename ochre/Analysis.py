@@ -232,7 +232,8 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
     #  1. Total energy metrics (without kVAR)
     #  2. End-use energy metrics (without kVAR)
     #  3. Average zone temperatures
-    #  4. HVAC metrics (most), water heater metrics, battery/generator metrics, outage metrics
+    #  4. HVAC metrics (most), water heater metrics, battery/generator
+    #     metrics, EV metrics, outage metrics
     #  5. Equipment-level energy metrics (without kVAR) and cycling metrics
     #  6. Peak electric power
     #  7. Reactive energy metrics
@@ -378,6 +379,14 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
         if 'Hot Water Delivered (W)' in results:
             metrics['Total Hot Water Delivered (kWh)'] = \
                 results['Hot Water Delivered (W)'].sum(skipna=False) / 1000 * hr_per_step
+
+    # EV metrics
+    if "EV SOC (-)" in results:
+        metrics["Average EV SOC (-)"] = results["EV SOC (-)"].mean(skipna=False)
+    if "EV Unmet Load (kWh)" in results:
+        metrics["Total EV Unmet Load (kWh)"] = (
+            results["EV Unmet Load (kWh)"].sum(skipna=False)
+        )
 
     # Battery metrics
     if metrics_verbosity >= 4 and 'Battery Electric Power (kW)' in results:

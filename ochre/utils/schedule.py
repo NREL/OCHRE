@@ -165,6 +165,10 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
         offset = dt.timedelta(minutes=30)
         df, location = pvlib.iotools.read_epw(weather_file)
 
+        if len(df) == 8784:
+            # leap year, remove Feb 29 data
+            df = df.loc[~((df.index.month == 2) & (df.index.day == 29)), :]
+
         # Update year and save time zone info
         df = set_annual_index(df, start_year, offset=offset, timezone=df.index.tzinfo)
         location['timezone'] = location.get('TZ')

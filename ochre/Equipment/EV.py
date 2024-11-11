@@ -34,7 +34,8 @@ class ElectricVehicle(EventBasedLoad):
         "EV Max SOC (-)",
     ]
 
-    def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, enable_part_load=None, equipment_event_file=None, **kwargs):
+    def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, max_power=None, 
+                 enable_part_load=None, equipment_event_file=None, **kwargs):
         # get EV battery capacity and mileage
         if capacity is None and mileage is None:
             raise OCHREException('Must specify capacity or mileage for {}'.format(self.name))
@@ -66,13 +67,16 @@ class ElectricVehicle(EventBasedLoad):
             equipment_event_file = "pdf_Veh{}_{}.csv".format(vehicle_num, self.charging_level)
 
         # charging model
-        self.max_power = EV_MAX_POWER[self.charging_level][vehicle_num - 1]
+        if max_power is None:
+            self.max_power = EV_MAX_POWER[self.charging_level][vehicle_num - 1]
+        else:
+            self.max_power = max_power
         self.max_power_ctrl = self.max_power
         self.setpoint_power = None
         self.soc = 1  # unitless
         self.next_soc = 1  # unitless
         self.soc_max_ctrl = 1  # unitless
-        self.unmet_load = 0  # lost charging from delays, in kW
+        self.unmet_load = 0  # lost charging from delays, in kWh
 
         # initialize events
         super().__init__(equipment_event_file=equipment_event_file, **kwargs)
@@ -87,8 +91,10 @@ class ElectricVehicle(EventBasedLoad):
         df = load_csv(equipment_event_file, sub_folder=self.end_use)
 
         # update column formats
-        df['weekday'] = df['weekday'].astype(bool)
-        df['temperature'] = df['temperature'].astype(int)
+        if 'weekday' in df.columns:
+            df['weekday'] = df['weekday'].astype(bool)
+        if 'temperature' in df.columns:
+            df['temperature'] = df['temperature'].astype(int)
         df['start_time'] = df['start_time'].astype(float)
         df['duration'] = df['duration'].astype(float)
         df['start_soc'] = df['start_soc'].astype(float)
@@ -97,12 +103,40 @@ class ElectricVehicle(EventBasedLoad):
         df = df.sort_values(['day_id', 'start_time'])
         df = df.set_index('day_id')
 
-        # group by weekday and temperature
-        day_ids = df.groupby(['temperature', 'weekday']).groups
-        day_ids = {key: val.unique() for key, val in day_ids.items()}
+        group_types = [col for col in ["temperature", "weekday"] if col in df.columns]
+        if group_types:
+            # group by weekday and/or temperature
+            day_ids = df.groupby(group_types).groups
+            day_ids = {key: val.unique() for key, val in day_ids.items()}
+        else:
+            # return all day ids without grouping
+            day_ids = df.index
         return day_ids, df
 
-    def generate_all_events(self, probabilities, event_data, eq_schedule, ambient_ev_temp=20, **kwargs):
+    def generate_all_events(
+        self,
+        probabilities,
+        event_data,
+        eq_schedule,
+        ambient_ev_temp=20,
+        event_day_ratio=None,
+        **kwargs,
+    ):
+        # Get ratio of days with charging event if not provided
+        if event_day_ratio is None:
+            if self.charging_level != "Level2":
+                # Level 1 plug charges most days
+                event_day_ratio = 0.9
+            elif self.capacity >= 70:
+                # for large EVs (>~200 mi range), charge every 5 days, on average
+                event_day_ratio = 0.2
+            elif self.capacity >= 35:
+                # for smaller EVs (>~100 mi range), charge every 3 days, on average
+                event_day_ratio = 0.33
+            else:
+                # for the smallest EVs (mostly PHEV), charge every 2 days, on average
+                event_day_ratio = 0.5
+
         if eq_schedule is not None:
             # get average daily ambient temperature for generating events and round to nearest 5 C
             if 'Ambient Dry Bulb (C)' not in eq_schedule:
@@ -116,18 +150,27 @@ class ElectricVehicle(EventBasedLoad):
                                   freq=dt.timedelta(days=1))
             temps_by_day = pd.Series([ambient_ev_temp] * len(dates), index=dates)
 
-        # randomly sample IDs by weekday and temp
         temps_by_day.index = pd.to_datetime(temps_by_day.index)
         wdays = temps_by_day.index.weekday < 5
-        keys = list(zip(temps_by_day.values, wdays))
-        day_ids = [np.random.choice(probabilities[key]) for key in keys]
+        keys = {'temperature': temps_by_day.values, 
+                'weekday': wdays,
+        }
+        keys = [key for name, key in keys.items() if name in event_data.columns]
+        if not keys:
+            # randomly sample IDs
+            day_ids = [np.random.choice(probabilities) for _ in range(len(temps_by_day))]
+        else:
+            # randomly sample IDs by weekday and/or temp
+            keys = keys[0] if len(keys) == 1 else list(zip(*keys))
+            day_ids = [np.random.choice(probabilities[key]) for key in keys]
 
-        # get event info and add date
+        # assign charging events for some simulation days
         df_events = []
         for day_id, date in zip(day_ids, temps_by_day.index):
-            df = event_data.loc[event_data.index == day_id].reset_index()
-            df['start_time'] = date + pd.to_timedelta(df['start_time'], unit='minute')
-            df_events.append(df)
+            if np.random.rand() <= event_day_ratio:
+                df = event_data.loc[event_data.index == day_id].reset_index()
+                df['start_time'] = date + pd.to_timedelta(df['start_time'], unit='minute')
+                df_events.append(df)
         df_events = pd.concat(df_events)
         df_events = df_events.reset_index(drop=True)
 
@@ -165,7 +208,7 @@ class ElectricVehicle(EventBasedLoad):
         next_start_soc = self.event_schedule.loc[self.event_index, 'start_soc'] - soc_reduction
         if next_start_soc < 0:
             # Unmet loads exist, set unmet loads for 1 time step only
-            self.unmet_load = -next_start_soc
+            self.unmet_load = -next_start_soc * self.capacity
             self.event_schedule.loc[self.event_index, 'start_soc'] = 0
         else:
             self.event_schedule.loc[self.event_index, 'start_soc'] = min(next_start_soc, 1)
@@ -272,7 +315,7 @@ class ElectricVehicle(EventBasedLoad):
         if self.verbosity >= 3:
             results[f'{self.end_use} SOC (-)'] = self.soc
             results[f'{self.end_use} Parked'] = self.in_event
-            results[f'{self.end_use} Unmet Load (kW)'] = self.unmet_load
+            results[f'{self.end_use} Unmet Load (kWh)'] = self.unmet_load
         if self.verbosity >= 6:
             # results[f'{self.end_use} Setpoint Power (kW)'] = self.setpoint_power or 0
             results[f'{self.end_use} Start Time'] = self.event_start
