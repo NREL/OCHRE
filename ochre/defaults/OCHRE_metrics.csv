@@ -1,0 +1,48 @@
+Metric,Value
+Total Electric Energy (kWh),89.18461527349646
+Total Gas Energy (therms),0.0
+Average Electric Power (kW),3.7160256363956856
+Peak Electric Power (kW),18.80538785282518
+Peak Electric Power - 15 min avg (kW),15.483514687700017
+Peak Electric Power - 30 min avg (kW),12.98747700890073
+Peak Electric Power - 1 hour avg (kW),8.606324722980007
+HVAC Heating Electric Energy (kWh),67.02682285247415
+Water Heating Electric Energy (kWh),7.608424000074074
+Other Electric Energy (kWh),9.545790130486717
+HVAC Cooling Electric Energy (kWh),1.2
+Lighting Electric Energy (kWh),3.803578290461513
+Other Gas Energy (therms),0.0
+Average Temperature - Indoor (C),19.535881466207663
+Average Temperature - Attic (C),-1.2238378176140468
+"Component Load - Ducts, Heating (kWh)",-29.228116493674694
+"Component Load - Ducts, Cooling (kWh)",-0.0
+Unmet Heating Load (C-hours),17.505968751669084
+Unmet Cooling Load (C-hours),0.0
+Total HVAC Heating Delivered (kWh),65.69446354717664
+Average HVAC Heating COP (-),1.4399630864534305
+Average HVAC Heating SHR (-),1.0
+Average HVAC Heating Duct Efficiency (-),0.692084681209719
+Total HVAC Cooling Delivered (kWh),0.0
+Average HVAC Cooling COP (-),0.0
+Total Water Heating Delivered (kWh),7.608424000074074
+Average Water Heating COP (-),1.0
+Total Hot Water Unmet Demand (kWh),0.0
+Total Hot Water Delivered (gal/day),37.9993806960009
+Total Hot Water Delivered (kWh),6.895354265953717
+Clothes Washer Electric Energy (kWh),0.0
+Clothes Dryer Electric Energy (kWh),0.0
+Dishwasher Electric Energy (kWh),0.9724314852286671
+Refrigerator Electric Energy (kWh),0.9943420242250054
+Cooking Range Electric Energy (kWh),1.2406439034837449
+Exterior Lighting Electric Energy (kWh),0.34795321637426896
+Indoor Lighting Electric Energy (kWh),3.4556250740872447
+MELs Electric Energy (kWh),3.7375311960069117
+TV Electric Energy (kWh),2.122041521542385
+Ventilation Fan Electric Energy (kWh),0.47879999999999995
+Clothes Dryer Gas Energy (therms),0.0
+Cooking Range Gas Energy (therms),0.0
+Dishwasher Cycles,2.0
+Cooking Range Cycles,2.0
+"HVAC Heating ""HP On"" Cycles",12.0
+"HVAC Heating ""HP and ER On"" Cycles",11.0
+Water Heating Cycles,8.0
