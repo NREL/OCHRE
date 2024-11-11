@@ -1182,15 +1182,9 @@ class ASHPHeater(HeatPumpHeater):
         # TODO: lockout after setpoint changes # self.temp_setpoint ? 
         # TODO: checking indoor temp (update_internal_control ?)
         # TODO: staged backup (gradually increasing amount of capacity available) (lowest priority)
-
-        # run thermostat control for ER element - lower the setpoint by the deadband or user input
         
-        # use temp offset ?
+        # check case for testing purposes
         if self.kendall_test == 1: 
- 
-        else:
-        # use lockout after setpoint change ?
-        
             temperature_offset = None # no offset
             min_setpoint_change_duration = None # no lockout
             staged = False # not staged
@@ -1225,6 +1219,7 @@ class ASHPHeater(HeatPumpHeater):
         else:
             print("kendall test input error")
 
+        # run thermostat control for ER element - lower the setpoint by the deadband or user input
         if temperature_offset is not None:
             er_setpoint = self.temp_setpoint # - temperature_offset/2
         else:
