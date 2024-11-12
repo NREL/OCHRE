@@ -884,8 +884,10 @@ def parse_hvac(hvac_type, hvac_all):
     distribution_type = distribution.get('DistributionSystemType', {})
     air_distribution = distribution_type.get('AirDistribution', {})
     duct_leakage = air_distribution.get('DuctLeakageMeasurement')
-    ducts = [d for d in air_distribution.get('Ducts', {}).values()
-             if parse_zone_name(d.get('DuctLocation')) not in ['Indoor', None]]
+    ducts = air_distribution.get('Ducts', [])
+    if isinstance(ducts, dict):
+        ducts = list(ducts.values())
+    ducts = [d for d in ducts if parse_zone_name(d.get("DuctLocation")) not in ["Indoor", None]]
 
     if f'Annual{hvac_type}DistributionSystemEfficiency' in distribution:
         # Note, ducts are assumed to be in ambient space, DSE losses aren't added to another zone
