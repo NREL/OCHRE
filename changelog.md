@@ -11,6 +11,7 @@
 - Updated with OS-HPXML v1.7 naming conventions (e.g., spa equipment, indoor zone)
 - Fixed EV unmet load units
 - Fixed garage interior ceiling connections
+- Fixed issue with attic-garage boundaries (#149)
 - Fixed issue with adjacent doors (e.g., for multi-family units, hallways)
 - Allowed "Occupancy" adjustments in input arguments
 
