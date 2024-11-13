@@ -13,6 +13,7 @@
 - Fixed garage interior ceiling connections
 - Fixed issue with attic-garage boundaries (#149)
 - Fixed issue with adjacent doors (e.g., for multi-family units, hallways)
+- Fixed issue with ducts in multiple locations [#148](https://github.com/NREL/OCHRE/issues/148)
 - Allowed "Occupancy" adjustments in input arguments
 
 ### OCHRE v0.8.5-beta
