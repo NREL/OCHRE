@@ -76,15 +76,15 @@ dwelling_args = {
 
         # Water heating equipment
         # Note: dictionary key can be end use (Water Heating) or specific equipment name (e.g., Gas Water Heater)
-        # 'Water Heating': {
-        #     'water_nodes': 1,
+        'Water Heating': {
+            'water_nodes': 12,
         #     'rc_params': {'R_WH1_AMB': 1,
         #                 'C_WH1': 1e6},
         #     'Water Tank': {
         #         'save_results': True,
         #     },
         #     'save_ebm_results': True,
-        # },
+         },
         # 'Heat Pump Water Heater': {
         #     'HPWH COP (-)': 4.5,
         #     # 'hp_only_mode': True

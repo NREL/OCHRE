@@ -31,6 +31,7 @@ dwelling_args.update(
 def add_pcm_model(dwelling_args):
     dwelling_args["Equipment"]["Water Heating"] = {
         "model_class": TankWithPCM,
+        "water_nodes": 12,
         "Water Tank": {
             "pcm_water_node": pcm_water_node,
             "pcm_vol_fraction": pcm_vol_fraction,
@@ -48,8 +49,12 @@ def run_water_heater(dwelling_args,plot_title,load_profile_in):
     equipment = dwelling.get_equipment_by_end_use("Water Heating")
     equipment.main_simulator = True
     equipment.save_results = dwelling.save_results
+    equipment.model.save_results = True
+    equipment.model.results_file = "test.csv" 
     equipment.export_res = dwelling.export_res
     equipment.results_file = dwelling.results_file
+    equipment.verbosity = 9
+    equipment.model.verbosity = 9
 
     # If necessary, update equipment schedule
     equipment.model.schedule['Zone Temperature (C)'] = 19.722222 #from the UEF standard https://www.energy.gov/eere/buildings/articles/2014-06-27-issuance-test-procedures-residential-and-commercial-water
@@ -60,6 +65,7 @@ def run_water_heater(dwelling_args,plot_title,load_profile_in):
 
     # Simulate equipment
     df = equipment.simulate()
+    print(df.columns)
 
     # print(df.head())
     CreateFigures.plot_time_series_detailed((df["Hot Water Outlet Temperature (C)"],))
