@@ -169,8 +169,9 @@ The table below lists the optional arguments for creating a ``Dwelling`` model.
 ``ext_time_res``            datetime.timedelta         None                            Time resolution for external controller. Required for Duty Cycle control.                                                                                            
 ``seed``                    int or string              HPXML or schedule file          Random seed for initial temperatures and EV event data                                                                                                               
 ``modify_hpxml_dict``       dict                       empty dict                      Dictionary that directly modifies values from HPXML file                                                                                                          
-``Envelope``                dict                       empty dict                      Includes envelope specific arguments                                                                                                                              
-``Equipment``               dict                       empty dict                      Includes equipment specific arguments                                                                                                                             
+``Occupancy``               dict                       empty dict                      Includes arguments for building occupancy                                                                                                                            
+``Envelope``                dict                       empty dict                      Includes arguments for the building Envelope                                                                                                                        
+``Equipment``               dict                       empty dict                      Includes Equipment-specific arguments                                                                                                                             
 ==========================  =========================  ==============================  ====================================================================================================================================================================
 
 .. [#] While not required, a warm up period **is recommended**. The warm up gets more accurate initial conditions
@@ -484,6 +485,8 @@ optional equipment-specific arguments for EVs.
 +--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
 | ``capacity or mileage``  | number        | Yes       | 100 miles if HPXML Annual EV Energy < 1500 kWh, otherwise 250 miles | EV battery capacity in kWh or mileage in miles        |
 +--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
+| ``event_day_ratio``      | number        | No        | 0.2-0.9, depending on charging level and capacity                   | Ratio of days with at least 1 charging event          |
++--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
 | ``enable_part_load``     | boolean       | No        | True if charging_level = Level 2                                    | Allows EV to charge at partial load                   |
 +--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
 | ``ambient_ev_temp``      | number        | No        | Taken from schedule, or 20 C                                        | Ambient temperature used to estimate EV usage per day |
@@ -660,9 +663,9 @@ lighting, and miscellaneous electric and gas loads:
 +----------+-------------------+-------------------+
 | Other    | ``ScheduledLoad`` | Pool Heater       |
 +----------+-------------------+-------------------+
-| Other    | ``ScheduledLoad`` | Hot Tub Pump      |
+| Other    | ``ScheduledLoad`` | Spa Pump          |
 +----------+-------------------+-------------------+
-| Other    | ``ScheduledLoad`` | Hot Tub Heater    |
+| Other    | ``ScheduledLoad`` | Spa Heater        |
 +----------+-------------------+-------------------+
 | Other    | ``ScheduledLoad`` | Ceiling Fan       |
 +----------+-------------------+-------------------+

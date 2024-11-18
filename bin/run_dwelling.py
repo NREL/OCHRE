@@ -53,6 +53,11 @@ dwelling_args = {
     #     }},
     # },
 
+    # Occupancy parameters
+    # 'Occupancy': {
+    #     'Number of Occupants (-)': 3,
+    # },
+
     # Equipment parameters
     'Equipment': {
         # HVAC equipment
@@ -81,7 +86,7 @@ dwelling_args = {
         #     'save_ebm_results': True,
         # },
         # 'Heat Pump Water Heater': {
-        #     'HPWH COP': 4.5,
+        #     'HPWH COP (-)': 4.5,
         #     # 'hp_only_mode': True
         # },
         # 'Electric Resistance Water Heater': {

@@ -197,6 +197,18 @@ These status variables are equivalent to the Time Series Outputs described in
 Outputs and Analysis. Note that the ``verbosity`` applies to the status
 variables in the same way as the outputs.
 
+Co-simulation
+-------------
+
+Multiple OCHRE instances have been run in co-simulation using the `HELICS
+<https://helics.org/>`__ platform. OCHRE models can communicate with other
+agents via their external control signals, external model signals, and status
+variables. OCHRE can also run a single timestep with multiple control options,
+enabling co-optimization or simulation across varying time-scales.
+
+See the publications list for examples of co-simulation architectures that use
+OCHRE. We do not currently have public code for using OCHRE in co-simulation.
+
 Example Use Cases
 -----------------
 
@@ -205,14 +217,3 @@ See `bin/run_external_control.py
 `notebooks/user_tutorial.ipynb
 <https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__ for
 more details.
-
-Co-simulation
--------------
-
-Multiple OCHRE instances have been run in co-simulation using the `HELICS
-<https://helics.org/>`__ platform. OCHRE models can communicate with other
-agents via its external control signals, external model signals, and status
-variables.
-
-See the publications list for examples of co-simulation architectures that use
-OCHRE. We do not currently have public code for using OCHRE in co-simulation.
