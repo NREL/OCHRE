@@ -49,8 +49,8 @@ def run_water_heater(dwelling_args,plot_title,load_profile_in):
     equipment = dwelling.get_equipment_by_end_use("Water Heating")
     equipment.main_simulator = True
     equipment.save_results = dwelling.save_results
-    equipment.model.save_results = True
-    equipment.model.results_file = "test.csv" 
+    # equipment.model.save_results = True
+    # equipment.model.results_file = "test.csv" 
     equipment.export_res = dwelling.export_res
     equipment.results_file = dwelling.results_file
     equipment.verbosity = 9
@@ -69,11 +69,16 @@ def run_water_heater(dwelling_args,plot_title,load_profile_in):
 
     # print(df.head())
     CreateFigures.plot_time_series_detailed((df["Hot Water Outlet Temperature (C)"],))
-    #CreateFigures.plot_time_series_detailed((df["Hot Water Delivered (L/min)"],))
     CreateFigures.plt.title(plot_title)
     CreateFigures.plt.suptitle(load_profile_in)
-    CreateFigures.plt.show()
 
+    # print all water tank temperatures
+    cols = [f'T_WH{i}' for i in range(1, 13)]
+    if "With PCM" in plot_title:
+        cols += ["T_PCM"]
+        
+    df[cols].plot()
+    CreateFigures.plt.show()
 
 if __name__ == '__main__':
     #run without PCM

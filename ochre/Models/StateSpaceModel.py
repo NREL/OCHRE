@@ -312,14 +312,13 @@ class StateSpaceModel(Simulator):
     def generate_results(self):
         results = super().generate_results()
 
-        # Note: only includes inputs and states if save_results is True
-        if self.save_results:
-            if self.verbosity >= 5:
-                results.update(self.get_inputs())
-            if self.verbosity >= 1:
-                results.update(self.get_outputs())
-            if self.verbosity >= 9:
-                results.update(self.get_states())
+        if self.verbosity >= 8:
+            results.update(self.get_states())
+        elif self.verbosity >= 5 and self.ny != self.nx:
+            results.update(self.get_outputs())
+
+        if self.verbosity >= 9:
+            results.update(self.get_inputs())
 
         return results
 
