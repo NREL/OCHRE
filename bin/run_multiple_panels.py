@@ -1,19 +1,17 @@
 import os
 import shutil             
-import sys
 import time
 import datetime as dt
 import subprocess
 from multiprocessing import Pool
 import pandas as pd
 
-from ochre import Dwelling, Analysis, ElectricVehicle
+from ochre import Dwelling, Analysis
 
 # Script to run multiple simulations. Assumes each simulation has a unique folder with all required inputs
 
 # Download weather files from: https://data.nrel.gov/submissions/156 or https://energyplus.net/weather
-# weather_path = os.path.join('path', 'to', 'weather_files')
-weather_path = os.path.join(os.getcwd(), 'ResStockFiles', 'Weather')
+weather_path = os.path.join('path', 'to', 'weather_files')
 
 
 def run_multiple_hpc(main_folder, overwrite='False', n_max=None, *args):
@@ -141,17 +139,12 @@ def run_single_building(input_path, size, der_type, charging_level, sim_type='ev
         output_path = os.path.join(input_path, 'ochre_output')
     os.makedirs(output_path, exist_ok=True)
     
-    
     # create OCHRE building based on der type
     if der_type == 'ev':
         dwelling = setup_ev_run(dwelling_args, charging_level)
     else: 
         # baseline ResStock dwelling
         dwelling = Dwelling(**dwelling_args)           
-    
-    # process schedule-based load power profile (clothes dryer, clothes washer, cooking, and dishwasher) 
-    for end_use in ['Clothes Dryer', 'Clothes Washer', 'Cooking Range', 'Dishwasher']:
-        dwelling = change_end_use_power(dwelling, end_use)
                         
     # run simulation
     if sim_type == 'baseline':
@@ -162,32 +155,13 @@ def run_single_building(input_path, size, der_type, charging_level, sim_type='ev
         circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path)
     
     elif sim_type == 'circuit_pausing':
-        circuit_pausing_control(sim_type, input_path, dwelling, tech1, size, output_path)
+        circuit_pausing_control(sim_type, dwelling, tech1, size, output_path)
         
     elif sim_type == 'ev_control':
-        ev_charger_adapter(input_path, dwelling, size, output_path)
+        ev_charger_adapter(dwelling, size, output_path)
 
 
-def change_end_use_power(dwelling, end_use):
-    
-    if end_use in dwelling.equipment_by_end_use or end_use in dwelling.equipment:
-        load = dwelling.get_equipment_by_end_use(end_use)
-        schedule = load.schedule[end_use+' (kW)']
-        # print(f"Old peak {schedule.max()}")
-        
-        # read resstock schedule
-        resstock_schedule = pd.read_csv(os.path.join(input_path, 'schedules.csv'), index_col=None)
-        peak = resstock_schedule[end_use.lower().replace(" ", "_")].max()
-        schedule = schedule/schedule.max()*peak
-        load.schedule[end_use+' (kW)'] = schedule
-        # print(f"New peak {load.schedule.max()}")
-        load.reset_time()
-        
-    return dwelling
-    
-    
 def setup_ev_run(dwelling_args, charging_level):
-
 
     equipment_args = {
         'Electric Vehicle':{
@@ -198,11 +172,7 @@ def setup_ev_run(dwelling_args, charging_level):
         }
     }
 
-    # Initialize equipment
-    # equipment = ElectricVehicle(**equipment_args)
-
     dwelling_args['Equipment']=equipment_args
-    # print(dwelling_args)
     dwelling = Dwelling(**dwelling_args)
 
     return dwelling
@@ -226,7 +196,6 @@ def circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path):
         n_pop = 0 # index for tracking number of cycles poped
     
     for t in times:
-        # print(t, dwelling.current_time)
         assert dwelling.current_time == t
         house_status = dwelling.update(control_signal=control_signal)
     
@@ -251,12 +220,10 @@ def circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path):
                 # keep previous control signal (same as forward fill)
                 control_signal = None
 
-    
     df = pd.DataFrame(t_delay, columns=['Timestamp'])
     if tech2 == 'Clothes Dryer':
         df['Delayed Time (s)'] = deltat_delay
     df.to_csv(os.path.join(output_path, tech2+'_metrics.csv'), index=False)
-    # print('File saved.')
 
     dwelling.finalize()
     
@@ -274,7 +241,6 @@ def record_and_remove_cycle(dwelling, schedule, t, pipeline):
     
     # record cycle in pipeline
     pipeline.append(schedule[cycle_start:cycle_end].copy())
-    # print(pipeline) 
     
     # remove cycle from schedule
     for i in pd.date_range(cycle_start, cycle_end, freq=dwelling.time_res, inclusive='both'):
@@ -286,8 +252,6 @@ def record_and_remove_cycle(dwelling, schedule, t, pipeline):
 def add_first_cycle_to_schedule(dwelling, schedule, pipeline, deltat_delay, n_pop):
     
     # first cycle in pipeline
-    # print(pipeline[0])
-    
     cycle_start = pipeline[0].index[0]
     cycle_end = pipeline[0].index[-1]
     cycle_length = cycle_end - cycle_start
@@ -299,7 +263,6 @@ def add_first_cycle_to_schedule(dwelling, schedule, pipeline, deltat_delay, n_po
     deltat_delay[n_pop] = dwelling.current_time - deltat_delay[n_pop]
     pipeline.pop(0)
     n_pop += 1
-    # print(pipeline)
     
     return(schedule, n_pop)
 
@@ -339,7 +302,6 @@ def dryer_control(sim_type, dwelling, P_prim, t, pipeline, n_delay, N, t_delay, 
             t_delay.append(dwelling.current_time)
             deltat_delay.append(dwelling.current_time)
             dryer.reset_time(start_time=dwelling.current_time)
-            # print(n_delay, N, n_pop, t_delay)
     else:
         if (sim_type == 'circuit_sharing' and n_delay > 0) or (sim_type == 'circuit_pausing' and n_delay > 0 and not exceed_threshold(P_prim, size, pipeline)):
             # check if exceeds threshold if adding dryer cycle, only when circuit pausing
@@ -351,24 +313,17 @@ def dryer_control(sim_type, dwelling, P_prim, t, pipeline, n_delay, N, t_delay, 
                 t_delay.append(coincide_with_next_cycle(dwelling, schedule, pipeline)[1])
                 deltat_delay.append(coincide_with_next_cycle(dwelling, schedule, pipeline)[1])
                 dryer.reset_time(start_time=dwelling.current_time)
-                # print(n_delay, N, n_pop, t_delay)
 
             # add the first cycle in pipeline to schedule
             schedule, n_pop = add_first_cycle_to_schedule(dwelling, schedule, pipeline, deltat_delay, n_pop)
             n_delay -= 1
             dryer.reset_time(start_time=dwelling.current_time)
-            # print(n_delay, N, n_pop, t_delay)
     
     return(n_delay, N, t_delay, deltat_delay, n_pop)
         
 
-def circuit_pausing_control(sim_type, input_path, dwelling, tech1, size, output_path):
-      
-    # read panel sizes
-    # panels = pd.read_csv('C:/GitHub/ochre/ResStockFiles/panels.csv', index_col=0)
-    # size = panels['panel'].loc[int(input_path[-3:])]
-    # print('panel size:', size)
-    
+def circuit_pausing_control(sim_type, dwelling, tech1, size, output_path):
+          
     # run simulation with circuit pausing controls
     times = pd.date_range(dwelling.start_time, dwelling.start_time + dwelling.duration, freq=dwelling.time_res,
                           inclusive='left')
@@ -406,13 +361,11 @@ def circuit_pausing_control(sim_type, input_path, dwelling, tech1, size, output_
             else:
                 # keep previous control signal (same as forward fill)
                 control_signal = None
-        
-    
+         
     df = pd.DataFrame(t_delay, columns=['Timestamp'])
     if tech1 == 'Clothes Dryer':
         df['Delayed Time (s)'] = deltat_delay
     df.to_csv(os.path.join(output_path, tech1+'_metrics.csv'), index=False)
-    # print('File saved.')
 
     dwelling.finalize()
 
@@ -432,7 +385,7 @@ def shed_ev(house_status, size, Pmin=1.44, Pmax=7.68):
         return P_ev
         
 
-def ev_charger_adapter(input_path, dwelling, size, output_path):
+def ev_charger_adapter(dwelling, size, output_path):
          
     # run simulation with ev charger adapter controls
     times = pd.date_range(dwelling.start_time, dwelling.start_time + dwelling.duration, freq=dwelling.time_res,
@@ -444,7 +397,6 @@ def ev_charger_adapter(input_path, dwelling, size, output_path):
     t_delay = [] # for storing timestamps of delay
     
     for t in times:
-        # print(t, dwelling.current_time)
         assert dwelling.current_time == t
         house_status = dwelling.update(control_signal=control_signal)
         
@@ -465,13 +417,9 @@ def ev_charger_adapter(input_path, dwelling, size, output_path):
         else:
             # Keep previous control signal (same as forward fill)
             control_signal = None
-        
-        # house_status = dwelling.update(control_signal=control_signal)
 
-    
     df = pd.DataFrame(t_delay, columns=['Timestamp'])
     df.to_csv(os.path.join(output_path, 'EV_metrics.csv'), index=False)
-    # print('File saved.')
     
     dwelling.finalize()
 
@@ -522,59 +470,29 @@ def my_print(*args):
 
 
 if __name__ == "__main__":
-    # assert len(sys.argv) >= 2
-    # cmd = sys.argv[1]
-    # args = sys.argv[2:]
-    # if cmd == 'hpc':
-    #     run_multiple_hpc(*args)
-    # elif cmd == 'local':
-    #     run_multiple_local(*args)
-    # elif cmd == 'single':
-    #     run_single_building(*args)
-    # else:
-    #     my_print(f'Invalid command ({cmd}) for run_ochre.py. Must be "hpc", "local", or "single".')
-
-    # # compile results from multi-run
-    # if args:
-    #     compile_results(args[0])
     
-    # for running on HPC
     # read the spreadsheet containing all scenarios
-    # scenarios = pd.read_csv(os.path.join(os.getcwd(), 'bin', 'control_scenarios_processed.csv'))
-    scenarios = pd.read_csv(os.path.join(os.getcwd(), 'bin', 'control_scenarios_cs_failed.csv'))
-    # print(scenarios)
+    scenarios = pd.read_csv(os.path.join(os.getcwd(), 'bin', 'control_scenarios_processed.csv'))
     
     # find the controller type based on building id and upgrade number, ignore multiple controllers for now
-    for l in range(len(scenarios[12:13])):
+    for l in range(len(scenarios)):
         
-        k=scenarios[12:13].index[l]
+        k=scenarios.index[l]
         bldg_id = scenarios['building_id'].iloc[k]
-        # print(l, k, bldg_id)
         
         input_path = os.path.join(os.getcwd(), 'ResStockFiles', 'upgrade'+str(scenarios['case'].iloc[k]), str(bldg_id))
         size = scenarios['panel'].iloc[k]
         
-        # preprocess schedules of low-power appliances
-        if scenarios['case'].iloc[k] in [6, 7, 13, 14]:
-            schedule = pd.read_csv(os.path.join(input_path, 'schedules.csv'), index_col=None)
-            schedule['clothes_dryer'] = schedule['clothes_dryer']/2
-            schedule['cooking_range'] = schedule['cooking_range']/2
-            schedule.to_csv(os.path.join(input_path, 'schedules.csv'), index=False)
-        elif scenarios['case'].iloc[k] in [16, 17, 18, 19]:
-            schedule = pd.read_csv(os.path.join(input_path, 'schedules.csv'), index_col=None)
-            schedule['clothes_dryer'] = schedule['clothes_dryer']/2
-            schedule.to_csv(os.path.join(input_path, 'schedules.csv'), index=False)
-        
         # determine ev level
-        # if scenarios['ev_level'].iloc[k] == 'L0':
-        #     der_type=None
-        #     charging_level=None
-        # elif scenarios['ev_level'].iloc[k] == 'L1':
-        #     der_type='ev'
-        #     charging_level='Level 1'
-        # else:
-        der_type='ev'
-        charging_level='Level 2'
+        if scenarios['ev_level'].iloc[k] == 'L0':
+            der_type=None
+            charging_level=None
+        elif scenarios['ev_level'].iloc[k] == 'L1':
+            der_type='ev'
+            charging_level='Level 1'
+        else:
+            der_type='ev'
+            charging_level='Level 2'
             
         # determine control type
         if scenarios['circuit_pause'].iloc[k] == 1:
@@ -587,14 +505,3 @@ if __name__ == "__main__":
         else:
             continue
         
-        # print(k, bldg_id)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
