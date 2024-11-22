@@ -69,9 +69,9 @@ Below is a simple example to simulate a dwelling:
         start_time=dt.datetime(2018, 5, 1, 0, 0),
         time_res=dt.timedelta(minutes=10),
         duration=dt.timedelta(days=3),
-        hpxml_file =os.path.join(default_input_path, 'Input Files','sample_resstock_properties.xml'),
-        schedule_input_file=os.path.join(default_input_path, 'Input Files','sample_resstock_schedule.csv'),
-        weather_file=os.path.join(default_input_path, 'Weather','USA_CO_Denver.Intl.AP.725650_TMY3.epw'),
+        hpxml_file=os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
+        schedule_input_file=os.path.join(default_input_path, "Input Files", "bldg0112631_schedule.csv"),
+        weather_file=os.path.join(default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"),
         verbosity=3,
     )
 
