@@ -28,10 +28,12 @@ def run_battery():
     equipment_args = {
         # Equipment parameters
         # See defaults/Battery/default_parameters.csv for more options
-        'capacity_kwh': 10,
-        'control_type': 'Schedule',
-        'charge_start_hour': 10,  # 10AM
-        'discharge_start_hour': 17,  # 5PM
+        "capacity_kwh": 10,
+        # TODO convert to self_consumption_mode, fix Battery and Gas Generator in docs 
+        # "control_type": "Schedule",
+        # TODO: remove here and in docs, replace with setting battery schedule
+        "charge_start_hour": 10,  # 10AM
+        "discharge_start_hour": 17,  # 5PM
         **default_args,
     }
 
