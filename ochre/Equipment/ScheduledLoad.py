@@ -1,9 +1,5 @@
-import os
-import pandas as pd
-
 from ochre.utils.units import kwh_to_therms
-from ochre.utils import OCHREException, load_csv
-import ochre.utils.schedule as utils_schedule
+from ochre.utils import OCHREException
 from ochre.Equipment import Equipment
 
 
@@ -12,13 +8,14 @@ from ochre.Equipment import Equipment
 
 class ScheduledLoad(Equipment):
     """
-    Equipment with a pre-defined schedule for power. Schedule may come from the main schedule file or a separate file
-    named `equipment_schedule_file`. The schedule must have one or more columns named `<equipment_name> (<unit>)`, where
-    the unit can be 'kW' for electric equipment and 'therms/hour' for gas equipment. Combo equipment should have
-    two columns, one for electric and one for gas power.
+    Equipment with a pre-defined schedule for power. Schedule may come from
+    the building schedule file or separately. The schedule must have one or
+    more columns named `<equipment_name> (<unit>)`, where the unit can be 'kW'
+    for electric equipment and 'therms/hour' for gas equipment. Combo
+    equipment should have two columns, one for electric and one for gas power.
     """
 
-    def __init__(self, zone_name=None, **kwargs):
+    def __init__(self, name, zone_name=None, **kwargs):
         # Update zone based on name. Zone defaults to Indoor
         if zone_name is None:
             if 'Exterior' in self.name:
@@ -28,10 +25,10 @@ class ScheduledLoad(Equipment):
             elif 'Basement' in self.name:
                 zone_name = 'Foundation'
 
-        self.electric_name = None
-        self.gas_name = None
+        self.electric_name = f"{name} (kW)"
+        self.gas_name = f"{name} (therms/hour)"
 
-        super().__init__(zone_name=zone_name, **kwargs)
+        super().__init__(name=name, zone_name=zone_name, **kwargs)
 
         self.p_set_point = 0  # in kW
         self.gas_set_point = 0  # in therms/hour
@@ -46,29 +43,10 @@ class ScheduledLoad(Equipment):
         self.latent_gain_fraction = kwargs.get('Latent Gain Fraction (-)', 0)
         assert self.sensible_gain_fraction + self.latent_gain_fraction <= 1.001  # computational errors possible
 
-    def initialize_schedule(self, schedule=None, equipment_schedule_file=None,
-                            schedule_rename_columns=None, schedule_scale_factor=1, **kwargs):
-        self.electric_name = f'{self.name} (kW)'
-        self.gas_name = f'{self.name} (therms/hour)'
+    def initialize_schedule(self, schedule=None, **kwargs):
+        # Get required column names
         input_cols = [self.electric_name, self.gas_name]
-        has_cols = schedule is not None and any([col in schedule.columns for col in input_cols])
-        
-        if not has_cols and equipment_schedule_file is not None:
-            # load schedule from separate schedule file - used for scheduled PV and EV
-            schedule = load_csv(equipment_schedule_file, sub_folder=self.end_use)
-            schedule = schedule.loc[:, schedule_rename_columns]
-            schedule = utils_schedule.set_annual_index(schedule, self.start_time.year, timezone=self.start_time.tzinfo)
-            schedule = utils_schedule.resample_and_reindex(schedule, **kwargs)
-            if schedule_rename_columns is not None:
-                schedule = schedule.rename(columns=schedule_rename_columns)
-            schedule *= schedule_scale_factor
-
-        if schedule is None:
-            raise OCHREException(f'Schedule required for {self.name}')
-        
         required_inputs = [name for name in input_cols if name in schedule]
-        if not required_inputs:
-            raise OCHREException(f'Cannot find any schedule columns for {self.name}')
 
         # set schedule columns to zero if month multiplier exists and is zero (for ceiling fans)
         multipliers = kwargs.get('month_multipliers', [])

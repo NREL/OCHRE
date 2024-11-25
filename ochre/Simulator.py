@@ -7,6 +7,8 @@ import hashlib
 
 from ochre import __version__
 from ochre.utils import OCHREException
+import ochre.utils.schedule as utils_schedule
+
 
 class Simulator:
     name = 'OCHRE'
@@ -65,16 +67,14 @@ class Simulator:
         # Define model schedule and time resolution
         self.all_schedule_inputs = None
         self.schedule = self.initialize_schedule(**kwargs)
-        self.current_schedule = self.schedule.iloc[0].to_dict() if self.schedule is not None else {}
+        self.current_schedule = self.schedule.iloc[0].to_dict()
         self.schedule_iterable = None
         self.reset_time()
 
-    def set_up_results_files(self, hpxml_file=None, equipment_schedule_file=None, **kwargs):
+    def set_up_results_files(self, hpxml_file=None, **kwargs):
         if self.output_path is None:
             if hpxml_file is not None:
                 self.output_path = os.path.dirname(hpxml_file)
-            elif equipment_schedule_file is not None:
-                self.output_path = os.path.dirname(equipment_schedule_file)
             else:
                 raise OCHREException('Must specify output_path, or set save_results=False.')
         if not os.path.isabs(self.output_path):
@@ -139,62 +139,36 @@ class Simulator:
                 schedule = schedule.set_index('Time')
                 schedule.index = pd.to_datetime(schedule.index)
 
-        if schedule is None or not self.all_schedule_inputs:
-            return None
+        if schedule is None:
+            schedule = pd.DataFrame(index=self.sim_times)
 
         if not isinstance(schedule.index, pd.DatetimeIndex):
             raise OCHREException(f'{self.name} schedule index must be a DateTime index, not {type(schedule.index)}.'
                             f' If loading schedule from a file, try setting index column to "Time".')
 
-        # Check that all required inputs are in schedule, print warning if not
-        # TODO: switch to error
+        # Print warning if all required inputs are not in schedule
         missing_inputs = [name for name in required_inputs if name not in schedule.columns]
         if missing_inputs:
             self.warn(f'Schedule is missing required inputs: {missing_inputs}')
-
+         
         # Only keep specified inputs
-        schedule_input_cols = [name for name in self.all_schedule_inputs if name in schedule.columns]
-        if not schedule_input_cols:
-            return None
-        schedule = schedule.loc[:, schedule_input_cols]
+        schedule_cols = [name for name in self.all_schedule_inputs if name in schedule.columns]
+        schedule = schedule.loc[:, schedule_cols]
 
-        # Check that start time matches schedule
-        if self.start_time < schedule.index[0]:
-            raise OCHREException(f'{self.name} start time ({self.start_time}) is before the schedule start time '
-                                     f'({schedule.index[0]}).')
-        elif self.start_time > schedule.index[0]:
-            self.warn(f'Updating {self.name} schedule start time from {schedule.index[0]} to {self.start_time}.')
-            schedule = schedule.loc[self.start_time:]
-
-        # If schedule resolution is not the same as equipment resolution, pad or average the schedule
-        schedule_res = schedule.index[1] - schedule.index[0]
-        if self.time_res is None:
-            self.time_res = schedule_res
-        elif self.time_res > schedule_res:
-            self.print(f'Resampling schedule resolution to {self.time_res} by averaging.')
-            schedule = schedule.resample(self.time_res).mean()
-        elif self.time_res < schedule_res:
-            self.print(f'Resampling schedule resolution to {self.time_res} by padding.')
-            schedule = schedule.resample(self.time_res).ffill()
-
-        # Check that end time is within schedule
-        end_time = self.start_time + self.duration - self.time_res
-        if end_time == schedule.index[-1]:
-            # Add 1 time step at end to prevent StopIteration error (data isn't actually used)
-            last_row = schedule.iloc[-1:].copy()
-            last_row.index += self.time_res
-            schedule = pd.concat([schedule, last_row])
-        elif end_time + self.time_res < schedule.index[-1]:
-            schedule = schedule.loc[:end_time + self.time_res]
-        elif end_time > schedule.index[-1]:
-            raise OCHREException(f'{self.name} end time ({end_time}) is after the schedule end time '
-                                     f'({schedule.index[-1]}).')
+        # resample and reindex schedule if necessary
+        schedule = utils_schedule.resample_and_reindex(
+            schedule,
+            self.time_res,
+            self.start_time,
+            self.duration,
+            **kwargs,
+        )
 
         return schedule
 
     def update_inputs(self, schedule_inputs=None):
         # Update schedule at current time
-        if self.schedule is not None:
+        if not self.schedule.empty:
             self.current_schedule = next(self.schedule_iterable)
         else:
             self.current_schedule = {}
@@ -309,7 +283,7 @@ class Simulator:
         self.current_time = start_time
 
         # reset schedule_iterable
-        if self.schedule is not None:
+        if not self.schedule.empty:
             schedule = self.schedule.loc[self.current_time:]
             self.schedule_iterable = iter(schedule.to_dict('records'))
 

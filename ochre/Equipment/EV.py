@@ -137,7 +137,7 @@ class ElectricVehicle(EventBasedLoad):
                 # for the smallest EVs (mostly PHEV), charge every 2 days, on average
                 event_day_ratio = 0.5
 
-        if eq_schedule is not None:
+        if not eq_schedule.empty:
             # get average daily ambient temperature for generating events and round to nearest 5 C
             if 'Ambient Dry Bulb (C)' not in eq_schedule:
                 raise OCHREException('EV model requires ambient dry bulb temperature in schedule.')
@@ -338,16 +338,8 @@ class ElectricVehicle(EventBasedLoad):
 
 class ScheduledEV(ScheduledLoad):
     """
-    Electric Vehicle as a scheduled load. Load profile must be defined by the equipment schedule file. This model is not
-    controllable.
+    Electric Vehicle as a scheduled load. Load profile must be defined by the
+    equipment schedule file. This model is not controllable.
     """
-    name = 'Scheduled EV'
     end_use = 'EV'
     zone_name = None
-
-    def __init__(self, vehicle_num=None, equipment_schedule_file=None, **kwargs):
-        if equipment_schedule_file is None:
-            equipment_schedule_file = 'EV Profiles.csv'
-            kwargs['schedule_rename_columns'] = {vehicle_num: 'Scheduled EV (kW)'}
-
-        super().__init__(equipment_schedule_file=equipment_schedule_file, **kwargs)
