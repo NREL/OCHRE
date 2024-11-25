@@ -182,7 +182,9 @@ class HVAC(Equipment):
         # Electric Resistance Control
         self.timestep_count = 1
         self.prev_setpoint = None 
+        self.prev_temp_indoor = None
         self.existing_stages = 0 # staged backup, number of stages on 
+        self.temp_indoor = None
 
         # Results options
         self.show_eir_shr = kwargs.get('show_eir_shr', False)
@@ -334,7 +336,7 @@ class HVAC(Equipment):
         # Could get run multiple times per time step in update_model
 
         # FIXME: do we need a ramp rate with lockout for time after setpoint change
-        if self.kendall_test == 2 or self.kendall_test == 3 or self.kendall_test == 4 or self.kendall_test == 5 or self.kendall_test == 6 or self.kendall_test == 7 or self.kendall_test == 8:
+        if self.kendall_test in {2, 3, 4, 5, 6, 7, 8}:
             self.setpoint_ramp_rate = None
 
         if self.setpoint_ramp_rate is not None:
@@ -1176,48 +1178,45 @@ class ASHPHeater(HeatPumpHeater):
             else:
                 return 'Off'
 
-    def run_er_thermostat_control(self, temperature_offset=None, min_setpoint_change_duration = None, staged=False): #temp offset = 2, min setpoint change duration = 30
+    def run_er_thermostat_control(self, temperature_offset = None, min_setpoint_change_duration = None, hard_lockout = 10, staged = False): #temp offset = 2, min setpoint change duration = 30
         # TODO: add option to keep setpoint as is, e.g. when using external control
         # TODO: input for how far off of setpoint (setpoint - user input)
         # TODO: lockout after setpoint changes # self.temp_setpoint ? 
         # TODO: checking indoor temp (update_internal_control ?)
         # TODO: staged backup (gradually increasing amount of capacity available) (lowest priority)
         
-        # check case for testing purposes
-        if self.kendall_test == 1: 
+        # cases for testing purposes
+        # case 1: baseline (nothing), case 2: only staged backup, case 3: only lockout after setpoint change, case 4: lockout and staged, 
+        # case 5: input how far off setpoint, case 6: staged and offset temp, case 7: all (staged, offset, lockout), case 8: offset temp and lockout
+        # offset temp
+        if self.kendall_test in {1, 2, 3, 4}:
             temperature_offset = None # no offset
-            min_setpoint_change_duration = None # no lockout
-            staged = False # not staged
-        elif self.kendall_test == 2: # only staged
-            temperature_offset = None # no offset
-            min_setpoint_change_duration = None # no lockout
-            staged = True # staged
-        elif self.kendall_test == 3: # only lockout after temp changes
-            temperature_offset = None # no offset
-            min_setpoint_change_duration = 30 # 30 minute lockout
-            staged = False # not staged
-        elif self.kendall_test == 4: # staged backup and lockout after setpoint change
-            temperature_offset = None # no offset
-            min_setpoint_change_duration = 30 # 30 minute lockout
-            staged = True # staged
-        elif self.kendall_test ==5: # temp offset
-            temperature_offset = 2 # 2 degree offset
-            min_setpoint_change_duration = None # no lockout
-            staged = False # not staged
-        elif self.kendall_test == 6: # temp offset and staged backup 
-            temperature_offset = 2 # no offset
-            min_setpoint_change_duration = 30 # 30 minute lockout
-            staged = True # staged
-        elif self.kendall_test == 7: # all options, staged backup, lockout after setpoint change, and temp offset
-            temperature_offset = 2 # 2 degree offset
-            min_setpoint_change_duration = 30 # 30 minute lockout
-            staged = True # staged
-        elif self.kendall_test == 8: # temp offset and lockout after setpoint change
-            temperature_offset = 2 # 2 degree offset
-            min_setpoint_change_duration = 30 # 30 minute lockout
-            staged = False # not staged
+        elif self.kendall_test in {5, 6, 7, 8}:
+            temperature_offset = 1.3 # degree offset: ecobee options: 1.1, 1.3, 1.4, 1.6, 1.8
         else:
-            print("kendall test input error")
+            print("self.kendall_test input error", self.kendall_test)
+        # lockout after setpoint change
+        if self.kendall_test in {1, 2, 5, 6}:
+            min_setpoint_change_duration = None # no lockout
+        elif self.kendall_test in {3, 4, 7, 8}:
+            min_setpoint_change_duration = 30 # 30 min lockout
+        else:
+            print("self.kendall_test input error", self.kendall_test)
+        # staged backup
+        if self.kendall_test in {1, 3, 5, 8}:
+            staged = False # not staged
+        elif self.kendall_test in {2, 4, 6, 7}:
+            staged = True # staged
+        else:
+            print("self.kendall_test input error", self.kendall_test)
+
+        # indoor and previous temp
+        try:
+            self.prev_temp_indoor = self.temp_indoor
+        except: #this is for the first run 
+            self.prev_temp_indoor = None
+    
+        self.temp_indoor = self.zone.temperature
 
         # run thermostat control for ER element - lower the setpoint by the deadband or user input
         if temperature_offset is not None:
@@ -1225,13 +1224,49 @@ class ASHPHeater(HeatPumpHeater):
         else:
             er_setpoint = self.temp_setpoint - self.temp_deadband
 
+        # if the outdoor temp is greater than input value, turn er off
+        if self.current_schedule['Ambient Dry Bulb (C)'] >= self.outdoor_temp_limit:
+            self.timestep_count = 1
+            self.prev_setpoint = self.temp_setpoint
+            self.existing_stages = 0 # no staged
+            return 'Off' 
+
+        # if staged==True: # TODO: need to edit downstream to make use of staged backup
+            # operating_capacity = self.staged_backup() 
+            # print(operating_capacity)
+
+        hl = False # hl : hard lockout
+        
         # Determine if setpoint has changed recently
         if min_setpoint_change_duration is not None: 
             if self.prev_setpoint is not None: 
-                min_interval = dt.timedelta(minutes=min_setpoint_change_duration) # minimum amount of time after a setpoint change that er stays off
+                min_interval = dt.timedelta(minutes=min_setpoint_change_duration) # minimum amount of time after a setpoint change that er stays off (user input)
+                hard_lockout_interval = dt.timedelta(minutes=hard_lockout) # minimum amount of time after a setpoint change that er stays off (strictly)
+
+                if hard_lockout_interval > min_interval:
+                    min_interval = hard_lockout_interval # increase the minimum interval
+                    print(f"minimum setpoint change duration ({min_setpoint_change_duration} minutes) updated to comply with hard lockout interval ({hard_lockout} minutes)") #TODO: raise warning ?
+                    # hard_lockout_interval = min_interval # another option but i think it is a worse option?
                 if self.end_use == 'HVAC Heating':
                     if self.temp_setpoint > self.prev_setpoint: # turned up the heat
                         if (self.time_res > min_interval) or (self.timestep_count * self.time_res > min_interval): # enough time has passed
+                                self.timestep_count = 1 # reset timestep count
+                                # control by temp_turn_on/temp_turn_off
+                        elif (self.time_res > hard_lockout_interval) or (self.timestep_count * self.time_res > hard_lockout_interval): # hard lockout duration met
+                            if self.prev_temp_indoor is not None:
+                                if self.temp_indoor < self.prev_temp_indoor: # temp is decreasing
+                                    self.timestep_count += 1 # if it turns on, will reset this
+                                    hl = True
+                                    # control by temp_turn_on/temp_turn_off
+                                else: 
+                                    self.existing_stages = 0 # no staged
+                                    self.timestep_count += 1 # continue iterating
+                                    return 'Off'
+                            else: 
+                                self.existing_stages = 0 # no staged
+                                self.timestep_count += 1 # continue iterating
+                                return 'Off'
+                        elif (self.time_res > min_interval) or (self.timestep_count * self.time_res > min_interval): # enough time has passed
                                 self.timestep_count = 1 # reset timestep count
                                 # control by temp_turn_on/temp_turn_off
                         else:
@@ -1258,8 +1293,6 @@ class ASHPHeater(HeatPumpHeater):
                 #         self.existing_stages = 0 # no staged
                 #         return 'Off'  
 
-        temp_indoor = self.zone.temperature
-
         # On and off limits depend on heating vs. cooling
         if temperature_offset is not None:
             temp_turn_on = er_setpoint - self.hvac_mult * temperature_offset 
@@ -1269,44 +1302,38 @@ class ASHPHeater(HeatPumpHeater):
             temp_turn_off = er_setpoint + self.hvac_mult * self.temp_deadband / 2
 
         # Determine mode
-        if self.hvac_mult * (temp_indoor - temp_turn_on) < 0:
+        if self.hvac_mult * (self.temp_indoor - temp_turn_on) < 0:
             self.prev_setpoint = self.temp_setpoint
             # print("modeon")
             self.timestep_count = 1
             return 'On'
-        if self.hvac_mult * (temp_indoor - temp_turn_off) > 0:
-            self.prev_setpoint = self.temp_setpoint
+        if self.hvac_mult * (self.temp_indoor - temp_turn_off) > 0:
             # print("modeoff")
-            self.timestep_count = 1
+            if hl == False: # have a separate option for hard lockout so it can keep iterating for whole lockout period. 
+                self.timestep_count = 1
+                self.prev_setpoint = self.temp_setpoint
             self.existing_stages = 0 # no staged
             return 'Off'
         
-        # if staged==True:
-            # operating_capacity = self.staged_backup(hvac capacity) #not sure what variable to use for this
-        # else: # continue with normal
-        
-    def staged_backup(self, total_capacity, capacity_per_stage=5): # Returns partial capacity based on amount of stages currently on/total amount of stages
-        # make sure existing_stages resets to zero every time it's off?
-        number_stages = max(1, total_capacity//capacity_per_stage) #rounding to lowest integer
+    def staged_backup(self, capacity_per_stage=5): # Returns partial capacity based on amount of stages currently on/total amount of stages
+        # TODO: make a time interval between adding stages (5 min default), update with ecobee/other controls: https://support.ecobee.com/s/articles/Threshold-settings-for-ecobee-thermostats
+        number_stages = max(1, self.er_capacity_rated//capacity_per_stage) #rounding to lowest integer #TODO: is the correct variable for er capacity?
 
-        # if number_stages < 1:
-        #     # raise OCHREException("Invalid input for capacity of electric resistance backup stages. Stage capacity is larger than total capcity", capacity_per_stage)
-        #     or could just make the capacity_per_stage smaller/return 1
         if number_stages==1:
-            return total_capacity
+            return self.total_capacity
         else:
             if self.existing_stages == number_stages: # fully on
-                return total_capacity
+                return self.total_capacity
             elif self.existing_stages > 0: #already partially on
                 self.existing_stages += 1
                 multiplier = self.existing_stages/number_stages
                 if multiplier >= 1:
                     self.existing_stages = number_stages
-                    return total_capacity
+                    return self.total_capacity
                 else:
                     return multiplier*capacity_per_stage
             else: # turning on, previously off
-                existing_stages += 1
+                self.existing_stages += 1
                 return capacity_per_stage
 
     def update_er_capacity(self, hp_capacity):
