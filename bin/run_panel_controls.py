@@ -10,7 +10,7 @@ from ochre import Dwelling, Analysis
 weather_path = os.path.join('path', 'to', 'weather_files')
 
 
-def run_single_building(input_path, size, der_type, charging_level, sim_type='ev_control', tech1='Cooking Range', tech2='Clothes Dryer', simulation_name='ochre', output_path=None):
+def run_single_building(input_path, size, der_type, charging_level, sim_type='ev_control', tech1='Cooking Range', tech2='EV', simulation_name='ochre', output_path=None):
     # run individual building case
     my_print(f'Running OCHRE for building {simulation_name} ({input_path})')
     if not os.path.isabs(input_path):
@@ -84,7 +84,7 @@ def setup_ev_run(dwelling_args, charging_level):
     return dwelling
 
 
-def circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path):   
+def circuit_sharing_control(dwelling, tech1, tech2, output_path):   
     
     # run simulation with circuit sharing controls
     times = pd.date_range(dwelling.start_time, dwelling.start_time + dwelling.duration, freq=dwelling.time_res,
@@ -93,14 +93,7 @@ def circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path):
     control_signal = None
     N = 0 # total number of delayed cycles
     t_delay = [] # for storing timestamps of delay
-    
-    if tech2 == 'Clothes Dryer':
-        # initialize an empty list for cycle recording
-        pipeline = [] # for storing cycles waiting to be rescheduled
-        n_delay = 0 # number of cycles waiting in the pipeline
-        deltat_delay = [] # for storing delayed timesteps of each delayed cycle
-        n_pop = 0 # index for tracking number of cycles poped
-    
+       
     for t in times:
         assert dwelling.current_time == t
         house_status = dwelling.update(control_signal=control_signal)
@@ -112,123 +105,29 @@ def circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path):
             P_prim = house_status[tech1+ ' Electric Power (kW)']    
     
         # decide control for secondary load
-        if tech2 == 'Clothes Dryer':
-            n_delay, N, t_delay, deltat_delay, n_pop = dryer_control(sim_type, dwelling, P_prim, t, pipeline, n_delay, N, t_delay, deltat_delay, n_pop)
-        else:        
-            if P_prim > 0:
-                if tech2 == 'Water Heating':
-                    control_signal = {tech2: {'Load Fraction': 0}}
-                else: # EV
-                    control_signal = {tech2: {'P Setpoint': 0}}
+        if P_prim > 0:
+            P_second = house_status[tech2+ ' Electric Power (kW)'] 
+            if tech2 == 'Water Heating':
+                control_signal = {tech2: {'Load Fraction': 0}}
+                if P_second > 0.01: # rule out standby WH power from number of interruptions
+                    N = N+1
+                    t_delay.append(dwelling.current_time)
+            else: # EV
+                control_signal = {tech2: {'P Setpoint': 0}}
+            if P_second > 0:
                 N = N+1
                 t_delay.append(dwelling.current_time)
-            else:
-                # keep previous control signal (same as forward fill)
-                control_signal = None
+        else:
+            # keep previous control signal (same as forward fill)
+            control_signal = None
 
     df = pd.DataFrame(t_delay, columns=['Timestamp'])
-    if tech2 == 'Clothes Dryer':
-        df['Delayed Time (s)'] = deltat_delay
     df.to_csv(os.path.join(output_path, tech2+'_metrics.csv'), index=False)
 
     dwelling.finalize()
-    
-    
-def record_and_remove_cycle(dwelling, schedule, t, pipeline):
-    
-    # all zero indicies
-    zero_indices = schedule.index[schedule == 0].tolist()
-    
-    # find the last index that the power is zero - cycle start
-    cycle_start = max([index for index in zero_indices if index < t], default=None) + dwelling.time_res
-        
-    # find the next index that the power is zero - cycle end
-    cycle_end = min([index for index in zero_indices if index > t], default=None) - dwelling.time_res
-    
-    # record cycle in pipeline
-    pipeline.append(schedule[cycle_start:cycle_end].copy())
-    
-    # remove cycle from schedule
-    for i in pd.date_range(cycle_start, cycle_end, freq=dwelling.time_res, inclusive='both'):
-        schedule.loc[i] = 0
-    
-    return(schedule)
+          
 
-
-def add_first_cycle_to_schedule(dwelling, schedule, pipeline, deltat_delay, n_pop):
-    
-    # first cycle in pipeline
-    cycle_start = pipeline[0].index[0]
-    cycle_end = pipeline[0].index[-1]
-    cycle_length = cycle_end - cycle_start
-    
-    # add to schedule
-    schedule[dwelling.current_time:dwelling.current_time + cycle_length] = pipeline[0]
-        
-    # update pipeline
-    deltat_delay[n_pop] = dwelling.current_time - deltat_delay[n_pop]
-    pipeline.pop(0)
-    n_pop += 1
-    
-    return(schedule, n_pop)
-
-
-def coincide_with_next_cycle(dwelling, schedule, pipeline):
-    
-    cycle_start = pipeline[0].index[0]
-    cycle_end = pipeline[0].index[-1]
-    cycle_length = cycle_end - cycle_start
-    
-    for i in pd.date_range(dwelling.current_time, dwelling.current_time + cycle_length, freq=dwelling.time_res, inclusive='both'):
-        if schedule.loc[i] > 0:
-            return(True, i)
-            
-    return(False, dwelling.current_time)
-
-
-def exceed_threshold(P_prim, size, pipeline):
-    
-    if P_prim + pipeline[0][0] > 0.8*size*240/1000:
-        return(True)
-    else:
-        return(False)
-
-
-def dryer_control(sim_type, dwelling, P_prim, t, pipeline, n_delay, N, t_delay, deltat_delay, n_pop, size=0):
-    
-    dryer = dwelling.get_equipment_by_end_use('Clothes Dryer')
-    schedule = dryer.schedule['Clothes Dryer (kW)']
-    
-    if (sim_type == 'circuit_sharing' and P_prim > 0) or (sim_type == 'circuit_pausing' and P_prim > 0.8*size*240/1000):
-        if schedule.loc[t] > 0:
-            # record and remove the cycle from schedule
-            schedule = record_and_remove_cycle(dwelling, schedule, t, pipeline)
-            n_delay += 1
-            N += 1
-            t_delay.append(dwelling.current_time)
-            deltat_delay.append(dwelling.current_time)
-            dryer.reset_time(start_time=dwelling.current_time)
-    else:
-        if (sim_type == 'circuit_sharing' and n_delay > 0) or (sim_type == 'circuit_pausing' and n_delay > 0 and not exceed_threshold(P_prim, size, pipeline)):
-            # check if exceeds threshold if adding dryer cycle, only when circuit pausing
-            # check if will coincide with next cycle
-            if coincide_with_next_cycle(dwelling, schedule, pipeline)[0]: 
-                schedule = record_and_remove_cycle(dwelling, schedule, coincide_with_next_cycle(dwelling, schedule, pipeline)[1], pipeline)
-                n_delay += 1
-                N += 1
-                t_delay.append(coincide_with_next_cycle(dwelling, schedule, pipeline)[1])
-                deltat_delay.append(coincide_with_next_cycle(dwelling, schedule, pipeline)[1])
-                dryer.reset_time(start_time=dwelling.current_time)
-
-            # add the first cycle in pipeline to schedule
-            schedule, n_pop = add_first_cycle_to_schedule(dwelling, schedule, pipeline, deltat_delay, n_pop)
-            n_delay -= 1
-            dryer.reset_time(start_time=dwelling.current_time)
-    
-    return(n_delay, N, t_delay, deltat_delay, n_pop)
-        
-
-def circuit_pausing_control(sim_type, dwelling, tech1, size, output_path):
+def circuit_pausing_control(dwelling, tech1, size, output_path):
           
     # run simulation with circuit pausing controls
     times = pd.date_range(dwelling.start_time, dwelling.start_time + dwelling.duration, freq=dwelling.time_res,
@@ -237,13 +136,6 @@ def circuit_pausing_control(sim_type, dwelling, tech1, size, output_path):
     control_signal = None
     N = 0 # total number of delayed cycles
     t_delay = [] # for storing timestamps of delay
-    
-    if tech1 == 'Clothes Dryer':
-        # initialize an empty list for cycle recording
-        pipeline = [] # for storing cycles waiting to be rescheduled
-        n_delay = 0 # number of cycles waiting in the pipeline
-        deltat_delay = [] # for storing delayed timesteps of each delayed cycle
-        n_pop = 0 # index for tracking number of cycles poped
         
     for t in times:
         # print(t, dwelling.current_time)
@@ -254,23 +146,23 @@ def circuit_pausing_control(sim_type, dwelling, tech1, size, output_path):
         P_prim = house_status['Total Electric Power (kW)']
         
         # control target load
-        if tech1 == 'Clothes Dryer':
-            n_delay, N, t_delay, deltat_delay, n_pop = dryer_control(sim_type, dwelling, P_prim, t, pipeline, n_delay, N, t_delay, deltat_delay, n_pop, size)
-        else:
-            if P_prim > 0.8*size*240/1000:
-                if tech1 == 'Water Heating':
-                    control_signal = {tech1: {'Load Fraction': 0}}
-                else: # EV
-                    control_signal = {tech1: {'P Setpoint': 0}}
+        if P_prim > 0.8*size*240/1000:
+            P_second = house_status[tech1+ ' Electric Power (kW)'] 
+            if tech1 == 'Water Heating':
+                control_signal = {tech1: {'Load Fraction': 0}}
+                if P_second > 0.01: # rule out standby WH power from number of interruptions
+                    N = N+1
+                    t_delay.append(dwelling.current_time)
+            else: # EV
+                control_signal = {tech1: {'P Setpoint': 0}}
+            if P_second > 0:
                 N = N+1
                 t_delay.append(dwelling.current_time)
-            else:
-                # keep previous control signal (same as forward fill)
-                control_signal = None
+        else:
+            # keep previous control signal (same as forward fill)
+            control_signal = None
          
     df = pd.DataFrame(t_delay, columns=['Timestamp'])
-    if tech1 == 'Clothes Dryer':
-        df['Delayed Time (s)'] = deltat_delay
     df.to_csv(os.path.join(output_path, tech1+'_metrics.csv'), index=False)
 
     dwelling.finalize()
