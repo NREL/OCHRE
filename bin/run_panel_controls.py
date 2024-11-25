@@ -105,7 +105,8 @@ def circuit_sharing_control(dwelling, tech1, tech2, output_path):
             P_prim = house_status[tech1+ ' Electric Power (kW)']    
     
         # decide control for secondary load
-        if P_prim > 0:
+        P_limit = 0.01 if tech1 == 'Water Heating' else 0
+        if P_prim > P_limit:
             P_second = house_status[tech2+ ' Electric Power (kW)'] 
             if tech2 == 'Water Heating':
                 control_signal = {tech2: {'Load Fraction': 0}}
@@ -275,7 +276,7 @@ if __name__ == "__main__":
     charging_level=None
     
     # case 1, circuit sharing with clothes dryer (primary) and WH (secondary)
-    run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_sharing', tech1='Clothes Dryer', tech2='Water Heating')
+    run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_sharing', tech1='Cooking ', tech2='Water Heating')
     
     # case 2, circuit pausing with WH
     run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_pausing', tech1='Water Heating')
