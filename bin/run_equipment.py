@@ -86,29 +86,38 @@ def run_battery_self_consumption():
 
 
 def run_water_heater_standalone():
-    equipment_args = {
-        # Equipment parameters
-        "Setpoint Temperature (C)": 51,
-        "Tank Volume (L)": 250,
-        "Tank Height (m)": 1.22,
-        "UA (W/K)": 2.17,
-        **default_args,
-    }
-
-    # Initialize equipment
-    wh = ElectricResistanceWaterHeater(**equipment_args)
-
     # Create water draw schedule
+    time_res = dt.timedelta(minutes=1)
+    times = pd.date_range(
+        default_args["start_time"],
+        default_args["start_time"] + default_args["duration"],
+        freq=time_res,
+        inclusive="left",
+    )
     water_draw_magnitude = 12  # L/min
-    withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=len(wh.sim_times))
+    withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=len(times))
     schedule = pd.DataFrame(
         {
             "Water Heating (L/min)": withdraw_rate,
             "Zone Temperature (C)": 20,
             "Mains Temperature (C)": 7,
         },
-        index=wh.sim_times,
+        index=times,
     )
+
+    equipment_args = {
+        # Equipment parameters
+        "Setpoint Temperature (C)": 51,
+        "Tank Volume (L)": 250,
+        "Tank Height (m)": 1.22,
+        "UA (W/K)": 2.17,
+        "schedule": schedule,
+        **default_args,
+        "time_res": time_res,
+    }
+
+    # Initialize equipment
+    wh = ElectricResistanceWaterHeater(**equipment_args)
 
     # Simulate equipment
     df = wh.simulate()
