@@ -1,9 +1,5 @@
 import os
-import shutil             
-import time
 import datetime as dt
-import subprocess
-from multiprocessing import Pool
 import pandas as pd
 
 from ochre import Dwelling, Analysis
@@ -12,96 +8,6 @@ from ochre import Dwelling, Analysis
 
 # Download weather files from: https://data.nrel.gov/submissions/156 or https://energyplus.net/weather
 weather_path = os.path.join('path', 'to', 'weather_files')
-
-
-def run_multiple_hpc(main_folder, overwrite='False', n_max=None, *args):
-    # runs multiple OCHRE simulations on HPC using slurm
-    # args are passed to run_single_building
-    overwrite = eval(overwrite)
-
-    # find all building folders
-    main_folder = os.path.abspath(main_folder)
-    required_files = ['in.xml', 'in.schedules.csv']
-    exclude_files = ['ochre_complete'] if not overwrite else []  # if not overwrite, skip completed runs
-    ochre_folders = Analysis.find_subfolders(main_folder, required_files, exclude_files)
-    n = len(ochre_folders)
-    my_print(f'Found {n} buildings in:', main_folder)
-    if n_max is not None and n > n_max:
-        my_print(f'Limiting number of runs to {n_max}')
-        ochre_folders = ochre_folders[:n_max]
-
-    processes = {}
-    for ochre_folder in ochre_folders:
-        log_file = os.path.join(ochre_folder, 'ochre.log')
-
-        # run srun command
-        # TODO: for small runs (n<18?), might be best to remove --exclusive, or increase cpus and mem
-        python_exec = shutil.which("python")
-        cmd = ['srun', '--nodes=1', '--ntasks=1', '--exclusive', '-Q', '-o', log_file,
-               python_exec, '-u', __file__, 'single', ochre_folder, *args
-               ]
-        my_print(f'Running subprocess:', ' '.join(cmd))
-        p = subprocess.Popen(cmd)
-        processes[p] = True  # True when process is running
-
-    my_print('Submitted all processes.')
-
-    n_processes = len(processes)
-    n_success = 0
-    n_fail = 0
-    n_running = n_processes
-    while n_running > 0:
-        time.sleep(10)
-        for p, running in processes.items():
-            if not running:
-                continue
-            if p.poll() is not None:
-                processes[p] = False
-                n_running -= 1
-                code = p.returncode
-                if code == 0:
-                    n_success += 1
-                    my_print(f'Process complete ({n_success}/{n_processes}):', ' '.join(p.args))
-                else:
-                    n_fail += 1
-                    my_print(f'Error in process ({n_fail}/{n_processes}):', ' '.join(p.args))
-
-    my_print('All processes finished, exiting.')
-
-
-def run_multiple_local(main_folder, overwrite='False', n_parallel=1, n_max=None, *args):
-    # runs multiple OCHRE simulations on local machine (can run in parallel or not)
-    # args are passed to run_single_building
-    overwrite = eval(overwrite)
-
-    # get all building folders
-    main_folder = os.path.abspath(main_folder)
-    required_files = ['in.xml', 'in.schedules.csv']
-    exclude_files = ['ochre_complete'] if not overwrite else []  # if not overwrite, skip completed runs
-    ochre_folders = Analysis.find_subfolders(main_folder, required_files, exclude_files)
-    n = len(ochre_folders)
-    my_print(f'Found {n} buildings in:', main_folder)
-    if n_max is not None and n > n_max:
-        my_print(f'Limiting number of runs to {n_max}')
-        ochre_folders = ochre_folders[:n_max]
-
-    # run single cases
-    # for now, no log file. Could use subprocess.run to save logs
-    # log_file = os.path.join(ochre_folder, 'ochre.log')
-    
-    # get parent folder name
-    for ochre_folder in ochre_folders:
-        print(os.path.dirname(os.path.abspath(ochre_folder)))
-    
-    if n_parallel == 1:
-        for ochre_folder in ochre_folders:
-            run_single_building(os.path.dirname(os.path.abspath(ochre_folder)), *args)
-    else:
-        map_args = [(os.path.dirname(os.path.abspath(ochre_folder)), *args) for ochre_folder in ochre_folders]
-        with Pool(n_parallel) as p:
-            p.starmap(run_single_building, map_args)
-
-    my_print('All processes finished, exiting.')
 
 
 def run_single_building(input_path, size, der_type, charging_level, sim_type='ev_control', tech1='Cooking Range', tech2='Clothes Dryer', simulation_name='ochre', output_path=None):
