@@ -15,147 +15,150 @@ from bin.run_dwelling import dwelling_args
 #  - EV
 
 default_args = {
-    'start_time': dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
-    'time_res': dt.timedelta(minutes=15),
-    'duration': dt.timedelta(days=10),
-    'verbosity': 6,  # verbosity of results (1-9)
-    'save_results': False,  # if True, must specify output_path
-    # 'output_path': os.getcwd(),
+    "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+    "time_res": dt.timedelta(minutes=15),
+    "duration": dt.timedelta(days=10),
+    "verbosity": 3,
+    "save_results": False,  # if True, must specify output_path
+    # "output_path": os.getcwd(),
 }
 
 
-def run_battery():
+def run_battery_by_schedule():
     equipment_args = {
         # Equipment parameters
-        # See defaults/Battery/default_parameters.csv for more options
+        "capacity": 5,  # in kW
         "capacity_kwh": 10,
-        # TODO convert to self_consumption_mode, fix Battery and Gas Generator in docs 
-        # "control_type": "Schedule",
-        # TODO: remove here and in docs, replace with setting battery schedule
-        "charge_start_hour": 10,  # 10AM
-        "discharge_start_hour": 17,  # 5PM
         **default_args,
     }
 
     # Initialize equipment
-    equipment = Battery(**equipment_args)
+    battery = Battery(**equipment_args)
+
+    # Set battery schedule
+    # Note: can also be done at each time step, see run_external_control.py
+    # for examples
+    schedule = np.random.randint(-5, 5, len(battery.sim_times))
+    battery.schedule = pd.DataFrame({"Battery Electric Power (kW)": schedule},
+                                    index=battery.sim_times)
+    battery.reset_time()  # initializes the new schedule
 
     # Simulate equipment
-    df = equipment.simulate()
+    df = battery.simulate()
 
     print(df.head())
-    CreateFigures.plot_daily_profile(df, 'Battery Electric Power (kW)', plot_max=False, plot_min=False)
-    CreateFigures.plot_time_series_detailed((df['Battery SOC (-)'],))
+    CreateFigures.plot_daily_profile(df, "Battery Electric Power (kW)", plot_max=False, plot_min=False)
+    CreateFigures.plot_time_series_detailed((df["Battery SOC (-)"],))
     CreateFigures.plt.show()
 
 
-def run_battery_controlled():
+def run_battery_self_consumption():
     equipment_args = {
         # Equipment parameters
-        # See defaults/Battery/default_parameters.csv for more options
-        'capacity_kwh': 10,
-        'control_type': 'Off',
+        "capacity": 5,  # in kW
+        "capacity_kwh": 10,
+        "self_consumption_mode": True,
+        "soc_init": 0.9,
         **default_args,
     }
 
     # Initialize equipment
-    equipment = Battery(**equipment_args)
+    battery = Battery(**equipment_args)
+
+    # Set net load schedule
+    # Note: can also be done at each time step, see run_external_control.py
+    # for examples
+    house_power = np.random.randint(-2, 3, len(battery.sim_times))
+    battery.schedule = pd.DataFrame({"net_power": house_power}, index=battery.sim_times)
+    battery.reset_time()  # initializes the new schedule
 
     # Simulate equipment
-    for t in equipment.sim_times:
-        assert equipment.current_time == t
-        control_signal = {'P Setpoint': np.random.randint(-5, 5)}  # in kW
-        equipment.update(control_signal, {})
+    df = battery.simulate()
 
-    df = equipment.finalize()
+    # Combine net load and results
+    df["House Power (kW)"] = battery.schedule["net_power"]
+    df["Total Power (kW)"] = df["House Power (kW)"] + df["Battery Electric Power (kW)"]
+
     print(df.head())
-    CreateFigures.plot_daily_profile(df, 'Battery Electric Power (kW)', plot_max=False, plot_min=False)
-    CreateFigures.plot_time_series_detailed((df['Battery SOC (-)'],))
+    CreateFigures.plot_time_series_detailed((df["Total Power (kW)"],))
+    CreateFigures.plot_time_series_detailed((df["Battery SOC (-)"],))
     CreateFigures.plt.show()
 
 
-def run_water_heater():
-    time_res = dt.timedelta(minutes=1)
+def run_water_heater_standalone():
+    equipment_args = {
+        # Equipment parameters
+        "Setpoint Temperature (C)": 51,
+        "Tank Volume (L)": 250,
+        "Tank Height (m)": 1.22,
+        "UA (W/K)": 2.17,
+        **default_args,
+    }
 
-    # create example water draw schedule
-    times = pd.date_range(default_args['start_time'], default_args['start_time'] + default_args['duration'], 
-                          freq=time_res)
+    # Initialize equipment
+    wh = ElectricResistanceWaterHeater(**equipment_args)
+
+    # Create water draw schedule
     water_draw_magnitude = 12  # L/min
-    withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=len(times))
-    schedule = pd.DataFrame({
-        'Water Heating (L/min)': withdraw_rate,
-        'Zone Temperature (C)': 20,
-        'Mains Temperature (C)': 7,
-    }, index=times)
-
-    equipment_args = {
-        # Equipment parameters
-        # 'water_nodes': 1,
-        'Initial Temperature (C)': 49,
-        'Setpoint Temperature (C)': 51,
-        'Deadband Temperature (C)': 5,
-        'Capacity (W)': 4800,
-        'Efficiency (-)': 1,
-        'Tank Volume (L)': 250,
-        'Tank Height (m)': 1.22,
-        'UA (W/K)': 2.17,
-        'schedule': schedule,
-        **default_args,
-        'time_res': time_res,
-    }
-
-    # Initialize equipment
-    equipment = ElectricResistanceWaterHeater(**equipment_args)
+    withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=len(wh.sim_times))
+    schedule = pd.DataFrame(
+        {
+            "Water Heating (L/min)": withdraw_rate,
+            "Zone Temperature (C)": 20,
+            "Mains Temperature (C)": 7,
+        },
+        index=wh.sim_times,
+    )
 
     # Simulate equipment
-    df = equipment.simulate()
+    df = wh.simulate()
 
-    # print(df.head())
-    CreateFigures.plot_daily_profile(df, 'Water Heating Electric Power (kW)', plot_max=False, plot_min=False)
-    CreateFigures.plot_time_series_detailed((df['Hot Water Outlet Temperature (C)'],))
+    print(df.head())
+    CreateFigures.plot_daily_profile(df, "Water Heating Electric Power (kW)", plot_max=False, plot_min=False)
+    CreateFigures.plot_time_series_detailed((df["Hot Water Outlet Temperature (C)"],))
     CreateFigures.plt.show()
 
 
 def run_hvac():
     timing = {
-        'start_time': dt.datetime(2018, 7, 1, 0, 0),  # year, month, day, hour, minute
-        'time_res': dt.timedelta(minutes=1),
-        'duration': dt.timedelta(days=3),
-        'verbosity': 6,  # verbosity of results file (1-9)
-        'save_results': False,  # if True, must specify output_path
+        "start_time": dt.datetime(2018, 7, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=1),
+        "duration": dt.timedelta(days=3),
+        "verbosity": 6,  # verbosity of results file (1-9)
+        "save_results": False,  # if True, must specify output_path
     }
 
     # create example HVAC schedule
     # TODO: add solar radiation to schedule (in H_LIV)
-    times = pd.date_range(timing['start_time'], timing['start_time'] + timing['duration'], freq=timing['time_res'],
-                          inclusive='left')
+    times = pd.date_range(timing["start_time"], timing["start_time"] + timing["duration"], freq=timing["time_res"],
+                          inclusive="left")
     deadband = (2 + 1 * np.random.randn(len(times))).clip(min=1)
     ambient_temp = 27 - np.abs(times.hour.values - 14) / 2 + 0.5 * np.random.randn(len(times))
     internal_gains = 100 + 30 * np.random.randn(len(times))
     schedule = pd.DataFrame({
-        'HVAC Cooling Setpoint (C)': 22,
-        'HVAC Cooling Deadband (C)': deadband,
-        'Ambient Dry Bulb (C)': ambient_temp,
-        'Ambient Humidity Ratio (-)': 0.001,
-        # 'Ambient Pressure (kPa)': 101,
-        # 'T_EXT': ambient_temp,
-        'Internal Gains (W)': internal_gains,
+        "HVAC Cooling Setpoint (C)": 22,
+        "HVAC Cooling Deadband (C)": deadband,
+        "Ambient Dry Bulb (C)": ambient_temp,
+        "Ambient Humidity Ratio (-)": 0.001,
+        # "Ambient Pressure (kPa)": 101,
+        # "T_EXT": ambient_temp,
+        "Internal Gains (W)": internal_gains,
     }, index=times)
 
     envelope_args = {
-        'rc_params': {
-            'R_EXT_LIV': 1e-3,  # in K/W. 1 kW of HVAC for each degree C of temperature difference
-            'C_LIV': 4e6,  # in J/K. time constant = RC (seconds) ~= 1 hour
+        "rc_params": {
+            "R_EXT_LIV": 1e-3,  # in K/W. 1 kW of HVAC for each degree C of temperature difference
+            "C_LIV": 4e6,  # in J/K. time constant = RC (seconds) ~= 1 hour
         },
-        'initial_temp_setpoint': 22,
-        'schedule': schedule,
-        'initial_schedule': schedule.iloc[0].to_dict(),
-        'enable_humidity': True,
-        'external_radiation_method': None,
-        'internal_radiation_method': None,
-        'zones': {'Indoor': {'Volume (m^3)': 600}},  # Volume required for humidity model
-        'ext_zone_labels': ['EXT'],
-        'main_sim_name': '',  # For now, required when running envelope model within Equipment
+        "initial_temp_setpoint": 22,
+        "schedule": schedule,
+        "initial_schedule": schedule.iloc[0].to_dict(),
+        "enable_humidity": True,
+        "external_radiation_method": None,
+        "internal_radiation_method": None,
+        "zones": {"Indoor": {"Volume (m^3)": 600}},  # Volume required for humidity model
+        "ext_zone_labels": ["EXT"],
+        "main_sim_name": "",  # For now, required when running envelope model within Equipment
         **timing,
     }
     # Initialize envelope
@@ -163,13 +166,13 @@ def run_hvac():
 
     equipment_args = {
         # Equipment parameters
-        'Number of Speeds (-)': 1,
-        'Capacity (W)': [20000],
-        'EIR (-)': [0.25],
-        'SHR (-)': 0.8,
-        'Rated Auxiliary Power (W)': 100,
-        'schedule': schedule,
-        'initial_schedule': schedule.iloc[0].to_dict(),
+        "Number of Speeds (-)": 1,
+        "Capacity (W)": [20000],
+        "EIR (-)": [0.25],
+        "SHR (-)": 0.8,
+        "Rated Auxiliary Power (W)": 100,
+        "schedule": schedule,
+        "initial_schedule": schedule.iloc[0].to_dict(),
         **timing,
     }
     # Initialize equipment
@@ -180,19 +183,19 @@ def run_hvac():
 
     print()
     # print(df.head())
-    CreateFigures.plot_daily_profile(df, 'HVAC Cooling Electric Power (kW)',
+    CreateFigures.plot_daily_profile(df, "HVAC Cooling Electric Power (kW)",
                                      plot_max=False, plot_min=False)
-    CreateFigures.plot_hvac({'': df})
-    # CreateFigures.plot_envelope({'': df})
+    CreateFigures.plot_hvac({"": df})
+    # CreateFigures.plot_envelope({"": df})
     CreateFigures.plt.show()
 
 
 def run_ev():
     equipment_args = {
         # Equipment parameters
-        'vehicle_type': 'BEV',
-        'charging_level': 'Level 1',
-        'mileage': 100,
+        "vehicle_type": "BEV",
+        "charging_level": "Level 1",
+        "mileage": 100,
         **default_args,
     }
 
@@ -203,36 +206,35 @@ def run_ev():
     df = equipment.simulate()
 
     print(df.head())
-    # CreateFigures.plot_daily_profile(df, 'EV Electric Power (kW)', plot_max=False, plot_min=False)
-    # CreateFigures.plot_time_series_detailed((df['EV SOC (-)'],))
+    # CreateFigures.plot_daily_profile(df, "EV Electric Power (kW)", plot_max=False, plot_min=False)
+    # CreateFigures.plot_time_series_detailed((df["EV SOC (-)"],))
     # CreateFigures.plt.show()
 
 
 def run_equipment_from_house_model():
     # Create Dwelling from input files, see bin/run_dwelling.py
-    dwelling = Dwelling(name='OCHRE House', **dwelling_args)
+    dwelling = Dwelling(name="OCHRE House", **dwelling_args)
 
     # Extract equipment by its end use and update simulation properties
-    equipment = dwelling.equipment_by_end_use['Water Heating'][0]
+    equipment = dwelling.equipment_by_end_use["Water Heating"][0]
     equipment.main_simulator = True
     equipment.save_results = dwelling.save_results
     equipment.export_res = dwelling.export_res
     equipment.results_file = dwelling.results_file
 
     # If necessary, update equipment schedule
-    equipment.model.schedule['Zone Temperature (C)'] = 20
+    equipment.model.schedule["Zone Temperature (C)"] = 20
     equipment.reset_time()
 
     # Simulate equipment
     equipment.simulate()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Choose a scenario to run:
-    
-    # run_battery()
-    # run_battery_controlled()
-    # run_water_heater()
+    # run_battery_by_schedule()
+    # run_battery_self_consumption()
+    run_water_heater_standalone()
     # run_hvac()
-    run_ev()
+    # run_ev()
     # run_equipment_from_house_model()
