@@ -71,9 +71,6 @@ def run_fleet_controlled():
     # maybe add another example with EV fleet
     equipment_args = {
         # Equipment parameters
-        # See defaults/Battery/default_parameters.csv for more options
-        'capacity_kwh': 10,
-        'control_type': 'Off',
         **dwelling_args,
     }
 
