@@ -3,14 +3,15 @@ import datetime as dt
 import pandas as pd
 
 from ochre import Dwelling, Analysis
+from ochre.utils import default_input_path
 
 # Script to run multiple simulations. Assumes each simulation has a unique folder with all required inputs
 
 # Download weather files from: https://data.nrel.gov/submissions/156 or https://energyplus.net/weather
-weather_path = os.path.join('path', 'to', 'weather_files')
+weather_path = os.path.join(default_input_path, 'Weather')
 
 
-def run_single_building(input_path, size, der_type, charging_level, sim_type='ev_control', tech1='Cooking Range', tech2='EV', simulation_name='ochre', output_path=None):
+def run_single_building(input_path, size, der_type, charging_level, sim_type='ev_control', tech1='Cooking Range', tech2='EV', output_path=None, simulation_name='ochre'):
     # run individual building case
     my_print(f'Running OCHRE for building {simulation_name} ({input_path})')
     if not os.path.isabs(input_path):
@@ -20,20 +21,20 @@ def run_single_building(input_path, size, der_type, charging_level, sim_type='ev
         # Timing parameters      
         'start_time': dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
         'time_res': dt.timedelta(minutes=2),         # time resolution of the simulation
-        'duration': dt.timedelta(days=365),             # duration of the simulation
+        'duration': dt.timedelta(days=10),             # duration of the simulation
         'initialization_time': dt.timedelta(days=1),  # used to create realistic starting temperature
 
         # Input parameters
-        'hpxml_file': os.path.join(input_path, 'in.xml'),
-        'schedule_input_file': os.path.join(input_path, 'in.schedules.csv'),
+        'hpxml_file': os.path.join(input_path, 'panel_controls_in.xml'),
+        'schedule_input_file': os.path.join(input_path, 'panel_controls_schedules.csv'),
         'weather_path': weather_path,
     
         # Output parameters
-        'output_path': os.path.join(input_path, 'ochre_output'),
+        'output_path': os.path.join(input_path, 'ochre_output', sim_type),
         'output_to_parquet': False,              # saves time series files as parquet files (False saves as csv files)
         'verbosity': 7,                         # verbosity of time series files (0-9)
         
-        'seed': int(input_path[-3:]),
+        # 'seed': int(input_path[-3:]),
         
         'Equipment': {
 
@@ -58,10 +59,10 @@ def run_single_building(input_path, size, der_type, charging_level, sim_type='ev
         dwelling.simulate()
     
     elif sim_type == 'circuit_sharing':
-        circuit_sharing_control(sim_type, dwelling, tech1, tech2, output_path)
+        circuit_sharing_control(dwelling, tech1, tech2, output_path)
     
     elif sim_type == 'circuit_pausing':
-        circuit_pausing_control(sim_type, dwelling, tech1, size, output_path)
+        circuit_pausing_control(dwelling, tech1, size, output_path)
         
     elif sim_type == 'ev_control':
         ev_charger_adapter(dwelling, size, output_path)
@@ -270,13 +271,13 @@ def my_print(*args):
 
 if __name__ == "__main__":
              
-    input_path = os.path.join('path', 'to', 'input_files')
-    size = 100 # amps, placeholder value
+    input_path = os.path.join(default_input_path, 'Input Files')
+    size = 100 # amps
     der_type=None
     charging_level=None
     
-    # case 1, circuit sharing with clothes dryer (primary) and WH (secondary)
-    run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_sharing', tech1='Cooking ', tech2='Water Heating')
+    # case 1, circuit sharing with cooking range (primary) and WH (secondary)
+    run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_sharing', tech1='Cooking Range', tech2='Water Heating')
     
     # case 2, circuit pausing with WH
     run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_pausing', tech1='Water Heating')
@@ -287,5 +288,5 @@ if __name__ == "__main__":
     run_single_building(input_path, size, der_type, charging_level, sim_type='ev_control', tech1='EV')
         
     # compile results
-    compile_results(input_path)
+    compile_results(os.path.join(input_path, 'ochre_output'))
         
