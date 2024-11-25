@@ -376,38 +376,23 @@ def my_print(*args):
 
 
 if __name__ == "__main__":
+             
+    input_path = os.path.join('path', 'to', 'input_files')
+    size = 100 # amps, placeholder value
+    der_type=None
+    charging_level=None
     
-    # read the spreadsheet containing all scenarios
-    scenarios = pd.read_csv(os.path.join(os.getcwd(), 'bin', 'control_scenarios_processed.csv'))
+    # case 1, circuit sharing with clothes dryer (primary) and WH (secondary)
+    run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_sharing', tech1='Clothes Dryer', tech2='Water Heating')
     
-    # find the controller type based on building id and upgrade number, ignore multiple controllers for now
-    for l in range(len(scenarios)):
+    # case 2, circuit pausing with WH
+    run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_pausing', tech1='Water Heating')
+  
+    # case 3, smart EV charging
+    der_type='ev'
+    charging_level='Level 2'
+    run_single_building(input_path, size, der_type, charging_level, sim_type='ev_control', tech1='EV')
         
-        k=scenarios.index[l]
-        bldg_id = scenarios['building_id'].iloc[k]
-        
-        input_path = os.path.join(os.getcwd(), 'ResStockFiles', 'upgrade'+str(scenarios['case'].iloc[k]), str(bldg_id))
-        size = scenarios['panel'].iloc[k]
-        
-        # determine ev level
-        if scenarios['ev_level'].iloc[k] == 'L0':
-            der_type=None
-            charging_level=None
-        elif scenarios['ev_level'].iloc[k] == 'L1':
-            der_type='ev'
-            charging_level='Level 1'
-        else:
-            der_type='ev'
-            charging_level='Level 2'
-            
-        # determine control type
-        if scenarios['circuit_pause'].iloc[k] == 1:
-            if scenarios['circuit_pause_name'].iloc[k] == 'EV':
-                run_single_building(input_path, size, der_type, charging_level, sim_type='ev_control', tech1='EV')
-            else:
-                run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_pausing', tech1=scenarios['circuit_pause_name'].iloc[k])
-        elif scenarios['circuit_share'].iloc[k] == 1:
-            run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_sharing', tech1=scenarios['primary_cs_load_name'].iloc[k], tech2=scenarios['secondary_cs_load_name'].iloc[k])
-        else:
-            continue
+    # compile results
+    compile_results(input_path)
         
