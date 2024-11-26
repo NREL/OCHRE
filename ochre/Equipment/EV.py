@@ -27,11 +27,11 @@ class ElectricVehicle(EventBasedLoad):
     end_use = 'EV'
     zone_name = None
     delay_event_end = False
-    required_inputs = ['Ambient Dry Bulb (C)']
     optional_inputs = [
         "EV Max Power (kW)",
         "EV SOC (-)",
         "EV Max SOC (-)",
+        "Ambient Dry Bulb (C)",
     ]
 
     def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, max_power=None, 

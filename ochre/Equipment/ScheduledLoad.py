@@ -15,9 +15,11 @@ class ScheduledLoad(Equipment):
     equipment should have two columns, one for electric and one for gas power.
     """
 
-    def __init__(self, name, zone_name=None, **kwargs):
-        # Update zone based on name. Zone defaults to Indoor
+    def __init__(self, name=None, zone_name=None, **kwargs):
+        if name is None:
+            name = self.name
         if zone_name is None:
+            # Update zone based on name. Zone defaults to Indoor
             if 'Exterior' in self.name:
                 zone_name = 'Outdoor'
             elif 'Garage' in self.name:

@@ -331,7 +331,7 @@ class Simulator:
             elif self.save_results:
                 results = f'time series results saved to: {self.results_file}'
             else:
-                results = f'time series results saved in memory (not to a file)'
+                results = 'time series results saved in memory (not to a file)'
             self.print(f'Simulation {status}, {results}')
         if self.save_status:
             status_file = os.path.join(self.output_path, f'{self.name}_{status}')
