@@ -1,11 +1,18 @@
-import os
 import datetime as dt
 import numpy as np
 import pandas as pd
 
-from ochre import Dwelling, Battery, ElectricResistanceWaterHeater, AirConditioner, ElectricVehicle
+from ochre import (
+    Dwelling,
+    ElectricVehicle,
+    PV,
+    Battery,
+    ElectricResistanceWaterHeater,
+    AirConditioner,
+)
 from ochre import CreateFigures
 from ochre.Models.Envelope import Envelope
+from ochre.utils.schedule import import_weather
 from bin.run_dwelling import dwelling_args
 
 
@@ -24,7 +31,81 @@ default_args = {
 }
 
 
-def run_battery_by_schedule():
+def run_equipment_from_house_model(end_use):
+    # Create Dwelling, see bin/run_dwelling.py
+    dwelling = Dwelling(**dwelling_args)
+
+    # Extract equipment by its name or end use
+    equipment = dwelling.get_equipment_by_end_use(end_use)
+    
+    # Update simulation properties to save results
+    equipment.main_simulator = True
+    equipment.save_results = True
+    equipment.set_up_results_files()
+
+    # If necessary, update equipment schedule
+    if end_use == "Water Heating":
+        equipment.schedule["Zone Temperature (C)"] = 20
+        equipment.schedule["Zone Wet Bulb Temperature (C)"] = 18  # only for HPWH
+        equipment.reset_time()
+        equipment.model.schedule["Zone Temperature (C)"] = 20
+        equipment.model.reset_time()
+
+    # Simulate equipment
+    df = equipment.simulate()
+
+    print(df.head())
+    CreateFigures.plot_time_series_detailed((df[f"{end_use} Electric Power (kW)"],))
+    CreateFigures.plt.show()
+
+
+def run_ev():
+    equipment_args = {
+        # Equipment parameters
+        "vehicle_type": "BEV",
+        "charging_level": "Level 1",
+        "mileage": 200,
+        **default_args,
+    }
+
+    # Initialize equipment
+    equipment = ElectricVehicle(**equipment_args)
+
+    # Simulate equipment
+    df = equipment.simulate()
+
+    print(df.head())
+    CreateFigures.plot_daily_profile(df, "EV Electric Power (kW)", plot_max=False, plot_min=False)
+    CreateFigures.plot_time_series_detailed((df["EV SOC (-)"],))
+    CreateFigures.plt.show()
+
+
+def run_pv_with_sam():
+    # load weather data
+    weather, location = import_weather(dwelling_args["weather_file"], **default_args)
+
+    equipment_args = {
+        # Equipment parameters
+        "capacity": 5,
+        "tilt": 20,
+        "azimuth": 0,
+        "schedule": weather,
+        "location": location,
+        **default_args,
+    }
+
+    # Initialize equipment
+    equipment = PV(**equipment_args)
+
+    # Simulate equipment
+    df = equipment.simulate()
+
+    print(df.head())
+    CreateFigures.plot_daily_profile(df, "PV Electric Power (kW)", plot_max=False, plot_min=False)
+    CreateFigures.plt.show()
+
+
+def run_battery_from_schedule():
     equipment_args = {
         # Equipment parameters
         "capacity": 5,  # in kW
@@ -85,7 +166,7 @@ def run_battery_self_consumption():
     CreateFigures.plt.show()
 
 
-def run_water_heater_standalone():
+def run_water_heater():
     # Create water draw schedule
     time_res = dt.timedelta(minutes=1)
     times = pd.date_range(
@@ -129,6 +210,8 @@ def run_water_heater_standalone():
 
 
 def run_hvac():
+    # Note: HVAC and envelope models are difficult to create as standalone
+    # models. It's recommended to run a full Dwelling model to run HVAC equipment.
     timing = {
         "start_time": dt.datetime(2018, 7, 1, 0, 0),  # year, month, day, hour, minute
         "time_res": dt.timedelta(minutes=1),
@@ -199,51 +282,16 @@ def run_hvac():
     CreateFigures.plt.show()
 
 
-def run_ev():
-    equipment_args = {
-        # Equipment parameters
-        "vehicle_type": "BEV",
-        "charging_level": "Level 1",
-        "mileage": 100,
-        **default_args,
-    }
-
-    # Initialize equipment
-    equipment = ElectricVehicle(**equipment_args)
-
-    # Simulate equipment
-    df = equipment.simulate()
-
-    print(df.head())
-    # CreateFigures.plot_daily_profile(df, "EV Electric Power (kW)", plot_max=False, plot_min=False)
-    # CreateFigures.plot_time_series_detailed((df["EV SOC (-)"],))
-    # CreateFigures.plt.show()
-
-
-def run_equipment_from_house_model():
-    # Create Dwelling from input files, see bin/run_dwelling.py
-    dwelling = Dwelling(name="OCHRE House", **dwelling_args)
-
-    # Extract equipment by its end use and update simulation properties
-    equipment = dwelling.equipment_by_end_use["Water Heating"][0]
-    equipment.main_simulator = True
-    equipment.save_results = dwelling.save_results
-    equipment.export_res = dwelling.export_res
-    equipment.results_file = dwelling.results_file
-
-    # If necessary, update equipment schedule
-    equipment.model.schedule["Zone Temperature (C)"] = 20
-    equipment.reset_time()
-
-    # Simulate equipment
-    equipment.simulate()
-
-
 if __name__ == "__main__":
-    # Choose a scenario to run:
-    # run_battery_by_schedule()
-    # run_battery_self_consumption()
-    run_water_heater_standalone()
-    # run_hvac()
+    # Extract equipment from a Dwelling model
+    # run_equipment_from_house_model("Water Heating")
+    # run_equipment_from_house_model("PV")  # Must add PV in run_dwelling.py
+
+    # Run equipment without a Dwelling model
+    # TODO: review EV, PV, HVAC
     # run_ev()
-    # run_equipment_from_house_model()
+    # run_pv_with_sam()
+    # run_battery_from_schedule()
+    # run_battery_self_consumption()
+    # run_water_heater()
+    run_hvac()
