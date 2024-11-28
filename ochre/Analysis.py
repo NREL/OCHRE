@@ -25,13 +25,13 @@ def download_resstock_model(
     building_id,
     upgrade_id,
     local_folder=None,
+    overwrite=False,
     year="2024",
     release="resstock_tmy3_release_2",
 ):
     # downloads HPXML and schedule files from ResStock
     # see https://resstock.nrel.gov/datasets
     # works for ResStock 2024.2 releases
-    s3_client = boto3.client("s3", config=Config(signature_version=UNSIGNED))
     if isinstance(building_id, int):
         # convert building ID to formatted string
         building_id = f"bldg{building_id:07}"
@@ -58,11 +58,17 @@ def download_resstock_model(
         ]
     )
 
-    # download and extract zip file
+    # download zip file, skip if overwrite=False and it already exists
     if not os.path.exists(local_folder):
         os.makedirs(local_folder, exist_ok=True)
     zip_file = os.path.join(local_folder, zip_name)
-    s3_client.download_file("oedi-data-lake", oedi_path, zip_file)
+    if not overwrite and os.path.exists(zip_file):
+        print(f"{building_id}-{upgrade_str} model already downloaded, skipping")
+    else:
+        s3_client = boto3.client("s3", config=Config(signature_version=UNSIGNED))
+        s3_client.download_file("oedi-data-lake", oedi_path, zip_file)
+    
+    # extract zip file
     shutil.unpack_archive(zip_file, local_folder)
 
     # check that files exist
@@ -812,7 +818,7 @@ def combine_time_series_column(column, results_files=None, **kwargs):
     return df
 
 
-def combine_time_series_files(results_files=None, agg_func=None, **kwargs):
+def combine_time_series_files(results_files=None, agg_type=None, **kwargs):
     # combines time series results from multiple OCHRE simulations into single DataFrame
     # results_files is a dictionary of {run_name: file_path}
     # columns specifies the columns to load (using pd.read_csv(use_cols=columns))
@@ -835,10 +841,14 @@ def combine_time_series_files(results_files=None, agg_func=None, **kwargs):
 
     df = pd.concat(dfs, ignore_index=True)
 
-    if agg_func is not None:
-        # See get_agg_func for recommended options
-        df = df.groupby("Time").agg(agg_func)
-    else:
+    if agg_type is None:
         df = df.set_index(["Time", "House"])
+    elif agg_type in ["Time", "House"]:
+        agg_dict = {
+            col: get_agg_func(col, agg_type) for col in df.columns if col not in ["Time", "House"]
+        }
+        df = df.groupby(agg_type).agg(agg_dict)
+    else:
+        df = df.groupby("Time").agg(agg_type)
 
     return df
