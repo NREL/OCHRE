@@ -204,7 +204,7 @@ def run_ev(seed):
     equipment.main_simulator = True
     df = equipment.simulate()
 
-    # print(df.head())
+    print(df.head())
     # CreateFigures.plot_daily_profile(df, 'EV Electric Power (kW)', plot_max=False, plot_min=False)
     # CreateFigures.plot_time_series_detailed((df['EV SOC (-)'],))
     # CreateFigures.plt.show()
@@ -236,6 +236,5 @@ if __name__ == '__main__':
     # run_battery_controlled()
     # run_water_heater()
     # run_hvac()
-    for i in range(1,2):
-        run_ev(i)
+    run_ev()
     # run_equipment_from_house_model()

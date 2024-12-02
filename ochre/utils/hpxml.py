@@ -9,7 +9,7 @@ import ochre.utils.envelope as utils_envelope
 
 
 ZONE_NAME_OPTIONS = {
-    'Indoor': ['conditioned space'],
+    'Indoor': ['conditioned space', 'living space'],
     'Foundation': ['crawlspace', 'basement', 'finishedbasement', 'basement - conditioned', 'basement - unconditioned',
                    'crawlspace - vented', 'crawlspace - unvented'],
     'Garage': ['garage'],
@@ -281,6 +281,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     adj_walls = all_walls.pop(('Indoor', 'Indoor'), {})
     adj_attic_walls = all_walls.pop(('Attic', 'Attic'), {})
     adj_gar_walls = all_walls.pop(('Garage', 'Garage'), {})
+    attic_gar_walls = all_walls.pop(('Garage', 'Attic'), {}) #FIXME: What do we do with these walls?
     assert not all_walls  # verifies that all boundaries are accounted for
 
     # Get foundation walls
@@ -349,6 +350,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
         'Foundation Wall': fnd_walls,
         # 'Foundation Above-ground Wall': fnd_walls_above,
         'Adjacent Attic Wall': adj_attic_walls,
+        'Attic Garage Wall': attic_gar_walls,
         'Adjacent Garage Wall': adj_gar_walls,
         'Adjacent Foundation Wall': adj_fnd_wall,
         'Attic Floor': ceilings,
@@ -533,20 +535,30 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
         attic = attics[0]
 
         # Get gable wall areas for attic and (possibly) garage
-        attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
-                            boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', []))
-        if len(attic_wall_areas) == 2:
-            # standard gable roof with attic
-            assert abs(attic_wall_areas[1] - attic_wall_areas[0]) < 0.2  # computational errors possible
-            attic_gable_area = attic_wall_areas[0]
+        if boundaries.get('Attic Garage Wall', {}).get('Area (m^2)') is not None: #TODO: for now, if we see walls between attic and garage, calculated geometry differently. May be neglecting some heat transfer between garage/attic boundary
+            attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
+                                boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', [])  + 
+                                boundaries.get('Attic Garage Wall', {}).get('Area (m^2)', []))
+            attic_gable_area = max(attic_wall_areas[0],attic_wall_areas[1]) #Note: if garage in on the same end as gable wall, area[0] != area[1]
             third_gable_area = 0
-        elif has_garage and len(attic_wall_areas) == 3:
-            # 2 attic gables plus 1 garage gable, garage gable has area that is 'more different'
-            attic_gable_area = attic_wall_areas[1]
-            low, med, high = tuple(sorted(attic_wall_areas))
-            third_gable_area = low if med - low > high - med else high
+
+            del boundaries['Attic Garage Wall'] #FIXME: we need to be able to handle this at some point
         else:
-            raise OCHREException('Unable to calculate attic area, likely an issue with gable walls.')
+            attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
+                                boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', [])) 
+                                
+            if len(attic_wall_areas) == 2:
+                # standard gable roof with attic
+                assert abs(attic_wall_areas[1] - attic_wall_areas[0]) < 0.2  # computational errors possible
+                attic_gable_area = attic_wall_areas[0]
+                third_gable_area = 0
+            elif has_garage and len(attic_wall_areas) == 3:
+                # 2 attic gables plus 1 garage gable, garage gable has area that is 'more different'
+                attic_gable_area = attic_wall_areas[1]
+                low, med, high = tuple(sorted(attic_wall_areas))
+                third_gable_area = low if med - low > high - med else high
+            else:
+                raise OCHREException('Unable to calculate attic area, likely an issue with gable walls.')
 
         # Get attic properties
         # tan(roof_tilt) = height / (width / 2)
@@ -867,6 +879,7 @@ def parse_hvac(hvac_type, hvac_all):
             })
 
     # Get duct info for calculating DSE
+    
     distribution = hvac_all.get('HVACDistribution', {})
     distribution_type = distribution.get('DistributionSystemType', {})
     air_distribution = distribution_type.get('AirDistribution', {})

@@ -81,7 +81,7 @@ class EventBasedLoad(Equipment):
         if overlap.any():
             bad_index = overlap.idxmax()
             bad_events = self.event_schedule.loc[bad_index - 1: bad_index + 1]
-            raise OCHREException('{} event overlap. Event details: \n{}'.format(self.name, bad_events))
+            raise OCHREException(f'{self.name} event overlap. Event details: \n{bad_events}')
 
         return schedule
 
