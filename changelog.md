@@ -7,6 +7,7 @@
 - Fixed garage interior ceiling connections
 - Fixed issue with adjacent doors (e.g., for multi-family units, hallways)
 - Allowed "Occupancy" adjustments in input arguments
+- Allow superinsulated slabs compatible with BEopt 3 for test purposes
 
 ### OCHRE v0.8.5-beta
 
