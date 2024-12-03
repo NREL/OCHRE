@@ -56,7 +56,7 @@ class Simulator:
         # Set random seed based on output path. Only sets seed if seed or output_path is specified
         if self.main_simulator:
             if seed is None:
-                seed = self.output_path
+                seed = str(self.output_path)
             if seed is not None:
                 if isinstance(seed, str):
                     seed = int(hashlib.md5(seed.encode()).hexdigest(), 16) % 2 ** 32
