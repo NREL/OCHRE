@@ -2,12 +2,12 @@ import sys
 import tkinter as tk
 from tkinter import filedialog
 
-from bin.run_multiple import run_single_building
+from ochre.cli import run_single_building
 
 # Script to create OCHRE executables
 
 
-def run_from_folder():
+def gui_basic():
     root = tk.Tk()
     root.withdraw()
 
@@ -46,7 +46,7 @@ class TextRedirector(object):
         self.widget.configure(state="disabled")
 
 
-def run_detailed_inputs():
+def gui_detailed():
     root = tk.Tk()
     root.title("Enter inputs for OCHRE run")
 
@@ -119,5 +119,5 @@ def run_detailed_inputs():
     root.mainloop()
 
 if __name__ == "__main__":
-    # run_from_folder()
-    run_detailed_inputs()
+    # gui_basic()
+    gui_detailed()
