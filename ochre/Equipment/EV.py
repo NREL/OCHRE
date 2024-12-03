@@ -171,6 +171,11 @@ class ElectricVehicle(EventBasedLoad):
                 df = event_data.loc[event_data.index == day_id].reset_index()
                 df['start_time'] = date + pd.to_timedelta(df['start_time'], unit='minute')
                 df_events.append(df)
+        if not df_events:
+            self.warn("No charging events, adding event on first day")
+            df = event_data.loc[event_data.index == day_ids[0]].reset_index()
+            df["start_time"] = temps_by_day.index[0] + pd.to_timedelta(df["start_time"], unit="minute")
+            df_events.append(df)
         df_events = pd.concat(df_events)
         df_events = df_events.reset_index(drop=True)
 
