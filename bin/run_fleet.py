@@ -140,7 +140,8 @@ def setup_battery(i):
     
     return battery
 
-def run_battery_fleet(n=4, n_parallel=2):
+
+def run_battery_fleet(n=4):
     """Runs multiple EV simulations and compiles energy consumption"""
     fleet = [setup_battery(i + 1) for i in range(n)]
 

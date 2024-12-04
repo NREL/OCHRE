@@ -209,6 +209,11 @@ def run_water_heater():
     CreateFigures.plt.show()
 
 
+# TODO
+def run_water_heater_from_file():
+    pass
+
+
 def run_hvac():
     # Note: HVAC and envelope models are difficult to create as standalone
     # models. It's recommended to run a full Dwelling model to run HVAC equipment.
@@ -293,4 +298,5 @@ if __name__ == "__main__":
     # run_battery_from_schedule()
     # run_battery_self_consumption()
     # run_water_heater()
+    run_water_heater_from_file()
     # run_hvac()
