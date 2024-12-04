@@ -18,27 +18,21 @@ def run_single_building(input_path, size, der_type, charging_level, sim_type='ev
         input_path = os.path.join(os.getcwd(), input_path)
         
     dwelling_args = {
-        # Timing parameters      
-        'start_time': dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
-        'time_res': dt.timedelta(minutes=2),         # time resolution of the simulation
-        'duration': dt.timedelta(days=10),             # duration of the simulation
-        'initialization_time': dt.timedelta(days=1),  # used to create realistic starting temperature
-
+        # Timing parameters
+        "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=2),          # time resolution of the simulation
+        "duration": dt.timedelta(days=10),            # duration of the simulation
+        "initialization_time": dt.timedelta(days=1),  # used to create realistic starting temperature
         # Input parameters
-        'hpxml_file': os.path.join(input_path, 'panel_controls_in.xml'),
-        'schedule_input_file': os.path.join(input_path, 'panel_controls_schedules.csv'),
-        'weather_path': weather_path,
-    
+        "hpxml_file": os.path.join(input_path, "bldg0112631-up11.xml"),
+        "schedule_input_file": os.path.join(input_path, "bldg0112631_schedule.csv"),
+        "weather_path": weather_path,
         # Output parameters
-        'output_path': os.path.join(input_path, 'ochre_output', sim_type),
-        'output_to_parquet': False,              # saves time series files as parquet files (False saves as csv files)
-        'verbosity': 7,                         # verbosity of time series files (0-9)
-        
+        "output_path": os.path.join(input_path, "ochre_output", sim_type),
+        "output_to_parquet": False,  # saves time series files as parquet files (False saves as csv files)
+        "verbosity": 7,  # verbosity of time series files (0-9)
         # 'seed': int(input_path[-3:]),
-        
-        'Equipment': {
-
-        },
+        "Equipment": {},
     }
 
     # determine output path, default uses same as input path
@@ -54,7 +48,7 @@ def run_single_building(input_path, size, der_type, charging_level, sim_type='ev
         dwelling = Dwelling(**dwelling_args)           
                         
     # run simulation
-    if sim_type == 'baseline':
+    if 'baseline' in sim_type:
         # run without controls
         dwelling.simulate()
     
@@ -223,44 +217,59 @@ def ev_charger_adapter(dwelling, size, output_path):
     
     dwelling.finalize()
 
-    
-def compile_results(main_folder):
-    # Sample script to compile results from multiple OCHRE runs
-    # assumes each run is in a different folder, and all simulation names are 'ochre'
-    # dirs_to_include = int(dirs_to_include)
 
-    # set up
-    main_folder = os.path.abspath(main_folder)
-    output_folder = os.path.join(main_folder, 'compiled')
-    os.makedirs(output_folder, exist_ok=True)
-    my_print('Compiling OCHRE results for:', main_folder)
+def compile_results(main_path, n_max=None):
+    # Sample script to compile results from multiple OCHRE runs
+
+    # set up folder for compiled results
+    output_path = os.path.join(main_path, "compiled")
+    os.makedirs(output_path, exist_ok=True)
+    print("Compiling OCHRE results for:", main_path)
 
     # find all building folders
-    required_files = ['ochre.parquet', 'ochre_metrics.csv', 'ochre_complete']
-    run_folders = Analysis.find_subfolders(main_folder, required_files)
-    n = len(run_folders)
-    my_print(f'Found {n} folders with completed OCHRE simulations')
+    required_files = ["OCHRE_complete"]
+    run_paths = Analysis.find_subfolders(main_path, required_files)
+    n = len(run_paths)
+
+    # ensure at least 1 run folder found
+    if not n:
+        print("No buildings found in:", main_path)
+        return
+    else:
+        print(f"Found {n} completed simulations in:", main_path)
+
+    # limit total number of runs
+    if n_max is not None and n > n_max:
+        print(f"Limiting number of runs to {n_max}")
+        run_paths = run_paths[:n_max]
+        n = n_max
+
+    run_names = {os.path.relpath(path, main_path): path for path in run_paths}
 
     # combine input json files
-    df = Analysis.combine_json_files(path=main_folder)
-    df.to_csv(os.path.join(output_folder, 'all_ochre_inputs.csv'))
+    json_files = {name: os.path.join(path, "OCHRE.json") for name, path in run_names.items()}
+    df = Analysis.combine_json_files(json_files)
+    df.to_csv(os.path.join(output_path, "all_ochre_inputs.csv"))
 
     # combine metrics files
-    df = Analysis.combine_metrics_files(path=main_folder)
-    df.to_csv(os.path.join(output_folder, 'all_ochre_metrics.csv'))
+    metrics_files = {
+        name: os.path.join(path, "OCHRE_metrics.csv") for name, path in run_names.items()
+    }
+    df = Analysis.combine_metrics_files(metrics_files)
+    df.to_csv(os.path.join(output_path, "all_ochre_metrics.csv"))
 
-    # combine total electricity consumption for each house
-    results_files = [os.path.join(f, 'ochre.parquet') for f in run_folders]
-    df = Analysis.combine_time_series_column(results_files, 'Total Electric Power (kW)')
-    df.to_parquet(os.path.join(output_folder, 'all_ochre_powers.parquet'))
+    # combine single time series column for each house (e.g., total electricity consumption)
+    results_files = {name: os.path.join(path, "OCHRE.csv") for name, path in run_names.items()}
+    df = Analysis.combine_time_series_column("Total Electric Power (kW)", results_files)
+    df.to_csv(os.path.join(output_path, "all_ochre_total_powers.csv"))
 
     # aggregate outputs for each house (sum or average only)
-    _, _, df_single = Analysis.load_ochre(run_folders[0], 'ochre', load_main=False)
+    _, _, df_single = Analysis.load_ochre(list(run_names.values())[0], "OCHRE", load_main=False)
     agg_func = {col: Analysis.get_agg_func(col, 'House') for col in df_single.columns}
     df = Analysis.combine_time_series_files(results_files, agg_func)
-    df.to_parquet(os.path.join(output_folder, 'all_ochre_results.parquet'))
+    df.to_csv(os.path.join(output_path, "all_ochre_results.csv"))
 
-    my_print('All compiling complete')
+    print("Saved OCHRE results to:", output_path)
 
 
 def my_print(*args):
@@ -270,11 +279,13 @@ def my_print(*args):
 
 
 if __name__ == "__main__":
-             
     input_path = os.path.join(default_input_path, 'Input Files')
     size = 100 # amps
-    der_type=None
-    charging_level=None
+    der_type = None
+    charging_level = None
+    
+    # baseline case
+    run_single_building(input_path, size, der_type, charging_level, sim_type='baseline')
     
     # case 1, circuit sharing with cooking range (primary) and WH (secondary)
     run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_sharing', tech1='Cooking Range', tech2='Water Heating')
@@ -282,9 +293,12 @@ if __name__ == "__main__":
     # case 2, circuit pausing with WH
     run_single_building(input_path, size, der_type, charging_level, sim_type='circuit_pausing', tech1='Water Heating')
   
-    # case 3, smart EV charging
+    # baseline case - with EV
     der_type='ev'
     charging_level='Level 2'
+    run_single_building(input_path, size, der_type, charging_level, sim_type='baseline_ev')
+    
+    # case 3, smart EV charging
     run_single_building(input_path, size, der_type, charging_level, sim_type='ev_control', tech1='EV')
         
     # compile results
