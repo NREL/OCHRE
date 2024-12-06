@@ -63,7 +63,7 @@ dwelling_args = {
         # HVAC equipment
         # Note: dictionary key can be end use (e.g., HVAC Heating) or specific equipment name (e.g., Gas Furnace)
         # 'HVAC Heating': {
-        #     # 'use_ideal_capacity': True,
+        #     # 'use_ideal_mode': True,
         #     # 'show_eir_shr': True,
         # },
         # 'Air Conditioner': {
@@ -90,7 +90,7 @@ dwelling_args = {
         #     # 'hp_only_mode': True
         # },
         # 'Electric Resistance Water Heater': {
-        #     'use_ideal_capacity': True,
+        #     'use_ideal_mode': True,
         # },
 
         # Other equipment

@@ -89,17 +89,18 @@ def run_water_heater():
     equipment_args = {
         # Equipment parameters
         # 'water_nodes': 1,
-        'Initial Temperature (C)': 49,
-        'Setpoint Temperature (C)': 51,
-        'Deadband Temperature (C)': 5,
-        'Capacity (W)': 4800,
-        'Efficiency (-)': 1,
-        'Tank Volume (L)': 250,
-        'Tank Height (m)': 1.22,
-        'UA (W/K)': 2.17,
-        'schedule': schedule,
+        "Initial Temperature (C)": 49,
+        "Setpoint Temperature (C)": 51,
+        "Deadband Temperature (C)": 5,
+        "Capacity (W)": 4800,
+        "Efficiency (-)": 1,
+        "Tank Volume (L)": 250,
+        "Tank Height (m)": 1.22,
+        "UA (W/K)": 2.17,
+        "schedule": schedule,
         **default_args,
-        'time_res': time_res,
+        "time_res": time_res,
+        "duration": dt.timedelta(days=1),
     }
 
     # Initialize equipment
@@ -230,7 +231,7 @@ if __name__ == '__main__':
     
     # run_battery()
     # run_battery_controlled()
-    # run_water_heater()
+    run_water_heater()
     # run_hvac()
-    run_ev()
+    # run_ev()
     # run_equipment_from_house_model()

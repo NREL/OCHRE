@@ -45,15 +45,11 @@ HVAC Heating or HVAC Cooling
 +-------------------------------+--------------------------+-----------+---------------------+---------------------------------------------------------------------------+
 | HVAC Heating or HVAC Cooling  | Max Capacity Fraction    | unitless  | Only if in schedule | Limits HVAC max capacity, ideal capacity only                             |
 +-------------------------------+--------------------------+-----------+---------------------+---------------------------------------------------------------------------+
-| HVAC Heating or HVAC Cooling  | Duty Cycle               | unitless  | TRUE                | Sets the equipment duty cycle for ext_time_res, non-ideal capacity only   |
-+-------------------------------+--------------------------+-----------+---------------------+---------------------------------------------------------------------------+
 | HVAC Heating or HVAC Cooling  | Disable Speed X          | N/A       | FALSE               | Flag to disable low (X=1) or high (X=2) speed, only for 2 speed equipment |
 +-------------------------------+--------------------------+-----------+---------------------+---------------------------------------------------------------------------+
 | HVAC Heating (ASHP only)      | ER Capacity              | W         | TRUE                | Sets ER element capacity directly, ideal capacity only                    |
 +-------------------------------+--------------------------+-----------+---------------------+---------------------------------------------------------------------------+
 | HVAC Heating (ASHP only)      | Max ER Capacity Fraction | unitless  | Only if in schedule | Limits ER element max capacity, ideal capacity only                       |
-+-------------------------------+--------------------------+-----------+---------------------+---------------------------------------------------------------------------+
-| HVAC Heating (ASHP only)      | ER Duty Cycle            | unitless  | TRUE                | Sets the ER element duty cycle for ext_time_res, non-ideal capacity only  |
 +-------------------------------+--------------------------+-----------+---------------------+---------------------------------------------------------------------------+
 
 Water Heating
@@ -69,12 +65,6 @@ Water Heating
 | Deadband            | C         | Only if in schedule | Sets temperature deadband [#]_                                     |
 +---------------------+-----------+---------------------+--------------------------------------------------------------------+
 | Max Power           | kW        | Only if in schedule | Sets the maximum power. Does not work for HPWH in HP mode          |
-+---------------------+-----------+---------------------+--------------------------------------------------------------------+
-| Duty Cycle          | unitless  | TRUE                | Sets the equipment duty cycle for ext_time_res                     |
-+---------------------+-----------+---------------------+--------------------------------------------------------------------+
-| HP Duty Cycle       | unitless  | TRUE                | Sets the HPWH heat pump duty cycle for ext_time_res                |
-+---------------------+-----------+---------------------+--------------------------------------------------------------------+
-| ER Duty Cycle       | unitless  | TRUE                | Sets the HPWH electric resistance duty cycle for ext_time_res [#]_ |
 +---------------------+-----------+---------------------+--------------------------------------------------------------------+
 
 .. [#] Sending {'Setpoint': None} will reset the setpoint to the default schedule. Note that a 10 F (5.56 C)

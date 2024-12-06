@@ -218,7 +218,7 @@ class ElectricVehicle(EventBasedLoad):
         end_soc = next_event['start_soc'] + self.max_power * EV_EFFICIENCY * next_event['duration'] / self.capacity
         self.event_schedule.loc[self.event_index, 'end_soc'] = np.clip(end_soc, 0, 1)
 
-    def update_external_control(self, control_signal):
+    def parse_control_signal(self, control_signal):
         # Options for external control signals:
         # - P Setpoint: Directly sets power setpoint, in kW
         # - SOC: Solves for power setpoint to achieve desired SOC, unitless
@@ -226,7 +226,7 @@ class ElectricVehicle(EventBasedLoad):
         # - Max Power: Updates maximum allowed power (in kW)
         #   - Note: Max Power will only be reset if it is in the schedule
         # - Max SOC: Maximum SOC limit for charging
-        # - See additional controls in EventBasedLoad.update_external_control
+        # - See additional controls in EventBasedLoad.parse_control_signal
 
         max_power = control_signal.get("Max Power")
         if max_power is not None:
@@ -242,7 +242,7 @@ class ElectricVehicle(EventBasedLoad):
             else:
                 self.soc_max_ctrl = max_soc
 
-        mode = super().update_external_control(control_signal)
+        super().parse_control_signal(control_signal)
 
         # update power setpoint directly or through SOC or SOC Rate
         if 'P Setpoint' in control_signal:
@@ -257,22 +257,15 @@ class ElectricVehicle(EventBasedLoad):
         else:
             setpoint = None
 
+        # Set the setpoint through max power parameter - always resets
         if setpoint is not None:
-            setpoint = max(setpoint, 0)
-            if mode != 'On' and setpoint > 0:
-                self.warn('Cannot set power when not parked.')
-            elif self.enable_part_load:
-                self.setpoint_power = setpoint
-            else:
+            setpoint = min(max(setpoint, 0), self.max_power)
+            if not self.enable_part_load:
                 # set to max power if setpoint > half of max
-                self.setpoint_power = (
-                    self.max_power if setpoint >= self.max_power / 2 else 0
-                )
+                setpoint = self.max_power if setpoint >= self.max_power / 2 else 0
+            self.current_schedule["EV Max Power (kW)"] = setpoint
 
-        return mode
-
-    def update_internal_control(self):
-        self.setpoint_power = None
+    def run_internal_control(self):
         self.unmet_load = 0
 
         # update control parameters from schedule
@@ -281,18 +274,17 @@ class ElectricVehicle(EventBasedLoad):
         if "EV Max SOC (-)" in self.current_schedule:
             self.soc_max_ctrl = self.current_schedule["EV Max SOC (-)"]
 
-        return super().update_internal_control()
+        super().run_internal_control()
 
     def calculate_power_and_heat(self):
         # Note: this is copied from the battery model, but they are not linked at all
-        if self.mode == 'Off':
+        if not self.on_frac_new:
             return super().calculate_power_and_heat()
 
         # force ac power within kw capacity and SOC limits, no discharge allowed
         hours = self.time_res.total_seconds() / 3600
-        max_power = self.setpoint_power if self.setpoint_power is not None else self.max_power_ctrl
         ac_power = (self.soc_max_ctrl - self.soc) * self.capacity / hours / EV_EFFICIENCY
-        ac_power = min(max(ac_power, 0), max_power)
+        ac_power = min(max(ac_power, 0), max(self.max_power_ctrl, 0))
         self.electric_kw = ac_power
 
         # update SOC for next time step, check with upper and lower bound of usable SOC

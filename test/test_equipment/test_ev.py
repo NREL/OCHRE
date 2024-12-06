@@ -60,57 +60,57 @@ class EVTestCase(unittest.TestCase):
         # test with overlap
         self.ev.generate_all_events(probabilities, event_data, None)
 
-    def test_update_external_control(self):
+    def test_parse_control_signal(self):
         start = self.ev.event_start
         end = self.ev.event_end
         one_min = dt.timedelta(minutes=1)
 
         # test outside of event
-        self.ev.update_external_control({}, {'Delay': False})
+        self.ev.parse_control_signal({}, {'Delay': False})
         self.assertEqual(self.ev.event_start, start)
         self.assertEqual(self.ev.event_end, end)
         self.assertEqual(self.ev.setpoint_power, None)
 
-        self.ev.update_external_control({}, {'Delay': True})
+        self.ev.parse_control_signal({}, {'Delay': True})
         self.assertEqual(self.ev.event_start, start + one_min)
         self.assertEqual(self.ev.event_end, end)
 
-        self.ev.update_external_control({}, {'Delay': 2})
+        self.ev.parse_control_signal({}, {'Delay': 2})
         self.assertEqual(self.ev.event_start, start + one_min * 3)
         self.assertEqual(self.ev.event_end, end)
 
-        self.ev.update_external_control({}, {'Delay': 10000})
+        self.ev.parse_control_signal({}, {'Delay': 10000})
         self.assertEqual(self.ev.event_start, end)
         self.assertEqual(self.ev.event_end, end)
 
         # setpoint control
-        self.ev.update_external_control({}, {'P Setpoint': 1})
+        self.ev.parse_control_signal({}, {'P Setpoint': 1})
         self.assertEqual(self.ev.setpoint_power, None)
 
         # setpoint with part load enabled
         self.ev.event_start = self.ev.current_time
-        self.ev.update_external_control({}, {'P Setpoint': 1})
+        self.ev.parse_control_signal({}, {'P Setpoint': 1})
         self.assertEqual(self.ev.setpoint_power, 1.4)
 
         self.ev.enable_part_load = True
-        self.ev.update_external_control({}, {'P Setpoint': 1})
+        self.ev.parse_control_signal({}, {'P Setpoint': 1})
         self.assertEqual(self.ev.setpoint_power, 1)
 
         # SOC rate control
         self.ev.event_start = self.ev.current_time
-        self.ev.update_external_control({}, {'SOC Rate': 0.2})
+        self.ev.parse_control_signal({}, {'SOC Rate': 0.2})
         self.assertAlmostEqual(self.ev.setpoint_power, 1.444, places=3)
 
-    def test_update_internal_control(self):
+    def test_run_internal_control(self):
         # test outside of event
-        mode = self.ev.update_internal_control({})
-        self.assertEqual(mode, 'Off')
+        mode = self.ev.run_internal_control({})
+        self.assertEqual(mode, 0)
         self.assertIsNone(self.ev.setpoint_power)
 
         # test event start
         self.ev.current_time = self.ev.event_start + dt.timedelta(minutes=2)
         self.soc = 0.5
-        mode = self.ev.update_internal_control({})
+        mode = self.ev.run_internal_control({})
         self.assertEqual(mode, 'On')
         self.assertIsNone(self.ev.setpoint_power)
         self.assertNotEqual(self.ev.soc, 0.5)
@@ -118,12 +118,12 @@ class EVTestCase(unittest.TestCase):
         # test event end with unmet load
         self.ev.current_time = self.ev.event_end + dt.timedelta(minutes=2)
         self.ev.soc = 0.1
-        mode = self.ev.update_internal_control({})
-        self.assertEqual(mode, 'Off')
+        mode = self.ev.run_internal_control({})
+        self.assertEqual(mode, 0)
         self.assertGreater(self.ev.unmet_load, 0)
 
     def test_calculate_power_and_heat(self):
-        self.ev.mode = 'Off'
+        self.ev.mode = 0
         self.ev.calculate_power_and_heat({})
         self.assertEqual(self.ev.electric_kw, 0)
 
@@ -165,9 +165,9 @@ class EVTestCase(unittest.TestCase):
 
         self.assertEqual(results['EV SOC (-)'].max(), 1)
         self.assertEqual(results['EV SOC (-)'].min(), 0)
-        self.assertAlmostEqual((results['EV Mode'] == 'On').mean(), 0.28, places=2)
+        self.assertAlmostEqual((results["EV On-Time Fraction (-)"] == 1).mean(), 0.28, places=2)
 
-        self.assertDictEqual(self.ev.mode_cycles, {'On': 1, 'Off': 0})
+        self.assertDictEqual(self.ev.mode_cycles, {'On': 1, 0: 0})
 
 
 class ScheduledEVTestCase(unittest.TestCase):

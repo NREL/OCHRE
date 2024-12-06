@@ -4,7 +4,6 @@ equip_init_args = {
     'start_time': dt.datetime(2019, 4, 1),
     'duration': dt.timedelta(days=1),
     'time_res': dt.timedelta(minutes=1),
-    'ext_time_res': dt.timedelta(minutes=15),
     'initial_schedule': {},
     'schedule': {},
     'zip_model': {'Test Equipment': {'pf': 0.9, 'pf_inductive': True,

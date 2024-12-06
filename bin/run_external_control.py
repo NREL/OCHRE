@@ -9,7 +9,6 @@ from bin.run_dwelling import dwelling_args
 dwelling_args.update(
     {
         "time_res": dt.timedelta(minutes=10),
-        "ext_time_res": dt.timedelta(minutes=60),  # for duty cycle control only
         "Equipment": {
             "EV": {
                 'vehicle_type': 'BEV',
@@ -128,7 +127,6 @@ def get_hvac_controls(hour_of_day, occupancy, heating_setpoint, **unused_inputs)
                 # 'Setpoint': heating_setpoint,
                 #  'Deadband': 2,
                 # 'Load Fraction': 0,  # Set to 0 for force heater off
-                # 'Duty Cycle': 0.5,  # Sets fraction of on-time explicitly
             },
             # 'HVAC Cooling': {...},
         }
