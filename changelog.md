@@ -1,14 +1,50 @@
 ## OCHRE Changelog
 
-### Changes from PRs
+### New from PRs
 
+- Updated EV model to accept new EV charging data
+- Added EV `event_day_ratio` and `max_power` parameters
+- added EV average SOC and unmet load metrics
+- Updated PV model to use latitude/south for tilt/azimuth if no roof model exists
+- Enabled .epw files with leap year data (we remove Feb 29, similar to Cambium)
+- Added multi-speed HVAC parameters for ResStock 2024 dataset [#128](https://github.com/NREL/OCHRE/issues/128)
+- Updated with OS-HPXML v1.7 naming conventions (e.g., spa equipment, indoor
+  zone) #76
+- Fixed EV unmet load units [#144](https://github.com/NREL/OCHRE/issues/144)
+- Fixed garage interior ceiling connections
+- Fixed issue with attic-garage boundaries [#96](https://github.com/NREL/OCHRE/issues/96)
+- Fixed issue with adjacent doors (e.g., for multi-family units, hallways)
+- Fixed issue with ducts in multiple locations [#148](https://github.com/NREL/OCHRE/issues/148)
+- Allowed "Occupancy" adjustments in input arguments
+
+### OCHRE v0.8.5-beta
+
+- Updated PV model to integrate with PVWatts using PySAM v5.0 (not backwards compatible)
+- PV model accepts tilt and azimuth angles from roof boundary in envelope
+- Removed and renamed PV input arguments related to PySAM
+- Changed the units for some outputs related to heat gains/capacity
+- Added controls and optional schedule columns for HVAC, WH, EV, Battery
 - Added HVAC capacity and max capacity controls, ideal mode only
 - Require HVAC duty cycle control for thermostatic mode only
+- Added water heater max power control
+- Added EV max power and max SOC controls
+- Added `equipment_event_file` input for EVs
+- Added OCHREException class to handle errors
+- Added warnings for HVAC and WH heat pumps with low COP
+- Moved default input file path for package installation
+- Replaced setup.py with pyproject.toml
+- Fixed bug with schedule file import using Pandas v2.2
 - Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
 - Fixed bug with ASHP backup heater units
 - Fixed bug with named HVAC/Water Heating equipment arguments
 - Fixed bug in ASHP duty cycle control
-- Added OCHREException class to handle errors
+- Fixed bug with accounting for HVAC delivered heat for standalone HVAC runs 
+- Fixed bug with ASHP backup heater units
+- Fixed bug with battery/generator self-consumption controls
+- Fixed bug with WH and battery islanding time metrics
+- Fixed bug with garage area outside of typical building rectangle
+- Fixed bug with state space model reduction algorithm
+- Fixed syntax warning for Python 3.12
 
 ### OCHRE v0.8.4-beta
 

@@ -11,64 +11,63 @@ import psychrolib
 import pytz
 import pvlib
 
-from ochre.utils import OCHREException, main_path, default_input_path, load_csv, convert
+from ochre.utils import OCHREException, default_input_path, load_csv, convert
 from ochre.utils.envelope import calculate_solar_irradiance
 
 # List of variables and functions for loading and parsing schedule files
 
-header_file = os.path.join(default_input_path, 'PV', 'sam_weather_header.csv')
-default_sam_weather_file = os.path.join(default_input_path, 'PV', 'SAM_weather_{}.csv')  # placeholder for house name
-
 # TODO: move to simple schedule parameters file?
 SCHEDULE_NAMES = {
-    'Occupancy': {
-        'occupants': 'Occupancy',
+    "Occupancy": {
+        "occupants": "Occupancy",
     },
-    'Power': {
-        'clothes_washer': 'Clothes Washer',
-        'clothes_dryer': 'Clothes Dryer',
-        'dishwasher': 'Dishwasher',
-        'refrigerator': 'Refrigerator',
-        'cooking_range': 'Cooking Range',
-        'lighting_interior': 'Indoor Lighting',
-        'lighting_exterior': 'Exterior Lighting',
-        'lighting_basement': 'Basement Lighting',
-        'lighting_garage': 'Garage Lighting',
-        'plug_loads_other': 'MELs',
-        'plug_loads_tv': 'TV',
-        'plug_loads_well_pump': 'Well Pump',
+    "Power": {
+        "clothes_washer": "Clothes Washer",
+        "clothes_dryer": "Clothes Dryer",
+        "dishwasher": "Dishwasher",
+        "refrigerator": "Refrigerator",
+        "cooking_range": "Cooking Range",
+        "lighting_interior": "Indoor Lighting",
+        "lighting_exterior": "Exterior Lighting",
+        "lighting_basement": "Basement Lighting",
+        "lighting_garage": "Garage Lighting",
+        "plug_loads_other": "MELs",
+        "plug_loads_tv": "TV",
+        "plug_loads_well_pump": "Well Pump",
         # 'plug_loads_vehicle': 'electric vehicle charging',  # Not using scheduled EV load
-        'fuel_loads_grill': 'Gas Grill',
-        'fuel_loads_fireplace': 'Gas Fireplace',
-        'fuel_loads_lighting': 'Gas Lighting',
-        'pool_pump': 'Pool Pump',
-        'pool_heater': 'Pool Heater',
-        'hot_tub_pump': 'Hot Tub Pump',
-        'hot_tub_heater': 'Hot Tub Heater',
-        'ceiling_fan': 'Ceiling Fan',
+        "fuel_loads_grill": "Gas Grill",
+        "fuel_loads_fireplace": "Gas Fireplace",
+        "fuel_loads_lighting": "Gas Lighting",
+        "pool_pump": "Pool Pump",
+        "pool_heater": "Pool Heater",
+        "permanent_spa_pump": "Spa Pump",
+        "permanent_spa_heater": "Spa Heater",
+        "ceiling_fan": "Ceiling Fan",
         # 'vent_fan': 'Ventilation Fan',  # not included in schedule
         # 'basement_mels': 'Basement MELs',  # not modeled
     },
-    'Water': {
-        'hot_water_fixtures': 'Water Heating',
-        'hot_water_clothes_washer': 'Clothes Washer',
-        'hot_water_dishwasher': 'Dishwasher',
+    "Water": {
+        "hot_water_fixtures": "Water Heating",
+        "hot_water_clothes_washer": "Clothes Washer",
+        "hot_water_dishwasher": "Dishwasher",
     },
-    'Setpoint': {
-        'heating_setpoint': 'HVAC Heating',
-        'cooling_setpoint': 'HVAC Cooling',
-        'water_heater_setpoint': 'Water Heating',
+    "Setpoint": {
+        "heating_setpoint": "HVAC Heating",
+        "cooling_setpoint": "HVAC Cooling",
+        "water_heater_setpoint": "Water Heating",
     },
-    'Ignore': {
-        'extra_refrigerator': None,
-        'freezer': None,
-        'clothes_dryer_exhaust': None,
-        'lighting_exterior_holiday': None,
-        'plug_loads_vehicle': None,
-        'battery': None,
-        'vacancy': None,
-        'water_heater_operating_mode': None,
-    }
+    "Ignore": {
+        "extra_refrigerator": None,
+        "freezer": None,
+        "clothes_dryer_exhaust": None,
+        "lighting_exterior_holiday": None,
+        "plug_loads_vehicle": None,
+        "battery": None,
+        "vacancy": None,
+        "water_heater_operating_mode": None,
+        "Vacancy": None,
+        "Power Outage": None,
+    },
 }
 
 ALL_SCHEDULE_NAMES = {
@@ -121,44 +120,8 @@ def set_annual_index(df, start_year, offset=None, timezone=None):
     return df
 
 
-def create_sam_weather_file(df_input, location, sam_weather_file=None, **kwargs):
-    # Convert weather data to SAM readable format
-    if sam_weather_file is None:
-        sam_weather_file = default_sam_weather_file.format(kwargs['main_sim_name'])
-
-    # load header file
-    header = pd.read_csv(header_file)
-
-    # update params
-    header['Latitude'] = location['latitude']
-    header['Longitude'] = location['longitude']
-    header['Time Zone'] = location['timezone']
-    header['Elevation'] = location['Altitude']
-    header['Local Time Zone'] = location['timezone']
-
-    # build main weather data
-    df = df_input.loc[:, ['DNI (W/m^2)', 'GHI (W/m^2)', 'DHI (W/m^2)', 'Wind Speed (m/s)']]
-    df['Year'] = df.index.year
-    df['Month'] = df.index.month
-    df['Day'] = df.index.day
-    df['Hour'] = df.index.hour
-    df['Minute'] = df.index.minute
-    df['Temperature'] = df_input['Ambient Dry Bulb (C)']
-
-    # Re-order columns
-    columns = ['Year', 'Month', 'Day', 'Hour', 'Minute',
-               'DNI (W/m^2)', 'GHI (W/m^2)', 'DHI (W/m^2)', 'Temperature', 'Wind Speed (m/s)']
-    df = df.loc[:, columns]
-    df.columns = [col[:col.index('(') - 1] if '(' in col else col for col in df.columns]
-
-    # Save new weather data to csv, with header
-    header.to_csv(sam_weather_file, index=False)
-    df.to_csv(sam_weather_file, mode='a', index=False)
-
-
 # FUTURE: could get epw file from API, ResStock uses https://data.nrel.gov/system/files/156/BuildStock_TMY3_FIPS.zip
-def import_weather(weather_file=None, weather_path=None, weather_station=None, weather_metadata=None,
-                   create_sam_file=None, **kwargs):
+def import_weather(weather_file=None, weather_path=None, weather_station=None, weather_metadata=None, **kwargs):
     # get weather station and weather file name
     if weather_file is not None and weather_station is not None:
         if weather_station not in weather_file:
@@ -175,10 +138,6 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
         if weather_path is None:
             weather_path = os.path.join(default_input_path, 'Weather')
         weather_file = os.path.join(weather_path, weather_file)
-
-    if create_sam_file is None:
-        pv = kwargs.get('Equipment', {}).get('PV')
-        create_sam_file = pv is not None and 'equipment_schedule_file' not in pv
 
     start_year = kwargs['start_time'].year
     ext = os.path.splitext(weather_file)[-1]
@@ -205,6 +164,10 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
     elif ext == '.epw':
         offset = dt.timedelta(minutes=30)
         df, location = pvlib.iotools.read_epw(weather_file)
+
+        if len(df) == 8784:
+            # leap year, remove Feb 29 data
+            df = df.loc[~((df.index.month == 2) & (df.index.day == 29)), :]
 
         # Update year and save time zone info
         df = set_annual_index(df, start_year, offset=offset, timezone=df.index.tzinfo)
@@ -300,13 +263,6 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
     df['Ambient Wet Bulb (-)'] = psychrolib.GetTWetBulbFromHumRatio(df['Ambient Dry Bulb (C)'].values,
                                                                     df['Ambient Humidity Ratio (-)'].values,
                                                                     df['Ambient Pressure (kPa)'].values * 1000)
-
-    # If creating a PV profile, interpolate weather and save SAM file
-    if create_sam_file:
-        year_start = dt.datetime(start_year, 1, 1, tzinfo=df.index.tzinfo)
-        duration = dt.timedelta(days=365)
-        df_sam = resample_and_reindex(df, kwargs['time_res'], year_start, duration, interpolate=True, offset=offset)
-        create_sam_weather_file(df_sam, location, **kwargs)
 
     return df, location
 
@@ -445,6 +401,7 @@ def import_occupancy_schedule(occupancy, equipment, start_time, schedule_input_f
     if schedules_to_merge:
         df_to_merge = pd.concat(schedules_to_merge, axis=1)
         df_norm = df_norm.join(df_to_merge, on=[df_norm.index.month, df_norm.index.hour, df_norm.index.weekday < 5])
+        df_norm = df_norm.drop(columns=['key_0', 'key_1', 'key_2'], errors='ignore')
 
     # Calculate max value for each column and add to new DataFrame
     schedule_data = []

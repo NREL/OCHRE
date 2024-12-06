@@ -86,6 +86,10 @@ def get_duct_info(ducts, zones, boundaries, construction, location, **kwargs):
 
 def update_equipment_properties(properties, schedule, zip_parameters_file='ZIP Parameters.csv', **kwargs):
     all_equipment = properties['equipment']
+
+    # add location properties to PV if it exists
+    if 'PV' in all_equipment:
+        all_equipment['PV']['location'] = properties['location']
     
     # split heat pump equipment into heater and cooler
     for heat_pump_name, short_name in [('Air Source Heat Pump', 'ASHP'),

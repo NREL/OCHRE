@@ -90,21 +90,19 @@ currently support modeling a whole multifamily building with multiple
 units simultaneously or the modeling of central space and water heating
 systems.
 
-Thermal mass due to furniture and interior partition walls is also
-accounted for in the living space. Partition walls and furniture are
-modeled explicitly with surface areas and material properties like any
-other surface and exchange heat through both convection and radiation.
-The heat capacity of the air is also modeled to determine the living
-zone temperature. However, a multiplier is generally applied to this
-capacitance. 
-`Numerous studies <https://docs.google.com/spreadsheets/d/1ebSmvDFdXEXVRdvkzqMF1C9MwHrHCQKFF75QMkPgd7A/edit?pli=1#gid=0>`__
-have shown that applying a multiplier to the air capacitance provides a
-much better match to experimental data when trying to model explicit
-cycling of the HVAC equipment conditioning the living space. This
-multiplier helps account for the volume of ducts and the time required
-for warm and cold air to diffuse through the living space. Values for
-this multiplier in the literature range from 3-15 depending on the
-study. OCHRE uses a default multiplier of 7.
+Thermal mass due to furniture and interior partition walls is also accounted
+for in the living space. Partition walls and furniture are modeled explicitly
+with surface areas and material properties like any other surface and exchange
+heat through both convection and radiation. The heat capacity of the air is
+also modeled to determine the living zone temperature. However, a multiplier
+is generally applied to this capacitance. `Numerous studies
+<https://docs.google.com/spreadsheets/d/1ebSmvDFdXEXVRdvkzqMF1C9MwHrHCQKFF75QMkPgd7A/edit?pli=1#gid=0>`__
+have shown that applying a multiplier to the air capacitance provides a much
+better match to experimental data when trying to model explicit cycling of the
+HVAC equipment conditioning the living space. This multiplier helps account
+for the volume of ducts and the time required for warm and cold air to diffuse
+through the living space. Values for this multiplier in the literature range
+from 3-15 depending on the study. OCHRE uses a default multiplier of 7.
 
 The envelope includes a humidity model for the living space zone. The
 model determines the indoor humidity and wet bulb temperature based on a
@@ -151,10 +149,8 @@ and efficiency:
 
 -  Dynamic: System max capacity and efficiency varies based on indoor and
    outdoor temperatures and air flow rate using biquadratic formulas. These
-   curves are based on “\ `Improved Modeling of Residential Air Conditioners
-   and Heat Pumps for Energy Calculations
-<https://scholar.colorado.edu/concern/graduate_thesis_or_dissertations/r781wg40j>`__\
-” (e.g.,  Air Conditioner, Air Source Heat Pump).
+   curves are based on `this paper
+   <https://scholar.colorado.edu/concern/graduate_thesis_or_dissertations/r781wg40j>`__.
 
 In addition, HVAC equipment use one of two modes to determine real-time
 capacity and power consumption:
@@ -219,65 +215,71 @@ basement.
 Water Heating
 -------------
 
-OCHRE currently supports modeling tank, tankless and heat pump water
-heaters. The water tank model is an RC model that tracks temperature
-throughout the tank. It is a flexible model that can handle multiple
-nodes in the water tank. Currently, a 12-node, 2-node, and 1-node model
-are implemented. RC coefficients are derived from the properties file.
-The fully mixed tank models the entire tank as a single node with a
-uniform temperature. This model is best suited to large timesteps. In
-residential waters, stratification occurs as cold water is brought into
-the bottom of the tank and buoyancy drives the hottest water to the top
-of the tank. The stratified tank model captures this buoyancy and the
-effect it has on outlet temperature as well as the “dead volume” below
-the lower element in an electric water heater that doesn’t get heated
-during normal operation. Note that to model a heat pump water heater a
-stratified tank model must be used (2 or 12 nodes, with 12 nodes
-generally being more accurate but also more computationally intensive.
-In HPWHs, the heat pump performance is a function of the ambient air wet
-bulb temperature (calculated using the humidity module in OCHRE) and the
-temperature of water adjacent to the condenser (typically the bottom
-half of the tank in most products on the market today).
+OCHRE models electric resistance and gas tank water heaters, electric and gas
+tankless water heaters, and heat pump water heaters.
 
-The tank model accounts for internal and external conduction, heat flows
-from water draws, and includes an algorithm to simulate temperature
-inversion mixing (ie stratification) if more than 1 node is used. The
-model can handle regular and tempered water draws. A separate water draw
-file is currently required to set the water draw profile. In standard
-usage, this draw profile is part of the schedule file generated as part
-of creating inputs (see the section on schedule inputs)
+In tank water heaters, stratification occurs as cold water is brought into the
+bottom of the tank and buoyancy drives the hottest water to the top of the
+tank. OCHRE's stratified water tank model captures this buoyancy using
+multi-node RC network that tracks temperatures vertically throughout the tank
+and an algorithm to simulate temperature inversion mixing (i.e.,
+stratification). The tank model also accounts for internal and external
+conduction, heat flows from water draws, and the location of upper and lower
+heating elements when determining tank temperatures. It is a flexible model
+that can handle multiple nodes, although a 12-node, 2-node, and 1-node model
+are currently implemented. RC coefficients are derived from the HPXML file.
+The 1-node model ignores the effects of stratification and maintains a uniform
+temperature in the tank. This model is best suited for large timesteps.
 
-Mechanically, water heaters with a tank follow a similar structure to
-HVAC equipment. For example, the Electric Resistance Water Heater has a
-static capacity, while the Heat Pump Water Heater has a dynamic capacity
-(and a backup electric resistance element similar to the Air Source Heat
-Pump). Tankless water heaters operate similarly to Ideal HVAC equipment,
-although an 8% derate is applied to the nominal efficiency of the unit
-to account for cycling losses in accordance with ANSI/RESNET 301.
+Similar to HVAC equipment, electric resistance and gas heating elements are
+modeled with static capacity and efficiency. The Electric Resistance Water
+Heater model includes upper and lower heating elements and two temperature
+sensors for the thermostatic control.
 
-Similar to HVAC equipment, water heater equipment has a thermostat
-control, and can be externally controlled by updating the thermostat
-setpoints and deadband, specifying a duty cycle, or direct shut-off.
-Tankless equipment can only be controlled through thermostat control and
-direct-shut-off.
+In heat pump water heaters, the heat pump capacity and efficiency are
+functions of the ambient air wet bulb temperature (calculated using the
+humidity module in OCHRE) and the temperature of water adjacent to the
+condenser (typically the bottom half of the tank in most products on the
+market today). The model also includes an electric resistance backup element
+at the top of the tank.
+
+Tankless water heaters operate similarly to Ideal HVAC equipment, although an
+8% derate is applied to the nominal efficiency of the unit to account for
+cycling losses in accordance with ANSI/RESNET 301.
+
+The model accounts for regular and tempered water draws. Sink, shower, and
+bath water draws are modeled as tempered (i.e., the volume of hot water
+depends on the outlet temperature), and appliance draws are modeled as regular
+(i.e., the volume is fixed). Water draw schedules are required in the
+schedule.
+
+Similar to HVAC equipment, water heater equipment has a thermostat control,
+and can be externally controlled by updating the thermostat setpoints and
+deadband, specifying a duty cycle, or direct shut-off. Tankless equipment can
+only be controlled through thermostat control and direct-shut-off.
 
 Electric Vehicles
 -----------------
 
-Electric vehicles are modeled using an event-based model and a charging
-event dataset from
-`EVI-Pro <https://www.nrel.gov/transportation/evi-pro.html>`__. EV
-parking events are randomly generated using the EVI-Pro dataset for each
-day of the simulation. One or more events may occur per day. Each event
-has a prescribed start time, end time, and starting state-of-charge
-(SOC). When the event starts, the EV will charge using a linear model
-similar to the battery model described below.
+Electric vehicles are modeled using an event-based model. EV parking events
+are randomly generated using event-based datasets for each day of the
+simulation. Zero, one, or more events may occur per day. Each event has a
+prescribed start time, end time, and starting state-of-charge (SOC). When the
+event starts, the EV will charge using a linear model similar to the battery
+model described below.
 
-Electric vehicles can be externally controlled through a delay signal or
-a direct power signal. A delay signal will delay the start time of the
-charging event. The direct power signal will set the charging power
-directly at each time step, and it is only suggested for Level 2
-charging.
+OCHRE's default event-based datasets are taken from `EVI-Pro
+<https://www.nrel.gov/transportation/evi-pro.html>`__. Additional datasets
+used for the `2030 National Charging Network
+<https://www.nrel.gov/docs/fy23osti/85654.pdf>`__ study may be available upon
+request.
+
+Electric vehicles can be externally controlled through a delay signal, a
+direct power signal, or charging constraints. A delay signal will delay the
+start time of the charging event. A direct power signal (in kW, or SOC rate)
+will set the charging power directly at each time step, and it is only
+suggested for Level 2 charging. Max power and max SOC contraints can also
+limit the charging rate and can optionally be set as a schedule.
 
 Batteries
 ---------
@@ -294,26 +296,23 @@ thermal model and can use any envelope zone as the ambient temperature.
 The battery degradation model tracks energy capacity degradation using
 temperature and SOC data and a rainflow algorithm.
 
-The battery model includes a schedule-based controller and a
-self-consumption controller. The schedule-based controller runs a daily
-charge and discharge schedule, where the user can define the charging
-and discharging start times and power setpoints. The self-consumption
-controller sets the battery power setpoint to the opposite of the house
-net load (including PV) to achieve zero grid import and export. There is
-also an option to only allow battery charging from PV. The battery will
-follow these controls until the SOC limits are reached.
-
-The battery can also be externally controlled through a direct setpoint
-for real power. There is currently no reactive power control for the
-battery model.
+The battery model can be controlled through a direct power signal or using a
+self-consumption controller. Direct power signals (or desired SOC setpoints)
+can be included in the schedule or sent at each time step. The
+self-consumption controller sets the battery power setpoint to the opposite of
+the house net load (including PV) to achieve desired grid import and export
+limits (defaults are zero, i.e., maximize self-consumption). The battery will
+follow these controls while maintaining SOC and power limits. There is also an
+option to only allow battery charging from PV. There is currently no reactive
+power control for the battery model.
 
 Solar PV
 --------
 
-Solar photovoltaics (PV) is modeled using PySAM, a python wrapper for
-the System Advisory Model (SAM). Standard values are used for the PV
-model, although the user can select the PV system capacity, the tilt
-angle, and the orientation.
+Solar photovoltaics (PV) is modeled using PySAM, a python wrapper for the
+System Advisory Model (SAM), using the PVWatts module. SAM default values are
+used for the PV model, although the user must select the PV system capacity
+and can specify the tilt angle, azimuth, and inverter properties.
 
 PV can be externally controlled through a direct setpoint for real and
 reactive power. The user can define an inverter size and a minimum power
@@ -343,7 +342,7 @@ be electric or natural gas loads. Schedule-based loads include:
 
 -  Ceiling fan and ventilation fan
 
--  Pool Equipment (pool pump and heater, hot tub pump and heater)
+-  Pool Equipment (pool pump and heater, spa pump and heater)
 
 -  Miscellaneous electric loads (television, other)
 
@@ -356,14 +355,20 @@ fraction to zero to simulate an outage or a resilience use case.
 Co-simulation
 -------------
 
-OCHRE is designed to be run in co-simulation with controllers, grid
-models, aggregators, and other agents. The inputs and outputs of key
-functions are designed to connect with these agents for streamlined
-integration. These inputs and outputs are defined in [controller
-integration] and [outputs and analysis], respectively.
+OCHRE is designed to be run in co-simulation with controllers, grid models,
+aggregators, and other agents. The inputs and outputs of key functions are
+designed to connect with these agents for streamlined integration. See
+`Controller Integration
+<https://ochre-nrel.readthedocs.io/en/latest/ControllerIntegration.html>`__
+and `Outputs and Analysis
+<https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__ for details on
+the inputs and outputs, respectively.
 
-See [citation and publication] for a list of use cases where OCHRE was
-run in co-simulation. And feel free to contact the developers [contact]
+See `Citation and Publications
+<https://ochre-nrel.readthedocs.io/en/latest/Introduction.html#citation-and-publications>`__
+for example use cases where OCHRE was run in co-simulation. And feel free to
+`contact us
+<https://ochre-nrel.readthedocs.io/en/latest/Introduction.html#contact>`__
 if you are interested in developing your own use case.
 
 Unsupported OS-HPXML Features
@@ -384,6 +389,8 @@ current list of technologies not supported in OCHRE is:
 -  Eaves
 
 -  Overhangs
+
+-  Cathedral ceilings
 
 -  Structural Insulated Panel (SIP) walls
 

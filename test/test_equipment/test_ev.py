@@ -161,7 +161,7 @@ class EVTestCase(unittest.TestCase):
         self.assertEqual(results['EV Electric Power (kW)'].max(), 1.4)
         self.assertEqual(results['EV Electric Power (kW)'].min(), 0)
         self.assertAlmostEqual(results['EV Electric Power (kW)'].mean(), 0.12, places=2)
-        self.assertEqual(results['EV Unmet Load (kW)'].mean(), 0)
+        self.assertEqual(results['EV Unmet Load (kWh)'].mean(), 0)
 
         self.assertEqual(results['EV SOC (-)'].max(), 1)
         self.assertEqual(results['EV SOC (-)'].min(), 0)

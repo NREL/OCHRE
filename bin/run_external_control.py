@@ -1,25 +1,51 @@
 import datetime as dt
 import pandas as pd
 
-from ochre import Dwelling
+from ochre import Dwelling, CreateFigures
 from bin.run_dwelling import dwelling_args
 
 # Test script to run single Dwelling with constant external control signal
 
-dwelling_args.update({
-    'time_res': dt.timedelta(minutes=10),
-    'ext_time_res': dt.timedelta(minutes=60),  # for duty cycle control only
-})
+dwelling_args.update(
+    {
+        "time_res": dt.timedelta(minutes=10),
+        "ext_time_res": dt.timedelta(minutes=60),  # for duty cycle control only
+        "Equipment": {
+            "EV": {
+                'vehicle_type': 'BEV',
+                'charging_level': 'Level 2',
+                'mileage': 150,
+            },
+        },
+    }
+)
 
 example_control_signal = {
-    'HVAC Heating': {'Setpoint': 19,
-                    #  'Max Capacity Fraction': 0.8,
-                     'Max ER Capacity Fraction': 0.5,
-                     },  # in C
-    'HVAC Cooling': {'Setpoint': 22},  # in C
-    'Water Heating': {'Setpoint': 50},  # in C
-    'PV': {'P Setpoint': -1.1, 'Q Setpoint': 0.5},  # in kW, kVAR
-    'Battery': {'P Setpoint': -1.0},  # in kW
+    "HVAC Heating": {
+        "Setpoint": 19,
+        #  'Max Capacity Fraction': 0.8,
+        "Max ER Capacity Fraction": 0.5,
+    },  # in C
+    "HVAC Cooling": {"Setpoint": 22},  # in C
+    "Water Heating": {"Setpoint": 50},  # in C
+    "PV": {"P Setpoint": -1.1, "Q Setpoint": 0.5},  # in kW, kVAR
+    "Battery": {
+        # 'P Setpoint': -1.0,  # in kW
+        # "SOC": 0.8,
+        "Self Consumption Mode": True,
+        "Max Import Limit": 1,  # in kW
+        "Max Export Limit": 1,  # in kW
+        # 'Min SOC': 0.2,
+        # 'Max SOC': 0.8,
+    },
+    "EV": {
+        # "Delay": True,
+        "Max Power": 6,
+        "Max SOC": 0.7,
+        # "P Setpoint": 5,
+        # "SOC": 0.6,
+        # "SOC Rate": 0.02,
+    },
 }
 
 
@@ -50,6 +76,41 @@ def run_constant_control_signal(control_signal=None):
         house_status = dwelling.update(control_signal=control_signal)
 
     df, _, _ = dwelling.finalize()
+
+    df["EV Electric Power (kW)"].plot()
+    df["EV SOC (-)"].plot()
+    CreateFigures.plt.show()
+
+
+def run_with_cooptimization():
+    # Initialization
+    dwelling = Dwelling(name="OCHRE with Controller", **dwelling_args)
+
+    # Simulation
+    for t in dwelling.sim_times:
+        # set up simulation time step (only run once)
+        dwelling.update_inputs()
+
+        # simulate 1 time step with different controls
+        control_signal = {}
+        converged = False
+        while not converged:
+            # run model and get results without advancing time
+            dwelling.update_model(control_signal)
+            house_status = dwelling.generate_results()
+
+            # check house_status for convergence
+            if True:
+                converged = True
+            else:
+                # change control if necessary
+                control_signal = {}
+
+        # complete time step and get results
+        house_status = dwelling.update_results()
+    
+    # Finalize simulation
+    return dwelling.finalize()
 
 
 def get_hvac_controls(hour_of_day, occupancy, heating_setpoint, **unused_inputs):
@@ -134,6 +195,6 @@ def run_controls_from_file(control_file):
 
 if __name__ == '__main__':
     # run_with_schedule_control()
-    # run_constant_control_signal(example_control_signal)
-    run_with_hvac_controller()
-    # run_controls_from_file(external_control_file='path/to/control_file.csv')
+    run_constant_control_signal(example_control_signal)
+    # run_with_hvac_controller()
+    # run_controls_from_file('path/to/control_file.csv')

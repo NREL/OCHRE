@@ -9,7 +9,7 @@ import ochre.utils.envelope as utils_envelope
 
 
 ZONE_NAME_OPTIONS = {
-    'Indoor': ['living', 'living space'],
+    'Indoor': ['conditioned space', 'living space'],
     'Foundation': ['crawlspace', 'basement', 'finishedbasement', 'basement - conditioned', 'basement - unconditioned',
                    'crawlspace - vented', 'crawlspace - unvented'],
     'Garage': ['garage'],
@@ -98,7 +98,7 @@ def get_boundaries_by_zones(boundaries, default_int_zone='Indoor', default_ext_z
     return bd_by_zones
 
 
-def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
+def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls, adj_walls):
     # for windows and doors, determine interior zone based on attached wall zone
     ext_bd, gar_bd, attic_bd = {}, {}, {}
     for name, boundary in boundaries.items():
@@ -116,6 +116,9 @@ def get_boundaries_by_wall(boundaries, ext_walls, gar_walls, attic_walls):
             boundary['Interior Zone'] = 'Attic'
             attic_bd[name] = boundary
             attic_walls[wall]['Area'] -= boundary['Area']
+        elif wall in adj_walls:
+            # skip doors on adjacent (adiabatic) walls
+            pass
         else:
             raise OCHREException(f'Unknown attached wall for {name}: {wall}')
     
@@ -278,6 +281,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     adj_walls = all_walls.pop(('Indoor', 'Indoor'), {})
     adj_attic_walls = all_walls.pop(('Attic', 'Attic'), {})
     adj_gar_walls = all_walls.pop(('Garage', 'Garage'), {})
+    attic_gar_walls = all_walls.pop(('Garage', 'Attic'), {}) #FIXME: What do we do with these walls?
     assert not all_walls  # verifies that all boundaries are accounted for
 
     # Get foundation walls
@@ -292,7 +296,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     ceilings = all_ceilings.pop(('Indoor', 'Attic'), {})
     fnd_ceilings = all_ceilings.pop(('Indoor', 'Foundation'), {})
     raised_floors = all_ceilings.pop(('Indoor', 'Outdoor'), {})
-    garage_ceilings = all_ceilings.pop(('Attic', 'Garage'), {})
+    garage_ceilings = all_ceilings.pop(('Garage', 'Attic'), {})
     garage_ceilings_int = all_ceilings.pop(('Indoor', 'Garage'), {})
     adj_ceilings = all_ceilings.pop(('Indoor', 'Indoor'), {})
     assert not all_ceilings  # verifies that all boundaries are accounted for
@@ -324,13 +328,17 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
 
     # Get windows (only accepts windows to indoor zone for now), and subtract wall area
     all_windows = enclosure.get('Windows', {})
-    windows, gar_windows, attic_windows = get_boundaries_by_wall(all_windows, ext_walls, gar_walls, attic_walls)
+    windows, gar_windows, attic_windows = get_boundaries_by_wall(
+        all_windows, ext_walls, gar_walls, attic_walls, adj_walls
+    )
     assert not gar_windows
     assert not attic_windows
     
     # Get doors (only accepts doors to indoor zone and garage), and subtract wall area
     all_doors = enclosure.get('Doors', {})
-    doors, gar_doors, attic_doors = get_boundaries_by_wall(all_doors, ext_walls, gar_walls, attic_walls)
+    doors, gar_doors, attic_doors = get_boundaries_by_wall(
+        all_doors, ext_walls, gar_walls, attic_walls, adj_walls
+    )
     assert not attic_doors
 
     boundaries = {
@@ -342,6 +350,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
         'Foundation Wall': fnd_walls,
         # 'Foundation Above-ground Wall': fnd_walls_above,
         'Adjacent Attic Wall': adj_attic_walls,
+        'Attic Garage Wall': attic_gar_walls,
         'Adjacent Garage Wall': adj_gar_walls,
         'Adjacent Foundation Wall': adj_fnd_wall,
         'Attic Floor': ceilings,
@@ -427,9 +436,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
             garage_area_in_main = a1 * a2 / garage_wall_height ** 2
         else:
             raise OCHREException('Invalid geometry. Cannot parse more than 3 garage walls.')
-        if garage_area_in_main > garage_floor_area:
-            garage_area_in_main = 0.5 * garage_floor_area #Fallback assumption of half protruding
-        assert 0 < garage_area_in_main / garage_floor_area < 1.001  # should be close to 50% for ResStock cases
+        assert 0 <= garage_area_in_main / garage_floor_area < 1.001  # should be close to 50% for ResStock cases
     else:
         garage_floor_area = 0
         garage_area_in_main = 0
@@ -528,20 +535,30 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
         attic = attics[0]
 
         # Get gable wall areas for attic and (possibly) garage
-        attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
-                            boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', []))
-        if len(attic_wall_areas) == 2:
-            # standard gable roof with attic
-            assert abs(attic_wall_areas[1] - attic_wall_areas[0]) < 0.2  # computational errors possible
-            attic_gable_area = attic_wall_areas[0]
+        if boundaries.get('Attic Garage Wall', {}).get('Area (m^2)') is not None: #TODO: for now, if we see walls between attic and garage, calculated geometry differently. May be neglecting some heat transfer between garage/attic boundary
+            attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
+                                boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', [])  + 
+                                boundaries.get('Attic Garage Wall', {}).get('Area (m^2)', []))
+            attic_gable_area = max(attic_wall_areas[0],attic_wall_areas[1]) #Note: if garage in on the same end as gable wall, area[0] != area[1]
             third_gable_area = 0
-        elif has_garage and len(attic_wall_areas) == 3:
-            # 2 attic gables plus 1 garage gable, garage gable has area that is 'more different'
-            attic_gable_area = attic_wall_areas[1]
-            low, med, high = tuple(sorted(attic_wall_areas))
-            third_gable_area = low if med - low > high - med else high
+
+            del boundaries['Attic Garage Wall'] #FIXME: we need to be able to handle this at some point
         else:
-            raise OCHREException('Unable to calculate attic area, likely an issue with gable walls.')
+            attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
+                                boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', [])) 
+                                
+            if len(attic_wall_areas) == 2:
+                # standard gable roof with attic
+                assert abs(attic_wall_areas[1] - attic_wall_areas[0]) < 0.2  # computational errors possible
+                attic_gable_area = attic_wall_areas[0]
+                third_gable_area = 0
+            elif has_garage and len(attic_wall_areas) == 3:
+                # 2 attic gables plus 1 garage gable, garage gable has area that is 'more different'
+                attic_gable_area = attic_wall_areas[1]
+                low, med, high = tuple(sorted(attic_wall_areas))
+                third_gable_area = low if med - low > high - med else high
+            else:
+                raise OCHREException('Unable to calculate attic area, likely an issue with gable walls.')
 
         # Get attic properties
         # tan(roof_tilt) = height / (width / 2)
@@ -862,12 +879,15 @@ def parse_hvac(hvac_type, hvac_all):
             })
 
     # Get duct info for calculating DSE
+    
     distribution = hvac_all.get('HVACDistribution', {})
     distribution_type = distribution.get('DistributionSystemType', {})
     air_distribution = distribution_type.get('AirDistribution', {})
     duct_leakage = air_distribution.get('DuctLeakageMeasurement')
-    ducts = [d for d in air_distribution.get('Ducts', {}).values()
-             if parse_zone_name(d.get('DuctLocation')) not in ['Indoor', None]]
+    ducts = air_distribution.get('Ducts', [])
+    if isinstance(ducts, dict):
+        ducts = list(ducts.values())
+    ducts = [d for d in ducts if parse_zone_name(d.get("DuctLocation")) not in ["Indoor", None]]
 
     if f'Annual{hvac_type}DistributionSystemEfficiency' in distribution:
         # Note, ducts are assumed to be in ambient space, DSE losses aren't added to another zone
@@ -1291,7 +1311,7 @@ def parse_cooking_range(range_dict, oven_dict, n_bedrooms):
     is_induction = range_dict.get('IsInduction', False)
     is_convection = oven_dict.get('IsConvection', False)
     multiplier = range_dict.get('extension', {}).get('UsageMultiplier', 1)
-    assert 'living' in range_dict.get('Location', 'living')
+    assert parse_zone_name(range_dict.get('Location')) in ['Indoor', None]
 
     # get total energy usage
     burner_ef = 0.91 if is_induction else 1
@@ -1439,21 +1459,20 @@ def parse_ev(ev):
 
 
 def parse_pool_equipment(hpxml):
-    # Get pool and hot tub equipment
+    # Get pool and spa equipment
     pool_equipment = {}
-    for ochre_name in ['Pool', 'Hot Tub']:
-        hpxml_name = ochre_name.replace(' ', '')
+    for hpxml_name in ['Pool', 'Spa']:
         pool_list = list(hpxml.get(f'{hpxml_name}s', {}).values())
         if not pool_list or pool_list[0].get('Type', 'none') == 'none':
             continue
 
-        pump = list(pool_list[0][f'{hpxml_name}Pumps'].values())[0]
+        pump = list(pool_list[0]['Pumps'].values())[0]
         heater = pool_list[0]['Heater']
         assert len(pool_list) == 1 and isinstance(pump, dict) and isinstance(heater, dict)
-        if 'Load' in pump:
-            pool_equipment[f'{ochre_name} Pump'] = parse_mel(pump, f'{hpxml_name}Pump')
-        if 'Load' in heater:
-            pool_equipment[f'{ochre_name} Heater'] = parse_mel(heater, f'{hpxml_name}Heater')
+        if 'Load' in pump and pump.get('Type', 'none') != 'none':
+            pool_equipment[f'{hpxml_name} Pump'] = parse_mel(pump, f'{hpxml_name} Pump')
+        if 'Load' in heater and heater.get('Type', 'none') != 'none':
+            pool_equipment[f'{hpxml_name} Heater'] = parse_mel(heater, f'{hpxml_name} Heater')
 
     return pool_equipment
 
@@ -1576,7 +1595,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     mgls = parse_mels(mgl_dict, is_gas=True)
     equipment.update(mgls)
 
-    # Add pool/hot tub equipment: pumps and heaters
+    # Add pool/spa equipment: pumps and heaters
     pool_equipment = parse_pool_equipment(hpxml)
     equipment.update(pool_equipment)
 
@@ -1611,6 +1630,8 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
 
     # Parse occupancy
     occupancy = parse_hpxml_occupancy(hpxml)
+    if 'Occupancy' in house_args:
+        occupancy = nested_update(occupancy, house_args.pop('Occupancy'))
 
     # Parse envelope properties and merge with house_args
     boundaries, zones, construction = parse_hpxml_envelope(hpxml, occupancy, **house_args)

@@ -205,7 +205,7 @@ Electric Vehicle
 +--------------------------------+-----------------+---------------+-------------------------------------------------------------------------+
 | EV Parked                      | N/A             | 3             | True if EV is parked at home                                            |
 +--------------------------------+-----------------+---------------+-------------------------------------------------------------------------+
-| EV Unmet Load (kW)             | kW              | 3             | Unmet EV demand, determined at parking End Time. Negative value         |
+| EV Unmet Load (kWh)            | kWh             | 3             | Unmet EV demand, determined at parking End Time                         |
 +--------------------------------+-----------------+---------------+-------------------------------------------------------------------------+
 | EV Start Time                  | N/A             | 6             | If parked, time that EV arrived. If away, next time that EV will arrive |
 +--------------------------------+-----------------+---------------+-------------------------------------------------------------------------+
@@ -468,14 +468,13 @@ The ``Analysis`` module has useful data analysis functions for OCHRE
 output data:
 
 .. code-block:: python
+
     from ochre import Analysis
     
     # load existing ochre simulation data
     df, metrics, df_hourly = Analysis.load_ochre(folder)
     # calculate metrics from a pandas DataFrame
     metrics = Analysis.calculate_metrics(df)
-
-
 
 Some analysis functions are useful for analyzing or combining results
 from multiple OCHRE simulations:
@@ -486,8 +485,8 @@ from multiple OCHRE simulations:
     df_metrics = Analysis.combine_metrics_files(path=path)
     
     # Combine 1 output column from multiple OCHRE simulations into a single DataFrame
-    results_files = Analysis.find_files_from_ending(path, ‘ochre.csv’)
-    df_powers = Analysis.combine_time_series_column(results_files, 'Total Electric Power (kW)')
+    results_files = Analysis.find_files_from_ending(path, 'ochre.csv')
+    df_powers = Analysis.combine_time_series_column('Total Electric Power (kW)', results_files)
 
 Data Visualization
 ------------------
@@ -498,10 +497,11 @@ output data:
 .. code-block:: python
 
     from ochre import Analysis, CreateFigures
-        df, metrics, df_hourly = Analysis.load_ochre(folder)
-        # Create standard HVAC output plots
-        CreateFigures.plot_hvac(df)
-        # Create stacked plot of power by end use
-        CreateFigures.plot_power_stack(df)
+    
+    df, metrics, df_hourly = Analysis.load_ochre(folder)
+    # Create standard HVAC output plots
+    CreateFigures.plot_hvac(df)
+    # Create stacked plot of power by end use
+    CreateFigures.plot_power_stack(df)
 
 Many functions work on any generic pandas DataFrame with a DateTimeIndex.

@@ -1,8 +1,9 @@
 import os
 import re
 import json
-import pandas as pd
 import datetime as dt
+import pandas as pd
+import pyarrow.parquet as pq
 import numpy as np
 import numba  # required for array-based psychrolib
 import psychrolib
@@ -33,7 +34,7 @@ def get_agg_func(column, agg_type='Time'):
         return 'mean' if unit in units_to_mean else 'sum'
 
 
-def load_timeseries_file(file_name, columns=None, resample_res=None, **kwargs):
+def load_timeseries_file(file_name, columns=None, resample_res=None, ignore_errors=True, **kwargs):
     # Loads OCHRE-defined timeseries files, csv and parquet options
     # option to specify columns to load as a list. Will add 'Time' index
     # option to resample the file at a given timedelta, will take the mean of all columns
@@ -44,6 +45,11 @@ def load_timeseries_file(file_name, columns=None, resample_res=None, **kwargs):
 
     extn = os.path.splitext(file_name)[1]
     if extn == '.parquet':
+        if ignore_errors and columns:
+            # check that all columns exist, see:
+            # https://stackoverflow.com/questions/65705660/ignore-columns-not-present-in-parquet-with-pyarrow-in-pandas
+            parquet_file = pq.ParquetFile(file_name)
+            columns = [c for c in columns if c in parquet_file.schema.names]
         df = pd.read_parquet(file_name, columns=columns, **kwargs)
     elif extn == '.csv':
         df = pd.read_csv(file_name, index_col='Time', parse_dates=True, usecols=columns, **kwargs)
@@ -226,7 +232,8 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
     #  1. Total energy metrics (without kVAR)
     #  2. End-use energy metrics (without kVAR)
     #  3. Average zone temperatures
-    #  4. HVAC metrics (most), water heater metrics, battery/generator metrics, outage metrics
+    #  4. HVAC metrics (most), water heater metrics, battery/generator
+    #     metrics, EV metrics, outage metrics
     #  5. Equipment-level energy metrics (without kVAR) and cycling metrics
     #  6. Peak electric power
     #  7. Reactive energy metrics
@@ -263,7 +270,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             'Peak Electric Power (kW)': p.max(),
             'Peak Electric Power - 15 min avg (kW)': p.resample('15min').mean().max(),
             'Peak Electric Power - 30 min avg (kW)': p.resample('30min').mean().max(),
-            'Peak Electric Power - 1 hour avg (kW)': p.resample('1H').mean().max(),
+            'Peak Electric Power - 1 hour avg (kW)': p.resample('1h').mean().max(),
         })
 
     # End use power metrics
@@ -350,7 +357,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
                     metrics['Average {} Capacity (kW)'.format(end_use)] = capacity[capacity > 0].mean()
 
     # Water heater and hot water metrics
-    if metrics_verbosity >= 4 and 'Water Heating kW)' in results:
+    if metrics_verbosity >= 4 and "Water Heating Delivered (W)" in results:
         heat = results['Water Heating Delivered (W)'] / 1000  # in kW
         metrics['Total Water Heating Delivered (kWh)'] = heat.sum(skipna=False) * hr_per_step
 
@@ -373,23 +380,34 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             metrics['Total Hot Water Delivered (kWh)'] = \
                 results['Hot Water Delivered (W)'].sum(skipna=False) / 1000 * hr_per_step
 
+    # EV metrics
+    if "EV SOC (-)" in results:
+        metrics["Average EV SOC (-)"] = results["EV SOC (-)"].mean(skipna=False)
+    if "EV Unmet Load (kWh)" in results:
+        metrics["Total EV Unmet Load (kWh)"] = (
+            results["EV Unmet Load (kWh)"].sum(skipna=False)
+        )
+
     # Battery metrics
     if metrics_verbosity >= 4 and 'Battery Electric Power (kW)' in results:
-        p = results['Battery Electric Power (kW)']
-        metrics['Battery Charging Energy (kWh)'] = p.clip(lower=0).sum(skipna=False) * hr_per_step
-        metrics['Battery Discharging Energy (kWh)'] = -p.clip(upper=0).sum(skipna=False) * hr_per_step
+        batt_energy = results['Battery Electric Power (kW)'] * hr_per_step
+        metrics['Battery Charging Energy (kWh)'] = batt_energy.clip(lower=0).sum(skipna=False)
+        metrics['Battery Discharging Energy (kWh)'] = -batt_energy.clip(upper=0).sum(skipna=False)
         if metrics['Battery Charging Energy (kWh)'] != 0:
             metrics['Battery Round-trip Efficiency (-)'] = (metrics['Battery Discharging Energy (kWh)'] /
                                                             metrics['Battery Charging Energy (kWh)'])
             
         if all([r in results for r in ['Battery Energy to Discharge (kWh)', 'Total Electric Energy (kWh)']]):
-            cumulative_energy = results['Total Electric Energy (kWh)'].cumsum()
+            cumulative_energy = (results['Total Electric Energy (kWh)'] - batt_energy).cumsum()
             end_energy = cumulative_energy + results['Battery Energy to Discharge (kWh)']
-            end_times = cumulative_energy.searchsorted(end_energy)
-            last_time = end_energy.index[-1] + time_res
-            end_energy = pd.concat([end_energy, pd.Series(index=[last_time])])  # add 1 row for last time step
-            end_times = end_energy.iloc[end_times].index
-            results['Islanding Time (hours)'] = (end_times - results.index).total_seconds() / 3600
+            last_time = results.index[-1] + time_res
+            islanding_times = []
+            for t, energy in end_energy.items():
+                future_energies = cumulative_energy[t : t + dt.timedelta(days=7)]
+                end_time = (future_energies >= energy).idxmax()
+                islanding_time = (end_time - t).total_seconds() / 3600 if end_time > t else 24 * 7
+                islanding_times.append(islanding_time)
+            results["Islanding Time (hours)"] = islanding_times
 
             metrics['Average Islanding Time (hours)'] = results['Islanding Time (hours)'].mean()
 
@@ -400,8 +418,8 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
                                                            'kWh'))
 
     # Outage metrics
-    if metrics_verbosity >= 4 and 'Voltage (-)' in results:
-        outage = results['Voltage (-)'] == 0
+    if metrics_verbosity >= 4 and 'Grid Voltage (-)' in results:
+        outage = results["Grid Voltage (-)"] == 0
         if outage.any():
             outage_sum = outage.sum(skipna=False) * hr_per_step
             outage_diff = np.diff(outage.values, prepend=0, append=0)
@@ -427,7 +445,8 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             unique_modes = [mode for mode in modes.unique() if mode != 'Off']
             for unique_mode in unique_modes:
                 on = modes == unique_mode
-                cycles = on.diff().fillna(on).clip(lower=0).sum()
+                cycle_starts = on & (~on).shift()
+                cycles = cycle_starts.sum()
                 if cycles <= 1:
                     continue
                 elif len(unique_modes) == 1:
