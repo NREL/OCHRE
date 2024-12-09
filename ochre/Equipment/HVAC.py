@@ -1178,7 +1178,7 @@ class ASHPHeater(HeatPumpHeater):
             else:
                 return 'Off'
 
-    def run_er_thermostat_control(self, temperature_offset = None, min_setpoint_change_duration = 30, hard_lockout = 10, staged = False): #temp offset = 2, min setpoint change duration = 30
+    def run_er_thermostat_control(self, temperature_offset = 1.6, min_setpoint_change_duration = 30, hard_lockout = 10, staged = False): #temperature offset in C, ecobee default
         # # # TODO: add option to keep setpoint as is, e.g. when using external control
         # # # TODO: input for how far off of setpoint (setpoint - user input)
         # # # TODO: lockout after setpoint changes # self.temp_setpoint ? 
@@ -1278,7 +1278,8 @@ class ASHPHeater(HeatPumpHeater):
         # On and off limits depend on heating vs. cooling
         if temperature_offset is not None:
             temp_turn_on = er_setpoint - self.hvac_mult * temperature_offset 
-            temp_turn_off = er_setpoint 
+            temp_turn_off = er_setpoint + self.hvac_mult * self.temp_deadband / 2
+
         else:
             temp_turn_on = er_setpoint - self.hvac_mult * self.temp_deadband / 2
             temp_turn_off = er_setpoint + self.hvac_mult * self.temp_deadband / 2
@@ -1291,7 +1292,7 @@ class ASHPHeater(HeatPumpHeater):
             return 'On'
         if self.hvac_mult * (self.temp_indoor - temp_turn_off) > 0:
             # print("modeoff")
-            if hl == False: # have a separate option for hard lockout so it can keep iterating for whole lockout period. 
+            if hl == False: # have a separate option for hard lockout so it can keep iterating for the whole lockout period (if temp starts going down before full lockout is over)
                 self.timestep_count = 1
                 self.prev_setpoint = self.temp_setpoint
             # self.existing_stages = 0 # no staged
