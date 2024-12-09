@@ -356,12 +356,8 @@ class HVAC(Equipment):
 
         # On and off limits depend on heating vs. cooling
         deadband_weight = 0.2 #TODO: manufacturer specific, default to reflect a single major manufacturer who shall not be named. How much over deadband is overshooting setpoint, remainder (1-mult) is undershooting
-        if self.hvac_mult > 0:
-            temp_turn_on = setpoint - self.hvac_mult * self.temp_deadband * (deadband_weight)
-            temp_turn_off = setpoint + self.hvac_mult * self.temp_deadband * (1 - deadband_weight)
-        else:
-            temp_turn_on = setpoint - self.hvac_mult * self.temp_deadband * (1 - deadband_weight)
-            temp_turn_off = setpoint + self.hvac_mult * self.temp_deadband * (deadband_weight)
+        temp_turn_on = setpoint - self.hvac_mult * self.temp_deadband * (1 - deadband_weight)
+        temp_turn_off = setpoint + self.hvac_mult * self.temp_deadband * (deadband_weight)
 
         # Determine mode
         if self.hvac_mult * (self.zone.temperature - temp_turn_on) < 0:
