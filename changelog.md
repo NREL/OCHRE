@@ -17,6 +17,7 @@
 - Fixed issue with ducts in multiple locations [#148](https://github.com/NREL/OCHRE/issues/148)
 - Allowed "Occupancy" adjustments in input arguments
 - Allow superinsulated slabs compatible with BEopt 3 for test purposes
+- Updated backup controls for HVAC to allow additional flexibility (default to representing a major manufacturer)
 
 ### OCHRE v0.8.5-beta
 
