@@ -2,7 +2,7 @@ import datetime as dt
 import pandas as pd
 import os
 
-df = pd.read_csv("case 8 annual/OCHRE_hourly.csv")
+df = pd.read_csv("case_1_annual/OCHRE_hourly.csv")
 df["Time"] = pd.to_datetime(df["Time"])
 
 cost = []
@@ -94,5 +94,5 @@ df["Electricity Cost [$]"] = cost
 print("Total Electricity Cost ($): ", sum(cost))
 print("HVAC Energy Consumption (kWh)", sum(df['HVAC Heating Main Power (kW)']))
 print("Backup Energy Consumption (kWh)", sum(df['HVAC Heating ER Power (kW)']))
-print("Combined HVAC and Backup Energy Consumption (kWh)", sum(df['HVAC Heating Main Power (kW)']))
+print("Combined HVAC and Backup Energy Consumption (kWh)", sum(df['HVAC Heating Main Power (kW)'])+sum(df['HVAC Heating ER Power (kW)']))
 print("Unmet Load (hr*C)", sum(unmet_load))

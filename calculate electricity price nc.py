@@ -74,13 +74,6 @@ for n in range(len(df)):
         rate = .10911
     else:
         rate = .07105
-    # else:
-    #     if winter == True:
-    #         rate = 0.13
-    #     elif summer == True:
-    #         rate = 0.16
-    #     else:
-    #         raise Exception("invalid input")
         
     cost += [rate*df['Total Electric Energy (kWh)'].iloc[n]]
     unmet_load += [abs(df['Unmet HVAC Load (C)'].iloc[n])]
