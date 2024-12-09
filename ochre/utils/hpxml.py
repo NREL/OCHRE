@@ -9,7 +9,7 @@ import ochre.utils.envelope as utils_envelope
 
 
 ZONE_NAME_OPTIONS = {
-    'Indoor': ['conditioned space', 'living space'],
+    'Indoor': ['conditioned space'],
     'Foundation': ['crawlspace', 'basement', 'finishedbasement', 'basement - conditioned', 'basement - unconditioned',
                    'crawlspace - vented', 'crawlspace - unvented'],
     'Garage': ['garage'],
@@ -281,7 +281,6 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     adj_walls = all_walls.pop(('Indoor', 'Indoor'), {})
     adj_attic_walls = all_walls.pop(('Attic', 'Attic'), {})
     adj_gar_walls = all_walls.pop(('Garage', 'Garage'), {})
-    attic_gar_walls = all_walls.pop(('Garage', 'Attic'), {}) #FIXME: What do we do with these walls?
     assert not all_walls  # verifies that all boundaries are accounted for
 
     # Get foundation walls
@@ -350,7 +349,6 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
         'Foundation Wall': fnd_walls,
         # 'Foundation Above-ground Wall': fnd_walls_above,
         'Adjacent Attic Wall': adj_attic_walls,
-        'Attic Garage Wall': attic_gar_walls,
         'Adjacent Garage Wall': adj_gar_walls,
         'Adjacent Foundation Wall': adj_fnd_wall,
         'Attic Floor': ceilings,
@@ -535,30 +533,20 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
         attic = attics[0]
 
         # Get gable wall areas for attic and (possibly) garage
-        if boundaries.get('Attic Garage Wall', {}).get('Area (m^2)') is not None: #TODO: for now, if we see walls between attic and garage, calculated geometry differently. May be neglecting some heat transfer between garage/attic boundary
-            attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
-                                boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', [])  + 
-                                boundaries.get('Attic Garage Wall', {}).get('Area (m^2)', []))
-            attic_gable_area = max(attic_wall_areas[0],attic_wall_areas[1]) #Note: if garage in on the same end as gable wall, area[0] != area[1]
+        attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
+                            boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', []))
+        if len(attic_wall_areas) == 2:
+            # standard gable roof with attic
+            assert abs(attic_wall_areas[1] - attic_wall_areas[0]) < 0.2  # computational errors possible
+            attic_gable_area = attic_wall_areas[0]
             third_gable_area = 0
-
-            del boundaries['Attic Garage Wall'] #FIXME: we need to be able to handle this at some point
+        elif has_garage and len(attic_wall_areas) == 3:
+            # 2 attic gables plus 1 garage gable, garage gable has area that is 'more different'
+            attic_gable_area = attic_wall_areas[1]
+            low, med, high = tuple(sorted(attic_wall_areas))
+            third_gable_area = low if med - low > high - med else high
         else:
-            attic_wall_areas = (boundaries.get('Attic Wall', {}).get('Area (m^2)', []) +
-                                boundaries.get('Adjacent Attic Wall', {}).get('Area (m^2)', [])) 
-                                
-            if len(attic_wall_areas) == 2:
-                # standard gable roof with attic
-                assert abs(attic_wall_areas[1] - attic_wall_areas[0]) < 0.2  # computational errors possible
-                attic_gable_area = attic_wall_areas[0]
-                third_gable_area = 0
-            elif has_garage and len(attic_wall_areas) == 3:
-                # 2 attic gables plus 1 garage gable, garage gable has area that is 'more different'
-                attic_gable_area = attic_wall_areas[1]
-                low, med, high = tuple(sorted(attic_wall_areas))
-                third_gable_area = low if med - low > high - med else high
-            else:
-                raise OCHREException('Unable to calculate attic area, likely an issue with gable walls.')
+            raise OCHREException('Unable to calculate attic area, likely an issue with gable walls.')
 
         # Get attic properties
         # tan(roof_tilt) = height / (width / 2)
@@ -859,6 +847,37 @@ def parse_hvac(hvac_type, hvac_all):
             'Weekend Setpoints (C)': [convert(weekend_setpoint, 'degF', 'degC')] * 24,
         })
 
+
+    if has_heat_pump:
+        if heat_pump.get("CoolingDetailedPerformanceData") is not None:
+            cooling_detailed_performance_data = heat_pump.get("CoolingDetailedPerformanceData")
+            cooling_performance = {}
+            for n in range(len(cooling_detailed_performance_data)):
+                if cooling_detailed_performance_data[n]["Efficiency"]["Units"] != "COP":
+                    print("non cop efficiency units") # FIXME: This should probably crash the sim. Unlikely we'll ever get something other than COP, but it's what we're expecting
+                    raise OCHREException("Efficiency units not COP") #not sure format of this
+                if (cooling_detailed_performance_data[n]['OutdoorTemperature']) not in cooling_performance.keys():
+                    cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']] = {}
+
+                cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']][f"{cooling_detailed_performance_data[n]['CapacityDescription']}_capacity"] = [cooling_detailed_performance_data[n]['Capacity']]
+                cooling_performance[cooling_detailed_performance_data[n]['OutdoorTemperature']][f"{cooling_detailed_performance_data[n]['CapacityDescription']}_COP"] = [f"{cooling_detailed_performance_data[n]['Efficiency']['Value']}"]
+            out['CoolingDetailedPerformance'] = cooling_performance
+        
+        #TODO: else? Right now we'd keep things as is, but we might want to change default to match changes Yueyue made in OS-HPXML
+        if heat_pump.get("HeatingDetailedPerformanceData") is not None:
+            heating_detailed_performance_data = heat_pump.get("HeatingDetailedPerformanceData")
+            heating_performance = {}
+            for n in range(len(cooling_detailed_performance_data)):
+                if heating_detailed_performance_data[n]["Efficiency"]["Units"] != "COP":
+                    print("non cop efficiency units") # FIXME: This should probably crash the sim. Unlikely we'll ever get something other than COP, but it's what we're expecting
+                    raise OCHREException("Efficiency units not COP")
+                if (heating_detailed_performance_data[n]['OutdoorTemperature']) not in heating_performance.keys():
+                    heating_performance[heating_detailed_performance_data[n]['OutdoorTemperature']] = {}
+
+                heating_performance[heating_detailed_performance_data[n]['OutdoorTemperature']][f"{heating_detailed_performance_data[n]['CapacityDescription']}_capacity"] = [heating_detailed_performance_data[n]['Capacity']]
+                heating_performance[heating_detailed_performance_data[n]['OutdoorTemperature']][f"{heating_detailed_performance_data[n]['CapacityDescription']}_COP"] = [f"{heating_detailed_performance_data[n]['Efficiency']['Value']}"]
+            out['HeatingDetailedPerformance'] = heating_performance
+
     if has_heat_pump and hvac_type == 'Heating':
         backup_capacity = heat_pump.get('BackupHeatingCapacity', 0)
         backup_fuel = heat_pump.get('BackupSystemFuel')
@@ -879,18 +898,15 @@ def parse_hvac(hvac_type, hvac_all):
             })
 
     # Get duct info for calculating DSE
-    
     distribution = hvac_all.get('HVACDistribution', {})
     distribution_type = distribution.get('DistributionSystemType', {})
     air_distribution = distribution_type.get('AirDistribution', {})
     duct_leakage = air_distribution.get('DuctLeakageMeasurement')
-    ducts = air_distribution.get('Ducts', [])
-    if isinstance(ducts, dict):
-        ducts = list(ducts.values())
-    ducts = [d for d in ducts if parse_zone_name(d.get("DuctLocation")) not in ["Indoor", None]]
+    ducts = [d for d in air_distribution.get('Ducts', {}).values()
+             if parse_zone_name(d.get('DuctLocation')) not in ['Indoor', None]]
 
     if f'Annual{hvac_type}DistributionSystemEfficiency' in distribution:
-        # Note, ducts are assumed to be in ambient space, DSE losses aren't added to another zone
+        # Note, ducts are assumed to be in ambient space, DSE l=osses aren't added to another zone
         out['Ducts'] = {
             'DSE (-)': distribution[f'Annual{hvac_type}DistributionSystemEfficiency'],
             'Zone': None,
@@ -919,6 +935,113 @@ def parse_hvac(hvac_type, hvac_all):
 
     return out
 
+def calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, property, find_high, min_cop_or_capacity=0):
+    # allow it to calculate min temp where cop is at a defined value (less than backup efficiency) (rn set to default of 1)
+
+    if find_high: 
+        if user_odbs[-1] in detailed_performance_data:
+            odb_1 = user_odbs[-1] # temperature
+            odb_dp1 = detailed_performance_data[user_odbs[-1]] # data
+        else:
+            odb_dp1 = None # insufficient input ?
+        if user_odbs[-2] in detailed_performance_data:
+            odb_2 = user_odbs[-2]
+            odb_dp2 = detailed_performance_data[user_odbs[-2]]
+        else:
+            odb_dp2 = None # insufficient input ?
+    else:
+        if user_odbs[0] in detailed_performance_data:
+            odb_1 = user_odbs[0]
+            odb_dp1 = detailed_performance_data[user_odbs[0]]
+        else:
+            odb_dp1 = None # insufficient input ?
+        if user_odbs[1] in detailed_performance_data:
+            odb_12 = user_odbs[1]
+            odb_dp2 = detailed_performance_data[user_odbs[1]]
+        else:
+            odb_dp2 = None # insufficient input ?
+    
+    slope = (odb_dp1[property] - odb_dp2[property]) / (odb_1 - odb_2) # syntax ?
+
+    # if (find_high & slope >= 0):
+    #     return 999999.0
+    # elif (not find_high & slope <= 0):
+    #     return -999999.0
+
+    # solve for intercept
+    intercept = odb_dp2[property] - slope*odb_2
+    # find target odb 
+    target_odb = (min_cop_or_capacity-intercept)/slope
+    # add small buffer
+    delta_odb = 1.0
+    if find_high:
+      return target_odb - delta_odb
+    else:
+      return target_odb + delta_odb
+
+def interpolate_to_odb_table_point(detailed_performance_data, property, target_odb): # removed capacity description as an input our property/capacity description are together (max cop / min capacity)
+    if target_odb in detailed_performance_data.keys():
+        return detailed_performance_data[target_odb][property]
+    
+    user_odbs = sorted(set(list(detailed_performance_data.keys())))
+    if max(user_odbs) < target_odb:
+        right_odb = user_odbs[-1]
+        left_odb = user_odbs[-2]
+    elif (min(user_odbs) > target_odb):
+        right_odb = user_odbs[1]
+        left_odb = user_odbs[0]
+    else:
+        right_odb = max(user_odbs)
+        left_odb = min(user_odbs)    
+    
+    slope = (detailed_performance_data[right_odb][property] - detailed_performance_data[left_odb][property]) / (right_odb - left_odb)
+    val = (target_odb - left_odb) * slope + detailed_performance_data[left_odb][property]
+
+    return val
+
+def interpolate_to_odb_table_points(detailed_performance_data, mode, compressor_lockout_temp, weather_temp):
+    user_odbs = list(detailed_performance_data.keys())
+
+    # can do this or just code the variable names into the high/low odb at zero cop/capacity variables , TODO: update with gross cop/capacity
+    properties = list(detailed_performance_data[list(detailed_performance_data.keys())[0]].keys())
+    for property in properties:   
+        if "min" in properties[property] and "cop" in properties[property]:
+            low_cop = property
+        elif "max" in properties[property] and "cop" in properties[property]:
+            high_cop = property
+        elif "min" in properties[property] and "cap" in properties[property]:
+            low_capacity = property
+        elif "max" in properties[property] and "cap" in properties[property]:
+            high_capacity = property
+
+    # calculate zero COP/capacity odb
+    if mode=="cooling":
+        outdoor_dry_bulbs = []
+        # TODO: update with gross cop/capacity
+        high_odb_at_zero_cop = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, high_cop, True)
+        high_odb_at_zero_capacity = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, high_capacity, True)
+        low_odb_at_zero_cop = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, low_cop, False)
+        low_odb_at_zero_capacity = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, low_capacity, False)
+
+        outdoor_dry_bulbs += [max(low_odb_at_zero_cop, low_odb_at_zero_capacity, 55)] # min cooling odb
+        outdoor_dry_bulbs += [min(high_odb_at_zero_cop, high_odb_at_zero_capacity, weather_temp)] # max cooling odb
+    else:   
+        outdoor_dry_bulbs = []
+        # TODO: update with gross cop/capacity
+        high_odb_at_zero_cop = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, high_cop, False)
+        high_odb_at_zero_capacity = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, high_capacity, False)
+        low_odb_at_zero_cop = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, low_cop, True)
+        low_odb_at_zero_capacity = calculate_odb_at_zero_cop_or_capacity(detailed_performance_data, user_odbs, low_capacity, True)
+
+        outdoor_dry_bulbs += [max(low_odb_at_zero_cop, low_odb_at_zero_capacity, compressor_lockout_temp, weather_temp)] # min heating odb
+        outdoor_dry_bulbs += [min(high_odb_at_zero_cop, high_odb_at_zero_capacity, 60)] # max heating odb
+
+    for target_odb in outdoor_dry_bulbs:
+        if target_odb not in user_odbs:
+            #make new sub dictionary for this in the detailed performance data dictionary
+            detailed_performance_data[target_odb] = {}
+            for property in properties: # TODO: update with gross cop/capacity
+                detailed_performance_data[target_odb][property] = interpolate_to_odb_table_point(detailed_performance_data, property, target_odb)
 
 def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     # Returns a dictionary of calculated water heater/water tank properties
