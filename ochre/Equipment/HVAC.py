@@ -174,7 +174,7 @@ class HVAC(Equipment):
         self.temp_deadband = kwargs.get('Deadband Temperature (C)', 1)
         self.ext_ignore_thermostat = kwargs.get('ext_ignore_thermostat', False)
         self.setpoint_ramp_rate = kwargs.get('setpoint_ramp_rate')  # max setpoint ramp rate, in C/min
-        self.kendall_test = 8
+        self.kendall_test =  2 #0, 1, 2
         self.temp_indoor_prev = self.temp_setpoint
         self.ext_capacity = None  # Option to set capacity directly, ideal capacity only
         self.ext_capacity_frac = 1  # Option to limit max capacity, ideal capacity only
@@ -336,8 +336,8 @@ class HVAC(Equipment):
         # Could get run multiple times per time step in update_model
 
         # FIXME: do we need a ramp rate with lockout for time after setpoint change
-        if self.kendall_test in {2, 3, 4, 5, 6, 7, 8}:
-            self.setpoint_ramp_rate = None
+        # if self.kendall_test in {0,1,2}:
+        self.setpoint_ramp_rate = None # testing
 
         if self.setpoint_ramp_rate is not None:
             delta_t = self.setpoint_ramp_rate * self.time_res.total_seconds() / 60  # in C
@@ -1178,37 +1178,31 @@ class ASHPHeater(HeatPumpHeater):
             else:
                 return 'Off'
 
-    def run_er_thermostat_control(self, temperature_offset = None, min_setpoint_change_duration = None, hard_lockout = 10, staged = False): #temp offset = 2, min setpoint change duration = 30
-        # TODO: add option to keep setpoint as is, e.g. when using external control
-        # TODO: input for how far off of setpoint (setpoint - user input)
-        # TODO: lockout after setpoint changes # self.temp_setpoint ? 
-        # TODO: checking indoor temp (update_internal_control ?)
-        # TODO: staged backup (gradually increasing amount of capacity available) (lowest priority)
+    def run_er_thermostat_control(self, temperature_offset = None, min_setpoint_change_duration = 30, hard_lockout = 10, staged = False): #temp offset = 2, min setpoint change duration = 30
+        # # TODO: add option to keep setpoint as is, e.g. when using external control
+        # # TODO: input for how far off of setpoint (setpoint - user input)
+        # # TODO: lockout after setpoint changes # self.temp_setpoint ? 
+        # # TODO: checking indoor temp (update_internal_control ?)
+        # # TODO: staged backup (gradually increasing amount of capacity available) (lowest priority)
         
-        # cases for testing purposes
-        # case 1: baseline (nothing), case 2: only staged backup, case 3: only lockout after setpoint change, case 4: lockout and staged, 
-        # case 5: input how far off setpoint, case 6: staged and offset temp, case 7: all (staged, offset, lockout), case 8: offset temp and lockout
-        # offset temp
-        if self.kendall_test in {1, 2, 3, 4}:
-            temperature_offset = None # no offset
-        elif self.kendall_test in {5, 6, 7, 8}:
-            temperature_offset = 1.3 # degree offset: ecobee options: 1.1, 1.3, 1.4, 1.6, 1.8
+        # # cases for testing purposes
+        # # case 1: baseline (nothing), case 2: only staged backup, case 3: only lockout after setpoint change, case 4: lockout and staged, 
+        # # case 5: input how far off setpoint, case 6: staged and offset temp, case 7: all (staged, offset, lockout), case 8: offset temp and lockout
+        # # offset temp
+        
+        if self.kendall_test == 0:
+            temperature_offset = 1.6 # degree offset: ecobee options: 1.1, 1.3, 1.4, 1.6, 1.8
+        elif self.kendall_test == 1:
+            temperature_offset = 1.1 # degree offset: ecobee options: 1.1, 1.3, 1.4, 1.6, 1.8
+        elif self.kendall_test == 2:
+            temperature_offset = 1.8 # degree offset: ecobee options: 1.1, 1.3, 1.4, 1.6, 1.8
         else:
             print("self.kendall_test input error", self.kendall_test)
-        # lockout after setpoint change
-        if self.kendall_test in {1, 2, 5, 6}:
-            min_setpoint_change_duration = None # no lockout
-        elif self.kendall_test in {3, 4, 7, 8}:
-            min_setpoint_change_duration = 30 # 30 min lockout
-        else:
-            print("self.kendall_test input error", self.kendall_test)
-        # staged backup
-        if self.kendall_test in {1, 3, 5, 8}:
-            staged = False # not staged
-        elif self.kendall_test in {2, 4, 6, 7}:
-            staged = True # staged
-        else:
-            print("self.kendall_test input error", self.kendall_test)
+        # # lockout after setpoint change
+        # if self.kendall_test in {0,1,2}:
+        #     min_setpoint_change_duration = 30 # 30 min lockout
+        # else:
+        #     print("self.kendall_test input error", self.kendall_test)
 
         # indoor and previous temp
         try:
@@ -1225,17 +1219,27 @@ class ASHPHeater(HeatPumpHeater):
             er_setpoint = self.temp_setpoint - self.temp_deadband
 
         # if the outdoor temp is greater than input value, turn er off
-        if self.current_schedule['Ambient Dry Bulb (C)'] >= self.outdoor_temp_limit:
-            self.timestep_count = 1
-            self.prev_setpoint = self.temp_setpoint
-            self.existing_stages = 0 # no staged
-            return 'Off' 
+        if self.outdoor_temp_limit is not None:
+            if self.current_schedule['Ambient Dry Bulb (C)'] >= self.outdoor_temp_limit:
+                self.timestep_count = 1
+                self.prev_setpoint = self.temp_setpoint
+                self.existing_stages = 0 # no staged
+                return 'Off' 
+        else: # testing
+            if self.current_schedule['Ambient Dry Bulb (C)'] >= 1.67: # above 35 F
+                self.timestep_count = 1
+                self.prev_setpoint = self.temp_setpoint
+                self.existing_stages = 0 # no staged
+                return 'Off' 
 
-        # if staged==True: # TODO: need to edit downstream to make use of staged backup
-            # operating_capacity = self.staged_backup() 
-            # print(operating_capacity)
+        # # if staged==True: # TODO: need to edit downstream to make use of staged backup
+        #     # operating_capacity = self.staged_backup() 
+        #     # print(operating_capacity)
 
         hl = False # hl : hard lockout
+
+        print("current", self.temp_setpoint)
+        print("past", self.prev_setpoint)
         
         # Determine if setpoint has changed recently
         if min_setpoint_change_duration is not None: 
@@ -1266,9 +1270,6 @@ class ASHPHeater(HeatPumpHeater):
                                 self.existing_stages = 0 # no staged
                                 self.timestep_count += 1 # continue iterating
                                 return 'Off'
-                        elif (self.time_res > min_interval) or (self.timestep_count * self.time_res > min_interval): # enough time has passed
-                                self.timestep_count = 1 # reset timestep count
-                                # control by temp_turn_on/temp_turn_off
                         else:
                             self.timestep_count += 1 # wait longer
                             self.existing_stages = 0 # no staged
@@ -1312,7 +1313,7 @@ class ASHPHeater(HeatPumpHeater):
             if hl == False: # have a separate option for hard lockout so it can keep iterating for whole lockout period. 
                 self.timestep_count = 1
                 self.prev_setpoint = self.temp_setpoint
-            self.existing_stages = 0 # no staged
+            # self.existing_stages = 0 # no staged
             return 'Off'
         
     def staged_backup(self, capacity_per_stage=5): # Returns partial capacity based on amount of stages currently on/total amount of stages
