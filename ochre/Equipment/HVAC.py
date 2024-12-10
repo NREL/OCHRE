@@ -355,9 +355,9 @@ class HVAC(Equipment):
             setpoint = self.temp_setpoint
 
         # On and off limits depend on heating vs. cooling
-        deadband_weight = 0.2 #TODO: manufacturer specific, default to reflect a single major manufacturer who shall not be named. How much over deadband is overshooting setpoint, remainder (1-mult) is undershooting
-        temp_turn_on = setpoint - self.hvac_mult * self.temp_deadband * (1 - deadband_weight)
-        temp_turn_off = setpoint + self.hvac_mult * self.temp_deadband * (deadband_weight)
+        self.deadband_weight = 0.2 #TODO: manufacturer specific, default to reflect a single major manufacturer who shall not be named. How much over deadband is overshooting setpoint, remainder (1-mult) is undershooting
+        temp_turn_on = setpoint - self.hvac_mult * self.temp_deadband * (1 - self.deadband_weight)
+        temp_turn_off = setpoint + self.hvac_mult * self.temp_deadband * (self.deadband_weight)
 
         # Determine mode
         if self.hvac_mult * (self.zone.temperature - temp_turn_on) < 0:
@@ -570,8 +570,8 @@ class HVAC(Equipment):
         # TODO: update capacitance using 1R1C model
         ref_temp = 10 if self.is_heater else 30  # temperature at Energy=0, in C
         total_capacitance = convert(self.zone.capacitance, 'kJ', 'kWh')  # in kWh/K
-        max_temp = self.temp_setpoint + self.hvac_mult * self.temp_deadband / 2  # "turn off" temperature
-        min_temp = self.temp_setpoint - self.hvac_mult * self.temp_deadband / 2  # "turn on" temperature
+        max_temp = self.temp_setpoint + self.hvac_mult * self.temp_deadband * (1 - self.deadband_weight)  # "turn off" temperature
+        min_temp = self.temp_setpoint - self.hvac_mult * self.temp_deadband * self.deadband_weight  # "turn on" temperature
         return {
             f'{self.end_use} EBM Energy (kWh)': total_capacitance * (self.zone.temperature - ref_temp) * self.hvac_mult,
             f'{self.end_use} EBM Min Energy (kWh)': total_capacitance * (min_temp - ref_temp) * self.hvac_mult,
@@ -792,8 +792,8 @@ class DynamicHVAC(HVAC):
         #     else:
         #         speed_idx = 0
         elif self.control_type == 'Setpoint':
-            # Setpoint-based 2-speed HVAC control: High speed uses setpoint difference of deadband / 2 (overlapping)
-            high_mode = super().run_thermostat_control(self.temp_setpoint - self.hvac_mult * self.temp_deadband / 2)
+            # Setpoint-based 2-speed HVAC control: High speed uses setpoint difference of deadband * deadband_weight (overlapping)
+            high_mode = super().run_thermostat_control(self.temp_setpoint - self.hvac_mult * self.deadband_weight)
             if high_mode == 'On':
                 speed = 2
             elif high_mode == 'Off':
@@ -1255,11 +1255,11 @@ class ASHPHeater(HeatPumpHeater):
         # On and off limits depend on heating vs. cooling
         if temperature_offset is not None:
             temp_turn_on = er_setpoint - self.hvac_mult * temperature_offset 
-            temp_turn_off = er_setpoint + self.hvac_mult * self.temp_deadband / 2
+            temp_turn_off = er_setpoint + self.hvac_mult * (1 - self.deadband_weight)
 
         else:
-            temp_turn_on = er_setpoint - self.hvac_mult * self.temp_deadband / 2
-            temp_turn_off = er_setpoint + self.hvac_mult * self.temp_deadband / 2
+            temp_turn_on = er_setpoint - self.hvac_mult * self.deadband_weight
+            temp_turn_off = er_setpoint + self.hvac_mult * (1 - self.deadband_weight)
 
         # Determine mode
         if self.hvac_mult * (self.temp_indoor - temp_turn_on) < 0:
