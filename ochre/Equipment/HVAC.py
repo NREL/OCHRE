@@ -1180,10 +1180,6 @@ class ASHPHeater(HeatPumpHeater):
                 return 'Off'
 
     def run_er_thermostat_control(self, temperature_offset = 1.6, min_setpoint_change_duration = 30, hard_lockout = 10, staged = False, max_outdoor_temp = 1.67): #temperature offset in C, ecobee default
-        # # # TODO: add option to keep setpoint as is, e.g. when using external control
-        # # # TODO: input for how far off of setpoint (setpoint - user input)
-        # # # TODO: lockout after setpoint changes # self.temp_setpoint ? 
-        # # # TODO: checking indoor temp (update_internal_control ?)
         # # # TODO: staged backup (gradually increasing amount of capacity available) (lowest priority)
 
         # indoor and previous temp
