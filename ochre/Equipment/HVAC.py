@@ -351,6 +351,7 @@ class HVAC(Equipment):
                 self.envelope_model.cooling_deadband = self.temp_deadband
 
     def run_thermostat_control(self, setpoint=None):
+        #TODO: align with multiple manufacturers. Parameters that change as a function of manufacturer: self.temp_deadband, self.deadband_weight. For heating in run_er_thermostat_control, temperature_offset, min_setpoint_change_duration, hard_lockout
         if setpoint is None:
             setpoint = self.temp_setpoint
 
