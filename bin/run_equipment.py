@@ -1,3 +1,4 @@
+import os
 import datetime as dt
 import numpy as np
 import pandas as pd
@@ -13,13 +14,17 @@ from ochre import (
 from ochre import CreateFigures
 from ochre.Models.Envelope import Envelope
 from ochre.utils.schedule import import_weather
+from ochre.utils import default_input_path
 from bin.run_dwelling import dwelling_args
 
 
 # Test scripts to run single piece of equipment, examples include:
-#  - Battery (with daily schedule and external control)
-#  - Water Heater
+#  - Equipment from a dwelling model (works for water heaters and PV)
 #  - EV
+#  - PV (using SAM)
+#  - Battery (with daily schedule and self-consumption controls)
+#  - Water Heater (with random schedule and schedule from a file)
+#  - HVAC (Warning: not recommended to run outside of a dwelling model)
 
 default_args = {
     "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
@@ -209,9 +214,36 @@ def run_water_heater():
     CreateFigures.plt.show()
 
 
-# TODO
 def run_water_heater_from_file():
-    pass
+    # Load schedule from file
+    schedule_file = os.path.join(default_input_path, "Water Heating", "WH Medium UEF Schedule.csv")
+    schedule = pd.read_csv(schedule_file, index_col="Time", parse_dates=True)
+
+    equipment_args = {
+        "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=1),
+        "duration": dt.timedelta(days=2),
+        "verbosity": 3,
+        "save_results": False,  # if True, must specify output_path
+        # "output_path": os.getcwd(),
+        # Equipment parameters
+        "Setpoint Temperature (C)": 51,
+        "Tank Volume (L)": 250,
+        "Tank Height (m)": 1.22,
+        "UA (W/K)": 2.17,
+        "schedule": schedule,
+    }
+
+    # Initialize equipment
+    wh = ElectricResistanceWaterHeater(**equipment_args)
+
+    # Simulate equipment
+    df = wh.simulate()
+
+    print(df.head())
+    CreateFigures.plot_time_series_detailed((df["Water Heating Electric Power (kW)"],))
+    CreateFigures.plot_time_series_detailed((df["Hot Water Outlet Temperature (C)"],))
+    CreateFigures.plt.show()
 
 
 def run_hvac():
@@ -293,7 +325,7 @@ if __name__ == "__main__":
     # run_equipment_from_house_model("PV")  # Must add PV in run_dwelling.py
 
     # Run equipment without a Dwelling model
-    run_ev()
+    # run_ev()
     # run_pv_with_sam()
     # run_battery_from_schedule()
     # run_battery_self_consumption()
