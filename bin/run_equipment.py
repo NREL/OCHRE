@@ -18,7 +18,7 @@ from ochre.utils import default_input_path
 from bin.run_dwelling import dwelling_args
 
 
-# Test scripts to run single piece of equipment, examples include:
+# Example scripts to run single piece of equipment, including:
 #  - Equipment from a dwelling model (works for water heaters and PV)
 #  - EV
 #  - PV (using SAM)
