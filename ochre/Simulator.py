@@ -11,7 +11,7 @@ import ochre.utils.schedule as utils_schedule
 
 
 class Simulator:
-    name = 'OCHRE'
+    name = "ochre"
     required_inputs = []
     optional_inputs = []
 
