@@ -17,12 +17,22 @@ from ochre.utils.schedule import import_weather
 # Example scripts to run Dwelling or equipment models with external control
 # signals, including:
 #  - Run Dwelling/HVAC with modified schedule
-#  - Run Dwelling/HVAC with dynamic occupancy control
+#  - Run Dwelling/HVAC with dynamic control
 #  - Run HPWH with CTA-2045 control
 #  - Run EV with no TOU peak charging
 #  - Run EV with perfectly managed charging
 #  - Run PV with Volt-VAR control (using co-optimization)
 #  - Run Battery with dynamic (random) controls
+
+
+# update dwelling_args for HVAC control examples
+dwelling_args.update(
+    {
+        "time_res": dt.timedelta(minutes=1),  # time resolution of the simulation
+        "duration": dt.timedelta(days=1),  # duration of the simulation
+        "verbosity": 6,  # verbosity of time series files (0-9)
+    }
+)
 
 
 def run_hvac_modify_schedule():
@@ -45,7 +55,17 @@ def run_hvac_modify_schedule():
     heater.reset_time()
 
     # Simulate
-    dwelling.simulate()
+    df, _, _ = dwelling.simulate()
+
+    cols_to_plot = [
+        "HVAC Heating Setpoint (C)",
+        "Temperature - Indoor (C)",
+        "Temperature - Outdoor (C)",
+        "Unmet HVAC Load (C)",
+        "HVAC Heating Electric Power (kW)",
+    ]
+    df.loc[:, cols_to_plot].plot()
+    CreateFigures.plt.show()
 
 
 def run_hvac_dynamic_control():
@@ -56,7 +76,7 @@ def run_hvac_dynamic_control():
     # Initialize
     dwelling = Dwelling(**dwelling_args)
 
-    # Get HVAC heater setpoints and occupancy schedule
+    # Get HVAC heater setpoint schedule and ambient temperature
     heater = dwelling.get_equipment_by_end_use("HVAC Heating")
     setpoints = heater.schedule["HVAC Heating Setpoint (C)"]
     ambient_temps = dwelling.envelope.schedule["Ambient Dry Bulb (C)"]
@@ -83,7 +103,14 @@ def run_hvac_dynamic_control():
 
     df, _, _ = dwelling.finalize()
 
-    df.loc[:, ["HVAC Heating Setpoint (C)", "Temperature - Outdoor (C)"]].plot()
+    cols_to_plot = [
+        "HVAC Heating Setpoint (C)",
+        "Temperature - Indoor (C)",
+        "Temperature - Outdoor (C)",
+        "Unmet HVAC Load (C)",
+        "HVAC Heating Electric Power (kW)",
+    ]
+    df.loc[:, cols_to_plot].plot()
     CreateFigures.plt.show()
 
 
@@ -138,7 +165,10 @@ def run_hpwh_cta_2045():
             control_signal = {"Deadband": deadband_default - 2.78}
         elif t.hour in [8, 17]:
             # CTA-2045 Load Shed command
-            control_signal = {"Setpoint": setpoint_default - 5.56, "Deadband": deadband_default - 2.78}
+            control_signal = {
+                "Setpoint": setpoint_default - 5.56,
+                "Deadband": deadband_default - 2.78,
+            }
         else:
             control_signal = {}
 
@@ -154,6 +184,7 @@ def run_hpwh_cta_2045():
         "Water Heating Deadband Upper Limit (C)",
         "Water Heating Deadband Lower Limit (C)",
         "Water Heating Electric Power (kW)",
+        "Hot Water Unmet Demand (kW)",
         "Hot Water Delivered (L/min)",
     ]
     df.loc[:, cols_to_plot].plot()
@@ -170,7 +201,7 @@ def run_ev_tou():
         # "output_path": os.getcwd(),
         # Equipment parameters
         "vehicle_type": "BEV",
-        "charging_level": "Level 2",
+        "charging_level": "Level 1",
         "mileage": 150,
     }
 
@@ -180,14 +211,15 @@ def run_ev_tou():
     # Set max power to zero during peak period
     ev.schedule = pd.DataFrame(index=ev.sim_times)  # create schedule
     ev.schedule["EV Max Power (kW)"] = ev.max_power
-    peak_times = (ev.sim_times.hour >= 17) & (ev.sim_times.hour < 21)
+    # Using a long peak period to show unmet loads
+    peak_times = (ev.sim_times.hour >= 15) & (ev.sim_times.hour < 24)
     ev.schedule.loc[peak_times, "EV Max Power (kW)"] = 0
     ev.reset_time()
 
     df = ev.simulate()
 
     CreateFigures.plot_daily_profile(df, "EV Electric Power (kW)", plot_max=False, plot_min=False)
-    df.loc[:, ["EV Electric Power (kW)", "EV SOC (-)"]].plot()
+    df.loc[:, ["EV Electric Power (kW)", "EV Unmet Load (kWh)", "EV SOC (-)"]].plot()
     CreateFigures.plt.show()
 
 
@@ -201,7 +233,7 @@ def run_ev_perfect():
         # "output_path": os.getcwd(),
         # Equipment parameters
         "vehicle_type": "BEV",
-        "charging_level": "Level 2",
+        "charging_level": "Level 1",
         "mileage": 150,
     }
 
@@ -221,7 +253,7 @@ def run_ev_perfect():
     df = ev.finalize()
 
     CreateFigures.plot_daily_profile(df, "EV Electric Power (kW)", plot_max=False, plot_min=False)
-    df.loc[:, ["EV Electric Power (kW)", "EV SOC (-)"]].plot()
+    df.loc[:, ["EV Electric Power (kW)", "EV Unmet Load (kWh)", "EV SOC (-)"]].plot()
     CreateFigures.plt.show()
 
 
@@ -316,16 +348,16 @@ def run_battery_dynamic_control():
     CreateFigures.plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Run HVAC with modified schedule
     # run_hvac_modify_schedule()
-    
-    # Run HVAC with dynamic occupancy control
+
+    # Run HVAC with dynamic control
     # run_hvac_dynamic_control()
-    
+
     # # Run HPWH with CTA-2045 control
     # run_hpwh_cta_2045()
-    
+
     # # Run EV with no TOU peak charging
     run_ev_tou()
 
