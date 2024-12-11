@@ -847,6 +847,7 @@ def combine_time_series_files(results_files=None, agg_type=None, **kwargs):
         agg_dict = {
             col: get_agg_func(col, agg_type) for col in df.columns if col not in ["Time", "House"]
         }
+        agg_dict = {key: val for key, val in agg_dict.items() if val is not None}
         df = df.groupby(agg_type).agg(agg_dict)
     else:
         df = df.groupby("Time").agg(agg_type)
