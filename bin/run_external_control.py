@@ -12,6 +12,7 @@ from ochre import (
 )
 from bin.run_dwelling import dwelling_args
 from ochre.Equipment.EV import EV_EFFICIENCY
+from ochre.utils.schedule import import_weather
 
 # Example scripts to run Dwelling or equipment models with external control
 # signals, including:
@@ -159,66 +160,160 @@ def run_hpwh_cta_2045():
     CreateFigures.plt.show()
 
 
-def run_ev_tou(equipment):
-    if equipment.schedule is None:
-        equipment.schedule = pd.DataFrame(index=equipment.sim_times)
-    equipment.schedule["EV Max Power (kW)"] = equipment.max_power
-    hours = equipment.schedule.index.hour
-    equipment.schedule.loc[
-        (hours >= 17) & (hours < 21), "EV Max Power (kW)"
-    ] = 0
-    equipment.reset_time()
+def run_ev_tou():
+    equipment_args = {
+        "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=60),
+        "duration": dt.timedelta(days=20),
+        "verbosity": 3,
+        "save_results": False,  # if True, must specify output_path
+        # "output_path": os.getcwd(),
+        # Equipment parameters
+        "vehicle_type": "BEV",
+        "charging_level": "Level 2",
+        "mileage": 150,
+    }
 
-    return equipment.simulate()
+    # Initialize
+    ev = ElectricVehicle(**equipment_args)
+
+    # Set max power to zero during peak period
+    ev.schedule = pd.DataFrame(index=ev.sim_times)  # create schedule
+    ev.schedule["EV Max Power (kW)"] = ev.max_power
+    peak_times = (ev.sim_times.hour >= 17) & (ev.sim_times.hour < 21)
+    ev.schedule.loc[peak_times, "EV Max Power (kW)"] = 0
+    ev.reset_time()
+
+    df = ev.simulate()
+
+    CreateFigures.plot_daily_profile(df, "EV Electric Power (kW)", plot_max=False, plot_min=False)
+    df.loc[:, ["EV Electric Power (kW)", "EV SOC (-)"]].plot()
+    CreateFigures.plt.show()
 
 
-def run_ev_perfect(equipment):
+def run_ev_perfect():
+    equipment_args = {
+        "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=60),
+        "duration": dt.timedelta(days=20),
+        "verbosity": 3,
+        "save_results": False,  # if True, must specify output_path
+        # "output_path": os.getcwd(),
+        # Equipment parameters
+        "vehicle_type": "BEV",
+        "charging_level": "Level 2",
+        "mileage": 150,
+    }
+
+    # Initialize
+    ev = ElectricVehicle(**equipment_args)
+
     # slow charge from start to end of parking
-    for _ in equipment.sim_times:
-        parking_time = equipment.event_end - equipment.event_start
-        remaining_kwh = (1 - equipment.soc) * equipment.capacity / EV_EFFICIENCY
-        if parking_time:
-            power = remaining_kwh / parking_time.total_seconds() * 3600
-            equipment.update({"Max Power": power})
+    for t in ev.sim_times:
+        remaining_hours = (ev.event_end - t).total_seconds() / 3600
+        remaining_kwh = (1 - ev.soc) * ev.capacity
+        if t >= ev.event_start and remaining_hours:
+            power = remaining_kwh / remaining_hours / EV_EFFICIENCY
+            ev.update({"Max Power": power})
         else:
-            equipment.update()
+            ev.update()
 
-    return equipment.finalize()
+    df = ev.finalize()
+
+    CreateFigures.plot_daily_profile(df, "EV Electric Power (kW)", plot_max=False, plot_min=False)
+    df.loc[:, ["EV Electric Power (kW)", "EV SOC (-)"]].plot()
+    CreateFigures.plt.show()
 
 
 def run_pv_voltvar():
-    # Initialization
-    dwelling = Dwelling(name="OCHRE with Controller", **dwelling_args)
+    # load weather data (based on parameters in run_dwelling)
+    weather, location = import_weather(**dwelling_args)
 
-    # Simulation
-    for t in dwelling.sim_times:
+    equipment_args = {
+        "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=15),
+        "duration": dt.timedelta(days=10),
+        "verbosity": 1,
+        "save_results": False,  # if True, must specify output_path
+        # "output_path": os.getcwd(),
+        # Equipment parameters
+        "capacity": 5,
+        "tilt": 20,
+        "azimuth": 0,
+        "schedule": weather,
+        "location": location,
+    }
+
+    # Initialize
+    pv = PV(**equipment_args)
+
+    # Simulate
+    voltage_results = []
+    for _ in pv.sim_times:
         # set up simulation time step (only run once)
-        dwelling.update_inputs()
+        pv.update_inputs()
 
-        # simulate 1 time step with different controls
-        control_signal = {}
+        # Run 1 time step with different controls under converged
+        q_setpoint = 0
         converged = False
         while not converged:
             # run model and get results without advancing time
-            dwelling.update_model(control_signal)
-            _ = dwelling.generate_results()
+            pv.update_model(control_signal={"Q Setpoint": q_setpoint})
+            results = pv.generate_results()
+            p = results["PV Electric Power (kW)"]
+            q = results["PV Reactive Power (kVAR)"]
 
-            # check house_status for convergence
-            if True:
+            # very simple grid model to determine voltage
+            voltage = 1 - p / 50 - q / 50
+
+            # check voltage for convergence
+            if 0.95 <= voltage <= 1.05:
                 converged = True
             else:
-                # change control if necessary
-                control_signal = {}
+                # change reactive power if necessary
+                q_setpoint += (voltage - 1) / 10
 
         # complete time step and get results
-        _ = dwelling.update_results()
+        _ = pv.update_results()
+        voltage_results.append(voltage)
 
     # Finalize simulation
-    return dwelling.finalize()
+    df = pv.finalize()
+
+    df["Voltage (-)"] = voltage_results
+    # print(df.head())
+    df.plot()
+    CreateFigures.plt.show()
 
 
 def run_battery_dynamic_control():
-    pass
+    equipment_args = {
+        "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=15),
+        "duration": dt.timedelta(days=3),
+        "verbosity": 6,
+        "save_results": False,  # if True, must specify output_path
+        # "output_path": os.getcwd(),
+        # Equipment parameters
+        "capacity": 5,  # in kW
+        "capacity_kwh": 10,
+    }
+
+    # Initialize equipment
+    battery = Battery(**equipment_args)
+
+    power = 0
+    for _ in battery.sim_times:
+        # Set the battery power randomly
+        power += np.random.randint(-1, 2)
+        power = min(max(power, -5), 5)
+        battery.update({"P Setpoint": power})
+
+    df = battery.finalize()
+
+    # print(df.head())
+    df.loc[:, ["Battery Electric Power (kW)", "Battery Setpoint (kW)", "Battery SOC (-)"]].plot()
+    CreateFigures.plt.show()
 
 
 if __name__ == '__main__':
@@ -229,10 +324,10 @@ if __name__ == '__main__':
     # run_hvac_dynamic_control()
     
     # # Run HPWH with CTA-2045 control
-    run_hpwh_cta_2045()
+    # run_hpwh_cta_2045()
     
     # # Run EV with no TOU peak charging
-    # run_ev_tou()
+    run_ev_tou()
 
     # # Run EV with perfectly managed charging
     # run_ev_perfect()
