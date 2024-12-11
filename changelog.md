@@ -7,13 +7,16 @@
 - added EV average SOC and unmet load metrics
 - Updated PV model to use latitude/south for tilt/azimuth if no roof model exists
 - Enabled .epw files with leap year data (we remove Feb 29, similar to Cambium)
-- Added multi-speed HVAC parameters for ResStock 2024 dataset
-- Updated with OS-HPXML v1.7 naming conventions (e.g., spa equipment, indoor zone)
-- Fixed EV unmet load units
+- Added multi-speed HVAC parameters for ResStock 2024 dataset [#128](https://github.com/NREL/OCHRE/issues/128)
+- Updated with OS-HPXML v1.7 naming conventions (e.g., spa equipment, indoor
+  zone) #76
+- Fixed EV unmet load units [#144](https://github.com/NREL/OCHRE/issues/144)
 - Fixed garage interior ceiling connections
-- Fixed issue with attic-garage boundaries (#149)
+- Fixed issue with attic-garage boundaries [#96](https://github.com/NREL/OCHRE/issues/96)
 - Fixed issue with adjacent doors (e.g., for multi-family units, hallways)
+- Fixed issue with ducts in multiple locations [#148](https://github.com/NREL/OCHRE/issues/148)
 - Allowed "Occupancy" adjustments in input arguments
+- Allow superinsulated slabs compatible with BEopt 3 for test purposes
 
 ### OCHRE v0.8.5-beta
 
