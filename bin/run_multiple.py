@@ -6,7 +6,7 @@ from ochre.cli import run_single_building, run_multiple_local, run_multiple_hpc
 from ochre.utils import default_input_path
 
 # Examples to download and run multiple Dwellings. Uses OCHRE's command line
-# interface (CLI) functions. 
+# interface (CLI) functions.
 
 # Note: see documentation for where to download other weather files
 # https://ochre-nrel.readthedocs.io/en/latest/InputsAndArguments.html#weather-file
@@ -47,7 +47,9 @@ def compile_results(main_path, n_max=None):
     df.to_csv(os.path.join(output_path, "all_ochre_inputs.csv"))
 
     # combine metrics files
-    metrics_files = {name: os.path.join(path, "ochre_metrics.csv") for name, path in run_names.items()}
+    metrics_files = {
+        name: os.path.join(path, "ochre_metrics.csv") for name, path in run_names.items()
+    }
     df = Analysis.combine_metrics_files(metrics_files)
     df.to_csv(os.path.join(output_path, "all_ochre_metrics.csv"))
 
