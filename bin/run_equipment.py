@@ -320,7 +320,7 @@ def run_hvac():
     CreateFigures.plt.show()
 
 
-def run_load_from_schedule():
+def run_scheduled_load():
     # create schedule
     times = pd.date_range(
         default_args["start_time"],
@@ -362,6 +362,5 @@ if __name__ == "__main__":
     # run_water_heater()
     run_water_heater_from_file()
     # run_hvac()
-    run_ev()
-    run_load_from_schedule()
+    # run_scheduled_load()
     # run_equipment_from_house_model()
