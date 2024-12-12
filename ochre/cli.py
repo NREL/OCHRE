@@ -23,7 +23,7 @@ def update_output_path(output_path, input_path):
         return output_path
 
 
-def run_single_building(
+def create_dwelling(
     input_path,
     name="ochre",
     hpxml_file="home.xml",
@@ -73,12 +73,15 @@ def run_single_building(
         **weather_args,
     )
 
-    # Run simulation
-    dwelling.simulate()
+    return dwelling
 
 
 def run_single_with_dict(kwargs):
-    run_single_building(**kwargs)
+    # Initialize
+    dwelling = create_dwelling(**kwargs)
+
+    # Run simulation
+    dwelling.simulate()
 
 
 def find_ochre_folders(main_path, overwrite=False, **kwargs):
@@ -100,7 +103,7 @@ def run_multiple_hpc(
     **kwargs,
 ):
     # runs multiple OCHRE simulations on HPC using Slurm
-    # kwargs are passed to run_single_building
+    # kwargs are passed to create_dwelling
     input_paths = find_ochre_folders(main_path, overwrite, **kwargs)
     my_print(f"Found {len(input_paths)} buildings in:", main_path)
 
@@ -174,7 +177,7 @@ def run_multiple_local(
     **kwargs,
 ):
     # runs multiple OCHRE simulations on local machine (can run in parallel or not)
-    # kwargs are passed to run_single_building
+    # kwargs are passed to create_dwelling
     input_paths = find_ochre_folders(main_path, overwrite, **kwargs)
     my_print(f"Found {len(input_paths)} buildings in:", main_path)
 
@@ -188,7 +191,8 @@ def run_multiple_local(
     if n_parallel == 1:
         # run simulations sequentially
         for input_path in input_paths:
-            run_single_building(input_path, **kwargs)
+            dwelling = create_dwelling(input_path, **kwargs)
+            dwelling.simulate()
     else:
         # run simulations in parallel
         ochre_data = [{"input_path": input_path, **kwargs} for input_path in input_paths]
@@ -239,7 +243,8 @@ def common_options(f):
 @common_options
 def single(**kwargs):
     """Run single OCHRE simulation"""
-    run_single_building(**kwargs)
+    dwelling = create_dwelling(**kwargs)
+    dwelling.simulate()
 
 
 @cli.command()

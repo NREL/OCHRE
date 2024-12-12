@@ -2,7 +2,7 @@ import sys
 import tkinter as tk
 from tkinter import filedialog
 
-from ochre.cli import run_single_building
+from ochre.cli import create_dwelling
 
 # Script to create OCHRE executables
 
@@ -15,7 +15,8 @@ def gui_basic():
         title="Select OCHRE Simulation Folder"
     )
 
-    run_single_building(input_path)
+    dwelling = create_dwelling(input_path)
+    dwelling.simulate()
 
 
 def set_entry_text(entry, text):
@@ -102,7 +103,8 @@ def gui_detailed():
                 pass
             input_values[key] = val
 
-        run_single_building(**input_values)
+        dwelling = create_dwelling(**input_values)
+        dwelling.simulate()
         
 
     submit_button = tk.Button(root, text="Run OCHRE", command=get_inputs_and_run)

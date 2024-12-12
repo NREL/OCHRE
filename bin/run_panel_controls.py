@@ -163,7 +163,7 @@ def ev_charger_adapter(dwelling, size):
     return pd.DataFrame(t_delay, columns=["Timestamp"])
 
 
-def run_single_building(
+def run_simulation(
     sim_type,
     size=None,
     tech1="Cooking Range",
@@ -205,17 +205,17 @@ def my_print(*args):
 
 if __name__ == "__main__":
     # baseline case
-    run_single_building("baseline")
+    run_simulation("baseline")
 
     # case 1, circuit sharing with cooking range (primary) and WH (secondary)
-    run_single_building(
+    run_simulation(
         "circuit_sharing", 
         tech1="Cooking Range",
         tech2="Water Heating",
     )
 
     # case 2, circuit pausing with WH
-    run_single_building(
+    run_simulation(
         "circuit_pausing",
         size=100,
         tech1="Water Heating",
@@ -229,10 +229,10 @@ if __name__ == "__main__":
     }
 
     # baseline case - with EV
-    run_single_building("baseline_ev")
+    run_simulation("baseline_ev")
 
     # case 3, smart EV charging
-    run_single_building(
+    run_simulation(
         "ev_control",
         size=100,
     )

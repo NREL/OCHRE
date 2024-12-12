@@ -2,7 +2,7 @@ import os
 import shutil
 
 from ochre import Analysis
-from ochre.cli import run_single_building, run_multiple_local, run_multiple_hpc
+from ochre.cli import create_dwelling, run_multiple_local, run_multiple_hpc
 from ochre.utils import default_input_path
 
 # Examples to download and run multiple Dwellings. Uses OCHRE's command line
@@ -82,7 +82,8 @@ if __name__ == "__main__":
 
     # Run Dwelling models sequentially
     for input_path in input_paths:
-        run_single_building(input_path, duration=7)
+        dwelling = create_dwelling(input_path, duration=7)
+        dwelling.simulate()
 
     # Run simulations in parallel
     # run_multiple_local(main_path, n_parallel=2, overwrite=True, duration=7)
