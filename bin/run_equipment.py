@@ -3,7 +3,7 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 
-from ochre import Dwelling, Battery, ElectricResistanceWaterHeater, AirConditioner, ElectricVehicle
+from ochre import Dwelling, Battery, ElectricResistanceWaterHeater, AirConditioner, ElectricVehicle, ScheduledLoad
 from ochre import CreateFigures
 from ochre.Models.Envelope import Envelope
 from bin.run_dwelling import dwelling_args
@@ -206,6 +206,35 @@ def run_ev():
     # CreateFigures.plt.show()
 
 
+def run_load_from_schedule():
+    # create schedule
+    times = pd.date_range(
+        default_args["start_time"],
+        default_args["start_time"] + default_args["duration"],
+        freq=default_args["time_res"],
+        inclusive="left",
+    )
+    peak_load = 5  # kW
+    dryer_power = np.random.choice([0, peak_load], p=[0.98, 0.02], size=len(times))
+    schedule = pd.DataFrame({"Clothes Dryer (kW)": dryer_power}, index=times)
+
+    equipment_args = {
+        "name": "Clothes Dryer",
+        "schedule": schedule,
+        **default_args,
+    }
+
+    # Initialize equipment
+    device = ScheduledLoad(**equipment_args)
+
+    # Simulate equipment
+    df = device.simulate()
+
+    print(df.head())
+    df.plot()
+    CreateFigures.plt.show()
+
+
 def run_equipment_from_house_model():
     # Create Dwelling from input files, see bin/run_dwelling.py
     dwelling = Dwelling(name='OCHRE House', **dwelling_args)
@@ -232,5 +261,6 @@ if __name__ == '__main__':
     # run_battery_controlled()
     # run_water_heater()
     # run_hvac()
-    run_ev()
+    # run_ev()
+    run_load_from_schedule()
     # run_equipment_from_house_model()
