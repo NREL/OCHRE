@@ -4,3 +4,6 @@ from .Simulator import Simulator
 from .Equipment import *
 from .Models import Envelope
 from .Dwelling import Dwelling
+
+from .cli import cli
+from .gui import gui_basic, gui_detailed

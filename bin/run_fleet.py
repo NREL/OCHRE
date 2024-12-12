@@ -4,141 +4,164 @@ import pandas as pd
 from multiprocessing import Pool
 # import cProfile
 
-from ochre import ElectricResistanceWaterHeater, ElectricVehicle
+from ochre import ElectricVehicle, ElectricResistanceWaterHeater, Battery
 from ochre import CreateFigures
 
-from bin.run_dwelling import dwelling_args
+# Test script to run a fleet of equipment
 
 
-# Test script to run a fleet of water heaters
-
-
-def run_water_heater_fleet(num_water_heaters=5):
-    wh_names = [f'wh_{i + 1}' for i in range(num_water_heaters)]
-
-    # Make water draw profile (constant flow rate with random water draw probability of 1%)
-    times = pd.date_range(dwelling_args['start_time'], dwelling_args['start_time'] + dwelling_args['duration'],
-                          freq=dwelling_args['time_res'])
-    water_draw_magnitude = 12  # L/min
-    withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=(len(times), num_water_heaters))
-    withdraw_rate = pd.DataFrame(withdraw_rate, index=times, columns=wh_names)
-
-    dwelling_args.update({
-        'time_res': dt.timedelta(seconds=30),
-        'output_path': None,
-        'verbosity': 3,
-    })
-
-    equipment_args = {wh_name: {
-        # Equipment parameters
-        'name': wh_name,
-        # 'water_nodes': 1,
-        'Initial Temperature (C)': np.random.uniform(49, 49),
-        'Setpoint Temperature (C)': np.random.randint(50, 52),
-        'Deadband Temperature (C)': np.random.uniform(3, 3),
-        'Capacity (W)': np.random.uniform(4800, 4800),
-        'Efficiency (-)': np.random.uniform(0.99, 1),
-        'Tank Volume (L)': np.random.uniform(227, 260),
-        'Tank Height (m)': 1.22,
-        'UA (W/K)': 2.17,
-        'schedule': pd.DataFrame({
-            'Water Heating (L/min)': withdraw_rate[wh_name],
-            'Zone Temperature (C)': np.random.uniform(15, 18),
-            'Mains Temperature (C)': np.random.uniform(5.6, 8.3),
-        }, index=times),
-        **dwelling_args,
-    } for wh_name in wh_names}
+def setup_ev(i):
+    # randomly select vehicle type, mileage, and charging level
+    vehicle_type = np.random.choice(["BEV", "PHEV"])
+    charging_level = np.random.choice(["Level 1", "Level 2"])
+    if vehicle_type == "BEV":
+        mileage = round(np.random.uniform(100, 300))
+    else:
+        mileage = round(np.random.uniform(20, 70))
 
     # Initialize equipment
-    fleet = {wh_name: ElectricResistanceWaterHeater(**args) for wh_name, args in equipment_args.items()}
-
-    # Simulate equipment
-    all_data = {}
-    for eq_name, eq in fleet.items():
-        df = eq.simulate()
-        all_data[eq_name] = df
-
-    # powers = pd.DataFrame({eq_name: df[f'Water Heating Electric Power (kW)'] for eq_name, df in all_data.items()})
-    # temps = pd.DataFrame({eq_name: df['Hot Water Outlet Temperature (C)'] for eq_name, df in all_data.items()})
-    # temps.plot()
-    # CreateFigures.plot_daily_profile(df, 'Battery Electric Power (kW)', plot_max=False, plot_min=False)
-    # CreateFigures.plot_time_series_detailed((df['Battery SOC (-)'],))
-    # CreateFigures.plt.show()
-
-
-def run_fleet_controlled():
-    # TODO: not working, convert to battery fleet
-    # maybe add another example with EV fleet
-    equipment_args = {
-        # Equipment parameters
-        # See defaults/Battery/default_parameters.csv for more options
-        'capacity_kwh': 10,
-        'control_type': 'Off',
-        **dwelling_args,
-    }
-
-    # Initialize equipment
-    equipment = ElectricResistanceWaterHeater(**equipment_args)
-
-    # Simulate equipment
-    for t in equipment.sim_times:
-        assert equipment.current_time == t
-        control_signal = {'P Setpoint': np.random.randint(-5, 5)}  # in kW
-        equipment.update(control_signal, {})
-
-    df = equipment.finalize()
-    print(df.head())
-    CreateFigures.plot_daily_profile(df, 'Battery Electric Power (kW)', plot_max=False, plot_min=False)
-    CreateFigures.plot_time_series_detailed((df['Battery SOC (-)'],))
-    CreateFigures.plt.show()
+    return ElectricVehicle(
+        name=f"EV_{i}",
+        seed=i,  # used to randomize charging events. Not used for randomization above
+        vehicle_type=vehicle_type,
+        charging_level=charging_level,
+        mileage=mileage,
+        start_time=dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        time_res=dt.timedelta(minutes=15),
+        duration=dt.timedelta(days=5),
+        verbosity=1,
+        save_results=False,  # if True, must specify output_path
+        # output_path=os.getcwd(),
+    )
 
 
-def run_ev(ev_args):
-    # Initialize equipment
-    equipment = ElectricVehicle(**ev_args)
-
-    # Simulate equipment
-    df = equipment.simulate()
+def run_ev(ev):
+    df = ev.simulate()
     out = df["EV Electric Power (kW)"]
-    out.name = equipment.name
+    out.name = ev.name
     return out
 
 
-def run_ev_fleet(n=2, n_parallel=2):
+def run_ev_fleet(n=4, n_parallel=2):
     """Runs multiple EV simulations and compiles energy consumption"""
-    ev_options = pd.DataFrame(
-        {
-            "vehicle_type": ["BEV", "BEV", "PHEV", "PHEV"],
-            "mileage": [100, 250, 20, 50],
-        }
-    )
-    def make_ev_args(i):
-        ev_option = ev_options.sample().iloc[0].to_dict()
-        return {
-            # timing and general parameters
-            "name": f"EV_{i}",
-            "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
-            "time_res": dt.timedelta(minutes=60),
-            "duration": dt.timedelta(days=10),
-            "verbosity": 1,  # verbosity of results (1-9)
-            "save_results": False,  # if True, must specify output_path
-            "seed": i,  # required for randomization if output_path is not specified
-
-            # Equipment parameters
-            "charging_level": np.random.choice(["Level 1", "Level 2"]),
-            **ev_option,
-        } 
-    map_args = [make_ev_args(i) for i in range(n)]
+    fleet = [setup_ev(i + 1) for i in range(n)]
 
     with Pool(n_parallel) as p:
-        out = p.map(run_ev, map_args)
+        out = p.map(run_ev, fleet)
 
     # combine load profiles
     df = pd.concat(out, axis=1)
     print(df)
+    df.plot()
+    CreateFigures.plt.show()
+
+def setup_wh(i):
+    start_time = dt.datetime(2018, 1, 1, 0, 0)  # year, month, day, hour, minute
+    time_res = dt.timedelta(minutes=1)
+    duration = dt.timedelta(days=1)
+
+    # Make water draw profile (constant flow rate with random water draw probability of 1%)
+    times = pd.date_range(start_time, start_time + duration, freq=time_res)
+    draw_rate = 12  # L/min
+    water_draws = np.random.choice([0, draw_rate], p=[0.99, 0.01], size=(len(times)))
+
+    equipment_args = {
+        # Equipment parameters
+        "name": f"WH_{i}",
+        "start_time": start_time,
+        "time_res": time_res,
+        "duration": duration,
+        "verbosity": 3,
+        "save_results": False,  # if True, must specify output_path
+        # "output_path": os.getcwd(),
+        # 'water_nodes': 12,
+        "Setpoint Temperature (C)": np.random.randint(50, 52),
+        "Capacity (W)": 4500,
+        "Tank Volume (L)": np.random.uniform(227, 260),
+        "Tank Height (m)": 1.22,
+        "UA (W/K)": np.random.uniform(2, 2.5),
+        "schedule": pd.DataFrame(
+            {
+                "Water Heating (L/min)": water_draws,
+                "Zone Temperature (C)": np.random.uniform(18, 21),
+                "Mains Temperature (C)": np.random.uniform(5, 9),
+            },
+            index=times,
+        ),
+    }
+
+    # Initialize equipment
+    return ElectricResistanceWaterHeater(**equipment_args)
+
+def run_water_heater_fleet(n=5):
+    # Initialize equipment
+    fleet = [setup_wh(i + 1) for i in range(n)]
+
+    # Simulate sequentially
+    all_data = {}
+    for wh in fleet:
+        df = wh.simulate()
+        all_data[wh.name] = df
+
+    cols_to_plot = [
+        "Water Heating Electric Power (kW)", 
+        "Hot Water Outlet Temperature (C)",
+        "Hot Water Delivered (L/min)",
+    ]
+    for col in cols_to_plot:
+        data = pd.DataFrame({name: df[col] for name, df in all_data.items()})
+        data.plot()
+    CreateFigures.plt.show()
+
+
+def setup_battery(i):
+    # Initialize equipment
+    capacity = np.random.randint(3, 10)
+    battery = Battery(
+        name=f"Battery_{i}",
+        capacity=capacity,  # in kW
+        capacity_kwh=capacity * 2,  # 2 hour duration
+        start_time=dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        time_res=dt.timedelta(minutes=60),
+        duration=dt.timedelta(days=6),
+        verbosity=3,
+        save_results=False,  # if True, must specify output_path
+        # output_path=os.getcwd(),
+    )
+
+    # Set battery schedule
+    # Note: can also be done at each time step, see run_external_control.py
+    # for examples
+    schedule = np.random.randint(-capacity, capacity, len(battery.sim_times))
+    battery.schedule = pd.DataFrame(
+        {"Battery Electric Power (kW)": schedule}, index=battery.sim_times
+    )
+    battery.reset_time()  # initializes the new schedule
+    
+    return battery
+
+
+def run_battery_fleet(n=4):
+    """Runs multiple EV simulations and compiles energy consumption"""
+    fleet = [setup_battery(i + 1) for i in range(n)]
+
+    # Simulate sequentially
+    all_data = {}
+    for battery in fleet:
+        df = battery.simulate()
+        all_data[battery.name] = df
+
+    cols_to_plot = [
+        "Battery Electric Power (kW)",
+        "Battery SOC (-)",
+    ]
+    for col in cols_to_plot:
+        data = pd.DataFrame({name: df[col] for name, df in all_data.items()})
+        data.plot()
+    CreateFigures.plt.show()
 
 
 if __name__ == '__main__':
-    # run_water_heater_fleet()
-    # run_fleet_controlled()
     run_ev_fleet()
+    # run_water_heater_fleet()
+    # run_battery_fleet()

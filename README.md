@@ -43,15 +43,16 @@ object is instantiated and then simulated. A set of input parameters and input f
 
 Below is a simple example of simulating a dwelling:
 ```
+import os
 import datetime as dt
 from ochre import Dwelling
 house = Dwelling(simulation_name, 
                  start_time=dt.datetime(2018, 1, 1, 0, 0),
                  time_res=dt.timedelta(minutes=10),       
                  duration=dt.timedelta(days=3),
-                 properties_file='sample_resstock_house.xml',
-                 schedule_file='sample_resstock_schedule.csv',
-                 weather_file='USA_CO_Denver.Intl.AP.725650_TMY3.epw',
+                 hpxml_file=os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
+                 schedule_input_file=os.path.join(default_input_path, "Input Files", "bldg0112631_schedule.csv"),
+                 weather_file=os.path.join(default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"),
                  verbosity=3,
                  )
 df, metrics, hourly = dwelling.simulate()

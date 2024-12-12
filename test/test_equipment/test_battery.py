@@ -51,9 +51,9 @@ class BatteryTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.battery.power_setpoint, -1.926, places=3)
 
     def test_update_internal_control(self):
-        # test self-consumption with charge_from_solar
+        # test self-consumption with charge_solar_only
         self.battery.control_type = 'Self-Consumption'
-        self.battery.parameters['charge_from_solar'] = 1
+        self.battery.parameters["charge_solar_only"] = 1
         mode = self.battery.update_internal_control({'net_power': -1})
         self.assertEqual(mode, 'Off')
         self.assertAlmostEqual(self.battery.power_setpoint, 0)
@@ -66,7 +66,7 @@ class BatteryTestCase(unittest.TestCase):
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.battery.power_setpoint, 1)
 
-        self.battery.parameters['charge_from_solar'] = 0
+        self.battery.parameters["charge_solar_only"] = 0
         mode = self.battery.update_internal_control({'net_power': -2, 'pv_power': -1})
         self.assertEqual(mode, 'On')
         self.assertAlmostEqual(self.battery.power_setpoint, 2)
