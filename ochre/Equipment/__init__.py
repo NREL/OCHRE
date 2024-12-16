@@ -13,76 +13,71 @@ from .EV import ElectricVehicle, ScheduledEV
 
 EQUIPMENT_BY_NAME = {
     # 'HVAC Heating'
-    **{equipment.name: equipment for equipment in [
-        Heater, 
-        ElectricFurnace, 
-        ElectricBaseboard, 
-        ElectricBoiler, 
-        GasFurnace, 
-        GasBoiler, 
-        HeatPumpHeater, 
-        ASHPHeater,
-        MinisplitAHSPHeater,
-    ]},
-
+    **{
+        equipment.name: equipment
+        for equipment in [
+            Heater,
+            ElectricFurnace,
+            ElectricBaseboard,
+            ElectricBoiler,
+            GasFurnace,
+            GasBoiler,
+            HeatPumpHeater,
+            ASHPHeater,
+            MinisplitAHSPHeater,
+        ]
+    },
     # 'HVAC Cooling'
-    **{equipment.name: equipment for equipment in [
-        Cooler, 
-        AirConditioner,
-          ASHPCooler, 
-          RoomAC, 
-          MinisplitAHSPCooler
-    ]},
-
+    **{
+        equipment.name: equipment
+        for equipment in [Cooler, AirConditioner, ASHPCooler, RoomAC, MinisplitAHSPCooler]
+    },
     # 'Water Heating'
-    **{equipment.name: equipment for equipment in [
-        ElectricResistanceWaterHeater, 
-        HeatPumpWaterHeater, 
-        GasWaterHeater, 
-        TanklessWaterHeater, 
-        GasTanklessWaterHeater,
-    ]},
-
+    **{
+        equipment.name: equipment
+        for equipment in [
+            ElectricResistanceWaterHeater,
+            HeatPumpWaterHeater,
+            GasWaterHeater,
+            TanklessWaterHeater,
+            GasTanklessWaterHeater,
+        ]
+    },
     # 'EV'
     ElectricVehicle.name: ElectricVehicle,
-    'Electric Vehicle': ElectricVehicle,
+    "Electric Vehicle": ElectricVehicle,
     ScheduledEV.name: ScheduledEV,
-
     # 'PV'
     PV.name: PV,
-
     # 'Battery'
     Battery.name: Battery,
-    
     # 'Gas Generator'
     GasGenerator.name: GasGenerator,
     GasFuelCell.name: GasFuelCell,
-    
     # 'Lighting'
-    'Indoor Lighting': LightingLoad,
-    'Exterior Lighting': LightingLoad,
-    'Basement Lighting': LightingLoad,
-    'Garage Lighting': LightingLoad,
-
+    "Indoor Lighting": LightingLoad,
+    "Exterior Lighting": LightingLoad,
+    "Basement Lighting": LightingLoad,
+    "Garage Lighting": LightingLoad,
     # 'Other'
-    'Clothes Washer': ScheduledLoad,
-    'Clothes Dryer': ScheduledLoad,
-    'Dishwasher': ScheduledLoad,
-    'Refrigerator': ScheduledLoad,
-    'Cooking Range': ScheduledLoad,
-    'MELs': ScheduledLoad,
+    "Clothes Washer": EventBasedLoad,
+    "Clothes Dryer": EventBasedLoad,
+    "Dishwasher": EventBasedLoad,
+    "Refrigerator": ScheduledLoad,
+    "Cooking Range": EventBasedLoad,
+    "MELs": ScheduledLoad,
     # 'Basement MELs',  # not modeled
-    'TV': ScheduledLoad,
-    'Well Pump': ScheduledLoad,
-    'Pool Pump': ScheduledLoad,
-    'Pool Heater': ScheduledLoad,
-    'Spa Pump': ScheduledLoad,
-    'Spa Heater': ScheduledLoad,
-    'Gas Grill': ScheduledLoad,
-    'Gas Fireplace': ScheduledLoad,
-    'Gas Lighting': ScheduledLoad,
-    'Ceiling Fan': ScheduledLoad,
-    'Ventilation Fan': ScheduledLoad,
+    "TV": ScheduledLoad,
+    "Well Pump": ScheduledLoad,
+    "Pool Pump": ScheduledLoad,
+    "Pool Heater": ScheduledLoad,
+    "Spa Pump": ScheduledLoad,
+    "Spa Heater": ScheduledLoad,
+    "Gas Grill": ScheduledLoad,
+    "Gas Fireplace": ScheduledLoad,
+    "Gas Lighting": ScheduledLoad,
+    "Ceiling Fan": ScheduledLoad,
+    "Ventilation Fan": ScheduledLoad,
 }
 
 ALL_END_USES = {cls.end_use for cls in EQUIPMENT_BY_NAME.values()}

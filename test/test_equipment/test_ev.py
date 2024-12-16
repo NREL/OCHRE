@@ -35,12 +35,12 @@ class EVTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.ev.capacity, 6.5)
         self.assertEqual(self.ev.max_power, 1.4)
 
-        self.assertEqual(len(self.ev.event_schedule), 1)
-        self.assertIn('start_time', self.ev.event_schedule.columns)
-        self.assertIn('end_time', self.ev.event_schedule.columns)
-        self.assertIn('end_soc', self.ev.event_schedule.columns)
-        self.assertEqual(self.ev.event_schedule.loc[0, 'start_time'], dt.datetime(2019, 4, 1, 17, 12))
-        self.assertEqual(self.ev.event_schedule.loc[0, 'start_soc'], 0.588)
+        self.assertEqual(len(self.ev.all_events), 1)
+        self.assertIn('start_time', self.ev.all_events.columns)
+        self.assertIn('end_time', self.ev.all_events.columns)
+        self.assertIn('end_soc', self.ev.all_events.columns)
+        self.assertEqual(self.ev.all_events.loc[0, 'start_time'], dt.datetime(2019, 4, 1, 17, 12))
+        self.assertEqual(self.ev.all_events.loc[0, 'start_soc'], 0.588)
 
         self.assertIn(self.ev.temps_by_day.min(), range(-20, 45, 5))
         self.assertIn(self.ev.temps_by_day.max(), range(-20, 45, 5))
@@ -58,7 +58,7 @@ class EVTestCase(unittest.TestCase):
         self.ev.temps_by_day.index = pd.date_range(self.ev.temps_by_day.index[0], freq=dt.timedelta(days=1), periods=5)
 
         # test with overlap
-        self.ev.generate_all_events(probabilities, event_data, None)
+        self.ev.generate_events(probabilities, event_data, None)
 
     def test_update_external_control(self):
         start = self.ev.event_start
