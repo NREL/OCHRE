@@ -11,6 +11,7 @@ from ochre import (
     ElectricResistanceWaterHeater,
     AirConditioner,
     ScheduledLoad,
+    EventBasedLoad,
 )
 from ochre import CreateFigures
 from ochre.Models.Envelope import Envelope
@@ -349,6 +350,35 @@ def run_scheduled_load():
     CreateFigures.plt.show()
 
 
+def run_event_based_load():
+    # create schedule
+    times = pd.date_range(
+        default_args["start_time"],
+        default_args["start_time"] + default_args["duration"],
+        freq=default_args["time_res"],
+        inclusive="left",
+    )
+    peak_load = 5  # kW
+    dryer_power = np.random.choice([0, peak_load], p=[0.98, 0.02], size=len(times))
+    schedule = pd.DataFrame({"Clothes Dryer (kW)": dryer_power}, index=times)
+
+    equipment_args = {
+        "name": "Clothes Dryer",
+        "schedule": schedule,
+        **default_args,
+    }
+
+    # Initialize equipment
+    device = EventBasedLoad(**equipment_args)
+
+    # Simulate equipment
+    df = device.simulate()
+
+    print(df.head())
+    df.plot()
+    CreateFigures.plt.show()
+
+
 if __name__ == "__main__":
     # Extract equipment from a Dwelling model
     # run_equipment_from_house_model("Water Heating")
@@ -360,7 +390,8 @@ if __name__ == "__main__":
     # run_battery_from_schedule()
     # run_battery_self_consumption()
     # run_water_heater()
-    run_water_heater_from_file()
+    # run_water_heater_from_file()
     # run_hvac()
     # run_scheduled_load()
+    run_event_based_load()
     # run_equipment_from_house_model()
