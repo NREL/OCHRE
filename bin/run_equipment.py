@@ -350,21 +350,23 @@ def run_scheduled_load():
     CreateFigures.plt.show()
 
 
-def run_event_based_load():
-    # create schedule
-    times = pd.date_range(
-        default_args["start_time"],
-        default_args["start_time"] + default_args["duration"],
-        freq=default_args["time_res"],
-        inclusive="left",
+def run_event_based_clothes_dryer():
+    # create event schedule
+    s = default_args["start_time"]
+    d = dt.timedelta(days=1)
+    h = dt.timedelta(hours=1)
+    assert default_args["duration"] >= d * 3
+    event_schedule = pd.DataFrame(
+        {
+            "start_time": [s + h * 10, s + d + h * 14, s + d * 2 + h * 17],
+            "end_time": [s + h * 11, s + d + h * 16, s + d * 2 + h * 18],
+            "power": [2, 5, 5],  # average power, in kW
+        }
     )
-    peak_load = 5  # kW
-    dryer_power = np.random.choice([0, peak_load], p=[0.98, 0.02], size=len(times))
-    schedule = pd.DataFrame({"Clothes Dryer (kW)": dryer_power}, index=times)
 
     equipment_args = {
         "name": "Clothes Dryer",
-        "schedule": schedule,
+        "event_schedule": event_schedule,
         **default_args,
     }
 
@@ -393,5 +395,5 @@ if __name__ == "__main__":
     # run_water_heater_from_file()
     # run_hvac()
     # run_scheduled_load()
-    run_event_based_load()
+    run_event_based_clothes_dryer()
     # run_equipment_from_house_model()

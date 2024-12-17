@@ -68,16 +68,12 @@ class EventBasedLoad(Equipment):
         powers = eq_powers.loc[on].groupby(event_counts.loc[on]).mean()
         assert len(powers) == len(start_times)
 
-        # get total energy from each event, in kWh
-        energy = powers["Power (kW)"] * (end_times - start_times).total_seconds() / 3600
-
         return pd.DataFrame(
             {
                 "start_time": start_times,
                 "end_time": end_times,
                 "power": powers["Power (kW)"],
                 # "power_gas": powers["Gas (therms/hour)"],
-                "energy": energy,
             },
         ).reset_index()
 
@@ -108,25 +104,27 @@ class EventBasedLoad(Equipment):
         return probabilities, event_data
 
 
-    def initialize_schedule(self, **kwargs):
-        # Get power and gas columns from schedule, if they exist (copied from ScheduledLoad)
+    def initialize_schedule(self, event_schedule=None, **kwargs):
+        # Get power and gas columns from time-series schedule, if they exist (copied from ScheduledLoad)
         schedule_cols = {
             f"{self.name} (kW)": "Power (kW)",
             f"{self.name} (therms/hour)": "Gas (therms/hour)",
         }
         optional_inputs = list(schedule_cols.keys())
-        eq_powers = super().initialize_schedule(optional_inputs=optional_inputs, **kwargs)
-        eq_powers = eq_powers.rename(columns=schedule_cols)
+        ts_schedule = super().initialize_schedule(optional_inputs=optional_inputs, **kwargs)
+        ts_schedule = ts_schedule.rename(columns=schedule_cols)
 
         # set schedule columns to zero if month multiplier exists and is zero (for ceiling fans)
         multipliers = kwargs.get("month_multipliers", [])
         zero_months = [i for i, m in enumerate(multipliers) if m == 0]
         if zero_months:
-            eq_powers.loc[eq_powers.index.month.isin(zero_months), :] = 0
+            ts_schedule.loc[ts_schedule.index.month.isin(zero_months), :] = 0
 
         # generate event schedule
-        if not eq_powers.empty:
-            self.all_events = self.extract_events(eq_powers, **kwargs)
+        if event_schedule is not None:
+            self.all_events = event_schedule
+        elif not ts_schedule.empty:
+            self.all_events = self.extract_events(ts_schedule, **kwargs)
         elif "equipment_event_file" in kwargs:
             probabilities, event_data = self.import_from_event_list(**kwargs)
             self.all_events = self.generate_events(probabilities, event_data, **kwargs)
@@ -144,6 +142,10 @@ class EventBasedLoad(Equipment):
         self.event_start = self.all_events.loc[self.event_index, "start_time"]
         self.event_end = self.all_events.loc[self.event_index, "end_time"]
 
+        # add total energy from each event, in kWh
+        durations = self.all_events["end_time"] - self.all_events["start_time"]
+        self.all_events["energy"] = self.all_events["power"] * durations.dt.total_seconds() / 3600
+
         # check that end time is at or after start time, and events do not overlap
         negative_times = self.all_events["end_time"] < self.all_events["start_time"]
         if negative_times.any():
@@ -158,7 +160,7 @@ class EventBasedLoad(Equipment):
             bad_events = self.all_events.loc[bad_index - 1 : bad_index + 1]
             raise ValueError(f"{self.name} event overlap. Event details: \n{bad_events}")
 
-        return eq_powers
+        return ts_schedule
 
     def reset_time(self, start_time=None, **kwargs):
         super().reset_time(start_time, **kwargs)
@@ -184,17 +186,6 @@ class EventBasedLoad(Equipment):
 
         self.event_start = self.all_events.loc[self.event_index, "start_time"]
         self.event_end = self.all_events.loc[self.event_index, "end_time"]
-
-    # deprecated functions
-    # def generate_random_event_data(self, key):
-    #     # randomly pick parameters for next event
-    #     r = np.random.random()
-    #     idx = self.probabilities[key].searchsorted(r)
-    #     return self.event_data.iloc[idx].to_dict()
-    #
-    # def generate_event(self):
-    #     # function to set next event start and end time
-    #     raise NotImplementedError
 
     def update_external_control(self, control_signal):
         # If Delay=dt.timedelta, extend start time by that time
@@ -242,8 +233,9 @@ class EventBasedLoad(Equipment):
             power = self.all_events.loc[self.event_index, "power"]
         else:
             power = 0
-
         self.electric_kw = power
+
+        super().calculate_power_and_heat()
 
 
 class DailyLoad(EventBasedLoad):
@@ -286,3 +278,31 @@ class DailyLoad(EventBasedLoad):
         df_events["power"] = self.max_power
 
         return df_events
+
+
+class EventDataLoad(EventBasedLoad):
+    """
+    Equipment with event-based time-series data. Each event type has a unique
+    schedule, and one or more event types are allowed. Schedules can be taken
+    from defaults or provided as an input. If more than one event type is
+    provided, one will be chosen randomly for each event.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def generate_events(self, probabilities, event_data, **kwargs):
+        # create event schedule with all event info
+        raise NotImplementedError
+    
+    def start_event(self):
+        # optional function that runs when starting an event
+        self.in_event = True
+
+    def calculate_power_and_heat(self):
+        if self.mode == "On":
+            power = self.all_events.loc[self.event_index, "power"]
+        else:
+            power = 0
+        self.electric_kw = power
+
+        super().calculate_power_and_heat()
