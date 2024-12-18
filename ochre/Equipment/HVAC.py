@@ -1210,7 +1210,7 @@ class ASHPHeater(HeatPumpHeater):
                 hard_lockout_interval = dt.timedelta(minutes=hard_lockout) # minimum amount of time after a setpoint change that er stays off (strictly)
                 if hard_lockout_interval > min_interval:
                     min_interval = hard_lockout_interval # increase the minimum interval
-                    print(f"minimum setpoint change duration ({min_setpoint_change_duration} minutes) updated to comply with hard lockout interval ({hard_lockout} minutes)") #TODO: raise warning ?
+                    self.warn("minimum setpoint change duration ({min_setpoint_change_duration} minutes) updated to comply with hard lockout interval ({hard_lockout} minutes)")
                 if self.end_use == 'HVAC Heating':
                     if self.temp_setpoint > self.prev_setpoint: # turned up the heat
                         if (self.timestep_count * self.time_res) > min_interval: # enough time has passed
