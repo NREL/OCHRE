@@ -173,7 +173,7 @@ class HVAC(Equipment):
         self.temp_setpoint = initial_setpoint
         self.temp_deadband = kwargs.get('Deadband Temperature (C)', 1)
         self.ext_ignore_thermostat = kwargs.get('ext_ignore_thermostat', False)
-        self.setpoint_ramp_rate = kwargs.get('setpoint_ramp_rate')  # max setpoint ramp rate, in C/min
+        #self.setpoint_ramp_rate = kwargs.get('setpoint_ramp_rate')  # max setpoint ramp rate, in C/min
         self.ext_capacity = None  # Option to set capacity directly, ideal capacity only
         self.ext_capacity_frac = 1  # Option to limit max capacity, ideal capacity only
 
@@ -334,12 +334,7 @@ class HVAC(Equipment):
         # TODO: create temp_setpoint_old and update in update_results. 
         # Could get run multiple times per time step in update_model
 
-        # FIXME: do we need a ramp rate with lockout for time after setpoint change        
-        if self.setpoint_ramp_rate is not None:
-            delta_t = self.setpoint_ramp_rate * self.time_res.total_seconds() / 60  # in C
-            self.temp_setpoint = min(max(t_set, self.temp_setpoint - delta_t), self.temp_setpoint + delta_t)
-        else:
-            self.temp_setpoint = t_set
+        self.temp_setpoint = t_set
 
         # set envelope comfort limits
         if self.envelope_model is not None:
