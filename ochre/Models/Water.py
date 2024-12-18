@@ -90,7 +90,7 @@ class StratifiedWaterModel(RCModel):
             u = ua / total_area
         else:
             raise ModelException('Missing heat transfer coefficient (UA) for {}'.format(self.name))
-
+#
         # calculate general RC parameters for whole tank
         c_water_tot = self.volume * water_c  # Heat capacity of water (J/K)
         r_int = (h / self.n_nodes) / water_conductivity / top_area  # R between nodes (K/W)
@@ -110,7 +110,7 @@ class StratifiedWaterModel(RCModel):
             rc_params.update({'R_WH{}_WH{}'.format(i + 1, i + 2): r_int for i in range(self.n_nodes - 1)})
 
         return rc_params
-
+#
     @staticmethod
     def initialize_state(state_names, input_names, A_c, B_c, **kwargs):
         t_init = kwargs.get('Initial Temperature (C)')

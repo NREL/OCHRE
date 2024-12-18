@@ -1,5 +1,11 @@
-import datetime as dt
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Nov  7 09:38:04 2024
 
+@author: halgr
+"""
+
+import datetime as dt
 
 from ochre import Dwelling, CreateFigures
 from ochre.Models import TankWithPCM
@@ -7,8 +13,7 @@ from bin.run_dwelling import dwelling_args
 
 
 
-
-pcm_water_node = 7
+pcm_water_node = 5
 pcm_vol_fraction = 0.5
 
 #UEF draw profiles
@@ -33,7 +38,6 @@ dwelling_args.update(
 def add_pcm_model(dwelling_args):
     dwelling_args["Equipment"]["Water Heating"] = {
         "model_class": TankWithPCM,
-        "water_nodes": 12,
         "Water Tank": {
             "pcm_water_node": pcm_water_node,
             "pcm_vol_fraction": pcm_vol_fraction,
@@ -51,12 +55,8 @@ def run_water_heater(dwelling_args,plot_title,load_profile_in):
     equipment = dwelling.get_equipment_by_end_use("Water Heating")
     equipment.main_simulator = True
     equipment.save_results = dwelling.save_results
-    # equipment.model.save_results = True
-    # equipment.model.results_file = "test.csv" 
     equipment.export_res = dwelling.export_res
     equipment.results_file = dwelling.results_file
-    equipment.verbosity = 9
-    equipment.model.verbosity = 9
 
     # If necessary, update equipment schedule
     equipment.model.schedule['Zone Temperature (C)'] = 19.722222 #from the UEF standard https://www.energy.gov/eere/buildings/articles/2014-06-27-issuance-test-procedures-residential-and-commercial-water
@@ -67,26 +67,15 @@ def run_water_heater(dwelling_args,plot_title,load_profile_in):
 
     # Simulate equipment
     df = equipment.simulate()
-    print(df.columns)
 
     # print(df.head())
     CreateFigures.plot_time_series_detailed((df["Hot Water Outlet Temperature (C)"],))
+    #CreateFigures.plot_time_series_detailed((df["Hot Water Delivered (L/min)"],))
+    #CreateFigures.plot_time_series_detailed((df["Water Tank PCM Temperature (C)"],))
     CreateFigures.plt.title(plot_title)
     CreateFigures.plt.suptitle(load_profile_in)
-
-    # print all water tank temperatures
-    cols = [f'T_WH{i}' for i in range(1, 13)]
-    if "With PCM" in plot_title:
-        cols += ["T_PCM"]
-        
-    df[cols].plot()
     CreateFigures.plt.show()
-    
-    #calculate UEF
-    Q_cons = df['Water Heating Electric Power (kW)'].sum()*1000 #not sure if this is the correct term that I should be pulling
-    Q_load = df['Hot Water Delivered (W)'].sum() #not sure if this is the correct term that I should be pulling
-    UEF = Q_load/Q_cons
-    print('UEF =', UEF)
+
 
 if __name__ == '__main__':
     #run without PCM

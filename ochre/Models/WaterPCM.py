@@ -10,13 +10,13 @@ PCM_PROPERTIES = {
     "h_fus": 226,  # J/g
     "h_conv": 1000,  # W/K, accounts for surface area
     "solid": {
-        "pcm_density": 0.904,  # g/m**3
+        "pcm_density": 0.904,  # g/m**3 -> this should be g/cm**3
         "pcm_cp": 1.9,  # J/g-C
         # "pcm_conductivity": 0.28,  # W/m-C, not used
         # "pcm_c": 1717.6,  # J/m**3-C, not used
     },
     "liquid": {
-        "pcm_density": 0.829,  # g/m**3
+        "pcm_density": 0.829,  # g/m**3 -> this should be g/cm**3
         "pcm_cp": 2.2,  # J/g-C
         # "pcm_conductivity": 0.16,  # W/m-C, not used
         # "pcm_c": 1823.8,  # J/m**3-C, not used
@@ -68,7 +68,7 @@ class TankWithPCM(StratifiedWaterModel):
 
     def load_rc_data(self, **kwargs):
         rc_params = super().load_rc_data(**kwargs)
-
+#
         # Add PCM capacitance, default to solid state for now
         pcm_node_vol_fraction = self.vol_fractions[self.t_pcm_wh_idx]
         pcm_volume = self.volume * pcm_node_vol_fraction * self.pcm_vol_fraction
@@ -86,7 +86,7 @@ class TankWithPCM(StratifiedWaterModel):
 
         # Add water-PCM resistance, default to solid state for now
         rc_params[f"R_PCM_WH{self.pcm_water_node}"] = 1 / PCM_PROPERTIES["h_conv"]
-
+#
         return rc_params
 
     def get_pcm_heat_xfer(self):
