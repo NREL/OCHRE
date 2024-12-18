@@ -1238,20 +1238,6 @@ class ASHPHeater(HeatPumpHeater):
                         self.timestep_count = 1
                         # self.existing_stages = 0 # no staged
                         return 'Off'
-                # elif self.end_use == 'HVAC Cooling':
-                #     if self.temp_setpoint < self.prev_setpoint: # turned up the ac
-                #         if self.timestep_count*self.time_res > min_interval: # enough time has passed
-                #             self.timestep_count = 1 # reset timestep count
-                #             # control by temp_turn_on/temp_turn_off
-                #         else:
-                #             self.timestep_count += 1 # wait longer
-                #             self.existing_stages = 0 # no staged
-                #             return 'Off'     
-                #     elif self.temp_setpoint > self.prev_setpoint: # turned down the ac
-                #         self.prev_setpoint = self.temp_setpoint
-                #         self.timestep_count = 1
-                #         self.existing_stages = 0 # no staged
-                #         return 'Off'  
 
         # On and off limits depend on heating vs. cooling
         if temperature_offset is not None:
