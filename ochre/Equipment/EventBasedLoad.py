@@ -25,6 +25,7 @@ class EventBasedLoad(Equipment):
         self.event_index = 0
         self.event_start = None
         self.event_end = None
+        self.p_setpoint = None
         self.in_event = False
 
         super().__init__(**kwargs)
@@ -39,7 +40,9 @@ class EventBasedLoad(Equipment):
                 file_name = os.path.join(self.output_path, f"{self.name}_events.csv")
             self.all_events.to_csv(file_name, index=True)
 
-    def extract_events(self, eq_powers: pd.DataFrame, random_offset: dt.timedelta | None=None, **kwargs):
+    def extract_events(
+        self, eq_powers: pd.DataFrame, random_offset: dt.timedelta | None = None, **kwargs
+    ):
         # get event information from time series schedule
         # assumes constant power for all events
         # get start times
@@ -57,7 +60,7 @@ class EventBasedLoad(Equipment):
             end_times = pd.concat([end_times, self.start_time + self.duration])
         if n_events != len(end_times):
             raise ValueError(f"Cannot parse events for {self.name}")
-        
+
         # apply random offset for start and end times
         if random_offset is not None:
             offsets = np.random.random(n_events) * random_offset
@@ -76,7 +79,6 @@ class EventBasedLoad(Equipment):
                 # "power_gas": powers["Gas (therms/hour)"],
             },
         ).reset_index()
-
 
     def generate_events(self, probabilities, event_data, **kwargs):
         # create event schedule with all event info
@@ -102,7 +104,6 @@ class EventBasedLoad(Equipment):
         event_data = cdf.index.to_frame().reset_index(drop=True)
 
         return probabilities, event_data
-
 
     def initialize_schedule(self, event_schedule=None, **kwargs):
         # Get power and gas columns from time-series schedule, if they exist (copied from ScheduledLoad)
@@ -142,9 +143,11 @@ class EventBasedLoad(Equipment):
         self.event_start = self.all_events.loc[self.event_index, "start_time"]
         self.event_end = self.all_events.loc[self.event_index, "end_time"]
 
-        # add total energy from each event, in kWh
-        durations = self.all_events["end_time"] - self.all_events["start_time"]
-        self.all_events["energy"] = self.all_events["power"] * durations.dt.total_seconds() / 3600
+        # add duration and total energy from each event, in kWh
+        self.all_events["duration"] = self.all_events["end_time"] - self.all_events["start_time"]
+        self.all_events["energy"] = (
+            self.all_events["power"] * self.all_events["duration"].dt.total_seconds() / 3600
+        )
 
         # check that end time is at or after start time, and events do not overlap
         negative_times = self.all_events["end_time"] < self.all_events["start_time"]
@@ -163,11 +166,21 @@ class EventBasedLoad(Equipment):
         return ts_schedule
 
     def reset_time(self, start_time=None, **kwargs):
+        if self.in_event:
+            self.end_event()
+
         super().reset_time(start_time, **kwargs)
-        self.event_index = 0
-        self.in_event = False
+
+        # get next event index based on new current_time
+        future_events = self.all_events["end_time"] > self.current_time
+        self.event_index = future_events.idxmax()
+
+        # update event data
         self.event_start = self.all_events.loc[self.event_index, "start_time"]
         self.event_end = self.all_events.loc[self.event_index, "end_time"]
+        self.p_setpoint = self.all_events.loc[self.event_index, "power"]
+        if self.current_time > self.event_start:
+            self.start_event()
 
     def start_event(self):
         # optional function that runs when starting an event
@@ -186,6 +199,7 @@ class EventBasedLoad(Equipment):
 
         self.event_start = self.all_events.loc[self.event_index, "start_time"]
         self.event_end = self.all_events.loc[self.event_index, "end_time"]
+        self.p_setpoint = self.all_events.loc[self.event_index, "power"]
 
     def update_external_control(self, control_signal):
         # If Delay=dt.timedelta, extend start time by that time
@@ -229,11 +243,7 @@ class EventBasedLoad(Equipment):
             return "Off"
 
     def calculate_power_and_heat(self):
-        if self.mode == "On":
-            power = self.all_events.loc[self.event_index, "power"]
-        else:
-            power = 0
-        self.electric_kw = power
+        self.electric_kw = self.p_setpoint if self.mode == "On" else 0
 
         super().calculate_power_and_heat()
 
@@ -287,22 +297,116 @@ class EventDataLoad(EventBasedLoad):
     from defaults or provided as an input. If more than one event type is
     provided, one will be chosen randomly for each event.
     """
+
     def __init__(self, **kwargs):
+        self.event_ts_data = None
+        self.event_schedule = None
+
         super().__init__(**kwargs)
 
-    def generate_events(self, probabilities, event_data, **kwargs):
-        # create event schedule with all event info
-        raise NotImplementedError
-    
-    def start_event(self):
-        # optional function that runs when starting an event
-        self.in_event = True
+    def add_event_types(self):
+        # assign an event type to each event
+        #  - maintain total number of events and total energy
+        #  - minimize differences in duration and energy per event
+        total_energy = self.all_events["energy"].sum()
 
-    def calculate_power_and_heat(self):
-        if self.mode == "On":
-            power = self.all_events.loc[self.event_index, "power"]
+        # get duration, energy, and peak power for each event type
+        event_metrics = pd.DataFrame(
+            {
+                "duration": (self.event_ts_data == 0)[::-1].idxmin() + self.time_res,
+                "energy": self.event_ts_data.sum() * self.time_res.total_seconds() / 3600,
+                "power": self.event_ts_data.max(),
+            },
+            index=self.event_ts_data.columns,
+        )
+
+        # determine event "scores" based on duration and energy
+        scores = [
+            [
+                abs((event["duration"] - e_type["duration"]).total_seconds()) / 3600
+                + abs(event["energy"] - e_type["energy"]) * 2
+                for _, e_type in event_metrics.iterrows()
+            ]
+            for _, event in self.all_events.iterrows()
+        ]
+
+        # assign event based on minimum score
+        scores = pd.DataFrame(scores, index=self.all_events.index, columns=event_metrics.index)
+        event_types = scores.idxmin(axis=1)
+        self.all_events["event_type"] = event_types
+
+        # check that total energy is within 10%
+        final_energy = event_metrics.loc[self.all_events["event_type"], "energy"].sum()
+        error = (final_energy - total_energy) / total_energy
+        if abs(error) >= 0.1:
+            self.warn(
+                f"Total energy ({final_energy} kWh) deviates from schedule ({total_energy} kWh)."
+            )
+        if abs(error) >= 0.5:
+            raise ValueError(
+                f"Total energy ({final_energy} kWh) deviates from schedule ({total_energy} kWh)."
+            )
+        
+        # revise end time, duration, power, and energy
+        self.all_events = self.all_events.loc[:, ["start_time", "event_type"]]
+        self.all_events = self.all_events.join(event_metrics, on="event_type")
+        self.all_events["end_time"] = self.all_events["start_time"] + self.all_events["duration"]
+
+    def initialize_schedule(self, event_schedule_file=None, **kwargs):
+        # load event schedule data
+        if event_schedule_file is None:
+            event_schedule_file = "Event Schedules.csv"
+        self.event_ts_data = load_csv(
+            event_schedule_file, sub_folder=self.name, index_col="Seconds"
+        )
+        self.event_ts_data.index = pd.to_timedelta(self.event_ts_data.index, unit="s")
+
+        # resample event data to time_res
+        time_res_file = self.event_ts_data.index[1] - self.event_ts_data.index[0]
+        if time_res_file < self.time_res:
+            # downsample - average
+            self.event_ts_data = self.event_ts_data.resample(self.time_res).mean()
         else:
-            power = 0
-        self.electric_kw = power
+            # upsample - pad
+            self.event_ts_data = self.event_ts_data.resample(self.time_res).pad()
 
-        super().calculate_power_and_heat()
+        ts_schedule = super().initialize_schedule(**kwargs)
+
+        if "event_type" not in self.all_events:
+            self.add_event_types()
+
+        return ts_schedule
+
+    def reset_time(self, start_time=None, **kwargs):
+        super().reset_time(start_time, **kwargs)
+
+        if self.in_event:
+            # set schedule to current time
+            event_type = self.all_events[self.event_index, "event_type"]
+            duration_passed = self.current_time - self.all_events[self.event_index, "start_time"]
+            event_schedule = self.event_ts_data.loc[duration_passed:, event_type].values
+            self.event_schedule = iter(event_schedule)
+
+    def start_event(self):
+        super().start_event()
+
+        # create schedule for event
+        event_type = self.all_events.loc[self.event_index, "event_type"]
+        event_schedule = self.event_ts_data[event_type].values
+        self.event_schedule = iter(event_schedule)
+
+    def end_event(self):
+        super().end_event()
+
+        # reset event schedule
+        self.event_schedule = None
+        self.p_setpoint = 0
+
+    def update_internal_control(self):
+        mode = super().update_internal_control()
+
+        # update power setpoint from event schedule
+        if self.in_event:
+            self.p_setpoint = next(self.event_schedule)
+
+        return mode

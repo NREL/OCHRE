@@ -11,7 +11,7 @@ from ochre import (
     ElectricResistanceWaterHeater,
     AirConditioner,
     ScheduledLoad,
-    EventBasedLoad,
+    EventDataLoad,
 )
 from ochre import CreateFigures
 from ochre.Models.Envelope import Envelope
@@ -30,8 +30,8 @@ from bin.run_dwelling import dwelling_args
 
 default_args = {
     "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
-    "time_res": dt.timedelta(minutes=15),
-    "duration": dt.timedelta(days=10),
+    "time_res": dt.timedelta(seconds=1),
+    "duration": dt.timedelta(days=3),
     "verbosity": 3,
     "save_results": False,  # if True, must specify output_path
     # "output_path": os.getcwd(),
@@ -359,8 +359,8 @@ def run_event_based_clothes_dryer():
     event_schedule = pd.DataFrame(
         {
             "start_time": [s + h * 10, s + d + h * 14, s + d * 2 + h * 17],
-            "end_time": [s + h * 11, s + d + h * 16, s + d * 2 + h * 18],
-            "power": [2, 5, 5],  # average power, in kW
+            "end_time": [s + h * 11, s + d + h * 15, s + d * 2 + h * 18],
+            "power": [1, 2, 0.3],  # average power, in kW
         }
     )
 
@@ -371,7 +371,7 @@ def run_event_based_clothes_dryer():
     }
 
     # Initialize equipment
-    device = EventBasedLoad(**equipment_args)
+    device = EventDataLoad(**equipment_args)
 
     # Simulate equipment
     df = device.simulate()

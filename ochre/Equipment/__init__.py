@@ -1,6 +1,6 @@
 from .Equipment import Equipment
 from .ScheduledLoad import ScheduledLoad, LightingLoad
-from .EventBasedLoad import EventBasedLoad, DailyLoad
+from .EventBasedLoad import EventBasedLoad, DailyLoad, EventDataLoad
 from .HVAC import HVAC, Heater, ElectricFurnace, ElectricBaseboard, ElectricBoiler, GasFurnace, GasBoiler,\
     HeatPumpHeater, ASHPHeater, MinisplitAHSPHeater, Cooler, AirConditioner, ASHPCooler, RoomAC, MinisplitAHSPCooler
 from .WaterHeater import WaterHeater, ElectricResistanceWaterHeater, HeatPumpWaterHeater, GasWaterHeater, \
