@@ -78,7 +78,7 @@ class EventBasedLoad(Equipment):
                 "power": powers["Power (kW)"],
                 # "power_gas": powers["Gas (therms/hour)"],
             },
-        ).reset_index()
+        ).reset_index(drop=True)
 
     def generate_events(self, probabilities, event_data, **kwargs):
         # create event schedule with all event info
@@ -136,6 +136,14 @@ class EventBasedLoad(Equipment):
             raise IOError(
                 f"Must specify {self.name} schedule, or provide an `equipment_event_file` or `equipment_pdf_file`"
             )
+
+        # if no events, add event at end time
+        if self.all_events.empty:
+            self.all_events.loc[0] = {
+                "start_time": self.start_time + self.duration,
+                "end_time": self.start_time + self.duration,
+                "power": 0,
+            }
 
         # set start and end times to be on the simulation time
         self.all_events["start_time"] = self.all_events["start_time"].dt.round(self.time_res)
