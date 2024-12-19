@@ -1,15 +1,37 @@
 from .Equipment import Equipment
 from .ScheduledLoad import ScheduledLoad, LightingLoad
 from .EventBasedLoad import EventBasedLoad, DailyLoad, EventDataLoad
-from .HVAC import HVAC, Heater, ElectricFurnace, ElectricBaseboard, ElectricBoiler, GasFurnace, GasBoiler,\
-    HeatPumpHeater, ASHPHeater, MinisplitAHSPHeater, Cooler, AirConditioner, ASHPCooler, RoomAC, MinisplitAHSPCooler
-from .WaterHeater import WaterHeater, ElectricResistanceWaterHeater, HeatPumpWaterHeater, GasWaterHeater, \
-    TanklessWaterHeater, GasTanklessWaterHeater
+from .HVAC import (
+    HVAC,
+    Heater,
+    ElectricFurnace,
+    ElectricBaseboard,
+    ElectricBoiler,
+    GasFurnace,
+    GasBoiler,
+    HeatPumpHeater,
+    ASHPHeater,
+    MinisplitAHSPHeater,
+    Cooler,
+    AirConditioner,
+    ASHPCooler,
+    RoomAC,
+    MinisplitAHSPCooler,
+)
+from .WaterHeater import (
+    WaterHeater,
+    ElectricResistanceWaterHeater,
+    HeatPumpWaterHeater,
+    GasWaterHeater,
+    TanklessWaterHeater,
+    GasTanklessWaterHeater,
+)
 from .Generator import Generator, GasGenerator, GasFuelCell
 from .PV import PV
 from .Battery import Battery
 from .EV import ElectricVehicle, ScheduledEV
 # from .WetAppliance import WetAppliance
+
 
 EQUIPMENT_BY_NAME = {
     # 'HVAC Heating'
