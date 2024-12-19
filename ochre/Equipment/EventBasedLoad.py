@@ -57,7 +57,7 @@ class EventBasedLoad(Equipment):
         end_times = end_times.loc[end_times].index
         if len(end_times) < n_events:
             # add final end time if on at end of schedule
-            end_times = pd.concat([end_times, self.start_time + self.duration])
+            end_times = end_times.append(pd.DatetimeIndex([self.start_time + self.duration]))
         if n_events != len(end_times):
             raise ValueError(f"Cannot parse events for {self.name}")
 
