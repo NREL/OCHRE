@@ -317,6 +317,10 @@ class EventDataLoad(EventBasedLoad):
         #  - maintain total number of events and total energy
         #  - minimize differences in duration and energy per event
         total_energy = self.all_events["energy"].sum()
+        if total_energy == 0:
+            # no events, set event_type to None
+            self.all_events["event_type"] = None
+            return
 
         # get duration, energy, and peak power for each event type
         event_metrics = pd.DataFrame(
@@ -354,7 +358,7 @@ class EventDataLoad(EventBasedLoad):
             raise ValueError(
                 f"Total energy ({final_energy} kWh) deviates from schedule ({total_energy} kWh)."
             )
-        
+
         # revise end time, duration, power, and energy
         self.all_events = self.all_events.loc[:, ["start_time", "event_type"]]
         self.all_events = self.all_events.join(event_metrics, on="event_type")

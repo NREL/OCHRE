@@ -113,6 +113,9 @@ dwelling_args = {
         #     "soc_init": 0.5,
         #     "self_consumption_mode": True,
         # },
+        # "Clothes Dryer": {
+        #     "equipment_class": EventDataLoad,
+        # },
     },
 }
 
