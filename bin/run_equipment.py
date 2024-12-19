@@ -30,8 +30,8 @@ from bin.run_dwelling import dwelling_args
 
 default_args = {
     "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
-    "time_res": dt.timedelta(seconds=1),
-    "duration": dt.timedelta(days=3),
+    "time_res": dt.timedelta(minutes=15),
+    "duration": dt.timedelta(days=10),
     "verbosity": 3,
     "save_results": False,  # if True, must specify output_path
     # "output_path": os.getcwd(),
