@@ -1,3 +1,4 @@
+import os
 import datetime as dt
 import numpy as np
 import pandas as pd
@@ -6,6 +7,7 @@ from multiprocessing import Pool
 
 from ochre import ElectricVehicle, ElectricResistanceWaterHeater, Battery
 from ochre import CreateFigures
+from ochre.utils import default_input_path
 
 # Test script to run a fleet of equipment
 
@@ -18,6 +20,10 @@ def setup_ev(i):
         mileage = round(np.random.uniform(100, 300))
     else:
         mileage = round(np.random.uniform(20, 70))
+
+    # Option to specify a file with EV charging events
+    lvl = charging_level.lower().replace(" ", "_")
+    equipment_event_file = os.path.join(default_input_path, "EV", f"{vehicle_type}_{lvl}.csv")
 
     # Initialize equipment
     return ElectricVehicle(
@@ -32,6 +38,7 @@ def setup_ev(i):
         verbosity=1,
         save_results=False,  # if True, must specify output_path
         # output_path=os.getcwd(),
+        equipment_event_file=equipment_event_file,
     )
 
 
