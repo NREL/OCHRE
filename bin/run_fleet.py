@@ -22,6 +22,8 @@ def setup_ev(i):
         mileage = round(np.random.uniform(20, 70))
 
     # Option to specify a file with EV charging events
+    # Defaults to older charging event data
+    # equipment_event_file = None
     lvl = charging_level.lower().replace(" ", "_")
     equipment_event_file = os.path.join(default_input_path, "EV", f"{vehicle_type}_{lvl}.csv")
 
