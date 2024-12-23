@@ -70,6 +70,8 @@ def run_ev():
         "vehicle_type": "BEV",
         "charging_level": "Level 1",
         "mileage": 200,
+        # Option to specify a file with EV charging events
+        # "equipment_event_file": os.path.join(default_input_path, "EV", "PHEV_level_1.csv"),
         **default_args,
     }
 
@@ -325,10 +327,10 @@ if __name__ == "__main__":
     # run_equipment_from_house_model("PV")  # Must add PV in run_dwelling.py
 
     # Run equipment without a Dwelling model
-    # run_ev()
+    run_ev()
     # run_pv_with_sam()
     # run_battery_from_schedule()
     # run_battery_self_consumption()
     # run_water_heater()
-    run_water_heater_from_file()
+    # run_water_heater_from_file()
     # run_hvac()
