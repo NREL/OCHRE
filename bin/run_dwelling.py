@@ -2,7 +2,8 @@ import os
 import datetime as dt
 import pandas as pd
 
-from ochre import Dwelling, Analysis, CreateFigures
+from ochre import Dwelling, CreateFigures
+# from ochre import Analysis
 from ochre.utils import default_input_path
 
 # Test script to run single Dwelling

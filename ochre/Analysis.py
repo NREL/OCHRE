@@ -6,7 +6,6 @@ import datetime as dt
 import pandas as pd
 import pyarrow.parquet as pq
 import numpy as np
-import numba  # required for array-based psychrolib
 import boto3
 from botocore.config import Config
 from botocore import UNSIGNED
@@ -524,7 +523,6 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
         ):
             cumulative_energy = (results["Total Electric Energy (kWh)"] - batt_energy).cumsum()
             end_energy = cumulative_energy + results["Battery Energy to Discharge (kWh)"]
-            last_time = results.index[-1] + time_res
             islanding_times = []
             for t, energy in end_energy.items():
                 future_energies = cumulative_energy[t : t + dt.timedelta(days=7)]
