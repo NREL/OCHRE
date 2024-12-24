@@ -12,7 +12,7 @@ from ochre.utils import default_input_path
 # Test script to run a fleet of equipment
 
 
-def setup_ev(i):
+def setup_ev(i) -> ElectricVehicle:
     # randomly select vehicle type, mileage, and charging level
     vehicle_type = np.random.choice(["BEV", "PHEV"])
     charging_level = np.random.choice(["Level 1", "Level 2"])
@@ -44,7 +44,7 @@ def setup_ev(i):
     )
 
 
-def run_ev(ev):
+def run_ev(ev: ElectricVehicle):
     df = ev.simulate()
     out = df["EV Electric Power (kW)"]
     out.name = ev.name
