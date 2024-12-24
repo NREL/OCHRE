@@ -125,7 +125,7 @@ A Dwelling model can be initialized using:
 
 .. code-block:: python
 
-   from OCHRE import Dwelling
+   from ochre import Dwelling
    house = Dwelling(**dwelling_args)
 
 where ``dwelling_args`` is a Python dictionary of Dwelling arguments.
@@ -238,7 +238,7 @@ Dwelling. For example, to initialize a battery:
 
 .. code-block:: python
 
-   from OCHRE import Battery
+   from ochre import Battery
    equipment = Battery(**equipment_args)
 
 where equipment_args is a Python dictionary of Equipment arguments.

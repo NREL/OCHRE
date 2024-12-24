@@ -19,15 +19,14 @@ OS-HPXML integrated workflow can be used to generate OCHRE input files.
 
 .. |tm| unicode:: U+2122
 
-More information about OCHRE is available on `NREL's
-website <https://www.nrel.gov/grid/ochre.html>`__ and on
-`Github <https://github.com/NREL/OCHRE>`__.
+More information about OCHRE can be found on `NREL's website
+<https://www.nrel.gov/grid/ochre.html>`__ and from the `Powered By OCHRE
+<https://www.youtube.com/watch?v=B5elLVtYDbI>`__ webinar recording. 
 
 Installation
 ------------
 
-For a stand-alone installation, OCHRE can be installed using ``pip``
-from the command line:
+OCHRE can be installed using ``pip`` from the command line:
 
 .. code-block:: python
 
@@ -39,15 +38,7 @@ Alternatively, you can install a specific branch, for example:
 
     pip install git+https://github.com/NREL/OCHRE@dev
 
-To embed OCHRE in a co-simulation using a conda environment, create an
-``environment.yml`` file in the co-simulation project and include the
-following lines:
-
-.. code-block:: python
-
-    dependencies:
-     - pip:
-       - ochre-nrel
+Note that OCHRE requires Python version >=3.9 and <3.12.
 
 Usage
 -----
@@ -63,7 +54,7 @@ Below is a simple example to simulate a dwelling:
     import os
     import datetime as dt
     from ochre import Dwelling
-    from ochre.utils import default_input_path # for using sample files
+    from ochre.utils import default_input_path  # for using sample files
 
     house = Dwelling(
         start_time=dt.datetime(2018, 5, 1, 0, 0),
@@ -85,28 +76,36 @@ This will return 3 variables:
 
 - ``hourly``: a Pandas DataFrame with 1 hour resolution (``verbosity >= 3`` only)
 
-OCHRE can also be used to model a specific piece of equipment so long as
-the boundary conditions are appropriately defined. For example, a water
-heater could be simulated alone so long as draw profile, ambient air
-temperature, and mains temperature are defined.
+OCHRE can also be used to model a single piece of equipment, a fleet of
+equipment, or multiple dwellings. It can also be run in co-simulation with
+aggregators, home energy management systems, or other controllers, along with
+grid models.
 
-For more examples, see the following python scripts in the ``bin``
-folder:
+For more examples, see:
 
-- Run a single dwelling: `run_dwelling
-  <https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__
+- The `OCHRE User Tutorial
+  <https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
+  notebook 
 
-- Run a single piece of equipment: `run_equipment
-  <https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__
+- Python example scripts to:
 
-- Run a dwelling with an external controller: `run_external_control
-  <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__
+  - Run a `single dwelling
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__
 
-- Run multiple dwellings: `run_multiple
-  <https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py>`__
+  - Run a `single piece of equipment
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__
 
-- Run a fleet of equipment: `run_fleet
-  <https://github.com/NREL/OCHRE/blob/main/bin/run_fleet.py>`__
+  - Run a `fleet of equipment
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_fleet.py>`__
+
+  - Run `multiple dwellings
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py>`__
+
+  - Run a `OCHRE with an external controller
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__
+
+  - Run a `OCHRE in co-simulation using HELICS
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_cosimulation.py>`__
 
 License
 -------
