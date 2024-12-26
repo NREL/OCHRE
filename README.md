@@ -11,6 +11,8 @@ More information about OCHRE can be found on [NREL's
 website](https://www.nrel.gov/grid/ochre.html) and from the [Powered By
 OCHRE](https://www.youtube.com/watch?v=B5elLVtYDbI) webinar recording. 
 
+If you use OCHRE for your research or other projects, please fill out our [user survey](https://forms.office.com/g/U4xYhaWEvs).
+
 ## Installation
 
 OCHRE can be installed using `pip` from the command line:

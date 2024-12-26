@@ -5,17 +5,20 @@ Getting Started
   :width: 500
   :alt: OCHRE logo
 
+.. note::
+  If you use OCHRE for your research or other projects, please fill out our
+  `user survey <https://forms.office.com/g/U4xYhaWEvs>`__.
+
 OCHRE Overview
 --------------
 
-OCHRE\ |tm| is a Python-based building energy modeling (BEM) tool designed to
-model flexible loads in residential buildings. OCHRE includes detailed models
-and controls for flexible devices including HVAC equipment, water heaters,
-electric vehicles, solar PV, and batteries. It is designed to run in
-co-simulation with custom controllers, aggregators, and grid models. OCHRE
-integrates with `OS-HPXML
-<https://openstudio-hpxml.readthedocs.io/en/latest/index.html>`__, and any
-OS-HPXML integrated workflow can be used to generate OCHRE input files.
+OCHRE\ |tm| is a Python-based energy modeling tool designed to model flexible
+end-use loads and distributed energy resources in residential buildings. OCHRE
+includes detailed models for flexible devices including HVAC equipment, water
+heaters, electric vehicles, solar PV, and batteries. It can examine the
+impacts of novel control strategies on energy consumption and occupant comfort
+metrics. OCHRE integrates with many of NREL's established modeling tools,
+including EnergyPlus\ |tm|, BEopt\ |tm|, ResStock\ |tm|, SAM, and EVI-Pro.
 
 .. |tm| unicode:: U+2122
 
@@ -43,9 +46,8 @@ Note that OCHRE requires Python version >=3.9 and <3.12.
 Usage
 -----
 
-OCHRE can be used to simulate a residential dwelling or an individual
-piece of equipment. In either case, a python object is instantiated and
-then simulated. A set of input parameters must be defined.
+OCHRE can be used to simulate a residential dwelling or individual pieces of
+equipment. In either case, a python object is instantiated and then simulated.
 
 Below is a simple example to simulate a dwelling:
 
@@ -78,14 +80,14 @@ This will return 3 variables:
 
 OCHRE can also be used to model a single piece of equipment, a fleet of
 equipment, or multiple dwellings. It can also be run in co-simulation with
-aggregators, home energy management systems, or other controllers, along with
-grid models.
+custom controllers, home energy management systems, aggregators, and grid
+models. 
 
 For more examples, see:
 
 - The `OCHRE User Tutorial
   <https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
-  notebook 
+  Jupyter notebook 
 
 - Python example scripts to:
 
@@ -101,11 +103,12 @@ For more examples, see:
   - Run `multiple dwellings
     <https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py>`__
 
-  - Run a `OCHRE with an external controller
+  - Run OCHRE with `an external controller
     <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__
 
-  - Run a `OCHRE in co-simulation using HELICS
-    <https://github.com/NREL/OCHRE/blob/main/bin/run_cosimulation.py>`__
+  - Run OCHRE in `co-simulation
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_cosimulation.py>`__ using
+    HELICS
 
 License
 -------
@@ -190,6 +193,6 @@ Below is a list of publications that have used OCHRE:
 Contact
 -------
 
-For any questions, concerns, or suggestions for new features in OCHRE,
-contact the developers directly at Jeff.Maguire@nrel.gov and
-Michael.Blonsky@nrel.gov
+For any usage questions or suggestions for new features in OCHRE, please
+create an issue on Github. For any other questions or concerns, contact the
+developers directly at Jeff.Maguire@nrel.gov and Michael.Blonsky@nrel.gov.
