@@ -68,7 +68,7 @@ and `National Solar Radiation Database <https://nsrdb.nrel.gov/>`__ (NSRDB)
 weather file formats.
 
 Generating Input Files
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 HPXML and occupancy schedule input files can be generated from:
 
@@ -102,7 +102,8 @@ Weather input files can be generated from:
 
 -  The `ResStock dataset <https://data.nrel.gov/submissions/156>`__: 
    for weather files that align with ResStock-generated HPXML files.
-  
+
+
 Dwelling Arguments
 ------------------
 
@@ -168,7 +169,7 @@ The table below lists the optional arguments for creating a ``Dwelling`` model.
 +---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``schedule``              | ``pandas.DataFrame``   | None                                            | Schedule with equipment or weather data that overrides the schedule_input_file and the equipment_schedule_file. Not required for Dwelling and some equipment |
 +---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``seed``                  | int or string          | ``output_path``                                 | Random seed for setting initial temperatures and EV event data [#]_                                                                                          |
+| ``seed``                  | int or string          | ``output_path``                                 | Random seed for setting initial temperatures and EV event data                                                                                               |
 +---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``modify_hpxml_dict``     | dict                   | Empty dict                                      | Dictionary that directly modifies values from HPXML file                                                                                                     |
 +---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -184,9 +185,6 @@ The table below lists the optional arguments for creating a ``Dwelling`` model.
 .. [#] Can use "DST" for local U.S. time zone with daylight savings, "noDST"
     for local U.S. time zone without daylight savings, or any time zone in
     ``pytz.all_timezones``
-.. [#] If the output path is not specified, the random seed will not be set.
-    This can lead to differences in results for the same set of inputs.
-
 
 ``Envelope`` arguments can be included to modify the default envelope model
 that is based on the HPXML file. The table below lists optional arguments for
@@ -214,9 +212,9 @@ the ``Envelope`` dictionary.
 | ``zones``                     | dict of dicts          | Empty dict                              | Includes arguments for individual zones                                                                   |
 +-------------------------------+------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------+
 
-The ``zones`` dictionary keys can be from the list: ``['Indoor', 'Attic',
-'Garage', 'Foundation']``. The table below lists optional arguments for
-each zone dictionary.
+The ``zones`` dictionary keys can be ``Indoor``, ``Attic``, ``Garage``, and
+``Foundation``. The table below lists optional arguments for each zone
+dictionary.
 
 +-----------------------------+---------------+----------------------------------+--------------------------------------------------------+
 | Argument Name               | Argument Type | Default Value                    | Description                                            |
@@ -234,23 +232,51 @@ Envelope models. As an example, see the ``run_hvac`` function in
 `run_equipment.py
 <https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__.
 
+
 Equipment-specific Arguments
 ----------------------------
 
-An Equipment model can be initialized in a very similar way to a
-Dwelling. For example, to initialize a battery:
+An ``Equipment`` model can be initialized in a very similar way to a
+``Dwelling``. For example, to initialize a battery:
 
 .. code-block:: python
 
    from ochre import Battery
    equipment = Battery(**equipment_args)
 
-where equipment_args is a Python dictionary of Equipment arguments.
-A full set of the equipment classes available are listed in this
-section, by end use.
+where ````equipment_args`` is a Python dictionary of Equipment arguments. This
+section lists each equipment name and class and their required and optional
+arguments, by end use.
+
+Equipment arguments can also be provided in the ``Equipment`` dictionary when
+initializing a ``Dwelling`` model. Dictionary keys can be the name of the end
+use (e.g., HVAC Heating) or the equipment name (e.g., ASHP Heater). By
+default, equipment arguments are taken from the ``dwelling_args`` dictionary
+or the HPXML file. However, most arguments can be overwritten for individual
+equipment. For example, this will create a ``Dwelling`` model with a
+``Battery`` that saves additional results:
+
+.. code-block:: python
+
+   from ochre import Dwelling
+   house = Dwelling(
+         verbosity=1,
+         # other dwelling arguments...
+         Equipment={
+            "Battery": {
+               "verbosity": 6,
+               # other battery arguments...
+            },
+            # other equipment...
+         },
+   )
+
+
+Generic Equipment Arguments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The table below lists the required arguments for creating any standalone
-Equipment model. Some equipment have additional required arguments as
+``Equipment`` model. Some equipment have additional required arguments as
 described in the sections below.
 
 +----------------+------------------------+----------------------------+
@@ -264,56 +290,49 @@ described in the sections below.
 +----------------+------------------------+----------------------------+
 
 The table below lists the optional arguments for creating any standalone
-Equipment model. Some equipment have additional optional arguments as
+``Equipment`` model. Some equipment have additional optional arguments as
 described in the sections below.
 
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Argument Name               | Argument Type          | Default Value                              | Description                                                                                                                                                  |
-+=============================+========================+============================================+==============================================================================================================================================================+
-| ``name``                    | string                 | OCHRE                                      | Name of the simulation                                                                                                                                       |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``initialization_time``     | ``datetime.timedelta`` | None (no initialization)                   | Runs a "warm up" simulation to improve initial temperature values                                                                                            |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``zone_name``               | string                 | None                                       | Name of Envelope zone if envelope model exists                                                                                                               |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``envelope_model``          | ``ochre.Envelope``     | None                                       | Envelope model for measuring temperature impacts (required for HVAC equipment)                                                                               |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``verbosity``               | int                    | 1                                          | Verbosity of the outputs, from 0-9. See Outputs and Analysis for details                                                                                     |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``output_path``             | string                 | HPXML or equipment schedule file directory | Path to saved output files                                                                                                                                   |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``output_to_parquet``       | boolean                | FALSE                                      | Save time series files as parquet files (False saves as csv files)                                                                                           |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``export_res``              | ``datetime.timedelta`` | None (no intermediate data export)         | Time resolution to save results to files                                                                                                                     |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``save_results``            | boolean                | True if verbosity > 0                      | Save results files, including time series files, metrics file, schedule output file, and status file                                                         |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``save_args_to_json``       | boolean                | FALSE                                      | Save all input arguments to json file, including user defined arguments. If False and verbosity >= 3, the json file will only include HPXML properties.      |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``save_status``             | boolean                | True if save_results is True               | Save status file to indicate whether the simulation is complete or failed                                                                                    |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``save_ebm_results``        | boolean                | FALSE                                      | Include equivalent battery model data in results                                                                                                             |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``save_schedule_columns``   | list                   | Empty list                                 | List of time series inputs to save to schedule output file                                                                                                   |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``equipment_schedule_file`` | string                 | None                                       | File with equipment time series data. Optional for most equipment                                                                                            |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``schedule_rename_columns`` | dict                   | None                                       | Dictionary of {file_column_name: ochre_schedule_name} to rename columns in equipment_schedule_file. Sometimes used for PV                                    |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``schedule_scale_factor``   | number                 | 1                                          | Scaling factor to normalize data in equipment_schedule_file. Sometimes used for PV to convert units                                                          |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``schedule``                | ``pandas.DataFrame``   | None                                       | Schedule with equipment or weather data that overrides the schedule_input_file and the equipment_schedule_file. Not required for Dwelling and some equipment |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``ext_time_res``            | ``datetime.timedelta`` | None                                       | Time resolution for external controller. Required if using Duty Cycle control                                                                                |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``seed``                    | int or string          | HPXML or equipment schedule file           | Random seed for setting initial temperatures and EV event data                                                                                               |
-+-----------------------------+------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Argument Name             | Argument Type          | Default Value                                   | Description                                                                                                                                                  |
++===========================+========================+=================================================+==============================================================================================================================================================+
+| ``name``                  | string                 | ochre                                           | Name of the simulation                                                                                                                                       |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``initialization_time``   | ``datetime.timedelta`` | None (no initialization)                        | Runs a "warm up" simulation to improve initial temperature values [#]_                                                                                       |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``zone_name``             | string                 | None                                            | Name of Envelope zone if envelope model exists                                                                                                               |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``envelope_model``        | ``ochre.Envelope``     | None                                            | Envelope model for measuring temperature impacts (required for HVAC equipment)                                                                               |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``verbosity``             | int                    | 1                                               | Verbosity of the outputs, from 0-9. See `Outputs and Analysis <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__  for details                     |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``output_path``           | string                 | HPXML file or equipment schedule file directory | Path to save output files                                                                                                                                    |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``output_to_parquet``     | boolean                | False                                           | Save time series files as parquet files (default saves as csv files)                                                                                         |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``export_res``            | ``datetime.timedelta`` | None (saves files at end of simulation only)    | Time resolution to save time series results to files                                                                                                         |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``save_results``          | boolean                | True if ``verbosity > 0``                       | Save results files, including time series files, metrics file, schedule output file, and status file                                                         |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``save_args_to_json``     | boolean                | False                                           | Save all input arguments to json file, including user defined arguments                                                                                      |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``save_status``           | boolean                | True if ``save_results`` is True                | Save status file to indicate whether the simulation completed or failed                                                                                      |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``save_ebm_results``      | boolean                | False                                           | Include equivalent battery model data in results                                                                                                             |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``save_schedule_columns`` | list of strings        | Empty list                                      | List of time series input names to save to schedule output file                                                                                              |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``schedule``              | ``pandas.DataFrame``   | None                                            | Schedule with equipment or weather data that overrides the schedule_input_file and the equipment_schedule_file. Not required for Dwelling and some equipment |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``seed``                  | int or string          | ``output_path``                                 | Random seed for setting initial temperatures and EV event data [#]_                                                                                          |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-The following sections list the names and arguments for all OCHRE
-equipment by end use. Many equipment types have all of their required
-arguments included in the HPXML properties. These properties can be
-overwritten by specifying the arguments in the ``equipment_args``
-dictionary.
+.. [#] While not required, a 1-day warm up period is recommended for thermal
+    equipment. The warm up creates more accurate initial conditions for the
+    simulation.
+.. [#] If the output path is not specified, the random seed will not be set.
+    This can lead to differences in results for the same set of inputs.
+
 
 HVAC Heating and Cooling
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -348,8 +367,8 @@ OCHRE includes models for the following HVAC equipment:
 | HVAC Cooling | ``MSHPCooler``        | MSHP Cooler        | Minisplit Heat Pump, cooling only                        |
 +--------------+-----------------------+--------------------+----------------------------------------------------------+
 
-The table below shows the required and optional equipment-specific
-arguments for HVAC equipment.
+The table below shows the required and optional equipment-specific arguments
+for HVAC equipment.
 
 +------------------------------------------------+---------------------------+------------------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------+
 | Argument Name                                  | Argument Type             | Required?                    | Default Value                                                      | Description                                                                                                        |
@@ -476,27 +495,27 @@ arguments for Water Heating equipment.
 Electric Vehicle
 ~~~~~~~~~~~~~~~~
 
-OCHRE includes an electric vehicle (EV) model. The equipment name can be
-“EV” or “Electric Vehicle”. The table below shows the required and
-optional equipment-specific arguments for EVs.
+OCHRE includes an electric vehicle (EV) model. The equipment name can be "EV"
+or "Electric Vehicle". The table below shows the required and optional
+equipment-specific arguments for EVs.
 
-+--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| Argument Name            | Argument Type | Required? | Default Value                                                       | Description                                           |
-+==========================+===============+===========+=====================================================================+=======================================================+
-| ``vehicle_type``         | string        | Yes       | BEV, if taken from HPXML file                                       | EV vehicle type, options are "PHEV" or "BEV"          |
-+--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| ``charging_level``       | string        | Yes       | Level 2, if taken from HPXML file                                   | EV charging type, options are "Level 1" or "Level 2"  |
-+--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| ``capacity or mileage``  | number        | Yes       | 100 miles if HPXML Annual EV Energy < 1500 kWh, otherwise 250 miles | EV battery capacity in kWh or mileage in miles        |
-+--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| ``event_day_ratio``      | number        | No        | 0.2-0.9, depending on charging level and capacity                   | Ratio of days with at least 1 charging event          |
-+--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| ``enable_part_load``     | boolean       | No        | True if charging_level = Level 2                                    | Allows EV to charge at partial load                   |
-+--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| ``ambient_ev_temp``      | number        | No        | Taken from schedule, or 20 C                                        | Ambient temperature used to estimate EV usage per day |
-+--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
-| ``equipment_event_file`` | string        | No        | Default file based on ``vehicle_type`` and mileage                  | File for EV event scenarios                           |
-+--------------------------+---------------+-----------+---------------------------------------------------------------------+-------------------------------------------------------+
++-----------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
+| Argument Name               | Argument Type | Required? | Default Value                                                           | Description                                           |
++=============================+===============+===========+=========================================================================+=======================================================+
+| ``vehicle_type``            | string        | Yes       | BEV, if taken from HPXML file                                           | EV vehicle type, options are "PHEV" or "BEV"          |
++-----------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
+| ``charging_level``          | string        | Yes       | Level 2, if taken from HPXML file                                       | EV charging type, options are "Level 1" or "Level 2"  |
++-----------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
+| ``capacity`` or ``mileage`` | number        | Yes       | 100 miles if HPXML ``Annual EV Energy < 1500 kWh``, otherwise 250 miles | EV battery capacity, in kWh, or mileage, in miles     |
++-----------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
+| ``event_day_ratio``         | number        | No        | 0.2-0.9, depending on charging level and capacity                       | Ratio of days with at least 1 charging event          |
++-----------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
+| ``enable_part_load``        | boolean       | No        | True if ``charging_level = Level 2``                                    | Allows EV to charge at partial load                   |
++-----------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
+| ``ambient_ev_temp``         | number        | No        | Taken from schedule, or 20 C                                            | Ambient temperature used to estimate EV usage per day |
++-----------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
+| ``equipment_event_file``    | string        | No        | Depends on ``vehicle_type`` and ``mileage``                             | File that contains EV event-based schedule            |
++-----------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
 
 Battery
 ~~~~~~~
