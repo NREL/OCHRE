@@ -276,6 +276,38 @@ Currently, this functions works for the following end uses:
 | <end use> EBM Discharge Efficiency (-) | unitless        | N/A           | Input/output power efficiency while discharging   |
 +----------------------------------------+-----------------+---------------+---------------------------------------------------+
 
+Additional Output Files and Print Statements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `verbosity` parameter determines whether additional output files will be
+saved. Regardless of ``verbosity``, no files will be saved if ``save_results``
+is False. Additional output files include:
+
+- ``<simulation_name>_complete`` or ``<simulation_name>_failed``: Empty file
+  indicating if the simulation completed successfully or failed. Saved if
+  ``verbosity > 0``.
+
+- ``<simulation_name>.json``: JSON file with HPXML properties. Can also
+  include dwelling parameters if ``save_args_to_json`` is set to True. Saved
+  if ``verbosity >= 3`` or if ``save_args_to_json`` is set to True.
+
+- ``<simulation_name>_hourly.csv``: Time series output file resampled to
+  hourly resolution. Can be a parquet file if ``output_to_parquet`` is set to
+  True. Saved if ``verbosity >= 3``.
+
+- ``<simulation_name>_schedule.csv``: OCHRE schedule file including all
+  scheduled time series data. Unlike the ``schedule_input_file``, the values
+  are absolute, not normalized, and the units are specified. Can be a parquet
+  file if ``output_to_parquet`` is set to True. Saved if ``verbosity >= 7`` or
+  if ``save_schedule_columns`` is specified.
+
+- ``<equipment_name>_events.csv``: Event-based schedule file for event-based
+  equipment. Includes event start and stop times and other relevant
+  information. Saved if ``verbosity >= 7``.
+
+The ``verbosity`` will also impact the print statements provided during the
+simulation. Setting ``verbosity >= 3`` will allow most print statements to be
+written.
 
 All Metrics
 -----------

@@ -117,57 +117,76 @@ where ``dwelling_args`` is a Python dictionary of Dwelling arguments.
 
 The table below lists the required arguments for creating a Dwelling
 model.
++--------------------------------------+------------------------+---------------------------------------------------------------+
+| Argument Name                        | Argument Type          | Description                                                   |
++======================================+========================+===============================================================+
+| ``start_time``                       | ``datetime.datetime``  | Simulation start time                                         |
++--------------------------------------+------------------------+---------------------------------------------------------------+
+| ``time_res``                         | ``datetime.timedelta`` | Simulation time resolution                                    |
++--------------------------------------+------------------------+---------------------------------------------------------------+
+| ``duration``                         | ``datetime.timedelta`` | Simulation duration                                           |
++--------------------------------------+------------------------+---------------------------------------------------------------+
+| ``hpxml_file``                       | string                 | Path to HPXML file                                            |
++--------------------------------------+------------------------+---------------------------------------------------------------+
+| ``weather_file`` or ``weather_path`` | string                 | Path to weather file or to a directory of weather files. [#]_ |
++--------------------------------------+------------------------+---------------------------------------------------------------+
 
-=======================  =========================  ========================================================================= 
-**Argument Name**        **Argument Type**          **Description**     
-=======================  =========================  ========================================================================= 
-``start_time``           ``datetime.datetime``      Simulation start time
-``time_res``             ``datetime.timedelta``     Simulation timestep
-``duration``             ``datetime.timedelta``     Simulation duration
-``hpxml_file``           string                     Path to hpxml file
-``weather_file``         string                     Path to weather file
-``weather_path``         string                     Path to directory of weather files [#]_
-=======================  =========================  =========================================================================
-
-.. [#] If ``weather_path`` is used, ``weather_file`` will be read from the HPXML file. Useful if 
-       running a batch of files with different weather files (i.e., from ResStock)
+.. [#] If ``weather_path`` is provided, the file name will be read from the
+    "Weather Station" in the HPXML file. Useful if running a batch of files
+    with different weather files (i.e., from ResStock)
 
 The table below lists the optional arguments for creating a ``Dwelling`` model.
 
-==========================  =========================  ==============================  ====================================================================================================================================================================
-**Argument Name**           **Argument Type**          **Default Value**               **Description**                                                                                                                                                     
-==========================  =========================  ==============================  ====================================================================================================================================================================
-``name``                    string                     None                            Name of the simulation                                                                                                                                           
-``schedule_input_file``     string                     None                            Path to schedule input file                                                                                                                                      
-``initialization_time``     ``datetime.timedelta``     None                            Length of "warm up" simulation for initial conditions [#]_                                                                                                       
-``time_zone``               string                     None [#]_                       Use ``DST`` for local U.S. time zone with daylight savings, ``noDST`` for local U.S. time zone without [#]_                                                      
-``verbosity``               int                        1                               Verbosity of the outputs, from 0-9. See `Outputs and Analysis <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__ for details.                
-``metrics_verbosity``       int                        1                               Verbosity of metrics, from 0-9. See `Dwelling Metrics <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html#dwelling-metrics>`__ for details.
-``output_path``             string                     [#]_                            Path to saved output files                                                                                                                                       
-``output_to_parquet``       boolean                    False                           Save time series data as parquet (instead of .csv)                                                                                                               
-``export_res``              ``datetime.timedelta``     None [#]_                       Time resolution to save results                                                                                                                                  
-``save_results``            boolean                    ``TRUE`` if ``verbosity > 0``   Save results, including time series, metrics, status, and schedule outputs                                                                                       
-``save_args_to_json``       boolean                    ``FALSE``                       Save all input arguments to .json file, including user defined arguments. [#]_                                                                                    
-``save_status``             boolean                    ``TRUE`` [#]_                   Save status file for is simulation completed or failed                                                                                                            
-``save_schedule_columns``   list                       Empty list                      List of time series inputs to save to schedule outputs file                                                                                                       
-``schedule``                pandas.DataFrame           None                            Schedule with equipment and weather data that overrides the ``schedule_input_file`` and the ``equipment_schedule_file``. Not required for ``Dwelling``                          
-``ext_time_res``            datetime.timedelta         None                            Time resolution for external controller. Required for Duty Cycle control.                                                                                            
-``seed``                    int or string              HPXML or schedule file          Random seed for initial temperatures and EV event data                                                                                                               
-``modify_hpxml_dict``       dict                       empty dict                      Dictionary that directly modifies values from HPXML file                                                                                                          
-``Occupancy``               dict                       empty dict                      Includes arguments for building occupancy                                                                                                                            
-``Envelope``                dict                       empty dict                      Includes arguments for the building Envelope                                                                                                                        
-``Equipment``               dict                       empty dict                      Includes Equipment-specific arguments                                                                                                                             
-==========================  =========================  ==============================  ====================================================================================================================================================================
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Argument Name             | Argument Type          | Default Value                                   | Description                                                                                                                                                  |
++===========================+========================+=================================================+==============================================================================================================================================================+
+| ``name``                  | string                 | ochre                                           | Name of the simulation (used for output file names)                                                                                                          |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``schedule_input_file``   | string                 | None                                            | Path to schedule input file                                                                                                                                  |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``initialization_time``   | ``datetime.timedelta`` | None (no initialization)                        | Runs a "warm up" simulation to improve initial temperature values [#]_                                                                                       |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``time_zone``             | string                 | None (no time zone modeled)                     | Include time zone in timestamps [#]_                                                                                                                         |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``verbosity``             | int                    | 1                                               | Verbosity of the outputs, from 0-9. See `Outputs and Analysis <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__  for details                     |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``metrics_verbosity``     | int                    | 6                                               | Verbosity of the output metrics, from 0-9. See `Dwelling Metrics <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html#dwelling-metrics>`__ for details  |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``output_path``           | string                 | HPXML file or equipment schedule file directory | Path to save output files                                                                                                                                    |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``output_to_parquet``     | boolean                | False                                           | Save time series files as parquet files (default saves as csv files)                                                                                         |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``export_res``            | ``datetime.timedelta`` | None (saves files at end of simulation only)    | Time resolution to save time series results to files                                                                                                         |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``save_results``          | boolean                | True if ``verbosity > 0``                       | Save results files, including time series files, metrics file, schedule output file, and status file                                                         |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``save_args_to_json``     | boolean                | False                                           | Save all input arguments to json file, including user defined arguments                                                                                      |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``save_status``           | boolean                | True if ``save_results`` is True                | Save status file to indicate whether the simulation completed or failed                                                                                      |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``save_schedule_columns`` | list of strings        | Empty list                                      | List of time series input names to save to schedule output file                                                                                              |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``schedule``              | ``pandas.DataFrame``   | None                                            | Schedule with equipment or weather data that overrides the schedule_input_file and the equipment_schedule_file. Not required for Dwelling and some equipment |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``seed``                  | int or string          | ``output_path``                                 | Random seed for setting initial temperatures and EV event data [#]_                                                                                          |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``modify_hpxml_dict``     | dict                   | Empty dict                                      | Dictionary that directly modifies values from HPXML file                                                                                                     |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``Occupancy``             | dict                   | Empty dict                                      | Includes arguments for the building occupancy                                                                                                                |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``Envelope``              | dict                   | Empty dict                                      | Includes arguments for the building envelope                                                                                                                 |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``Equipment``             | dict                   | Empty dict                                      | Includes equipment-specific arguments                                                                                                                        |
++---------------------------+------------------------+-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-.. [#] While not required, a warm up period **is recommended**. The warm up gets more accurate initial conditions
-       for the simulation by running a few prior days. Warm up is particularly helpful for simulation with a 
-       shorter ``duration``
-.. [#] ``None`` means no time zone is modeled or considered.
-.. [#] Can also accept any time zone in ``pyzt.all_timezones``
-.. [#] Default location is same as HPXML file
-.. [#] Default is time step for time series data
-.. [#] If ``False`` and ``verbosity > 3``, .json will only include HPXML properties
-.. [#] If ``verbosity > 0``, else ``FALSE``
+.. [#] While not required, a 1-day warm up period **is recommended**. The warm
+    up creates more accurate initial conditions for the simulation.
+.. [#] Can use "DST" for local U.S. time zone with daylight savings, "noDST"
+    for local U.S. time zone without daylight savings, or any time zone in
+    ``pytz.all_timezones``
+.. [#] If the output path is not specified, the random seed will not be set.
+    This can lead to differences in results for the same set of inputs.
+
 
 ``Envelope`` arguments can be included to modify the default envelope model
 that is based on the HPXML file. The table below lists optional arguments for
