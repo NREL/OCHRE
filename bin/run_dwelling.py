@@ -101,7 +101,7 @@ dwelling_args = {
         # "EV": {
         #     "vehicle_type": "BEV",
         #     "charging_level": "Level 1",
-        #     "mileage": 150,
+        #     "range": 150,
         # },
         # "PV": {
         #     "capacity": 5,

@@ -69,7 +69,7 @@ def run_ev():
         # Equipment parameters
         "vehicle_type": "BEV",
         "charging_level": "Level 1",
-        "mileage": 200,
+        "range": 200,
         # Option to specify a file with EV charging events
         # "equipment_event_file": os.path.join(default_input_path, "EV", "PHEV_level_1.csv"),
         **default_args,

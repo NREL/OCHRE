@@ -13,13 +13,13 @@ from ochre.utils import default_input_path
 
 
 def setup_ev(i) -> ElectricVehicle:
-    # randomly select vehicle type, mileage, and charging level
+    # randomly select vehicle type, range, and charging level
     vehicle_type = np.random.choice(["BEV", "PHEV"])
     charging_level = np.random.choice(["Level 1", "Level 2"])
     if vehicle_type == "BEV":
-        mileage = round(np.random.uniform(100, 300))
+        range = round(np.random.uniform(100, 300))
     else:
-        mileage = round(np.random.uniform(20, 70))
+        range = round(np.random.uniform(20, 70))
 
     # Option to specify a file with EV charging events
     # Defaults to older charging event data
@@ -33,7 +33,7 @@ def setup_ev(i) -> ElectricVehicle:
         seed=i,  # used to randomize charging events. Not used for randomization above
         vehicle_type=vehicle_type,
         charging_level=charging_level,
-        mileage=mileage,
+        range=range,
         start_time=dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
         time_res=dt.timedelta(minutes=15),
         duration=dt.timedelta(days=5),
