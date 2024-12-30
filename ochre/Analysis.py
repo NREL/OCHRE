@@ -499,10 +499,11 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             )
 
     # EV metrics
-    if "EV SOC (-)" in results:
-        metrics["Average EV SOC (-)"] = results["EV SOC (-)"].mean(skipna=False)
-    if "EV Unmet Load (kWh)" in results:
-        metrics["Total EV Unmet Load (kWh)"] = results["EV Unmet Load (kWh)"].sum(skipna=False)
+    if metrics_verbosity >= 4 and "EV Electric Power (kW)" in results:
+        if "EV SOC (-)" in results:
+            metrics["Average EV SOC (-)"] = results["EV SOC (-)"].mean(skipna=False)
+        if "EV Unmet Load (kWh)" in results:
+            metrics["Total EV Unmet Load (kWh)"] = results["EV Unmet Load (kWh)"].sum(skipna=False)
 
     # Battery metrics
     if metrics_verbosity >= 4 and "Battery Electric Power (kW)" in results:
