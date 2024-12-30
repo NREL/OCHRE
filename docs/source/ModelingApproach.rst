@@ -237,7 +237,9 @@ In HPWHs, the heat pump capacity and efficiency are functions of the ambient
 air wet bulb temperature (calculated using the humidity module in OCHRE) and
 the temperature of water adjacent to the condenser (typically the bottom half
 of the tank in most products on the market today). The model also includes an
-electric resistance backup element at the top of the tank.
+electric resistance backup element at the top of the tank. Most, but not all
+HPWHs have backup electric resistance; 120 V HPWHs (coming soon) do not have
+backup ER heaters.
 
 Tankless water heaters operate similarly to Ideal HVAC equipment, although an
 8% derate is applied to the nominal efficiency of the unit to account for

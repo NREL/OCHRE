@@ -61,7 +61,9 @@ This will return 3 variables:
  * `hourly`: a Pandas DataFrame with 1 hour resolution (verbosity >= 3 only)
 
 For more examples, see:
-* The [OCHRE User Tutorial](https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb) notebook 
+* The [OCHRE User
+  Tutorial](https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb)
+  Jupyter notebook 
 * Python example scripts to:
   * Run a [single dwelling](https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py)
   * Run a [single piece of equipment](https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py)
