@@ -135,7 +135,7 @@ def house(name, input_path):
         duration=duration,
         initialization_time=dt.timedelta(days=1),
         hpxml_file=os.path.join(input_path, "home.xml"),
-        schedule_input_file=os.path.join(input_path, "in.schedules.csv"),
+        hpxml_schedule_file=os.path.join(input_path, "in.schedules.csv"),
         weather_path=input_path,
         output_path=input_path,
         verbosity=verbosity,

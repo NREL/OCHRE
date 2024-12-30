@@ -9,10 +9,10 @@ from ochre.Equipment import Equipment
 class ScheduledLoad(Equipment):
     """
     Equipment with a pre-defined schedule for power. Schedule may come from
-    the building schedule file or separately. The schedule must have one or
-    more columns named `<equipment_name> (<unit>)`, where the unit can be 'kW'
-    for electric equipment and 'therms/hour' for gas equipment. Combo
-    equipment should have two columns, one for electric and one for gas power.
+    the HPXML schedule file or separately. The schedule must have one or more
+    columns named `<equipment_name> (<unit>)`, where the unit can be 'kW' for
+    electric equipment and 'therms/hour' for gas equipment. Combo equipment
+    should have two columns, one for electric and one for gas power.
     """
 
     def __init__(self, name=None, zone_name=None, **kwargs):

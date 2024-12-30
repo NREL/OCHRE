@@ -25,7 +25,7 @@ dwelling_args = {
     
     # Input files
     "hpxml_file": os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
-    "schedule_input_file": os.path.join(
+    "hpxml_schedule_file": os.path.join(
         default_input_path, "Input Files", "bldg0112631_schedule.csv"
     ),
     "weather_file": os.path.join(

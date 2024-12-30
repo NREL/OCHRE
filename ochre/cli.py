@@ -27,7 +27,7 @@ def create_dwelling(
     input_path,
     name="ochre",
     hpxml_file="home.xml",
-    schedule_file="in.schedules.csv",
+    hpxml_schedule_file="in.schedules.csv",
     weather_file_or_path=None,
     output_path=None,
     verbosity=3,
@@ -41,8 +41,8 @@ def create_dwelling(
     # Update input file paths
     if not os.path.isabs(hpxml_file):
         hpxml_file = os.path.join(input_path, hpxml_file)
-    if not os.path.isabs(schedule_file):
-        schedule_file = os.path.join(input_path, schedule_file)
+    if not os.path.isabs(hpxml_schedule_file):
+        hpxml_schedule_file = os.path.join(input_path, hpxml_schedule_file)
 
     output_path = update_output_path(output_path, input_path)
 
@@ -67,7 +67,7 @@ def create_dwelling(
         duration=dt.timedelta(days=duration),
         initialization_time=dt.timedelta(days=initialization_time),
         hpxml_file=hpxml_file,
-        schedule_input_file=schedule_file,
+        hpxml_schedule_file=hpxml_schedule_file,
         output_path=output_path,
         verbosity=verbosity,
         **weather_args,
@@ -88,7 +88,7 @@ def find_ochre_folders(main_path, overwrite=False, **kwargs):
     # get all input folders
     main_path = os.path.abspath(main_path)
     includes_files = [kwargs.get("hpxml_file", "home.xml"),
-                      kwargs.get("schedule_file", "in.schedules.csv")]
+                      kwargs.get("hpxml_schedule_file", "in.schedules.csv")]
 
     excludes_files = None if overwrite else ["ochre_complete"]
 
@@ -219,7 +219,7 @@ def common_options(f):
         click.option("--name", default="ochre", help="Simulation name (for output files)"),
         click.option("--hpxml_file", default="home.xml", help="Name of HPXML file"),
         click.option(
-            "--schedule_file", default="in.schedules.csv", help="Name of schedule input file"
+            "--hpxml_schedule_file", default="in.schedules.csv", help="Name of HPXML schedule file"
         ),
         click.option(
             "--weather_file_or_path",

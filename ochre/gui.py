@@ -78,7 +78,7 @@ def gui_detailed():
         "input_path": make_input("Input Path (required):", width=40, is_folder=True),
         "name": make_input("Simulation Name:", default="ochre"),
         "hpxml_file": make_input("HPXML File Name:", default="home.xml"),
-        "schedule_file": make_input("Schedule File Name:", default="in.schedules.csv"),
+        "hpxml_schedule_file": make_input("HPXML Schedule File Name:", default="in.schedules.csv"),
         "weather_file_or_path": make_input("Weather File or Path Name:", width=40, is_file=True),
         "output_path": make_input("Output Path:", width=40, is_folder=True),
         "verbosity": make_input("Verbosity (0-9):", default=3),
