@@ -314,6 +314,25 @@ class ElectricVehicle(EventBasedLoad):
         self.sensible_gain = ac_power - dc_power  # = power losses
         assert self.sensible_gain >= 0
 
+    def make_equivalent_battery_model(self):
+        # returns a dictionary of equivalent battery model parameters
+        started_event = self.event_start - self.time_res < self.current_time <= self.event_start
+        if started_event:
+            # baseline power set to reach the initial SOC of the event
+            start_soc = self.event_schedule.loc[self.event_index, "start_soc"]
+            baseline_power = (1 - start_soc) * self.capacity / self.time_res.total_seconds() * 3600
+        else:
+            baseline_power = 0
+
+        return {
+            f"{self.end_use} EBM Energy (kWh)": self.soc * self.capacity,
+            f"{self.end_use} EBM Min Energy (kWh)": 0,
+            f"{self.end_use} EBM Max Energy (kWh)": self.capacity,
+            f"{self.end_use} EBM Max Power (kW)": self.max_power,
+            f"{self.end_use} EBM Efficiency (-)": EV_EFFICIENCY,
+            f"{self.end_use} EBM Baseline Power (kW)": baseline_power,
+        }
+
     def generate_results(self):
         results = super().generate_results()
 
