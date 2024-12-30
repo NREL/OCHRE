@@ -6,7 +6,7 @@ import pandas as pd
 import hashlib
 
 from ochre import __version__
-from ochre.utils import OCHREException
+from ochre.utils import load_csv, OCHREException
 import ochre.utils.schedule as utils_schedule
 
 
@@ -123,7 +123,7 @@ class Simulator:
         # reset verbosity
         self.verbosity = tmp
 
-    def initialize_schedule(self, schedule=None, required_inputs=None, optional_inputs=None, **kwargs):
+    def initialize_schedule(self, schedule=None, schedule_file=None, required_inputs=None, optional_inputs=None, **kwargs):
         # Saves schedule as a DataFrame with required and optional columns
         if required_inputs is None:
             required_inputs = self.required_inputs
@@ -133,8 +133,11 @@ class Simulator:
         assert len(self.all_schedule_inputs) == len(set(self.all_schedule_inputs))  # columns should be unique
 
         # Load schedule from file if necessary
-        if isinstance(schedule, str):
-            schedule = pd.read_csv(schedule)
+        if schedule is not None:
+            pass
+        elif schedule_file is not None:
+            sub_folder = self.end_use if hasattr(self, "end_use") else self.name
+            schedule = load_csv(schedule_file, sub_folder=sub_folder)
             if 'Time' in schedule.columns:
                 schedule = schedule.set_index('Time')
                 schedule.index = pd.to_datetime(schedule.index)

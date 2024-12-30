@@ -219,7 +219,7 @@ def run_water_heater():
 def run_water_heater_from_file():
     # Load schedule from file
     schedule_file = os.path.join(default_input_path, "Water Heating", "WH Medium UEF Schedule.csv")
-    schedule = pd.read_csv(schedule_file, index_col="Time", parse_dates=True)
+    # schedule = pd.read_csv(schedule_file, index_col="Time", parse_dates=True)
 
     equipment_args = {
         "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
@@ -233,7 +233,7 @@ def run_water_heater_from_file():
         "Tank Volume (L)": 250,
         "Tank Height (m)": 1.22,
         "UA (W/K)": 2.17,
-        "schedule": schedule,
+        "schedule_file": schedule_file,
     }
 
     # Initialize equipment
@@ -327,10 +327,10 @@ if __name__ == "__main__":
     # run_equipment_from_house_model("PV")  # Must add PV in run_dwelling.py
 
     # Run equipment without a Dwelling model
-    run_ev()
+    # run_ev()
     # run_pv_with_sam()
     # run_battery_from_schedule()
     # run_battery_self_consumption()
     # run_water_heater()
-    # run_water_heater_from_file()
+    run_water_heater_from_file()
     # run_hvac()
