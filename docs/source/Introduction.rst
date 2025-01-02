@@ -32,6 +32,9 @@ More information about OCHRE can be found on `NREL's website
 Installation
 ------------
 
+Python Installation
+~~~~~~~~~~~~~~~~~~~
+
 OCHRE can be installed using ``pip`` from the command line:
 
 .. code-block:: python
@@ -46,11 +49,21 @@ Alternatively, you can install a specific branch, for example:
 
 Note that OCHRE requires Python version >=3.9 and <3.12.
 
+.. OCHRE Executable
+.. ~~~~~~~~~~~~~~~~
+
+.. For non-Python users, OCHRE executable files can be downloaded from `NREL's
+.. Data Catalog <TBD>`__. Executable files are available for Windows, MacOS, and
+.. Linux.
+
 Usage
 -----
 
+Python Interface
+~~~~~~~~~~~~~~~~
+
 OCHRE can be used to simulate a residential dwelling or individual pieces of
-equipment. In either case, a python object is instantiated and then simulated.
+equipment. In either case, a Python object is instantiated and then simulated.
 
 Below is a simple example to simulate a dwelling:
 
@@ -112,6 +125,29 @@ For more examples, see:
   - Run OCHRE in `co-simulation
     <https://github.com/NREL/OCHRE/blob/main/bin/run_cosimulation.py>`__ using
     HELICS
+
+Command Line Interface
+~~~~~~~~~~~~~~~~~~~~~~
+
+OCHRE can also be run from the command line using the following commands:
+
+- ``ochre single``: Run a single dwelling simulation
+
+- ``ochre local``: Run multiple dwellings in parallel or in series
+
+- ``ochre hpc``: Run multiple dwellings using Slurm
+
+- ``ochre-gui-basic``: Run a single dwelling by specifying a run directory.
+  Uses default options only.
+
+- ``ochre-gui-detailed``: Run a single dwelling using a graphical user
+  interface
+
+A small set of simulation options is available for most of these commands,
+including time resolution and duration, file paths, and verbosity level. Run
+``ochre single --help`` for more information on the available options. To run
+simulations for single pieces of equipment or with more advanced controls, use
+the Python interface.
 
 License
 -------
