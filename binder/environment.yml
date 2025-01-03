@@ -1,0 +1,4 @@
+name: ochre_env
+dependencies:
+  - python=3.10
+  - https://github.com/NREL/OCHRE.git@153-update-examples
