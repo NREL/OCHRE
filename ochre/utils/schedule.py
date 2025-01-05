@@ -47,7 +47,8 @@ SCHEDULE_NAMES = {
         # 'basement_mels': 'Basement MELs',  # not modeled
     },
     "Water": {
-        "hot_water_fixtures": "Water Heating",
+        "hot_water_fixtures": "Water Fixtures",
+        # "hot_water_showers": "Showers",  # for unmet loads only
         "hot_water_clothes_washer": "Clothes Washer",
         "hot_water_dishwasher": "Dishwasher",
     },
@@ -288,59 +289,67 @@ def create_simple_schedule(weekday_fractions, weekend_fractions=None, month_mult
     return df['w_fracs'] * df['m_fracs']
 
 
-def convert_schedule_column(s_hpxml, ochre_name, properties, category='Power'):
-    if category == 'Power':
-        # try getting from max power or from annual energy, priority goes to max power
-        if 'Max Electric Power (W)' in properties:
-            max_value = properties['Max Electric Power (W)'] / 1000  # W to kW
-        elif 'Annual Electric Energy (kWh)' in properties:
-            annual_mean = properties['Annual Electric Energy (kWh)'] / 8760
-            schedule_mean = s_hpxml.mean()
-            max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
-        else:
-            max_value = None
-        if max_value is not None:
-            out = s_hpxml * max_value
-            out.name = f'{ochre_name} (kW)'
-        else:
-            out = None
-
-        # check for gas (max power and annual energy), and copy schedule
-        if 'Max Gas Power (therms/hour)' in properties:
-            max_value = properties['Max Gas Power (therms/hour)']  # in therms/hour
-        elif 'Annual Gas Energy (therms)' in properties:
-            annual_mean = properties['Annual Gas Energy (therms)'] / 8760  # in therms/hour
-            schedule_mean = s_hpxml.mean()
-            max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
-        else:
-            max_value = None
-        if max_value is None:
-            pass
-        elif out is None:
-            out = s_hpxml * max_value
-            out.name = f'{ochre_name} (therms/hour)'
-        else:
-            # combine 2 series into data frame
-            s_gas = s_hpxml * max_value
-            s_gas.name = f'{ochre_name} (therms/hour)'
-            out = pd.concat([out, s_gas], axis=1)
-
-        if out is None:
-            raise OCHREException(f'Could not determine max value for {s_hpxml.name} schedule ({ochre_name}).')
-
-    elif category == 'Water':
-        if ochre_name == 'Water Heating':
-            # Fixtures include sinks, showers, and baths (SSB), all combined
-            avg_water_draw = properties.get('Fixture Average Water Draw (L/day)', 0)
-            annual_mean = avg_water_draw / 1440  # in L/min
-        else:
-            # For dishwasher and clothes washer, get average draw value from their properties dict
-            annual_mean = properties['Average Water Draw (L/day)'] / 1440  # in L/min
-            schedule_mean = s_hpxml.mean()
+def convert_power_column(s_hpxml, ochre_name, properties):
+    # try getting from max power or from annual energy, priority goes to max power
+    if 'Max Electric Power (W)' in properties:
+        max_value = properties['Max Electric Power (W)'] / 1000  # W to kW
+    elif 'Annual Electric Energy (kWh)' in properties:
+        annual_mean = properties['Annual Electric Energy (kWh)'] / 8760
         schedule_mean = s_hpxml.mean()
         max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
+    else:
+        max_value = None
+    if max_value is not None:
         out = s_hpxml * max_value
-        out.name = f'{ochre_name} (L/min)'
+        out.name = f'{ochre_name} (kW)'
+    else:
+        out = None
+
+    # check for gas (max power and annual energy), and copy schedule
+    if 'Max Gas Power (therms/hour)' in properties:
+        max_value = properties['Max Gas Power (therms/hour)']  # in therms/hour
+    elif 'Annual Gas Energy (therms)' in properties:
+        annual_mean = properties['Annual Gas Energy (therms)'] / 8760  # in therms/hour
+        schedule_mean = s_hpxml.mean()
+        max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
+    else:
+        max_value = None
+    if max_value is None:
+        pass
+    elif out is None:
+        out = s_hpxml * max_value
+        out.name = f'{ochre_name} (therms/hour)'
+    else:
+        # combine 2 series into data frame
+        s_gas = s_hpxml * max_value
+        s_gas.name = f'{ochre_name} (therms/hour)'
+        out = pd.concat([out, s_gas], axis=1)
+
+    if out is None:
+        raise OCHREException(f'Could not determine max value for {s_hpxml.name} schedule ({ochre_name}).')
+
+    return out
+
+
+def convert_water_column(s_hpxml, ochre_name, equipment):
+    if ochre_name in ["Water Fixtures", "Showers"]:
+        # Fixtures include sinks, showers, and baths (SSB), all combined
+        # Showers are only included for unmet loads calculation
+        equipment_name = "Water Heating"
+    else:
+        equipment_name = ochre_name
+
+    if equipment_name not in equipment:
+        return None
+    
+    properties = equipment[equipment_name]
+    avg_water_draw = properties.get('Average Water Draw (L/day)', 0)
+    annual_mean = avg_water_draw / 1440  # in L/min
+    
+    schedule_mean = s_hpxml.mean()
+    max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
+    out = s_hpxml * max_value
+    out.name = f'{ochre_name} (L/min)'
 
     return out
 
@@ -412,11 +421,13 @@ def import_occupancy_schedule(occupancy, equipment, start_time, schedule_input_f
             s_ochre = s_hpxml * occupancy['Number of Occupants (-)']
             s_ochre.name = f'{ochre_name} (Persons)'
             schedule_data.append(s_ochre)
-        elif category in ['Power', 'Water']:
-            if ochre_name not in equipment:
-                continue
-            else:
-                schedule_data.append(convert_schedule_column(s_hpxml, ochre_name, equipment[ochre_name], category))
+        elif category == "Power":
+            if ochre_name in equipment:
+                schedule_data.append(convert_power_column(s_hpxml, ochre_name, equipment[ochre_name]))
+        elif category == "Water":
+            s_ochre = convert_water_column(s_hpxml, ochre_name, equipment)
+            if s_ochre is not None:
+                schedule_data.append(s_ochre)
         elif category == 'Setpoint':
             # Already in the correct units
             s_ochre = s_hpxml

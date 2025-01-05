@@ -37,7 +37,8 @@ class StratifiedWaterModel(RCModel):
     """
     name = 'Water Tank'
     optional_inputs = [
-        'Water Heating (L/min)',
+        'Water Fixtures (L/min)',
+        'Showers (L/min)',
         'Clothes Washer (L/min)',
         'Dishwasher (L/min)',
         'Mains Temperature (C)',
@@ -73,6 +74,8 @@ class StratifiedWaterModel(RCModel):
 
         # mixed temperature (i.e. target temperature) setpoint for fixtures - Sink/Shower/Bath (SSB)
         self.tempered_draw_temp = kwargs.get('Mixed Delivery Temperature (C)', convert(105, 'degF', 'degC'))
+        self.hot_draw_temp = kwargs.get('Tempering Valve Setpoint (C)', convert(125, 'degF', 'degC'))
+        self.setpoint_temp = kwargs.get('Setpoint Temperature (C)', convert(125, 'degF', 'degC'))
         # Removing target temperature for clothes washers
         # self.washer_draw_temp = kwargs.get('Clothes Washer Delivery Temperature (C)', convert(92.5, 'degF', 'degC'))
 
@@ -131,7 +134,8 @@ class StratifiedWaterModel(RCModel):
         self.outlet_temp = self.states[self.t_1_idx]  # initial outlet temp, for estimating draw volume
 
         # Note: removing target draw temperature for clothes washers, not implemented in ResStock
-        draw_tempered = self.current_schedule.get('Water Heating (L/min)', 0)
+        draw_tempered = self.current_schedule.get('Water Fixtures (L/min)', 0)
+        draw_showers = self.current_schedule.get('Showers (L/min)', 0)
         draw_hot = (self.current_schedule.get('Clothes Washer (L/min)', 0)
                     + self.current_schedule.get('Dishwasher (L/min)', 0))
         # draw_cw = self.current_schedule.get('Clothes Washer (L/min)', 0)
@@ -148,7 +152,15 @@ class StratifiedWaterModel(RCModel):
 
         # calculate total draw volume from tempered draw volume(s)
         # for tempered draw, assume outlet temperature == T1, slightly off if the water draw is very large
-        self.draw_total = draw_hot
+        if self.tempered_draw_temp < self.setpoint_temp:
+            if self.outlet_temp <= self.hot_draw_temp:
+                self.draw_total = draw_hot
+            else:
+                vol_ratio_hot = (self.hot_draw_temp - self.mains_temp) / (self.outlet_temp - self.mains_temp)
+                self.draw_total = draw_hot * vol_ratio_hot
+        else:
+            self.draw_total = draw_hot
+
         if draw_tempered:
             if self.outlet_temp <= self.tempered_draw_temp:
                 self.draw_total += draw_tempered
@@ -214,8 +226,10 @@ class StratifiedWaterModel(RCModel):
         self.h_delivered = q_delivered / t_s
         heats_to_model += q_nodes / t_s
 
-        # calculate unmet loads, fixtures only, in W
-        self.h_unmet_load = max(draw_tempered / 60 * water_c * (self.tempered_draw_temp - self.outlet_temp), 0)  # in W
+        # calculate unmet loads, showers only, in W
+        self.h_unmet_load = max(
+            draw_showers / 60 * water_c * (self.tempered_draw_temp - self.outlet_temp), 0
+        )  # in W
 
         return heats_to_model
 
