@@ -12,7 +12,6 @@ dist/
 docs/_build
 *.egg-info/
 *.code-workspace
-environment.yml
 
 defaults/Input Files/OCHRE*
 outputs/
