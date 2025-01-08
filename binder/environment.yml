@@ -1,0 +1,6 @@
+name: ochre_env
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - ochre-nrel
