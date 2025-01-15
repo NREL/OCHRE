@@ -2,7 +2,7 @@ import os
 import shutil
 
 from ochre import Analysis
-from ochre.cli import create_dwelling, run_multiple_local, run_multiple_hpc
+from ochre.cli import create_dwelling, limit_input_paths, run_multiple_local, run_multiple_hpc
 from ochre.utils import default_input_path
 
 # Examples to download and run multiple Dwellings. Uses OCHRE's command line
@@ -80,16 +80,19 @@ if __name__ == "__main__":
             shutil.copy(default_weather_file, input_path)
             input_paths.append(input_path)
 
+    # Don't overwrite completed runs
+    # input_paths = limit_input_paths(input_paths, overwrite=False)
+
     # Run Dwelling models sequentially
     for input_path in input_paths:
         dwelling = create_dwelling(input_path, duration=7)
         dwelling.simulate()
 
     # Run simulations in parallel
-    # run_multiple_local(main_path, n_parallel=2, overwrite=True, duration=7)
+    # run_multiple_local(input_paths, n_parallel=2, duration=7)
 
     # Run simulations on HPC using Slurm
-    # run_multiple_hpc(main_path, overwrite=True, duration=7)
+    # run_multiple_hpc(input_paths, duration=7)
 
     # Compile simulation data
     compile_results(main_path)
