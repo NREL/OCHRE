@@ -84,12 +84,12 @@ if __name__ == "__main__":
     # input_paths = limit_input_paths(input_paths, overwrite=False)
 
     # Run Dwelling models sequentially
-    for input_path in input_paths:
-        dwelling = create_dwelling(input_path, duration=7)
-        dwelling.simulate()
+    # for input_path in input_paths:
+    #     dwelling = create_dwelling(input_path, duration=7)
+    #     dwelling.simulate()
 
     # Run simulations in parallel
-    # run_multiple_local(input_paths, n_parallel=2, duration=7)
+    run_multiple_local(input_paths, n_parallel=1, duration=7)
 
     # Run simulations on HPC using Slurm
     # run_multiple_hpc(input_paths, duration=7)

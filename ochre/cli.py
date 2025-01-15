@@ -76,12 +76,18 @@ def create_dwelling(
     return dwelling
 
 
-def run_single_with_dict(kwargs):
-    # Initialize
-    dwelling = create_dwelling(**kwargs)
-
-    # Run simulation
-    dwelling.simulate()
+def run_single_process(kwargs):
+    input_path = kwargs.pop("input_path")
+    log_file = os.path.join(input_path, "ochre.log")
+    extra_args = [f"--{key}={val}" for key, val in kwargs.items()]
+    cmd = [
+        "ochre",
+        "single",
+        input_path,
+        *extra_args,
+    ]
+    with open(log_file, "w") as f:
+        subprocess.run(cmd, stdout=f, stderr=f)
 
 
 def find_ochre_folders(
@@ -186,19 +192,9 @@ def run_multiple_local(
 ):
     # runs multiple OCHRE simulations on local machine (can run in parallel or not)
     # kwargs are passed to create_dwelling
-
-    # TODO: for now, no log file. Could use subprocess.run to save logs
-    # log_file = os.path.join(input_path, "ochre.log")
-    if n_parallel == 1:
-        # run simulations sequentially
-        for input_path in input_paths:
-            dwelling = create_dwelling(input_path, **kwargs)
-            dwelling.simulate()
-    else:
-        # run simulations in parallel
-        ochre_data = [{"input_path": input_path, **kwargs} for input_path in input_paths]
-        with Pool(n_parallel) as p:
-            p.map(run_single_with_dict, ochre_data)
+    ochre_data = [{"input_path": input_path, **kwargs} for input_path in input_paths]
+    with Pool(n_parallel) as p:
+        p.map(run_single_process, ochre_data)
 
     my_print("All processes finished, exiting.")
 
