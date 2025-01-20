@@ -172,7 +172,7 @@ class HVAC(Equipment):
         # Thermostat Control Parameters
         self.temp_setpoint = initial_setpoint
         self.temp_deadband = kwargs.get('Deadband Temperature (C)', 1)
-        # Offset defines much over deadband is overshooting setpoint, (1-offset) is undershooting
+        # Offset defines setpoint overshoot, 0.2 means setpoint is near top of deadband for heating
         # Offset defaults to reflect lab results
         self.deadband_offset = kwargs.get("Deadband Offset (C)", 0.2)  
         self.ext_ignore_thermostat = kwargs.get('ext_ignore_thermostat', False)
@@ -1062,32 +1062,44 @@ class ASHPHeater(HeatPumpHeater):
     ]
 
     def __init__(self, **kwargs):
-        if 'setpoint_ramp_rate' not in kwargs:
-            # set default setpoint ramp rate to 0.2 C/min to prevent turning on the ER during setpoint changes
-            kwargs['setpoint_ramp_rate'] = 0.2
+        # if 'setpoint_ramp_rate' not in kwargs:
+        #     # set default setpoint ramp rate to 0.2 C/min to prevent turning on the ER during setpoint changes
+        #     kwargs['setpoint_ramp_rate'] = 0.2
 
         super().__init__(**kwargs)
 
         # backup element capacity and efficiency parameters
-        self.er_capacity_rated = kwargs['Supplemental Heater Capacity (W)']
-        self.er_eir_rated = kwargs.get('Supplemental Heater EIR (-)', 1)
+        self.er_capacity_rated = kwargs["Backup Capacity (W)"]
+        self.er_eir_rated = kwargs.get('Backup EIR (-)', 1)
         self.er_capacity = 0
         self.er_ext_capacity = None  # Option to set ER capacity directly, ideal capacity only
         self.er_ext_capacity_frac = 1  # Option to limit max capacity, ideal capacity only
 
         # backup element control parameters
-        # TODO: add options for ER temperature_offset,
-        # min_setpoint_change_duration, hard_lockout
-        # outdoor_temp_limit shuts off HP
-        self.outdoor_temp_limit = kwargs.get('Supplemental Heater Cut-in Temperature (C)')
-        self.timestep_count = 1
+        self.hp_lockout_temp = kwargs.get("Heat Pump Lockout Temperature (C)", -17.78)  # 0F default
+        self.er_lockout_temp = kwargs.get("Backup Lockout Temperature (C)", 4.44)  # 40F default
+        # ER setpoint offset = difference between temp_setpoint to bottom of ER deadband
+        default = self.temp_deadband * (1.8 - self.deadband_offset)
+        self.er_setpoint_offset = kwargs.get("Backup Setpoint Offset (C)", default)
+        # minimum amount of time after a setpoint change that er stays off (user input)
+        er_hard_lockout_time = kwargs.get("Backup Lockout Time (minutes)", 0)
+        self.er_hard_lockout_time = dt.timedelta(minutes=er_hard_lockout_time)
+        er_soft_lockout_time = kwargs.get("Backup Soft Lockout Time (minutes)", er_hard_lockout_time)
+        if er_soft_lockout_time < er_hard_lockout_time:
+            self.warn(
+                "Backup Soft Lockout Time is less than Backup Lockout Time. "
+                "Setting Backup Soft Lockout Time to Backup Lockout Time."
+            )
+            er_soft_lockout_time = er_hard_lockout_time
+        self.er_soft_lockout_time = dt.timedelta(minutes=er_soft_lockout_time)
+        self.er_lockout_time = dt.timedelta()
         self.prev_setpoint = self.temp_setpoint
         # self.existing_stages = 0  # staged backup, number of stages on
 
         # Update minimum time for ER element
-        er_on_time = kwargs.get(self.end_use + ' Minimum ER On Time', 0)
-        self.min_time_in_mode['HP and ER On'] = dt.timedelta(minutes=er_on_time)
-        self.min_time_in_mode['ER On'] = dt.timedelta(minutes=er_on_time)
+        min_er_on_time = kwargs.get("Minimum Backup On Time (minutes)", 0)
+        self.min_time_in_mode['HP and ER On'] = dt.timedelta(minutes=min_er_on_time)
+        self.min_time_in_mode['ER On'] = dt.timedelta(minutes=min_er_on_time)
 
     def update_external_control(self, control_signal):
         # Additional options for ASHP external control signals:
@@ -1158,9 +1170,8 @@ class ASHPHeater(HeatPumpHeater):
 
         # Force HP off if outdoor temp is very cold
         t_ext_db = self.current_schedule['Ambient Dry Bulb (C)']
-        if self.outdoor_temp_limit is not None and t_ext_db < self.outdoor_temp_limit and hp_on:
+        if self.hp_lockout_temp is not None and t_ext_db < self.hp_lockout_temp:
             hp_on = False
-            er_on = True
 
         # combine HP and ER modes
         if er_on:
@@ -1176,83 +1187,54 @@ class ASHPHeater(HeatPumpHeater):
 
     def run_er_thermostat_control(
             self,
-            temperature_offset = 1.6,
-            min_setpoint_change_duration = 30, 
-            hard_lockout = 10,
-            staged = False,
-            max_outdoor_temp = 1.67
+            # staged = False,
         ):
         # get indoor temperature
         temp_indoor = self.zone.temperature    
         
         # if the outdoor temp is greater than input value, turn er off
-        if self.outdoor_temp_limit is not None:
-            if self.current_schedule['Ambient Dry Bulb (C)'] >= self.outdoor_temp_limit:
-                self.timestep_count = 1
-                self.prev_setpoint = self.temp_setpoint
-                # self.existing_stages = 0 # no staged
-                return 'Off' 
-        else: # in case there is no outdoor temp limit provided, use a default
-            if self.current_schedule['Ambient Dry Bulb (C)'] >= max_outdoor_temp: 
-                self.timestep_count = 1
-                self.prev_setpoint = self.temp_setpoint
-                # self.existing_stages = 0 # no staged
-                return 'Off' 
+        if self.current_schedule['Ambient Dry Bulb (C)'] >= self.er_lockout_temp:
+            self.er_lockout_time = dt.timedelta()
+            self.prev_setpoint = self.temp_setpoint
+            # self.existing_stages = 0 # no staged
+            return 'Off'
 
         # Determine if setpoint has changed recently
-        if min_setpoint_change_duration is not None and self.prev_setpoint is not None: 
-            min_interval = dt.timedelta(minutes=min_setpoint_change_duration) # minimum amount of time after a setpoint change that er stays off (user input)
-            hard_lockout_interval = dt.timedelta(minutes=hard_lockout) # minimum amount of time after a setpoint change that er stays off (strictly)
-            if hard_lockout_interval > min_interval:
-                min_interval = hard_lockout_interval # increase the minimum interval
-                self.warn(f"minimum setpoint change duration ({min_setpoint_change_duration} minutes) updated to comply with hard lockout interval ({hard_lockout} minutes)")
-            if self.temp_setpoint > self.prev_setpoint: # turned up the heat
-                if (self.timestep_count * self.time_res) > min_interval: # enough time has passed
-                        self.timestep_count = 1 # reset timestep count
-                        # control by temp_turn_on/temp_turn_off
-                elif (self.timestep_count * self.time_res) > hard_lockout_interval: # hard lockout duration met
-                    if self.temp_indoor_prev is not None:
-                        if temp_indoor < self.temp_indoor_prev: # temp is decreasing
-                            self.timestep_count == 1 # if it turns on, will reset this
-                            # control by temp_turn_on/temp_turn_off
-                        else: 
-                            # self.existing_stages = 0 # no staged
-                            self.timestep_count += 1 # continue iterating
-                            return 'Off'
-                    else: 
-                        # self.existing_stages = 0 # no staged
-                        self.timestep_count += 1 # continue iterating
-                        return 'Off'
-                else:
-                    self.timestep_count += 1 # wait longer
-                    # self.existing_stages = 0 # no staged
-                    return 'Off'
-            elif self.temp_setpoint < self.prev_setpoint: # turned down the heat
-                self.prev_setpoint = self.temp_setpoint
-                self.timestep_count = 1
+        if self.temp_setpoint > self.prev_setpoint: # turned up the heat
+            if self.er_lockout_time < self.er_hard_lockout_time:
+                # Hard lockout not met, continue iterating   
                 # self.existing_stages = 0 # no staged
+                self.er_lockout_time += self.time_res
                 return 'Off'
+            elif (self.er_lockout_time < self.er_soft_lockout_time) and (temp_indoor >= self.temp_indoor_prev):
+                # Soft lockout not met, and temperature is rising continue iterating   
+                # self.existing_stages = 0 # no staged
+                self.er_lockout_time += self.time_res
+                return 'Off'
+            else:
+                # reset
+                self.er_lockout_time = dt.timedelta()
+        elif self.temp_setpoint < self.prev_setpoint:
+            # turned down the heat, force off and reset
+            self.prev_setpoint = self.temp_setpoint
+            self.er_lockout_time = dt.timedelta()  # reset
+            # self.existing_stages = 0 # no staged
+            return 'Off'
 
         # run thermostat control for ER element - lower the setpoint by the deadband or user input
         # On and off limits depend on heating vs. cooling
-        if temperature_offset is not None:
-            er_setpoint = self.temp_setpoint
-            temp_turn_on = er_setpoint - self.hvac_mult * temperature_offset 
-            temp_turn_off = er_setpoint + self.hvac_mult * (1 - self.deadband_offset)
-        else:
-            er_setpoint = self.temp_setpoint - self.temp_deadband
-            temp_turn_on = er_setpoint - self.hvac_mult * self.deadband_offset
-            temp_turn_off = er_setpoint + self.hvac_mult * (1 - self.deadband_offset)
+        temp_turn_on = self.temp_setpoint - self.er_setpoint_offset 
+        temp_turn_off = temp_turn_on + self.temp_deadband
 
         # Determine mode
         if self.hvac_mult * (temp_indoor - temp_turn_on) < 0:
             self.prev_setpoint = self.temp_setpoint
-            self.timestep_count = 1
+            self.er_lockout_time = dt.timedelta()  # reset
             # if staged==True: # TODO: need to edit downstream to make use of staged backup
                 # operating_capacity = self.staged_backup() 
             return 'On'
         if self.hvac_mult * (temp_indoor - temp_turn_off) > 0:
-            self.timestep_count = 1
+            self.er_lockout_time = dt.timedelta()  # reset
             self.prev_setpoint = self.temp_setpoint
             # self.existing_stages = 0 # no staged
             return 'Off'
