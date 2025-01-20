@@ -19,8 +19,6 @@
 - Updated HPXML inputs for ASHP backup controls
 - Allowed "Occupancy" adjustments in input arguments
 - Allow superinsulated slabs compatible with BEopt 3 for test purposes
-- Updated backup controls for HVAC to allow additional flexibility, defaults to
-  representing a major manufacturer [#155](https://github.com/NREL/OCHRE/issues/155)
 
 ### OCHRE v0.8.5-beta
 
