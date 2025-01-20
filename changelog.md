@@ -2,6 +2,7 @@
 
 ### New from PRs
 
+- Added HVAC parameters for deadband offset and ASHP backup controls [#155](https://github.com/NREL/OCHRE/issues/155)
 - Updated EV model to accept new EV charging data
 - Added EV `event_day_ratio` and `max_power` parameters
 - added EV average SOC and unmet load metrics
@@ -15,6 +16,7 @@
 - Fixed issue with attic-garage boundaries [#96](https://github.com/NREL/OCHRE/issues/96)
 - Fixed issue with adjacent doors (e.g., for multi-family units, hallways)
 - Fixed issue with ducts in multiple locations [#148](https://github.com/NREL/OCHRE/issues/148)
+- Updated HPXML inputs for ASHP backup controls
 - Allowed "Occupancy" adjustments in input arguments
 - Allow superinsulated slabs compatible with BEopt 3 for test purposes
 
