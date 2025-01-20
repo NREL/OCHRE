@@ -242,12 +242,12 @@ agents via their external control signals, external model signals, and status
 variables.
 
 See `bin/run_cosimulation.py
-<https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__ for a very
+<https://github.com/NREL/OCHRE/blob/main/bin/run_cosimulation.py>`__ for a very
 basic co-simulation implementation using the `HELICS <https://helics.org/>`__
 platform. The example shows a simple aggregator that controls batteries in two
 different OCHRE dwellings.
 
-OCHRE can also run a single timestep with multiple control options, enabling
+OCHRE can also repeat a single timestep with multiple control options, enabling
 co-optimization or simulation across varying time-scales. See the
 ``run_pv_voltvar`` function in `bin/run_external_control.py
 <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>` as an

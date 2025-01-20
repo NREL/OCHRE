@@ -32,9 +32,6 @@ More information about OCHRE can be found on `NREL's website
 Installation
 ------------
 
-Python Installation
-~~~~~~~~~~~~~~~~~~~
-
 OCHRE can be installed using ``pip`` from the command line:
 
 .. code-block:: python
@@ -49,15 +46,15 @@ Alternatively, you can install a specific branch, for example:
 
 Note that OCHRE requires Python version >=3.9 and <3.12.
 
-.. OCHRE Executable
-.. ~~~~~~~~~~~~~~~~
-
-.. For non-Python users, OCHRE executable files can be downloaded from `NREL's
-.. Data Catalog <TBD>`__. Executable files are available for Windows, MacOS, and
-.. Linux.
 
 Usage
 -----
+
+OCHRE can be run in Python or through a command line interface. The `OCHRE
+User Tutorial
+<https://mybinder.org/v2/gh/NREL/OCHRE/c0a698d19a9057c38f7a72060b63b96251c45e42?urlpath=lab%2Ftree%2Fnotebook%2Fuser_tutorial.ipynb>`__
+is available on MyBinder, an interactive online platform for running Jupyter
+notebooks.
 
 Python Interface
 ~~~~~~~~~~~~~~~~
@@ -86,7 +83,7 @@ Below is a simple example to simulate a dwelling:
 
     df, metrics, hourly = house.simulate()
 
-This will return 3 variables:
+This code will return 3 variables:
 
 - ``df``: a Pandas DataFrame with 10 minute resolution
 
@@ -103,7 +100,8 @@ For more examples, see:
 
 - The `OCHRE User Tutorial
   <https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
-  Jupyter notebook 
+  Jupyter notebook (also available on `MyBinder
+  <https://mybinder.org/v2/gh/NREL/OCHRE/c0a698d19a9057c38f7a72060b63b96251c45e42?urlpath=lab%2Ftree%2Fnotebook%2Fuser_tutorial.ipynb>`__)
 
 - Python example scripts to:
 
@@ -129,7 +127,7 @@ For more examples, see:
 Command Line Interface
 ~~~~~~~~~~~~~~~~~~~~~~
 
-OCHRE can also be run from the command line using the following commands:
+OCHRE can be run from the command line using the following commands:
 
 - ``ochre single``: Run a single dwelling simulation
 
@@ -169,7 +167,7 @@ When using OCHRE in your publications, please cite:
 
 Below is a list of select publications that have used OCHRE:
 
-2.	Jeff Maguire, Michael Blonsky, Sean Ericson, Amanda Farthing, Indu
+2.  Jeff Maguire, Michael Blonsky, Sean Ericson, Amanda Farthing, Indu
     Manogaran, and Sugi Ramaraj. 2024. *Nova Analysis: Holistically Valuing
     the Contributions of Residential Efficiency, Solar and Storage*. Golden,
     CO: National Renewable Energy Laboratory. NREL/TP-5500-84658.

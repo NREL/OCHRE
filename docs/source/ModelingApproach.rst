@@ -261,8 +261,8 @@ Electric vehicles are modeled using event-based data. EV parking events are
 randomly generated using event-based datasets for each day of the simulation.
 Zero, one, or more events may occur per day. Each event has a prescribed start
 time, end time, and starting state-of-charge (SOC). When the event starts, the
-EV will charge using a linear model similar to the battery model described
-below.
+EV will charge at a constant power using a model similar to the battery model
+described below.
 
 OCHRE's default event-based datasets are taken from `EVI-Pro
 <https://www.nrel.gov/transportation/evi-pro.html>`__. Additional datasets
