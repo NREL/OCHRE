@@ -5,29 +5,31 @@ Getting Started
   :width: 500
   :alt: OCHRE logo
 
+.. note::
+  If you use OCHRE for your research or other projects, please fill out our
+  `user survey <https://forms.office.com/g/U4xYhaWEvs>`__.
+
 OCHRE Overview
 --------------
 
-OCHRE\ |tm| is a Python-based building energy modeling (BEM) tool designed to
-model flexible loads in residential buildings. OCHRE includes detailed models
-and controls for flexible devices including HVAC equipment, water heaters,
-electric vehicles, solar PV, and batteries. It is designed to run in
-co-simulation with custom controllers, aggregators, and grid models. OCHRE
-integrates with `OS-HPXML
-<https://openstudio-hpxml.readthedocs.io/en/latest/index.html>`__, and any
-OS-HPXML integrated workflow can be used to generate OCHRE input files.
+OCHRE\ |tm| is a Python-based energy modeling tool designed to model flexible
+end-use loads and distributed energy resources in residential buildings. OCHRE
+includes detailed models for flexible devices including HVAC equipment, water
+heaters, electric vehicles, solar PV, and batteries. It can examine the
+impacts of novel control strategies on energy consumption and occupant comfort
+metrics. OCHRE integrates with many of NREL's established modeling tools,
+including EnergyPlus\ |tm|, BEopt\ |tm|, ResStock\ |tm|, SAM, and EVI-Pro.
 
 .. |tm| unicode:: U+2122
 
-More information about OCHRE is available on `NREL's
-website <https://www.nrel.gov/grid/ochre.html>`__ and on
-`Github <https://github.com/NREL/OCHRE>`__.
+More information about OCHRE can be found on `NREL's website
+<https://www.nrel.gov/grid/ochre.html>`__ and from the `Powered By OCHRE
+<https://www.youtube.com/watch?v=B5elLVtYDbI>`__ webinar recording. 
 
 Installation
 ------------
 
-For a stand-alone installation, OCHRE can be installed using ``pip``
-from the command line:
+OCHRE can be installed using ``pip`` from the command line:
 
 .. code-block:: python
 
@@ -39,22 +41,13 @@ Alternatively, you can install a specific branch, for example:
 
     pip install git+https://github.com/NREL/OCHRE@dev
 
-To embed OCHRE in a co-simulation using a conda environment, create an
-``environment.yml`` file in the co-simulation project and include the
-following lines:
-
-.. code-block:: python
-
-    dependencies:
-     - pip:
-       - ochre-nrel
+Note that OCHRE requires Python version >=3.9 and <3.12.
 
 Usage
 -----
 
-OCHRE can be used to simulate a residential dwelling or an individual
-piece of equipment. In either case, a python object is instantiated and
-then simulated. A set of input parameters must be defined.
+OCHRE can be used to simulate a residential dwelling or individual pieces of
+equipment. In either case, a python object is instantiated and then simulated.
 
 Below is a simple example to simulate a dwelling:
 
@@ -63,15 +56,15 @@ Below is a simple example to simulate a dwelling:
     import os
     import datetime as dt
     from ochre import Dwelling
-    from ochre.utils import default_input_path # for using sample files
+    from ochre.utils import default_input_path  # for using sample files
 
     house = Dwelling(
         start_time=dt.datetime(2018, 5, 1, 0, 0),
         time_res=dt.timedelta(minutes=10),
         duration=dt.timedelta(days=3),
-        hpxml_file =os.path.join(default_input_path, 'Input Files','sample_resstock_properties.xml'),
-        schedule_input_file=os.path.join(default_input_path, 'Input Files','sample_resstock_schedule.csv'),
-        weather_file=os.path.join(default_input_path, 'Weather','USA_CO_Denver.Intl.AP.725650_TMY3.epw'),
+        hpxml_file=os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
+        schedule_input_file=os.path.join(default_input_path, "Input Files", "bldg0112631_schedule.csv"),
+        weather_file=os.path.join(default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"),
         verbosity=3,
     )
 
@@ -85,28 +78,37 @@ This will return 3 variables:
 
 - ``hourly``: a Pandas DataFrame with 1 hour resolution (``verbosity >= 3`` only)
 
-OCHRE can also be used to model a specific piece of equipment so long as
-the boundary conditions are appropriately defined. For example, a water
-heater could be simulated alone so long as draw profile, ambient air
-temperature, and mains temperature are defined.
+OCHRE can also be used to model a single piece of equipment, a fleet of
+equipment, or multiple dwellings. It can also be run in co-simulation with
+custom controllers, home energy management systems, aggregators, and grid
+models. 
 
-For more examples, see the following python scripts in the ``bin``
-folder:
+For more examples, see:
 
-- Run a single dwelling: `run_dwelling
-  <https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__
+- The `OCHRE User Tutorial
+  <https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
+  Jupyter notebook 
 
-- Run a single piece of equipment: `run_equipment
-  <https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__
+- Python example scripts to:
 
-- Run a dwelling with an external controller: `run_external_control
-  <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__
+  - Run a `single dwelling
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__
 
-- Run multiple dwellings: `run_multiple
-  <https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py>`__
+  - Run a `single piece of equipment
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__
 
-- Run a fleet of equipment: `run_fleet
-  <https://github.com/NREL/OCHRE/blob/main/bin/run_fleet.py>`__
+  - Run a `fleet of equipment
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_fleet.py>`__
+
+  - Run `multiple dwellings
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py>`__
+
+  - Run OCHRE with `an external controller
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__
+
+  - Run OCHRE in `co-simulation
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_cosimulation.py>`__ using
+    HELICS
 
 License
 -------
@@ -191,6 +193,6 @@ Below is a list of publications that have used OCHRE:
 Contact
 -------
 
-For any questions, concerns, or suggestions for new features in OCHRE,
-contact the developers directly at Jeff.Maguire@nrel.gov and
-Michael.Blonsky@nrel.gov
+For any usage questions or suggestions for new features in OCHRE, please
+create an issue on Github. For any other questions or concerns, contact the
+developers directly at Jeff.Maguire@nrel.gov and Michael.Blonsky@nrel.gov.

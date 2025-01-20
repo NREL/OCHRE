@@ -1,110 +1,95 @@
 Input Files and Arguments
 =========================
 
+Dwelling Input Files
+--------------------
+
+Three files are often used to create an OCHRE dwelling model. This section
+describes these three files.
+
 HPXML File
-----------
+~~~~~~~~~~
 
-OCHRE uses the Home Performance eXtensible Markup Language, or
-`HPXML <https://www.hpxmlonline.com/>`__, file format for defining
-building properties. HPXML provides a standardized format for all the
-relevant inputs for a building energy model of a residential building.
-The full HPXML schema and a validator tool is available
-`here <https://hpxml.nrel.gov/>`__. HPXML is continuously updated to
-account for additional relevant properties, and in some cases extension
-elements can be used to store additional information not currently
-included in the schema.
+OCHRE uses the Home Performance eXtensible Markup Language, or `HPXML
+<https://www.hpxmlonline.com/>`__, a file format for defining building
+properties. HPXML provides a standardized format for all the relevant inputs
+for a building energy model of a residential building. A large advantage to
+using HPXML is the interoperability it provides, particularly with other NREL
+building energy modeling tools. The full HPXML schema and a validator tool is
+available `here <https://hpxml.nrel.gov/>`__.
 
--  Standardized data format designed for interoperability between
-   stakeholders
-
--  Generated during audits with REM/Rate, but also by other NREL tools
-   like `ResStock <https://resstock.nrel.gov/>`__ (or any other
-   `OS-HPXML <https://github.com/NREL/OpenStudio-HPXML>`__ based
-   workflow)
-
--  HPXML integration allows us to quickly generate corresponding models
-   suitable for co-simulation based on other workflows
+OCHRE integrates with `OS-HPXML
+<https://openstudio-hpxml.readthedocs.io/en/latest/index.html>`__. Any
+OS-HPXML integrated workflow, including `ResStock
+<https://resstock.nrel.gov/>`__ and `BEopt
+<https://www.nrel.gov/buildings/beopt.html>`__, can be used to generate OCHRE
+input files. This enables easier comparisons between OCHRE and EnergyPlus.
+OCHRE has been tested with HPXML files from both workflows, but note it does
+not currently support all of the features of these tools.
 
 Schedule Input File
--------------------
+~~~~~~~~~~~~~~~~~~~
 
-A schedule input file is optional but highly recommended. OS-HPXML has
-two different types of occupancy models it supports: “asset” and
-“operational” (see
-`here <https://openstudio-hpxml.readthedocs.io/en/latest/workflow_inputs.html?highlight=occupant#buildingoccupancy>`__
-for more information). The “asset” occupant model uses the schedules
-defined in `ANSI/RESNET
-301 <http://www.resnet.us/wp-content/uploads/archive/resblog/2019/01/ANSIRESNETICC301-2019_vf1.23.19.pdf>`__
-for all occupant driven loads, but note that these schedules represent a
-smooth average usage for all of the occupant driven loads (hot water
-usage, dishwasher, clothes washer, clothes dryer, and cooking range) as
-well as occupancy itself. The “operational” calculation uses a
-stochastic event generator (described
-`here <https://www.sciencedirect.com/science/article/pii/S0306261922011540>`__)
-to model more realistic events associated with the occupant driven
-loads. The operational (or stochastic) model is most often used in OCHRE
-as it more realistically models the on/off usage of these devices and
-therefore gets a better estimate of the power spikes associated with
-their usage.
+A schedule input file is optional but highly recommended. OS-HPXML has two
+different types of `occupancy models
+<https://openstudio-hpxml.readthedocs.io/en/latest/workflow_inputs.html?highlight=occupant#buildingoccupancy>`__
+it supports: “asset” and “operational”. The “asset” occupant model uses
+smooth, average energy usage schedules defined in `ANSI/RESNET 301
+<http://www.resnet.us/wp-content/uploads/archive/resblog/2019/01/ANSIRESNETICC301-2019_vf1.23.19.pdf>`__
+for all occupant driven loads (e.g., hot water usage, dishwasher, clothes
+washer, clothes dryer, and cooking range) as well as for occupancy itself. The
+“operational” calculation uses a `stochastic event generator
+<https://www.sciencedirect.com/science/article/pii/S0306261922011540>`__ to
+model more realistic events associated with the occupant driven loads. The
+operational (or stochastic) model is recommended for use in OCHRE as it more
+realistically models the on/off usage of these devices and therefore gets a
+better estimate of the power spikes associated with their usage.
 
-The schedule file (usually named “schedules.csv”) is generated when using ResStock 
-or when using BEopt and selecting stochastic schedules
-for each end use. The file contains all
-necessary times series schedule information for load profiles as well as
-hourly temperature setpoints for both thermostats and water heaters (See the `OS-HPXML
-documentation <https://openstudio-hpxml.readthedocs.io/en/latest/workflow_inputs.html#detailed-schedule-inputs>`__
+The schedule file (often named ``in.schedules.csv``) is generated by ResStock
+and by BEopt when selecting stochastic schedules for each end use. The file
+contains all necessary times series schedule information for load profiles as
+well as hourly temperature setpoints for both thermostats and water heaters
+(See the `OS-HPXML documentation
+<https://openstudio-hpxml.readthedocs.io/en/latest/workflow_inputs.html#detailed-schedule-inputs>`__
 for more information.
 
-Tip: The load profile values in the schedule input file are normalized.
-OCHRE can save a schedule file after initialization that contains load
-profiles for each scheduled equipment in units of kW.
+.. note::
+   The load profile values in the schedule input file are normalized. OCHRE can
+   save a schedule file after initialization that contains load profiles for each
+   scheduled equipment in units of kW.
 
 Weather File
-------------
+~~~~~~~~~~~~
 
-A weather input file is required for simulating a dwelling. OCHRE
-accepts
-`EnergyPlus <https://bigladdersoftware.com/epx/docs/8-3/auxiliary-programs/energyplus-weather-file-epw-data-dictionary.html>`__
-and `National Solar Radiation Database <https://nsrdb.nrel.gov/>`__
-(NSRDB) weather file formats.
+A weather input file is required for simulating a dwelling. OCHRE accepts
+`EnergyPlus
+<https://bigladdersoftware.com/epx/docs/8-3/auxiliary-programs/energyplus-weather-file-epw-data-dictionary.html>`__
+and `National Solar Radiation Database <https://nsrdb.nrel.gov/>`__ (NSRDB)
+weather file formats.
 
 Generating Input Files
 ----------------------
 
-A large advantage to using HPXML is the interoperability it provides,
-particularly with other NREL building energy modeling tools. HPXML files
-can be generated using the
-`OS-HPXML <https://github.com/NREL/OpenStudio-HPXML>`__ workflow, which
-is documented
-`here <https://openstudio-hpxml.readthedocs.io/en/latest/intro.html>`__.
-This workflow is used in both
-`BEopt <https://www.nrel.gov/buildings/beopt.html>`__ (version 3.0 or
-later) and `ResStock <https://github.com/NREL/resstock>`__ (version 3.0
-or later). As a result, a user familiar with these other tools generates
-OCHRE input files as part of their normal workflow. This allows these
-other tools to be used as a front end and enables quick comparisons
-between OCHRE and EnergyPlus. OCHRE has been tested with HPXML files
-from both workflows, but note it does not currently support all of the
-features of these tools.
-
 HPXML and occupancy schedule input files can be generated from:
 
--  `BEopt <https://www.nrel.gov/buildings/beopt.html>`__ 3.0 or later:
-   best for designing a single building model. Includes a user interface
-   to select building features. Note that the occupancy schedule file is
-   optional; users must specify stochastic occupancy in BEopt. To generate
-   input files from BEopt, run your model as usual. The input files you need
-   for OCHRE (in.hpxml and schedules.csv) will be automatically generated
-   and are located in 'C:/Users/*your_username*/Documents/BEopt_3.0.x/TEMP1/1/run'.
-   BEopt generates several xml files as part of the workflow, but the one
-   OCHRE is looking for is always within the run directory.
+-  `BEopt <https://www.nrel.gov/buildings/beopt.html>`__ 3.0 or later: best
+   for designing a single building model. Includes a user interface to select
+   building features.
 
--  `End-Use Load
-   Profiles <https://www.nrel.gov/buildings/end-use-load-profiles.html>`__
-   Database: best for using pre-existing building models
+-  `End-Use Load Profiles
+   <https://www.nrel.gov/buildings/end-use-load-profiles.html>`__ Database:
+   best for using building models from previous ResStock runs
 
--  `ResStock <https://resstock.nrel.gov/>`__: best for existing ResStock
-   users and for users in need of a large sample of building models.
+-  `ResStock <https://resstock.nrel.gov/>`__: best for users in need of a
+   large sample of building models with specific features
+
+.. note:: 
+   When using BEopt, users must specify stochastic occupancy to generate the
+   schedule file. Once the model is run, the input files you need for OCHRE
+   (``in.xml`` and ``schedules.csv``) will be automatically generated and are
+   located in ``C:/Users/<your_username>/Documents/BEopt_3.0.x/TEMP1/1/run``.
+   BEopt generates several xml files, but the HPXML file is always within the run
+   directory.
 
 Weather input files can be generated from:
 
@@ -125,7 +110,7 @@ A Dwelling model can be initialized using:
 
 .. code-block:: python
 
-   from OCHRE import Dwelling
+   from ochre import Dwelling
    house = Dwelling(**dwelling_args)
 
 where ``dwelling_args`` is a Python dictionary of Dwelling arguments.
@@ -238,7 +223,7 @@ Dwelling. For example, to initialize a battery:
 
 .. code-block:: python
 
-   from OCHRE import Battery
+   from ochre import Battery
    equipment = Battery(**equipment_args)
 
 where equipment_args is a Python dictionary of Equipment arguments.

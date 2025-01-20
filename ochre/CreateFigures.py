@@ -117,6 +117,9 @@ def plot_power_stack(df, add_gas=False, **kwargs):
     power_cols = {key: color for key, color in all_power_colors.items() if key +
                   ' Electric Power (kW)' in df.columns and df[key + ' Electric Power (kW)'].sum() != 0}
     df_power = df.loc[:, [key + ' Electric Power (kW)' for key in power_cols]]
+    if df_power.empty:
+        print("No power data to plot")
+        return
     ax1.stackplot(df_power.index, df_power.clip(lower=0).values.T,
                   colors=power_cols.values(), labels=power_cols.keys())
     ax1.stackplot(df_power.index, df_power.clip(upper=0).loc[:, ::-1].values.T,

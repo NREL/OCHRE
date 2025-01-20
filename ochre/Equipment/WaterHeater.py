@@ -186,7 +186,7 @@ class WaterHeater(Equipment):
         
         # get other controls from schedule - deadband and max power
         if "Water Heating Deadband (C)" in self.current_schedule:
-            self.temp_deadband = self.current_schedule["Water Heating Deadband (C)"]
+            self.deadband_temp = self.current_schedule["Water Heating Deadband (C)"]
         if "Water Heating Max Power (kW)" in self.current_schedule:
             self.max_power = self.current_schedule["Water Heating Max Power (kW)"]
 
