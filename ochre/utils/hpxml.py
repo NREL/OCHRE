@@ -860,23 +860,33 @@ def parse_hvac(hvac_type, hvac_all):
         })
 
     if has_heat_pump and hvac_type == 'Heating':
-        backup_capacity = heat_pump.get('BackupHeatingCapacity', 0)
         backup_fuel = heat_pump.get('BackupSystemFuel')
-
-        if backup_capacity and backup_fuel == 'electricity':
-            # assumes efficiency units are in Percent or AFUE
-            out.update({
-                'Supplemental Heater EIR (-)': 1 / heat_pump.get('BackupAnnualHeatingEfficiency', {}).get('Value'),
-                'Supplemental Heater Capacity (W)': convert(backup_capacity, 'Btu/hour', 'W'),
-                'Supplemental Heater Cut-in Temperature (C)':
-                    convert(heat_pump.get('BackupHeatingSwitchoverTemperature'), 'degF', 'degC'),
-            })
-        else:
-            if backup_capacity:
-                print(f'WARNING: Using electric backup heater for ASHP instead of {backup_fuel} equipment')
-            out.update({
-                'Supplemental Heater Capacity (W)': backup_capacity,
-            })
+        backup_capacity = heat_pump.get('BackupHeatingCapacity', 0)
+        backup_capacity = convert(backup_capacity, "Btu/hour", "W")
+        # assumes efficiency units are in Percent or AFUE (0-1)
+        backup_cop = heat_pump.get("BackupAnnualHeatingEfficiency", {}).get("Value")
+        hp_lockout_temp = heat_pump.get(
+            "CompressorLockoutTemperature",
+            heat_pump.get("BackupHeatingSwitchoverTemperature", 0),
+        )
+        hp_lockout_temp = convert(hp_lockout_temp, "degF", "degC")
+        er_lockout_temp = heat_pump.get(
+            "BackupHeatingLockoutTemperature",
+            heat_pump.get("BackupHeatingSwitchoverTemperature", 40),
+        )
+        er_lockout_temp = convert(er_lockout_temp, "degF", "degC")
+        if backup_capacity:
+            if backup_fuel != 'electricity':
+                print(f'WARNING: Using electric resistance backup for ASHP instead of {backup_fuel} backup')
+            
+            out.update(
+                {
+                    "Backup EIR (-)": 1 / backup_cop,
+                    "Backup Capacity (W)": backup_capacity,
+                    "Heat Pump Lockout Temperature (C)": hp_lockout_temp,
+                    "Backup Lockout Temperature (C)": er_lockout_temp,
+                }
+            )
 
     # Get duct info for calculating DSE
     

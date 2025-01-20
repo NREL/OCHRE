@@ -23,8 +23,8 @@ dwelling_args = {
     'time_zone': None,                            # option to specify daylight savings, in development
 
     # Input parameters - Sample building (uses HPXML file and time series schedule file)
-    'hpxml_file': os.path.join(default_input_path, 'Input Files', 'sample_resstock_properties.xml'),
-    'schedule_input_file': os.path.join(default_input_path, 'Input Files', 'sample_resstock_schedule.csv'),
+    'hpxml_file': os.path.join(default_input_path, 'Input Files', 'bldg0112631-up00.xml'),
+    'schedule_input_file': os.path.join(default_input_path, 'Input Files', 'bldg0112631_schedule.csv'),
 
     # Input parameters - weather (note weather_path can be used when Weather Station is specified in HPXML file)
     # 'weather_path': weather_path,
@@ -66,13 +66,13 @@ dwelling_args = {
         #     # 'use_ideal_capacity': True,
         #     # 'show_eir_shr': True,
         # },
-        # 'Air Conditioner': {
-        #     'speed_type': 'Double',
+        # "Air Source Heat Pump": {
+        #     # "Backup Setpoint Offset (C)": 3,
+        #     # "Backup Lockout Time (minutes)": 10,
+        #     # "Backup Soft Lockout Time (minutes)": 20,
         # },
-        # 'Gas Furnace': {
-        #     'heating capacity (W)': 6000,
-        #     # 'supplemental heating capacity (W)': 6000,
-        # },
+        # 'Air Conditioner': {},
+        # 'Gas Furnace': {},
 
         # Water heating equipment
         # Note: dictionary key can be end use (Water Heating) or specific equipment name (e.g., Gas Water Heater)
