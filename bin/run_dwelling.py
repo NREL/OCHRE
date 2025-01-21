@@ -2,7 +2,8 @@ import os
 import datetime as dt
 import pandas as pd
 
-from ochre import Dwelling, Analysis, CreateFigures
+from ochre import Dwelling, CreateFigures
+# from ochre import Analysis
 from ochre.utils import default_input_path
 
 # Test script to run single Dwelling
@@ -14,17 +15,17 @@ pd.set_option("display.max_rows", 30)  # Shows up to 30 rows of data
 
 dwelling_args = {
     "name": "MyHouse",  # simulation name
-    
+    # 
     # Timing parameters
     "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
     "time_res": dt.timedelta(minutes=60),         # time resolution of the simulation
     "duration": dt.timedelta(days=1),             # duration of the simulation
     "initialization_time": dt.timedelta(days=1),  # used to create realistic starting temperature
     # "time_zone": None,                          # option to specify daylight savings, in development
-    
+    # 
     # Input files
     "hpxml_file": os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
-    "schedule_input_file": os.path.join(
+    "hpxml_schedule_file": os.path.join(
         default_input_path, "Input Files", "bldg0112631_schedule.csv"
     ),
     "weather_file": os.path.join(
@@ -32,7 +33,7 @@ dwelling_args = {
     ),
     # note: weather_path can be used when Weather Station is specified in HPXML file
     # "weather_path": weather_path,
-    
+    # 
     # Output parameters
     "verbosity": 3,                         # verbosity of time series files (0-9)
     # "metrics_verbosity": 6,               # verbosity of metrics file (0-9), default=6
@@ -42,7 +43,7 @@ dwelling_args = {
     # "output_to_parquet": True,            # saves time series files as parquet files (False saves as csv files)
     # "save_schedule_columns": [],          # list of time series inputs to save to schedule file
     # "export_res": dt.timedelta(days=61),  # time resolution for saving files, to reduce memory requirements
-    
+    # 
     # Envelope parameters
     # "Envelope": {
     #     "save_results": True,  # Saves detailed envelope inputs and states
@@ -58,12 +59,12 @@ dwelling_args = {
     #         }
     #     },
     # },
-
+    # 
     # Occupancy parameters
     # "Occupancy": {
     #     "Number of Occupants (-)": 3,
     # },
-
+    # 
     # Equipment parameters
     "Equipment": {
         # HVAC equipment
@@ -78,7 +79,12 @@ dwelling_args = {
         # "Gas Furnace": {
         #     "EIR (-)": 1.1,
         # },
-
+        # "Air Source Heat Pump": {
+        #     "Backup Setpoint Offset (C)": 3,
+        #     "Backup Lockout Time (minutes)": 10,
+        #     "Backup Soft Lockout Time (minutes)": 20,
+        # },
+        #
         # Water heating equipment
         # Note: dictionary key can be end use (Water Heating) or specific equipment name (e.g., Gas Water Heater)
         # "Water Heating": {
@@ -95,12 +101,12 @@ dwelling_args = {
         # "Electric Resistance Water Heater": {
         #     "use_ideal_capacity": True,
         # },
-
+        # 
         # Other equipment
         # "EV": {
         #     "vehicle_type": "BEV",
         #     "charging_level": "Level 1",
-        #     "mileage": 150,
+        #     "range": 150,
         # },
         # "PV": {
         #     "capacity": 5,

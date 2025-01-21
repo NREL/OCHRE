@@ -19,8 +19,8 @@ dwelling_args = {
     # Input and Output Files
     'output_path': test_output_path,
     'hpxml_file': 'sample_beopt_house.properties',
-    # 'schedule_input_file': 'test_case_schedule.properties',
-    'schedule_input_file': 'occupant_schedule_test.csv',
+    # 'hpxml_schedule_file': 'test_case_schedule.properties',
+    'hpxml_schedule_file': 'occupant_schedule_test.csv',
     'water_draw_file': 'DHW_2bed_unit0_1min.csv',
     'weather_file': 'CA_RIVERSIDE_MUNI_722869_12.epw',
     'verbosity': 9,  # verbosity of results file (0-9); 8: include envelope; 9: include water heater

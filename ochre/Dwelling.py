@@ -77,15 +77,13 @@ class Dwelling(Simulator):
             else:
                 self.hourly_output_file = None
             if self.verbosity >= 7 or save_schedule_columns:
-                schedule_output_file = os.path.join(
-                    self.output_path, self.name + "_schedule" + extn
-                )
+                ochre_schedule_file = os.path.join(self.output_path, self.name + "_schedule" + extn)
             else:
-                schedule_output_file = None
+                ochre_schedule_file = None
         else:
             self.metrics_file = None
             self.hourly_output_file = None
-            schedule_output_file = None
+            ochre_schedule_file = None
 
         # Load properties from HPXML file
         properties, weather_station = load_hpxml(**house_args)
@@ -107,14 +105,14 @@ class Dwelling(Simulator):
             save_json(properties_to_save, json_file)
 
         # Save schedule file
-        if schedule_output_file is not None:
+        if ochre_schedule_file is not None:
             if save_schedule_columns:
                 cols_to_save = [col for col in schedule.columns if col in save_schedule_columns]
                 schedule_to_save = schedule.loc[:, cols_to_save]
             else:
                 schedule_to_save = schedule
             if self.output_to_parquet:
-                schedule_to_save.to_parquet(schedule_output_file)
+                schedule_to_save.to_parquet(ochre_schedule_file)
             else:
                 schedule_to_save.reset_index().to_csv(schedule_output_file, index=False)
             self.print("Saved schedule to:", schedule_output_file)

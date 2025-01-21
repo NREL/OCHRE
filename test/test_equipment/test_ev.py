@@ -12,7 +12,7 @@ init_args = equip_init_args.copy()
 init_args.update({
     'vehicle_type': 'PHEV',
     'charging_level': 'Level 0',
-    'mileage': 20,
+    'range': 20,
     'schedule': pd.DataFrame({'ambient_dry_bulb': [15] * 1440}, index=times),
 })
 

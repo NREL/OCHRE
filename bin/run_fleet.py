@@ -1,3 +1,4 @@
+import os
 import datetime as dt
 import numpy as np
 import pandas as pd
@@ -6,18 +7,25 @@ from multiprocessing import Pool
 
 from ochre import ElectricVehicle, ElectricResistanceWaterHeater, Battery
 from ochre import CreateFigures
+from ochre.utils import default_input_path
 
 # Test script to run a fleet of equipment
 
 
-def setup_ev(i):
-    # randomly select vehicle type, mileage, and charging level
+def setup_ev(i) -> ElectricVehicle:
+    # randomly select vehicle type, range, and charging level
     vehicle_type = np.random.choice(["BEV", "PHEV"])
     charging_level = np.random.choice(["Level 1", "Level 2"])
     if vehicle_type == "BEV":
-        mileage = round(np.random.uniform(100, 300))
+        range = round(np.random.uniform(100, 300))
     else:
-        mileage = round(np.random.uniform(20, 70))
+        range = round(np.random.uniform(20, 70))
+
+    # Option to specify a file with EV charging events
+    # Defaults to older charging event data
+    # equipment_event_file = None
+    lvl = charging_level.lower().replace(" ", "_")
+    equipment_event_file = os.path.join(default_input_path, "EV", f"{vehicle_type}_{lvl}.csv")
 
     # Initialize equipment
     return ElectricVehicle(
@@ -25,17 +33,18 @@ def setup_ev(i):
         seed=i,  # used to randomize charging events. Not used for randomization above
         vehicle_type=vehicle_type,
         charging_level=charging_level,
-        mileage=mileage,
+        range=range,
         start_time=dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
         time_res=dt.timedelta(minutes=15),
         duration=dt.timedelta(days=5),
         verbosity=1,
         save_results=False,  # if True, must specify output_path
         # output_path=os.getcwd(),
+        equipment_event_file=equipment_event_file,
     )
 
 
-def run_ev(ev):
+def run_ev(ev: ElectricVehicle):
     df = ev.simulate()
     out = df["EV Electric Power (kW)"]
     out.name = ev.name

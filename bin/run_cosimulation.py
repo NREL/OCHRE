@@ -12,8 +12,7 @@ from ochre import Dwelling, Analysis
 from ochre.utils import default_input_path
 
 # Example script to run multiple OCHRE buildings with a DER aggregator in
-# co-simulation using HELICS. Uses OCHRE's command line interface (CLI)
-# functions.
+# co-simulation using HELICS.
 
 main_path = os.path.join(os.getcwd(), "cosimulation")
 os.makedirs(main_path, exist_ok=True)
@@ -57,9 +56,9 @@ status_keys = [
 # https://ochre-nrel.readthedocs.io/en/latest/InputsAndArguments.html#weather-file
 default_weather_file = os.path.join(default_input_path, "Weather", "G0800310.epw")
 
-# control parameters
-min_net_load = -2 * n
-max_net_load = 3 * n
+# control parameters - keep net load within +/- 1 kW per house
+min_net_load = -1 * n
+max_net_load = 1 * n
 
 
 def make_helics_federate(name):
@@ -135,19 +134,20 @@ def house(name, input_path):
         duration=duration,
         initialization_time=dt.timedelta(days=1),
         hpxml_file=os.path.join(input_path, "home.xml"),
-        schedule_input_file=os.path.join(input_path, "in.schedules.csv"),
+        hpxml_schedule_file=os.path.join(input_path, "in.schedules.csv"),
         weather_path=input_path,
         output_path=input_path,
         verbosity=verbosity,
         Equipment=equipment_args,
     )
     assert (dwelling.sim_times == sim_times).all()
+    print(name, "initialized")
 
     # before simulation, publish default status
     fed.enter_executing_mode()
     dict_to_agg = {key: 0 for key in status_keys}
     str_to_agg = json.dumps(dict_to_agg)
-    print(name, f"status-{name}", str_to_agg)
+    print(name, "sending to agg:", str_to_agg)
     pub.publish(str_to_agg)
 
     # begin simulation
@@ -158,13 +158,12 @@ def house(name, input_path):
 
         # get aggregator controls
         str_from_agg = sub.value
-        print(type(str_from_agg), str_from_agg)
         if "-999" in str_from_agg:
-            print("bad data from agg", str_from_agg)
+            print(t, "house received bad data:", str_from_agg)
             control_signal = {}
         else:
             control_signal = json.loads(str_from_agg)
-            print(name, "from_agg", control_signal)
+            print(t, "house received:", control_signal)
 
         # run 1 time step
         status = dwelling.update(control_signal)
@@ -172,7 +171,7 @@ def house(name, input_path):
         # publish house status - keep only relevant keys
         dict_to_agg = {key: val for key, val in status.items() if key in status_keys}
         str_to_agg = json.dumps(dict_to_agg)
-        print(name, "to_agg", str_to_agg)
+        print(t, "house sending:", str_to_agg)
         pub.publish(str_to_agg)
 
     # finalize OCHRE
@@ -195,7 +194,6 @@ def aggregator():
     fed.enter_executing_mode()
     dict_to_houses = {"Battery": {"P Setpoint": 0}}
     str_to_houses = json.dumps(dict_to_houses)
-    print("agg init", str_to_houses)
     pub.publish(str_to_houses)
 
     # begin simulation
@@ -205,14 +203,8 @@ def aggregator():
         step_to(t, fed)
 
         # get status from all houses
-        test_val = subs["House_1"].value
-        print(type(test_val), test_val)
-        if test_val == "-1e+49":
-            print("bad data from houses:", subs["House_1"].value)
-            house_data = {"Total Electric Power (kW)": [0, 1], "Battery Electric Power (kW)": [0, 1]}
-        else:
-            house_data = {name: json.loads(sub.value) for name, sub in subs.items()}
-            print("agg receives:", house_data)
+        house_data = {name: json.loads(sub.value) for name, sub in subs.items()}
+        print(t, "agg received:", house_data)
         total_powers = pd.DataFrame(house_data).T.sum()
         results.append(total_powers)
 
@@ -230,7 +222,7 @@ def aggregator():
         # publish house controls
         dict_to_houses = {"Battery": {"P Setpoint": battery_power / n}}
         str_to_houses = json.dumps(dict_to_houses)
-        print("Agg sends:", str_to_houses)
+        print(t, "agg sending:", str_to_houses)
         pub.publish(str_to_houses)
 
     # save total powers
@@ -271,6 +263,7 @@ def main():
         f.write(json.dumps(config, indent=4))
 
     # run
+    print("Running co-simulation, files saved to:", main_path)
     run(["--path", config_file])
     pass
 
