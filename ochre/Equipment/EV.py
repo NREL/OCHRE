@@ -103,7 +103,8 @@ class ElectricVehicle(EventBasedLoad):
             df["temperature"] = df["temperature"].astype(int)
         df["start_time"] = df["start_time"].astype(float)
         df["duration"] = df["duration"].astype(float)
-        df["start_soc"] = df["start_soc"].astype(float)
+        df["duration"] = pd.to_timedelta(df["duration"], unit="minute")
+        df["start_soc"] = df["start_soc"].astype(float) / 100
 
         # sort by day_id and start_time
         df = df.sort_values(["day_id", "start_time"])
@@ -192,17 +193,7 @@ class ElectricVehicle(EventBasedLoad):
         df_events = df_events.reset_index(drop=True)
 
         # set end times
-        df_events["end_time"] = df_events["start_time"] + pd.to_timedelta(
-            df_events["duration"], unit="minute"
-        )
-
-        # set maximum ending SOC
-        df_events["start_soc"] /= 100
-        max_soc = (
-            df_events["start_soc"]
-            + self.max_power * EV_EFFICIENCY * df_events["duration"] / self.capacity
-        )
-        df_events["end_soc"] = max_soc.clip(upper=1)
+        df_events["end_time"] = df_events["start_time"] + df_events["duration"]
 
         # fix overlaps - if gap betwen 2 events < 1 hour, then move the end time of first event earlier
         new_day_event = df_events["day_id"] != df_events["day_id"].shift(-1)
@@ -221,6 +212,18 @@ class ElectricVehicle(EventBasedLoad):
 
         df_events = df_events.reset_index(drop=True)
         return df_events
+
+    def initialize_schedule(self, event_schedule=None, **kwargs):
+        ts_schedule = super().initialize_schedule(event_schedule, **kwargs)
+
+        # set maximum ending SOC
+        hours = self.all_events["duration"].dt.total_seconds() / 3600
+        max_soc = (
+            self.all_events["start_soc"] + self.max_power * EV_EFFICIENCY * hours / self.capacity
+        )
+        self.all_events["end_soc"] = max_soc.clip(upper=1)
+
+        return ts_schedule
 
     def start_event(self):
         # update SOC when event starts
@@ -242,10 +245,8 @@ class ElectricVehicle(EventBasedLoad):
 
         # recalculate expected ending SOC
         next_event = self.all_events.loc[self.event_index]
-        end_soc = (
-            next_event["start_soc"]
-            + self.max_power * EV_EFFICIENCY * next_event["duration"] / self.capacity
-        )
+        hours = next_event["duration"].dt.total_seconds() / 3600
+        end_soc = next_event["start_soc"] + self.max_power * EV_EFFICIENCY * hours / self.capacity
         self.all_events.loc[self.event_index, "end_soc"] = np.clip(end_soc, 0, 1)
 
     def update_external_control(self, control_signal):

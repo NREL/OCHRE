@@ -151,12 +151,6 @@ class EventBasedLoad(Equipment):
         self.event_start = self.all_events.loc[self.event_index, "start_time"]
         self.event_end = self.all_events.loc[self.event_index, "end_time"]
 
-        # add duration and total energy from each event, in kWh
-        self.all_events["duration"] = self.all_events["end_time"] - self.all_events["start_time"]
-        self.all_events["energy"] = (
-            self.all_events["power"] * self.all_events["duration"].dt.total_seconds() / 3600
-        )
-
         # check that end time is at or after start time, and events do not overlap
         negative_times = self.all_events["end_time"] < self.all_events["start_time"]
         if negative_times.any():
@@ -170,6 +164,12 @@ class EventBasedLoad(Equipment):
             bad_index = overlap.idxmax()
             bad_events = self.all_events.loc[bad_index - 1 : bad_index + 1]
             raise ValueError(f"{self.name} event overlap. Event details: \n{bad_events}")
+
+        # add duration and total energy from each event, in kWh
+        self.all_events["duration"] = self.all_events["end_time"] - self.all_events["start_time"]
+        self.all_events["energy"] = (
+            self.all_events["power"] * self.all_events["duration"].dt.total_seconds() / 3600
+        )
 
         return ts_schedule
 
