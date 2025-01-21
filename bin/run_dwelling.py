@@ -15,12 +15,14 @@ pd.set_option("display.max_rows", 30)  # Shows up to 30 rows of data
 
 dwelling_args = {
     "name": "MyHouse",  # simulation name
+    # 
     # Timing parameters
     "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
     "time_res": dt.timedelta(minutes=60),         # time resolution of the simulation
     "duration": dt.timedelta(days=1),             # duration of the simulation
     "initialization_time": dt.timedelta(days=1),  # used to create realistic starting temperature
     # "time_zone": None,                          # option to specify daylight savings, in development
+    # 
     # Input files
     "hpxml_file": os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
     "hpxml_schedule_file": os.path.join(
