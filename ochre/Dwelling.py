@@ -114,8 +114,8 @@ class Dwelling(Simulator):
             if self.output_to_parquet:
                 schedule_to_save.to_parquet(ochre_schedule_file)
             else:
-                schedule_to_save.reset_index().to_csv(schedule_output_file, index=False)
-            self.print("Saved schedule to:", schedule_output_file)
+                schedule_to_save.reset_index().to_csv(ochre_schedule_file, index=False)
+            self.print("Saved schedule to:", ochre_schedule_file)
 
         # Update args for initializing Envelope and Equipment
         sim_args = {
@@ -138,7 +138,7 @@ class Dwelling(Simulator):
         # Create all equipment
         self.equipment = {}
         for equipment_name, equipment_args in equipment_dict.items():
-            cls = equipment_args.pop("equipment_class", EQUIPMENT_BY_NAME[equipment_name])
+            cls = equipment_args.pop("equipment_class", EQUIPMENT_BY_NAME.get(equipment_name))
             equipment_args = {**sim_args, **equipment_args}
             eq = cls(name=equipment_name, **equipment_args)
             self.equipment[equipment_name] = eq

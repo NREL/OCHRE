@@ -161,6 +161,8 @@ def save_json(data, file_name):
     # saves json file but writes long lists to a single line
     # see: https://stackoverflow.com/questions/42710879/write-two-dimensional-list-to-json-file
     def parse_object(obj):
+        if isinstance(obj, pd.DataFrame):
+            obj = obj.astype(str).to_dict("list") if obj.size < 100 else "<DataFrame>"
         if isinstance(obj, dict):
             return {key: parse_object(val) for key, val in obj.items()}
         elif isinstance(obj, (list, tuple)) and len(obj) > 4:

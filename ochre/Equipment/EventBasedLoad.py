@@ -378,9 +378,9 @@ class EventDataLoad(EventBasedLoad):
         if time_res_file < self.time_res:
             # downsample - average
             self.event_ts_data = self.event_ts_data.resample(self.time_res).mean()
-        else:
-            # upsample - pad
-            self.event_ts_data = self.event_ts_data.resample(self.time_res).pad()
+        elif time_res_file > self.time_res:
+            # upsample - ffill
+            self.event_ts_data = self.event_ts_data.resample(self.time_res).ffill()
 
         ts_schedule = super().initialize_schedule(**kwargs)
 
