@@ -52,9 +52,9 @@ Usage
 
 OCHRE can be run in Python or through a command line interface. The `OCHRE
 User Tutorial
-<https://mybinder.org/v2/gh/NREL/OCHRE/c0a698d19a9057c38f7a72060b63b96251c45e42?urlpath=lab%2Ftree%2Fnotebook%2Fuser_tutorial.ipynb>`__
-is available on MyBinder, an interactive online platform for running Jupyter
-notebooks.
+<https://colab.research.google.com/github/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
+is available on Google Colab, an interactive online platform for running
+Python code.
 
 Python Interface
 ~~~~~~~~~~~~~~~~
@@ -100,8 +100,8 @@ For more examples, see:
 
 - The `OCHRE User Tutorial
   <https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
-  Jupyter notebook (also available on `MyBinder
-  <https://mybinder.org/v2/gh/NREL/OCHRE/c0a698d19a9057c38f7a72060b63b96251c45e42?urlpath=lab%2Ftree%2Fnotebook%2Fuser_tutorial.ipynb>`__)
+  Jupyter notebook (also available on `Google Colab
+  <https://colab.research.google.com/github/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__)
 
 - Python example scripts to:
 
