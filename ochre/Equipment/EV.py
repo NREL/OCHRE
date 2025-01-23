@@ -252,11 +252,13 @@ class ElectricVehicle(EventBasedLoad):
         # Options for external control signals:
         # - SOC: Solves for power setpoint to achieve desired SOC, unitless
         # - SOC Rate: Solves for power setpoint to achieve desired SOC Rate, in 1/hour
+        #   - Note: Setpoint controls will not reset
         # - Max Power: Updates maximum allowed power (in kW)
         #   - Note: Max Power will only be reset if it is in the schedule
         # - Max SOC: Maximum SOC limit for charging
         # - See additional controls in EventBasedLoad.update_external_control
 
+        # TODO: if exists and is None, reset to self.max_power
         max_power = control_signal.get("Max Power")
         if max_power is not None:
             if "EV Max Power (kW)" in self.current_schedule:
@@ -274,7 +276,6 @@ class ElectricVehicle(EventBasedLoad):
         mode = super().update_external_control(control_signal)
 
         # update power setpoint directly or through SOC or SOC Rate
-        # TODO: need to create a p_setpoint_ctrl variable 
         if "P Setpoint" in control_signal:
             setpoint = control_signal["P Setpoint"]
         elif "SOC" in control_signal:
@@ -308,7 +309,12 @@ class ElectricVehicle(EventBasedLoad):
         if "EV Max SOC (-)" in self.current_schedule:
             self.soc_max_ctrl = self.current_schedule["EV Max SOC (-)"]
 
-        return super().update_internal_control()
+        mode = super().update_internal_control()
+        
+        # set power setpoint
+        self.p_setpoint = self.max_power_ctrl if self.in_event else 0
+        
+        return mode
 
     def calculate_power_and_heat(self):
         # Note: this is copied from the battery model, but they are not linked at all
@@ -317,9 +323,8 @@ class ElectricVehicle(EventBasedLoad):
 
         # force ac power within kw capacity and SOC limits, no discharge allowed
         hours = self.time_res.total_seconds() / 3600
-        max_power = self.p_setpoint if self.p_setpoint is not None else self.max_power_ctrl
-        ac_power = (self.soc_max_ctrl - self.soc) * self.capacity / hours / EV_EFFICIENCY
-        ac_power = min(max(ac_power, 0), max_power)
+        soc_max_power = (self.soc_max_ctrl - self.soc) * self.capacity / hours / EV_EFFICIENCY
+        ac_power = min(max(self.p_setpoint, 0), soc_max_power)
         self.electric_kw = ac_power
 
         # update SOC for next time step, check with upper and lower bound of usable SOC

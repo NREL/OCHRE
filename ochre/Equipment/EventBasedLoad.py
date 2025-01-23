@@ -195,6 +195,8 @@ class EventBasedLoad(Equipment):
     def start_event(self):
         # optional function that runs when starting an event
         self.in_event = True
+        if "power" in self.all_events.columns:
+            self.p_setpoint = self.all_events.loc[self.event_index, "power"]
 
     def end_event(self):
         # function that runs when ending an event
@@ -245,12 +247,12 @@ class EventBasedLoad(Equipment):
         if p_set_ext is not None:
             self.p_setpoint = p_set_ext
 
-        load_fraction = control_signal.get("Load Fraction")
-        if load_fraction is not None:
-            self.p_setpoint *= load_fraction
-
-        if self.p_setpoint and mode != "On":
-            self.warn("Cannot set power when not in an event.")
+        # If load fraction = 0, force off
+        load_fraction = control_signal.get("Load Fraction", 1)
+        if load_fraction == 0:
+            return "Off"
+        elif load_fraction != 1:
+            raise IOError(f"{self.name} can't handle non-integer load fractions")
 
         return mode
 
@@ -261,8 +263,6 @@ class EventBasedLoad(Equipment):
         elif self.current_time < self.event_end:
             if self.mode == "Off":
                 self.start_event()
-            if "power" in self.all_events.columns:
-                self.p_setpoint = self.all_events.loc[self.event_index, "power"]
             return "On"
         else:
             # event has ended, move to next event
@@ -427,17 +427,18 @@ class EventDataLoad(EventBasedLoad):
         event_schedule = self.event_ts_data[event_type].values
         self.event_schedule = iter(event_schedule)
 
+        # set power for first time step in event
+        self.p_setpoint = next(self.event_schedule)
+
     def end_event(self):
         super().end_event()
 
         # reset event schedule
         self.event_schedule = None
 
-    def update_internal_control(self):
-        mode = super().update_internal_control()
+    def update_inputs(self):
+        super().update_inputs()
 
         # update power setpoint from event schedule
         if self.in_event:
             self.p_setpoint = next(self.event_schedule)
-
-        return mode
