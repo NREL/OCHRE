@@ -25,7 +25,7 @@ class EventBasedLoad(Equipment):
         self.event_index = 0
         self.event_start = None
         self.event_end = None
-        self.p_setpoint = None
+        self.p_setpoint = 0
         self.in_event = False
 
         super().__init__(**kwargs)
@@ -46,6 +46,8 @@ class EventBasedLoad(Equipment):
         # get event information from time series schedule
         # assumes constant power for all events
         # get start times
+        # TODO: could try to determine start/end times from power in
+        #   first/last time step of each event
         on = eq_powers.sum(axis=1) > 0
         start_times = on & (~on).shift(fill_value=True)
         event_counts = start_times.astype(int).cumsum()
@@ -167,9 +169,10 @@ class EventBasedLoad(Equipment):
 
         # add duration and total energy from each event, in kWh
         self.all_events["duration"] = self.all_events["end_time"] - self.all_events["start_time"]
-        self.all_events["energy"] = (
-            self.all_events["power"] * self.all_events["duration"].dt.total_seconds() / 3600
-        )
+        if "power" in self.all_events.columns:
+            self.all_events["energy"] = (
+                self.all_events["power"] * self.all_events["duration"].dt.total_seconds() / 3600
+            )
 
         return ts_schedule
 
@@ -238,13 +241,16 @@ class EventBasedLoad(Equipment):
 
         mode = self.update_internal_control()
 
+        p_set_ext = control_signal.get("P Setpoint")
+        if p_set_ext is not None:
+            self.p_setpoint = p_set_ext
+
         load_fraction = control_signal.get("Load Fraction")
         if load_fraction is not None:
             self.p_setpoint *= load_fraction
 
-        p_set_ext = control_signal.get("P Setpoint")
-        if p_set_ext is not None:
-            self.p_setpoint = p_set_ext
+        if self.p_setpoint and mode != "On":
+            self.warn("Cannot set power when not in an event.")
 
         return mode
 
@@ -255,7 +261,8 @@ class EventBasedLoad(Equipment):
         elif self.current_time < self.event_end:
             if self.mode == "Off":
                 self.start_event()
-            self.p_setpoint = self.all_events.loc[self.event_index, "power"]
+            if "power" in self.all_events.columns:
+                self.p_setpoint = self.all_events.loc[self.event_index, "power"]
             return "On"
         else:
             # event has ended, move to next event
@@ -334,12 +341,13 @@ class EventDataLoad(EventBasedLoad):
             self.all_events["event_type"] = None
             return
 
-        # get duration, energy, and peak power for each event type
+        # get duration and energy for each event type
+        # max power isn't necessary, power is taken from schedule time series
         event_metrics = pd.DataFrame(
             {
                 "duration": (self.event_ts_data == 0)[::-1].idxmin() + self.time_res,
                 "energy": self.event_ts_data.sum() * self.time_res.total_seconds() / 3600,
-                "power": self.event_ts_data.max(),
+                # "power": self.event_ts_data.max(),
             },
             index=self.event_ts_data.columns,
         )
@@ -371,7 +379,7 @@ class EventDataLoad(EventBasedLoad):
                 f"Total energy ({final_energy} kWh) deviates from schedule ({total_energy} kWh)."
             )
 
-        # revise end time, duration, power, and energy
+        # revise end time, duration, and energy
         self.all_events = self.all_events.loc[:, ["start_time", "event_type"]]
         self.all_events = self.all_events.join(event_metrics, on="event_type")
         self.all_events["end_time"] = self.all_events["start_time"] + self.all_events["duration"]
