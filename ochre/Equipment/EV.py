@@ -84,7 +84,6 @@ class ElectricVehicle(EventBasedLoad):
         else:
             self.max_power = max_power
         self.max_power_ctrl = self.max_power
-        self.setpoint_power = None
         self.soc = 1  # unitless
         self.next_soc = 1  # unitless
         self.soc_max_ctrl = 1  # unitless
@@ -251,7 +250,6 @@ class ElectricVehicle(EventBasedLoad):
 
     def update_external_control(self, control_signal):
         # Options for external control signals:
-        # - P Setpoint: Directly sets power setpoint, in kW
         # - SOC: Solves for power setpoint to achieve desired SOC, unitless
         # - SOC Rate: Solves for power setpoint to achieve desired SOC Rate, in 1/hour
         # - Max Power: Updates maximum allowed power (in kW)
@@ -276,6 +274,7 @@ class ElectricVehicle(EventBasedLoad):
         mode = super().update_external_control(control_signal)
 
         # update power setpoint directly or through SOC or SOC Rate
+        # TODO: need to create a p_setpoint_ctrl variable 
         if "P Setpoint" in control_signal:
             setpoint = control_signal["P Setpoint"]
         elif "SOC" in control_signal:
@@ -293,15 +292,14 @@ class ElectricVehicle(EventBasedLoad):
             if mode != "On" and setpoint > 0:
                 self.warn("Cannot set power when not parked.")
             elif self.enable_part_load:
-                self.setpoint_power = setpoint
+                self.p_setpoint = setpoint
             else:
                 # set to max power if setpoint > half of max
-                self.setpoint_power = self.max_power if setpoint >= self.max_power / 2 else 0
+                self.p_setpoint = self.max_power if setpoint >= self.max_power / 2 else 0
 
         return mode
 
     def update_internal_control(self):
-        self.setpoint_power = None
         self.unmet_load = 0
 
         # update control parameters from schedule
@@ -319,7 +317,7 @@ class ElectricVehicle(EventBasedLoad):
 
         # force ac power within kw capacity and SOC limits, no discharge allowed
         hours = self.time_res.total_seconds() / 3600
-        max_power = self.setpoint_power if self.setpoint_power is not None else self.max_power_ctrl
+        max_power = self.p_setpoint if self.p_setpoint is not None else self.max_power_ctrl
         ac_power = (self.soc_max_ctrl - self.soc) * self.capacity / hours / EV_EFFICIENCY
         ac_power = min(max(ac_power, 0), max_power)
         self.electric_kw = ac_power

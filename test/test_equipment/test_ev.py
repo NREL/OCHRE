@@ -69,7 +69,7 @@ class EVTestCase(unittest.TestCase):
         self.ev.update_external_control({}, {'Delay': False})
         self.assertEqual(self.ev.event_start, start)
         self.assertEqual(self.ev.event_end, end)
-        self.assertEqual(self.ev.setpoint_power, None)
+        self.assertEqual(self.ev.p_setpoint, None)
 
         self.ev.update_external_control({}, {'Delay': True})
         self.assertEqual(self.ev.event_start, start + one_min)
@@ -85,34 +85,34 @@ class EVTestCase(unittest.TestCase):
 
         # setpoint control
         self.ev.update_external_control({}, {'P Setpoint': 1})
-        self.assertEqual(self.ev.setpoint_power, None)
+        self.assertEqual(self.ev.p_setpoint, None)
 
         # setpoint with part load enabled
         self.ev.event_start = self.ev.current_time
         self.ev.update_external_control({}, {'P Setpoint': 1})
-        self.assertEqual(self.ev.setpoint_power, 1.4)
+        self.assertEqual(self.ev.p_setpoint, 1.4)
 
         self.ev.enable_part_load = True
         self.ev.update_external_control({}, {'P Setpoint': 1})
-        self.assertEqual(self.ev.setpoint_power, 1)
+        self.assertEqual(self.ev.p_setpoint, 1)
 
         # SOC rate control
         self.ev.event_start = self.ev.current_time
         self.ev.update_external_control({}, {'SOC Rate': 0.2})
-        self.assertAlmostEqual(self.ev.setpoint_power, 1.444, places=3)
+        self.assertAlmostEqual(self.ev.p_setpoint, 1.444, places=3)
 
     def test_update_internal_control(self):
         # test outside of event
         mode = self.ev.update_internal_control({})
         self.assertEqual(mode, 'Off')
-        self.assertIsNone(self.ev.setpoint_power)
+        self.assertIsNone(self.ev.p_setpoint)
 
         # test event start
         self.ev.current_time = self.ev.event_start + dt.timedelta(minutes=2)
         self.soc = 0.5
         mode = self.ev.update_internal_control({})
         self.assertEqual(mode, 'On')
-        self.assertIsNone(self.ev.setpoint_power)
+        self.assertIsNone(self.ev.p_setpoint)
         self.assertNotEqual(self.ev.soc, 0.5)
 
         # test event end with unmet load
@@ -141,7 +141,7 @@ class EVTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.ev.soc, 1)
 
         self.ev.soc = 0.5
-        self.ev.setpoint_power = 1
+        self.ev.p_setpoint = 1
         self.ev.calculate_power_and_heat({})
         self.ev.update_model({})
         self.assertAlmostEqual(self.ev.electric_kw, 1)
