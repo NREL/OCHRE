@@ -245,7 +245,7 @@ class ElectricVehicle(EventBasedLoad):
 
         # recalculate expected ending SOC
         next_event = self.all_events.loc[self.event_index]
-        hours = next_event["duration"].dt.total_seconds() / 3600
+        hours = next_event["duration"].total_seconds() / 3600
         end_soc = next_event["start_soc"] + self.max_power * EV_EFFICIENCY * hours / self.capacity
         self.all_events.loc[self.event_index, "end_soc"] = np.clip(end_soc, 0, 1)
 

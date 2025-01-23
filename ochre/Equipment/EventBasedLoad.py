@@ -186,7 +186,6 @@ class EventBasedLoad(Equipment):
         # update event data
         self.event_start = self.all_events.loc[self.event_index, "start_time"]
         self.event_end = self.all_events.loc[self.event_index, "end_time"]
-        self.p_setpoint = self.all_events.loc[self.event_index, "power"]
         if self.current_time > self.event_start:
             self.start_event()
 
@@ -197,8 +196,9 @@ class EventBasedLoad(Equipment):
     def end_event(self):
         # function that runs when ending an event
         self.in_event = False
+        self.p_setpoint = 0
         self.event_index += 1
-
+        
         if self.event_index == len(self.all_events):
             # no more events - reset to last event index and move start/end times to the end of the simulation
             self.event_index -= 1
@@ -207,12 +207,13 @@ class EventBasedLoad(Equipment):
 
         self.event_start = self.all_events.loc[self.event_index, "start_time"]
         self.event_end = self.all_events.loc[self.event_index, "end_time"]
-        self.p_setpoint = self.all_events.loc[self.event_index, "power"]
 
     def update_external_control(self, control_signal):
-        # If Delay=dt.timedelta, extend start time by that time
-        # If Delay=True, delay for self.time_res
-        # If Delay=int, delay for int * self.time_res
+        # Control options for changing power:
+        #  - Delay: delays event start time, can be timedelta, boolean, or int
+        #    - If True, delays for self.time_res. If int, delays for int * self.time_res
+        #  - Load Fraction: gets multiplied by power from schedule, unitless (applied to electric AND gas)
+        #  - P Setpoint: overwrites electric power from schedule, in kW
         if "Delay" in control_signal:
             delay = control_signal["Delay"]
 
@@ -235,7 +236,17 @@ class EventBasedLoad(Equipment):
 
                 self.event_start += delay
 
-        return self.update_internal_control()
+        mode = self.update_internal_control()
+
+        load_fraction = control_signal.get("Load Fraction")
+        if load_fraction is not None:
+            self.p_setpoint *= load_fraction
+
+        p_set_ext = control_signal.get("P Setpoint")
+        if p_set_ext is not None:
+            self.p_setpoint = p_set_ext
+
+        return mode
 
     def update_internal_control(self):
         if self.current_time < self.event_start:
@@ -244,6 +255,7 @@ class EventBasedLoad(Equipment):
         elif self.current_time < self.event_end:
             if self.mode == "Off":
                 self.start_event()
+            self.p_setpoint = self.all_events.loc[self.event_index, "power"]
             return "On"
         else:
             # event has ended, move to next event
@@ -412,7 +424,6 @@ class EventDataLoad(EventBasedLoad):
 
         # reset event schedule
         self.event_schedule = None
-        self.p_setpoint = 0
 
     def update_internal_control(self):
         mode = super().update_internal_control()
