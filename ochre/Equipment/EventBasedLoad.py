@@ -436,8 +436,8 @@ class EventDataLoad(EventBasedLoad):
         # reset event schedule
         self.event_schedule = None
 
-    def update_inputs(self):
-        super().update_inputs()
+    def update_inputs(self, schedule_inputs=None):
+        super().update_inputs(schedule_inputs)
 
         # update power setpoint from event schedule
         if self.in_event:
