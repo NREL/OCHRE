@@ -402,6 +402,9 @@ class EventDataLoad(EventBasedLoad):
             # upsample - ffill
             self.event_ts_data = self.event_ts_data.resample(self.time_res).ffill()
 
+        # add final row with all zeros
+        self.event_ts_data.loc[self.event_ts_data.index[-1] + self.time_res] = 0
+
         ts_schedule = super().initialize_schedule(**kwargs)
 
         if "event_type" not in self.all_events:

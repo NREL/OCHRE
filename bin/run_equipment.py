@@ -11,6 +11,7 @@ from ochre import (
     ElectricResistanceWaterHeater,
     AirConditioner,
     ScheduledLoad,
+    EventBasedLoad,
     EventDataLoad,
 )
 from ochre import CreateFigures
@@ -369,10 +370,12 @@ def run_event_based_clothes_dryer():
     equipment_args = {
         "name": "Clothes Dryer",
         "event_schedule": event_schedule,
+        # "equipment_class": EventDataLoad,  # used when running within Dwelling
         **default_args,
     }
 
     # Initialize equipment
+    # device = EventBasedLoad(**equipment_args)
     device = EventDataLoad(**equipment_args)
 
     # Simulate equipment
