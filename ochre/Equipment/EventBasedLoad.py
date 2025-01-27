@@ -203,7 +203,7 @@ class EventBasedLoad(Equipment):
         self.in_event = False
         self.p_setpoint = 0
         self.event_index += 1
-        
+
         if self.event_index == len(self.all_events):
             # no more events - reset to last event index and move start/end times to the end of the simulation
             self.event_index -= 1
@@ -333,7 +333,7 @@ class EventDataLoad(EventBasedLoad):
 
     def add_event_types(self):
         # assign an event type to each event
-        #  - maintain total number of events and total energy
+        #  - maintain total number of events, event duration, and total energy
         #  - minimize differences in duration and energy per event
         total_energy = self.all_events["energy"].sum()
         if total_energy == 0:
@@ -343,46 +343,46 @@ class EventDataLoad(EventBasedLoad):
 
         # get duration and energy for each event type
         # max power isn't necessary, power is taken from schedule time series
-        event_metrics = pd.DataFrame(
-            {
-                "duration": (self.event_ts_data == 0)[::-1].idxmin() + self.time_res,
-                "energy": self.event_ts_data.sum() * self.time_res.total_seconds() / 3600,
-                # "power": self.event_ts_data.max(),
-            },
+        duration_by_type = pd.Series(
+            (self.event_ts_data == 0)[::-1].idxmin() + self.time_res,
+            index=self.event_ts_data.columns,
+        )
+        energy_by_type = pd.Series(
+            self.event_ts_data.sum() * self.time_res.total_seconds() / 3600,  # in kWh
             index=self.event_ts_data.columns,
         )
 
-        # determine event "scores" based on duration and energy
-        scores = [
-            [
-                abs((event["duration"] - e_type["duration"]).total_seconds()) / 3600
-                + abs(event["energy"] - e_type["energy"]) * 2
-                for _, e_type in event_metrics.iterrows()
-            ]
-            for _, event in self.all_events.iterrows()
-        ]
+        # determine event type for each event
+        self.all_events["event_type"] = None
+        self.all_events["duration_multiplier"] = None
+        self.all_events["energy_multiplier"] = None
+        for i, event in self.all_events.iterrows():
+            # compare duration and energy for each event type
+            duration_ratio = event["duration"] / duration_by_type
+            duration_mult = duration_ratio.round().clip(lower=1)
+            duration_error = abs(duration_ratio - duration_mult) * duration_by_type
+            energy_error = (event["energy"] / duration_mult - energy_by_type) / energy_by_type
+            
+            # determine event type based on duration and energy "scores"
+            # 50% error in energy ~= 30 minutes of error in duration
+            duration_score = duration_error.dt.total_seconds() / 60
+            energy_score = abs(energy_error) ** 2 * 120
+            event_type = (duration_score + energy_score).idxmin()
+            self.all_events.loc[i, "event_type"] = event_type
 
-        # assign event based on minimum score
-        scores = pd.DataFrame(scores, index=self.all_events.index, columns=event_metrics.index)
-        event_types = scores.idxmin(axis=1)
-        self.all_events["event_type"] = event_types
+            # update multipliers and other data
+            d_mult = duration_mult[event_type]
+            self.all_events.loc[i, "duration_multiplier"] = int(d_mult)
+            self.all_events.loc[i, "duration"] = duration_by_type[event_type] * d_mult
+            if abs(energy_error[event_type]) > 0.5:
+                self.warn(f"Adjusting power by {energy_error[event_type] * 100}% for {event_type}.")
+            self.all_events.loc[i, "energy_multiplier"] = 1 + energy_error[event_type]
+            check = energy_by_type[event_type] * d_mult * (1 + energy_error[event_type])
+            assert abs(self.all_events.loc[i, "energy"] - check) < 0.01
 
-        # check that total energy is within 10%
-        final_energy = event_metrics.loc[self.all_events["event_type"], "energy"].sum()
-        error = (final_energy - total_energy) / total_energy
-        if abs(error) >= 0.1:
-            self.warn(
-                f"Total energy ({final_energy} kWh) deviates from schedule ({total_energy} kWh)."
-            )
-        if abs(error) >= 0.5:
-            raise ValueError(
-                f"Total energy ({final_energy} kWh) deviates from schedule ({total_energy} kWh)."
-            )
-
-        # revise end time, duration, and energy
-        self.all_events = self.all_events.loc[:, ["start_time", "event_type"]]
-        self.all_events = self.all_events.join(event_metrics, on="event_type")
+        # revise event end times
         self.all_events["end_time"] = self.all_events["start_time"] + self.all_events["duration"]
+        print(self.all_events)
 
     def initialize_schedule(self, event_schedule_file=None, **kwargs):
         # load event schedule data
@@ -402,33 +402,46 @@ class EventDataLoad(EventBasedLoad):
             # upsample - ffill
             self.event_ts_data = self.event_ts_data.resample(self.time_res).ffill()
 
-        # add final row with all zeros
-        self.event_ts_data.loc[self.event_ts_data.index[-1] + self.time_res] = 0
-
         ts_schedule = super().initialize_schedule(**kwargs)
 
         if "event_type" not in self.all_events:
             self.add_event_types()
+        if "energy_multiplier" not in self.all_events:
+            self.all_events["energy_multiplier"] = 1
+        if "duration_multiplier" not in self.all_events:
+            self.all_events["duration_multiplier"] = 1
 
         return ts_schedule
+
+    def setup_event_schedule(self, duration_passed=None):
+        # create schedule for new event
+        event = self.all_events.loc[self.event_index]
+        event_schedule = self.event_ts_data[event["event_type"]]
+        schedule_duration = event["duration"] / event["duration_multiplier"] - self.time_res
+        event_schedule = event_schedule.loc[:schedule_duration].values
+
+        # apply energy and duration multipliers
+        event_schedule *= self.all_events.loc[self.event_index, "energy_multiplier"]
+        event_schedule = np.tile(event_schedule, event["duration_multiplier"])
+        event_schedule = np.concatenate((event_schedule, [0]))
+
+        if duration_passed is not None:
+            event_schedule = event_schedule.loc[duration_passed:]
+
+        return iter(event_schedule)
 
     def reset_time(self, start_time=None, **kwargs):
         super().reset_time(start_time, **kwargs)
 
         if self.in_event:
             # set schedule to current time
-            event_type = self.all_events[self.event_index, "event_type"]
             duration_passed = self.current_time - self.all_events[self.event_index, "start_time"]
-            event_schedule = self.event_ts_data.loc[duration_passed:, event_type].values
-            self.event_schedule = iter(event_schedule)
-
+            self.event_schedule = self.setup_event_schedule(duration_passed)
+            
     def start_event(self):
         super().start_event()
 
-        # create schedule for event
-        event_type = self.all_events.loc[self.event_index, "event_type"]
-        event_schedule = self.event_ts_data[event_type].values
-        self.event_schedule = iter(event_schedule)
+        self.event_schedule = self.setup_event_schedule()
 
         # set power for first time step in event
         self.p_setpoint = next(self.event_schedule)

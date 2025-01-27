@@ -362,8 +362,9 @@ def run_event_based_load(name):
     event_schedule = pd.DataFrame(
         {
             "start_time": [s + h * 10, s + d + h * 14, s + d * 2 + h * 17],
-            "end_time": [s + h * 11, s + d + h * 15, s + d * 2 + h * 18],
-            "power": [1, 2, 1],  # average power, in kW
+            "end_time": [s + h * 11, s + d + h * 15, s + d * 2 + h * 17.5],
+            # "power": [1, 2, 1],  # average power per event, in kW, for EventBasedLoad
+            "energy": [1, 2, 0.3],  # energy per event, in kWh, for EventDataLoad
         }
     )
 
@@ -398,7 +399,7 @@ if __name__ == "__main__":
     # run_equipment_from_house_model("PV")  # Must add PV in run_dwelling.py
 
     # Run equipment without a Dwelling model
-    # run_ev()
+    run_ev()
     # run_pv_with_sam()
     # run_battery_from_schedule()
     # run_battery_self_consumption()
@@ -409,6 +410,6 @@ if __name__ == "__main__":
     # run_scheduled_load("Cooking Range")
     # run_scheduled_load("Clothes Washer")
     # run_event_based_load("Clothes Dryer")
-    run_event_based_load("Cooking Range")
+    # run_event_based_load("Cooking Range")
     # run_event_based_load("Clothes Washer")
     # run_equipment_from_house_model()
