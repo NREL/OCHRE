@@ -116,7 +116,7 @@ def run_hvac_dynamic_control():
 
 def run_hpwh_cta_2045():
     # Define equipment and simulation parameters
-    setpoint_default = 51  # in C
+    setpoint_default = 51.67  # in C
     deadband_default = 5.56  # in C
     equipment_args = {
         "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
