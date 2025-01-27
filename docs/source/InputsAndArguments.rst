@@ -308,10 +308,6 @@ described in the sections below.
 +-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
 | ``initialization_time``           | ``datetime.timedelta``         | None (no initialization)                        | Runs a "warm up" simulation to improve initial temperature values [#]_                                                                   |
 +-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
-| ``zone_name``                     | string                         | None                                            | Name of Envelope zone if envelope model exists                                                                                           |
-+-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
-| ``envelope_model``                | ``ochre.Envelope``             | None                                            | Envelope model for measuring temperature impacts (required for HVAC equipment)                                                           |
-+-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
 | ``verbosity``                     | int                            | 1                                               | Verbosity of the outputs, from 0-9. See `Outputs and Analysis <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__  for details |
 +-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
 | ``output_path``                   | string                         | HPXML file or equipment schedule file directory | Path to save output files                                                                                                                |
@@ -330,6 +326,12 @@ described in the sections below.
 +-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
 | ``save_schedule_columns``         | list of strings                | Empty list                                      | List of time series input names to save to schedule output file                                                                          |
 +-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+| ``equipment_class``               | ``ochre.Equipment`` subclass   | Depends on equipment name [#]_                  | Class used to model equipment. Required to run ``EventDataLoad`` models                                                                  |
++-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+| ``zone_name``                     | string                         | None                                            | Name of Envelope zone if envelope model exists                                                                                           |
++-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+| ``envelope_model``                | ``ochre.Envelope``             | None                                            | Envelope model for measuring temperature impacts (required for HVAC equipment)                                                           |
++-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
 | ``schedule`` or ``schedule_file`` | ``pandas.DataFrame`` or string | None                                            | Time series schedule with equipment and weather data  [#]_                                                                               |
 +-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
 | ``seed``                          | int or string                  | ``output_path``                                 | Random seed for setting initial temperatures and EV event data [#]_                                                                      |
@@ -338,6 +340,9 @@ described in the sections below.
 .. [#] While not required, a 1-day warm up period is recommended for thermal
     equipment. The warm up creates more accurate initial conditions for the
     simulation.
+.. [#] Defaults to ``EventBasedLoad`` for Clothes Washer, Clothes Dryer,
+    Dishwasher, and Cooking Range. Other appliances, lighting, and
+    miscellaneous loads default to ``ScheduledLoad``.
 .. [#] Required for some equipment, see below for details. Uses OCHRE units
     and naming conventions, see the `OCHRE schedule file
     <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html#additional-output-files-and-print-statements>`__
