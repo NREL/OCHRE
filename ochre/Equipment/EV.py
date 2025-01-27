@@ -27,24 +27,24 @@ class ElectricVehicle(EventBasedLoad):
     end_use = 'EV'
     zone_name = None
     delay_event_end = False
-    required_inputs = ['Ambient Dry Bulb (C)']
     optional_inputs = [
         "EV Max Power (kW)",
         "EV SOC (-)",
         "EV Max SOC (-)",
+        "Ambient Dry Bulb (C)",
     ]
 
-    def __init__(self, vehicle_type, charging_level, capacity=None, mileage=None, max_power=None, 
+    def __init__(self, vehicle_type, charging_level, capacity=None, range=None, max_power=None, 
                  enable_part_load=None, equipment_event_file=None, **kwargs):
-        # get EV battery capacity and mileage
-        if capacity is None and mileage is None:
-            raise OCHREException('Must specify capacity or mileage for {}'.format(self.name))
+        # get EV battery capacity and range
+        if capacity is None and range is None:
+            raise OCHREException('Must specify capacity or range for {}'.format(self.name))
         elif capacity is not None:
             self.capacity = capacity  # in kWh
-            mileage = self.capacity * EV_FUEL_ECONOMY  # in mi
+            range = self.capacity * EV_FUEL_ECONOMY  # in mi
         else:
-            # determine capacity using mileage
-            self.capacity = mileage / EV_FUEL_ECONOMY  # in kWh
+            # determine capacity using range
+            self.capacity = range / EV_FUEL_ECONOMY  # in kWh
 
         # get charging level and set option for part load setpoints
         charging_level = charging_level.replace(' ', '')
@@ -55,12 +55,12 @@ class ElectricVehicle(EventBasedLoad):
             enable_part_load = self.charging_level == 'Level2'
         self.enable_part_load = enable_part_load
 
-        # get vehicle number (1-4) based on type and mileage. Used for choosing event file
+        # get vehicle number (1-4) based on type and range. Used for choosing event file
         self.vehicle_type = vehicle_type
         if vehicle_type == 'PHEV':
-            vehicle_num = 1 if mileage < 35 else 2
+            vehicle_num = 1 if range < 35 else 2
         elif vehicle_type == 'BEV':
-            vehicle_num = 3 if mileage < 175 else 4
+            vehicle_num = 3 if range < 175 else 4
         else:
             raise OCHREException('Unknown vehicle type for {}: {}'.format(self.name, vehicle_type))
         if equipment_event_file is None:
@@ -137,7 +137,7 @@ class ElectricVehicle(EventBasedLoad):
                 # for the smallest EVs (mostly PHEV), charge every 2 days, on average
                 event_day_ratio = 0.5
 
-        if eq_schedule is not None:
+        if not eq_schedule.empty:
             # get average daily ambient temperature for generating events and round to nearest 5 C
             if 'Ambient Dry Bulb (C)' not in eq_schedule:
                 raise OCHREException('EV model requires ambient dry bulb temperature in schedule.')
@@ -171,6 +171,11 @@ class ElectricVehicle(EventBasedLoad):
                 df = event_data.loc[event_data.index == day_id].reset_index()
                 df['start_time'] = date + pd.to_timedelta(df['start_time'], unit='minute')
                 df_events.append(df)
+        if not df_events:
+            self.warn("No charging events, adding event on first day")
+            df = event_data.loc[event_data.index == day_ids[0]].reset_index()
+            df["start_time"] = temps_by_day.index[0] + pd.to_timedelta(df["start_time"], unit="minute")
+            df_events.append(df)
         df_events = pd.concat(df_events)
         df_events = df_events.reset_index(drop=True)
 
@@ -309,6 +314,25 @@ class ElectricVehicle(EventBasedLoad):
         self.sensible_gain = ac_power - dc_power  # = power losses
         assert self.sensible_gain >= 0
 
+    def make_equivalent_battery_model(self):
+        # returns a dictionary of equivalent battery model parameters
+        started_event = self.event_start - self.time_res < self.current_time <= self.event_start
+        if started_event:
+            # baseline power set to reach the initial SOC of the event
+            start_soc = self.event_schedule.loc[self.event_index, "start_soc"]
+            baseline_power = (1 - start_soc) * self.capacity / self.time_res.total_seconds() * 3600
+        else:
+            baseline_power = 0
+
+        return {
+            f"{self.end_use} EBM Energy (kWh)": self.soc * self.capacity,
+            f"{self.end_use} EBM Min Energy (kWh)": 0,
+            f"{self.end_use} EBM Max Energy (kWh)": self.capacity,
+            f"{self.end_use} EBM Max Power (kW)": self.max_power,
+            f"{self.end_use} EBM Efficiency (-)": EV_EFFICIENCY,
+            f"{self.end_use} EBM Baseline Power (kW)": baseline_power,
+        }
+
     def generate_results(self):
         results = super().generate_results()
 
@@ -338,16 +362,8 @@ class ElectricVehicle(EventBasedLoad):
 
 class ScheduledEV(ScheduledLoad):
     """
-    Electric Vehicle as a scheduled load. Load profile must be defined by the equipment schedule file. This model is not
-    controllable.
+    Electric Vehicle as a scheduled load. Load profile must be defined by the
+    equipment schedule file. This model is not controllable.
     """
-    name = 'Scheduled EV'
     end_use = 'EV'
     zone_name = None
-
-    def __init__(self, vehicle_num=None, equipment_schedule_file=None, **kwargs):
-        if equipment_schedule_file is None:
-            equipment_schedule_file = 'EV Profiles.csv'
-            kwargs['schedule_rename_columns'] = {vehicle_num: 'Scheduled EV (kW)'}
-
-        super().__init__(equipment_schedule_file=equipment_schedule_file, **kwargs)

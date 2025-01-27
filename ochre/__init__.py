@@ -4,3 +4,6 @@ from .Simulator import Simulator
 from .Equipment import *
 from .Models import Envelope
 from .Dwelling import Dwelling
+
+from .gui import gui_basic, gui_detailed
+from .cli import create_dwelling, run_multiple_local, run_multiple_hpc

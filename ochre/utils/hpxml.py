@@ -1464,7 +1464,7 @@ def parse_ev(ev):
     return {
         'vehicle_type': 'BEV',
         'charging_level': 'Level 2',
-        'mileage': 100 if ev_load < 1500 else 250  # Splits the two EV size options from ResStock
+        'range': 100 if ev_load < 1500 else 250  # Splits the two EV size options from ResStock
     }
 
 

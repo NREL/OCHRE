@@ -2,6 +2,7 @@ import os
 import re
 import json
 from _ctypes import PyObj_FromPtr
+import datetime as dt
 import pandas as pd
 import collections
 import xmltodict
@@ -172,6 +173,8 @@ def save_json(data, file_name):
             return {key: parse_object(val) for key, val in obj.items()}
         elif isinstance(obj, (list, tuple)) and len(obj) > 4:
             return NoIndent(obj)
+        elif isinstance(obj, (dt.datetime, dt.timedelta)):
+            return str(obj)
         else:
             return obj
 
