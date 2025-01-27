@@ -382,7 +382,6 @@ class EventDataLoad(EventBasedLoad):
 
         # revise event end times
         self.all_events["end_time"] = self.all_events["start_time"] + self.all_events["duration"]
-        print(self.all_events)
 
     def initialize_schedule(self, event_schedule_file=None, **kwargs):
         # load event schedule data
