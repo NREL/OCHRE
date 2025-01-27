@@ -324,7 +324,7 @@ def run_hvac():
     CreateFigures.plt.show()
 
 
-def run_scheduled_load():
+def run_scheduled_load(name):
     # create schedule
     times = pd.date_range(
         default_args["start_time"],
@@ -333,11 +333,11 @@ def run_scheduled_load():
         inclusive="left",
     )
     peak_load = 5  # kW
-    dryer_power = np.random.choice([0, peak_load], p=[0.98, 0.02], size=len(times))
-    schedule = pd.DataFrame({"Clothes Dryer (kW)": dryer_power}, index=times)
+    power = np.random.choice([0, peak_load], p=[0.98, 0.02], size=len(times))
+    schedule = pd.DataFrame({f"{name} (kW)": power}, index=times)
 
     equipment_args = {
-        "name": "Clothes Dryer",
+        "name": name,
         "schedule": schedule,
         **default_args,
     }
@@ -353,7 +353,7 @@ def run_scheduled_load():
     CreateFigures.plt.show()
 
 
-def run_event_based_clothes_dryer():
+def run_event_based_load(name):
     # create event schedule
     s = default_args["start_time"]
     d = dt.timedelta(days=1)
@@ -363,19 +363,25 @@ def run_event_based_clothes_dryer():
         {
             "start_time": [s + h * 10, s + d + h * 14, s + d * 2 + h * 17],
             "end_time": [s + h * 11, s + d + h * 15, s + d * 2 + h * 18],
-            "power": [1, 2, 0.3],  # average power, in kW
+            "power": [1, 2, 1],  # average power, in kW
         }
     )
 
-    equipment_args = {
-        "name": "Clothes Dryer",
-        "event_schedule": event_schedule,
-        # "equipment_class": EventDataLoad,  # used when running within Dwelling
-        **default_args,
-    }
+    equipment_args = default_args.copy()
+    equipment_args.update(
+        {
+            "name": name,
+            "time_res": dt.timedelta(minutes=1),
+            "duration": dt.timedelta(days=3),
+            "event_schedule": event_schedule,
+            # "equipment_class": EventDataLoad,  # used when running within Dwelling
+        }
+    )
 
     # Initialize equipment
     # device = EventBasedLoad(**equipment_args)
+    # Note: event data only available for select equipment
+    #  - Clothes Dryer, Cooking Range
     device = EventDataLoad(**equipment_args)
 
     # Simulate equipment
@@ -399,6 +405,10 @@ if __name__ == "__main__":
     # run_water_heater()
     # run_water_heater_from_file()
     # run_hvac()
-    # run_scheduled_load()
-    run_event_based_clothes_dryer()
+    # run_scheduled_load("Clothes Dryer")
+    # run_scheduled_load("Cooking Range")
+    # run_scheduled_load("Clothes Washer")
+    # run_event_based_load("Clothes Dryer")
+    run_event_based_load("Cooking Range")
+    # run_event_based_load("Clothes Washer")
     # run_equipment_from_house_model()
