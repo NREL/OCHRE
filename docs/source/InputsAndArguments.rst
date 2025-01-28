@@ -540,8 +540,6 @@ equipment-specific arguments for EVs.
 +---------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
 | ``event_day_ratio``       | number        | No        | 0.2-0.9, depending on charging level and capacity                       | Ratio of days with at least 1 charging event          |
 +---------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
-| ``enable_part_load``      | boolean       | No        | True if ``charging_level = Level 2``                                    | Allows EV to charge at partial load                   |
-+---------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
 | ``ambient_ev_temp``       | number        | No        | Taken from schedule, or 20 C                                            | Ambient temperature used to estimate EV usage per day |
 +---------------------------+---------------+-----------+-------------------------------------------------------------------------+-------------------------------------------------------+
 | ``equipment_event_file``  | string        | No        | Depends on ``vehicle_type`` and ``range``                               | File that contains EV event-based schedule            |
