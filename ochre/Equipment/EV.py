@@ -30,7 +30,6 @@ class ElectricVehicle(EventBasedLoad):
     delay_event_end = False
     optional_inputs = [
         "EV Max Power (kW)",
-        "EV SOC (-)",
         "EV Max SOC (-)",
         "Ambient Dry Bulb (C)",
     ]
@@ -42,7 +41,6 @@ class ElectricVehicle(EventBasedLoad):
         capacity=None,
         range=None,
         max_power=None,
-        enable_part_load=None,
         equipment_event_file=None,
         **kwargs,
     ):
@@ -63,9 +61,6 @@ class ElectricVehicle(EventBasedLoad):
                 "Unknown vehicle type for {}: {}".format(self.name, charging_level)
             )
         self.charging_level = str(charging_level)
-        if enable_part_load is None:
-            enable_part_load = self.charging_level == "Level2"
-        self.enable_part_load = enable_part_load
 
         # get vehicle number (1-4) based on type and range. Used for choosing event file
         self.vehicle_type = vehicle_type
@@ -250,38 +245,20 @@ class ElectricVehicle(EventBasedLoad):
 
     def update_external_control(self, control_signal):
         # Options for external control signals:
-        # - SOC: Solves for power setpoint to achieve desired SOC, unitless
+        # - Max Power (or P Setpoint): Updates maximum allowed power (in kW)
+        #   - Note: Will only be reset if Max Power is in the schedule
         # - SOC Rate: Solves for power setpoint to achieve desired SOC Rate, in 1/hour
-        #   - Note: Setpoint controls will not reset
-        # - Max Power: Updates maximum allowed power (in kW)
-        #   - Note: Max Power will only be reset if it is in the schedule
+        #   - Note: Will only be reset if Max Power is in the schedule
         # - Max SOC: Maximum SOC limit for charging
+        #   - Note: Will only be reset if Max SOC is in the schedule
         # - See additional controls in EventBasedLoad.update_external_control
 
-        # TODO: if exists and is None, reset to self.max_power
-        max_power = control_signal.get("Max Power")
-        if max_power is not None:
-            if "EV Max Power (kW)" in self.current_schedule:
-                self.current_schedule["EV Max Power (kW)"] = max_power
-            else:
-                self.max_power_ctrl = max_power
-
-        max_soc = control_signal.get("Max SOC")
-        if max_soc is not None:
-            if "EV Max SOC (-)" in self.current_schedule:
-                self.current_schedule["EV Max SOC (-)"] = max_soc
-            else:
-                self.soc_max_ctrl = max_soc
-
-        mode = super().update_external_control(control_signal)
-
         # update power setpoint directly or through SOC or SOC Rate
+        # TODO: if exists in control_signal and is None, reset self.max_power_ctrl to self.max_power
         if "P Setpoint" in control_signal:
             setpoint = control_signal["P Setpoint"]
-        elif "SOC" in control_signal:
-            soc = control_signal.get("SOC")
-            power_dc = (soc - self.soc) * self.capacity / self.time_res.total_seconds() * 3600
-            setpoint = power_dc / EV_EFFICIENCY
+        elif "Max Power" in control_signal:
+            setpoint = control_signal["Max Power"]
         elif "SOC Rate" in control_signal:
             power_dc = control_signal["SOC Rate"] * self.capacity  # in kW
             setpoint = power_dc / EV_EFFICIENCY
@@ -290,15 +267,19 @@ class ElectricVehicle(EventBasedLoad):
 
         if setpoint is not None:
             setpoint = max(setpoint, 0)
-            if mode != "On" and setpoint > 0:
-                self.warn("Cannot set power when not parked.")
-            elif self.enable_part_load:
-                self.p_setpoint = setpoint
+            if "EV Max Power (kW)" in self.current_schedule:
+                self.current_schedule["EV Max Power (kW)"] = setpoint
             else:
-                # set to max power if setpoint > half of max
-                self.p_setpoint = self.max_power if setpoint >= self.max_power / 2 else 0
+                self.max_power_ctrl = setpoint
 
-        return mode
+        max_soc = control_signal.get("Max SOC")
+        if max_soc is not None:
+            if "EV Max SOC (-)" in self.current_schedule:
+                self.current_schedule["EV Max SOC (-)"] = max_soc
+            else:
+                self.soc_max_ctrl = max_soc
+
+        return super().update_external_control(control_signal)
 
     def update_internal_control(self):
         self.unmet_load = 0
