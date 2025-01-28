@@ -351,7 +351,7 @@ def import_occupancy_schedule(
     equipment,
     start_time,
     hpxml_schedule_file=None,
-    simple_schedule_file="Simple Schedule Parameters.csv",
+    default_schedule_file="Default Schedule Parameters.csv",
     **kwargs,
 ):
     # Import HPXML schedule file. Note that initial values are normalized to max_value=1
