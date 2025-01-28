@@ -722,9 +722,9 @@ def parse_hpxml_envelope(hpxml, occupancy, **house_args):
     house_type = construction['House Type']
     n_occupants = occupancy['Number of Occupants (-)']
     if house_type in ['single-family detached', 'manufactured home']:
-        n_bedrooms_adj = max(-0.68 + 1.09 * n_occupants, 0)
-    elif house_type in ['single-family attached', 'apartment unit']:
         n_bedrooms_adj = max(-1.47 + 1.69 * n_occupants, 0)
+    elif house_type in ['single-family attached', 'apartment unit']:
+        n_bedrooms_adj = max(-0.68 + 1.09 * n_occupants, 0)
     else:
         raise OCHREException(f'Unknown house type: {house_type}')
     construction['Number of Bedrooms, Adjusted (-)'] = n_bedrooms_adj
