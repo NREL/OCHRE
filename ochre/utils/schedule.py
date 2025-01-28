@@ -27,6 +27,7 @@ SCHEDULE_NAMES = {
         "clothes_dryer": "Clothes Dryer",
         "dishwasher": "Dishwasher",
         "refrigerator": "Refrigerator",
+        "freezer": "Freezer",
         "cooking_range": "Cooking Range",
         "lighting_interior": "Indoor Lighting",
         "lighting_exterior": "Exterior Lighting",
@@ -59,7 +60,6 @@ SCHEDULE_NAMES = {
     },
     "Ignore": {
         "extra_refrigerator": None,
-        "freezer": None,
         "clothes_dryer_exhaust": None,
         "lighting_exterior_holiday": None,
         "plug_loads_vehicle": None,
