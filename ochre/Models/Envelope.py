@@ -1042,7 +1042,7 @@ class Envelope(RCModel):
             results['Unmet HVAC Load (C)'] = self.unmet_hvac_load
 
         if self.verbosity >= 4:
-            results[f'Occupancy (Persons)'] = self.current_schedule.get('Occupancy (Persons)', 0)
+            results['Occupancy (Persons)'] = self.current_schedule.get('Occupancy (Persons)', 0)
 
             # Net sensible gains =  occupancy + HVAC + equipment
             #                     + infiltration + forced ventilation + natural ventilation

@@ -12,8 +12,7 @@ from ochre import Dwelling, Analysis
 from ochre.utils import default_input_path
 
 # Example script to run multiple OCHRE buildings with a DER aggregator in
-# co-simulation using HELICS. Uses OCHRE's command line interface (CLI)
-# functions.
+# co-simulation using HELICS.
 
 main_path = os.path.join(os.getcwd(), "cosimulation")
 os.makedirs(main_path, exist_ok=True)
@@ -135,7 +134,7 @@ def house(name, input_path):
         duration=duration,
         initialization_time=dt.timedelta(days=1),
         hpxml_file=os.path.join(input_path, "home.xml"),
-        schedule_input_file=os.path.join(input_path, "in.schedules.csv"),
+        hpxml_schedule_file=os.path.join(input_path, "in.schedules.csv"),
         weather_path=input_path,
         output_path=input_path,
         verbosity=verbosity,

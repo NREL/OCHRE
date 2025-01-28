@@ -40,12 +40,6 @@ zone_data = [('Temperature - {} (C)'.format(zone), zone + ' Temp', color) for zo
 ls_list = ['-', '--', ':', '-.']
 
 
-def valid_file(s):
-    # removes special characters like ",:$#*" from file names
-    valid_chars = "-_.() {}{}".format(string.ascii_letters, string.digits)
-    return ''.join(c for c in s if c in valid_chars)
-
-
 # **** Time-based figures ****
 def plot_daily_profile(df_raw, column, plot_average=True, plot_singles=True, plot_min=True, plot_max=True,
                        plot_sd=False, **kwargs):

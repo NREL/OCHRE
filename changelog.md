@@ -2,25 +2,56 @@
 
 ### New from PRs
 
-- Updated EV model to accept new EV charging data
-- Added EV `event_day_ratio` and `max_power` parameters
-- added EV average SOC and unmet load metrics
-- Updated PV model to use latitude/south for tilt/azimuth if no roof model exists
-- Enabled .epw files with leap year data (we remove Feb 29, similar to Cambium)
-- Added multi-speed HVAC parameters for ResStock 2024 dataset [#128](https://github.com/NREL/OCHRE/issues/128)
+- Created command line interface (CLI)
+- Renamed `schedule_input_file` input to `hpxml_schedule_file` 
+- Renamed `equipment_schedule_file` to `schedule_file` and enabled it for all
+  Simulator subclasses
+- Created EventDataLoad class and added event schedules for Clothes Dryer and
+  Cooking Range [#162](https://github.com/NREL/OCHRE/issues/162)
+- Added `equipment_class` input [#162](https://github.com/NREL/OCHRE/issues/162)
+- Added HVAC parameters for deadband offset and ASHP backup controls
+  [#155](https://github.com/NREL/OCHRE/issues/155)
+- Added multi-speed HVAC parameters for ResStock 2024 dataset
+  [#128](https://github.com/NREL/OCHRE/issues/128)
 - Updated with OS-HPXML v1.7 naming conventions (e.g., spa equipment, indoor
   zone) #76
+- Updated EV model to accept new EV charging data
+- Modified EV setpoint controls and removed `enable_part_load`
+- Added EV `event_day_ratio` and `max_power` parameters and renamed `mileage`
+  to `range`
+- Added EV average SOC and unmet load metrics
+- Added EV equivalent battery model specifications
+- Added new EV event-based charging data
+- Updated PV model to use latitude/south for tilt/azimuth if no roof model
+  exists
+- Updated power setpoint controls for EventBasedLoad
+- Set default class to EventBasedLoad for Clothes Washer, Clothes Dryer,
+  Dishwasher, and Cooking Range
+  [#162](https://github.com/NREL/OCHRE/issues/162)
+- Enabled .epw files with leap year data (we remove Feb 29, similar to
+  Cambium)
+- Added Analysis function for downloading ResStock 2024 data
+- Fixed issue with saving classes and DataFrames to json
 - Fixed EV unmet load units [#144](https://github.com/NREL/OCHRE/issues/144)
+- Fixed bug when no EV events in simulation
+- Fixed bug when reading water heater deadband from schedule
 - Fixed garage interior ceiling connections
-- Fixed issue with attic-garage boundaries [#96](https://github.com/NREL/OCHRE/issues/96)
+- Fixed issue with attic-garage boundaries
+  [#96](https://github.com/NREL/OCHRE/issues/96)
 - Fixed issue with adjacent doors (e.g., for multi-family units, hallways)
-- Fixed issue with ducts in multiple locations [#148](https://github.com/NREL/OCHRE/issues/148)
+- Fixed issue with ducts in multiple locations
+  [#148](https://github.com/NREL/OCHRE/issues/148)
+- Fixed bug in `plot_power_stack` when there is not valid data
+- Updated HPXML inputs for ASHP backup controls
 - Allowed "Occupancy" adjustments in input arguments
 - Allow superinsulated slabs compatible with BEopt 3 for test purposes
+- Updated docs and example code
+  [#153](https://github.com/NREL/OCHRE/issues/153)
 
 ### OCHRE v0.8.5-beta
 
-- Updated PV model to integrate with PVWatts using PySAM v5.0 (not backwards compatible)
+- Updated PV model to integrate with PVWatts using PySAM v5.0 (not backwards
+  compatible)
 - PV model accepts tilt and azimuth angles from roof boundary in envelope
 - Removed and renamed PV input arguments related to PySAM
 - Changed the units for some outputs related to heat gains/capacity
@@ -49,7 +80,8 @@
 
 ### OCHRE v0.8.4-beta
 
-- Fixed bug with air infiltration inputs (works with ResStock 3.0 and 3.1, and OS-HPXML 1.6.0)
+- Fixed bug with air infiltration inputs (works with ResStock 3.0 and 3.1, and
+  OS-HPXML 1.6.0)
 - Fixed bug with 2-speed HVAC control
 - Fixed bug with nested dictionary arguments for Envelope zones and boundaries
 - Fixed bug when setting ScheduledLoad power to 0
@@ -57,12 +89,14 @@
 - Fixed floor area check for garage geometry. 
 - Removed requirement for HVAC setpoint schedule in HPXML file
 - Added garage door boundary. Uses the same material as a regular door
-- Added check to explicitly not handle garage windows, attic windows, and attic doors
+- Added check to explicitly not handle garage windows, attic windows, and
+  attic doors
 - Added errors for unknown zones (mainly for foundation windows and doors)
 
 ### OCHRE v0.8.3-beta (initial beta release)
 
-- Compatible with OS-HPXML 1.5.0 and 1.6.1 (includes ResStock 3.0, ResStock 3.1, and BEopt 3.0)
+- Compatible with OS-HPXML 1.5.0 and 1.6.1 (includes ResStock 3.0, ResStock
+  3.1, and BEopt 3.0)
 - Incorporated adjusted number of bedrooms calculation
 - Changed end use for lighting loads
 - Added garage roof material properties

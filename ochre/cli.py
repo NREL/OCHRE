@@ -27,7 +27,7 @@ def create_dwelling(
     input_path,
     name="ochre",
     hpxml_file="home.xml",
-    schedule_file="in.schedules.csv",
+    hpxml_schedule_file="in.schedules.csv",
     weather_file_or_path=None,
     output_path=None,
     verbosity=3,
@@ -41,8 +41,8 @@ def create_dwelling(
     # Update input file paths
     if not os.path.isabs(hpxml_file):
         hpxml_file = os.path.join(input_path, hpxml_file)
-    if not os.path.isabs(schedule_file):
-        schedule_file = os.path.join(input_path, schedule_file)
+    if not os.path.isabs(hpxml_schedule_file):
+        hpxml_schedule_file = os.path.join(input_path, hpxml_schedule_file)
 
     output_path = update_output_path(output_path, input_path)
 
@@ -67,7 +67,7 @@ def create_dwelling(
         duration=dt.timedelta(days=duration),
         initialization_time=dt.timedelta(days=initialization_time),
         hpxml_file=hpxml_file,
-        schedule_input_file=schedule_file,
+        hpxml_schedule_file=hpxml_schedule_file,
         output_path=output_path,
         verbosity=verbosity,
         **weather_args,
@@ -76,42 +76,58 @@ def create_dwelling(
     return dwelling
 
 
-def run_single_with_dict(kwargs):
-    # Initialize
-    dwelling = create_dwelling(**kwargs)
+def run_single_process(kwargs):
+    input_path = kwargs.pop("input_path")
+    log_file = os.path.join(input_path, "ochre.log")
+    extra_args = [f"--{key}={val}" for key, val in kwargs.items()]
+    cmd = [
+        "ochre",
+        "single",
+        input_path,
+        *extra_args,
+    ]
+    with open(log_file, "w") as f:
+        subprocess.run(cmd, stdout=f, stderr=f)
 
-    # Run simulation
-    dwelling.simulate()
 
-
-def find_ochre_folders(main_path, overwrite=False, **kwargs):
+def find_ochre_folders(
+    main_path,
+    hpxml_file="home.xml",
+    hpxml_schedule_file="in.schedules.csv",
+    **kwargs,
+) -> list:
     # get all input folders
     main_path = os.path.abspath(main_path)
-    includes_files = [kwargs.get("hpxml_file", "home.xml"),
-                      kwargs.get("schedule_file", "in.schedules.csv")]
-
-    excludes_files = None if overwrite else ["ochre_complete"]
-
-    return Analysis.find_subfolders(main_path, includes_files, excludes_files)
-
-
-def run_multiple_hpc(
-    main_path,
-    mem=2,
-    n_max=None,
-    overwrite=False,
-    **kwargs,
-):
-    # runs multiple OCHRE simulations on HPC using Slurm
-    # kwargs are passed to create_dwelling
-    input_paths = find_ochre_folders(main_path, overwrite, **kwargs)
+    includes_files = [hpxml_file, hpxml_schedule_file]
+    input_paths = Analysis.find_subfolders(main_path, includes_files)
     my_print(f"Found {len(input_paths)} buildings in:", main_path)
+
+    return input_paths
+
+
+def limit_input_paths(input_paths, n_max=None, overwrite=False, **kwargs):
+    # limits input paths based on n_max and overwrite
+    if not overwrite:
+        # remove folders that already have ochre_complete
+        input_paths = [
+            p for p in input_paths if not os.path.exists(os.path.join(p, "ochre_complete"))
+        ]
 
     # limit total number of runs
     if n_max is not None and len(input_paths) > n_max:
         my_print(f"Limiting number of runs to {n_max}")
         input_paths = input_paths[:n_max]
 
+    return input_paths
+
+
+def run_multiple_hpc(
+    input_paths,
+    mem=2,
+    **kwargs,
+):
+    # runs multiple OCHRE simulations on HPC using Slurm
+    # kwargs are passed to create_dwelling
     processes = {}
     for i, input_path in enumerate(input_paths):
         # run srun command
@@ -137,7 +153,7 @@ def run_multiple_hpc(
 
         # print the first few commands
         if i < 5:
-            my_print(f"Running subprocess {i+1}:", " ".join(cmd))
+            my_print(f"Running subprocess {i + 1}:", " ".join(cmd))
         p = subprocess.Popen(cmd)
         processes[p] = True  # True when process is running
 
@@ -170,34 +186,15 @@ def run_multiple_hpc(
 
 
 def run_multiple_local(
-    main_path,
+    input_paths,
     n_parallel=1,
-    n_max=None,
-    overwrite=False,
     **kwargs,
 ):
     # runs multiple OCHRE simulations on local machine (can run in parallel or not)
     # kwargs are passed to create_dwelling
-    input_paths = find_ochre_folders(main_path, overwrite, **kwargs)
-    my_print(f"Found {len(input_paths)} buildings in:", main_path)
-
-    # limit total number of runs
-    if n_max is not None and len(input_paths) > n_max:
-        my_print(f"Limiting number of runs to {n_max}")
-        input_paths = input_paths[:n_max]
-
-    # TODO: for now, no log file. Could use subprocess.run to save logs
-    # log_file = os.path.join(input_path, "ochre.log")
-    if n_parallel == 1:
-        # run simulations sequentially
-        for input_path in input_paths:
-            dwelling = create_dwelling(input_path, **kwargs)
-            dwelling.simulate()
-    else:
-        # run simulations in parallel
-        ochre_data = [{"input_path": input_path, **kwargs} for input_path in input_paths]
-        with Pool(n_parallel) as p:
-            p.map(run_single_with_dict, ochre_data)
+    ochre_data = [{"input_path": input_path, **kwargs} for input_path in input_paths]
+    with Pool(n_parallel) as p:
+        p.map(run_single_process, ochre_data)
 
     my_print("All processes finished, exiting.")
 
@@ -219,7 +216,7 @@ def common_options(f):
         click.option("--name", default="ochre", help="Simulation name (for output files)"),
         click.option("--hpxml_file", default="home.xml", help="Name of HPXML file"),
         click.option(
-            "--schedule_file", default="in.schedules.csv", help="Name of schedule input file"
+            "--hpxml_schedule_file", default="in.schedules.csv", help="Name of HPXML schedule file"
         ),
         click.option(
             "--weather_file_or_path",
@@ -253,8 +250,10 @@ def single(**kwargs):
 @click.option("--n_max", type=int, help="Limits the total number of simulations to run")
 @click.option("--overwrite", is_flag=True, help="Overwrite existing files")
 @common_options
-def hpc(**kwargs):
+def hpc(main_path, **kwargs):
     """Run multiple OCHRE simulations using Slurm"""
+    input_paths = find_ochre_folders(main_path, **kwargs)
+    input_paths = limit_input_paths(input_paths, **kwargs)
     run_multiple_hpc(**kwargs)
 
 
@@ -264,9 +263,11 @@ def hpc(**kwargs):
 @click.option("--n_max", type=int, help="Limits the total number of simulations to run")
 @click.option("--overwrite", is_flag=True, help="Overwrite existing files")
 @common_options
-def local(**kwargs):
+def local(main_path, **kwargs):
     """Run multiple OCHRE simulations in parallel or in series"""
-    run_multiple_local(**kwargs)
+    input_paths = find_ochre_folders(main_path, **kwargs)
+    input_paths = limit_input_paths(input_paths, **kwargs)
+    run_multiple_local(input_paths, **kwargs)
 
 
 cli.add_command(single)

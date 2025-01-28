@@ -15,6 +15,10 @@ def gui_basic():
         title="Select OCHRE Simulation Folder"
     )
 
+    if not input_path:
+        print("No simulation folder chosen, exiting.")
+        return
+
     dwelling = create_dwelling(input_path)
     dwelling.simulate()
 
@@ -78,7 +82,7 @@ def gui_detailed():
         "input_path": make_input("Input Path (required):", width=40, is_folder=True),
         "name": make_input("Simulation Name:", default="ochre"),
         "hpxml_file": make_input("HPXML File Name:", default="home.xml"),
-        "schedule_file": make_input("Schedule File Name:", default="in.schedules.csv"),
+        "hpxml_schedule_file": make_input("HPXML Schedule File Name:", default="in.schedules.csv"),
         "weather_file_or_path": make_input("Weather File or Path Name:", width=40, is_file=True),
         "output_path": make_input("Output Path:", width=40, is_folder=True),
         "verbosity": make_input("Verbosity (0-9):", default=3),
@@ -103,6 +107,10 @@ def gui_detailed():
                 pass
             input_values[key] = val
 
+        if "input_path" not in input_values:
+            print("Must specify an input path.")
+            return
+
         dwelling = create_dwelling(**input_values)
         dwelling.simulate()
         
@@ -114,12 +122,21 @@ def gui_detailed():
     row += 1
 
     output = tk.Text(root, wrap="word")
-    output.grid(row=row, column=0, columnspan=2)
+    output.grid(row=row, column=0, columnspan=3, sticky="nsew")
     sys.stdout = TextRedirector(output, "stdout")
     sys.stderr = TextRedirector(output, "stderr")
+
+    root.rowconfigure(tuple(range(row)), weight=1)
+    root.columnconfigure((0, 1, 2), weight=1)
 
     root.mainloop()
 
 if __name__ == "__main__":
-    # gui_basic()
-    gui_detailed()
+    if len(sys.argv) <= 1:
+        gui_basic()
+    elif sys.argv[1] == "basic":
+        gui_basic()
+    elif sys.argv[1] == "detailed":
+        gui_detailed()
+    else:
+        print("Unknown argument:", sys.argv[1])

@@ -18,7 +18,10 @@ includes detailed models for flexible devices including HVAC equipment, water
 heaters, electric vehicles, solar PV, and batteries. It can examine the
 impacts of novel control strategies on energy consumption and occupant comfort
 metrics. OCHRE integrates with many of NREL's established modeling tools,
-including EnergyPlus\ |tm|, BEopt\ |tm|, ResStock\ |tm|, SAM, and EVI-Pro.
+including `ResStock\ |tm| <https://resstock.nrel.gov/>__`, `BEopt\ |tm|
+<https://www.nrel.gov/buildings/beopt.html>__`, `EVI-Pro
+<https://www.nrel.gov/transportation/evi-pro.html>`__, `SAM
+<https://sam.nrel.gov/>`__, and `HELICS <https://helics.org/>`__.
 
 .. |tm| unicode:: U+2122
 
@@ -43,11 +46,21 @@ Alternatively, you can install a specific branch, for example:
 
 Note that OCHRE requires Python version >=3.9 and <3.12.
 
+
 Usage
 -----
 
+OCHRE can be run in Python or through a command line interface. The `OCHRE
+User Tutorial
+<https://colab.research.google.com/github/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
+is available on Google Colab, an interactive online platform for running
+Python code.
+
+Python Interface
+~~~~~~~~~~~~~~~~
+
 OCHRE can be used to simulate a residential dwelling or individual pieces of
-equipment. In either case, a python object is instantiated and then simulated.
+equipment. In either case, a Python object is instantiated and then simulated.
 
 Below is a simple example to simulate a dwelling:
 
@@ -63,14 +76,14 @@ Below is a simple example to simulate a dwelling:
         time_res=dt.timedelta(minutes=10),
         duration=dt.timedelta(days=3),
         hpxml_file=os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
-        schedule_input_file=os.path.join(default_input_path, "Input Files", "bldg0112631_schedule.csv"),
+        hpxml_schedule_file=os.path.join(default_input_path, "Input Files", "bldg0112631_schedule.csv"),
         weather_file=os.path.join(default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"),
         verbosity=3,
     )
 
     df, metrics, hourly = house.simulate()
 
-This will return 3 variables:
+This code will return 3 variables:
 
 - ``df``: a Pandas DataFrame with 10 minute resolution
 
@@ -87,7 +100,8 @@ For more examples, see:
 
 - The `OCHRE User Tutorial
   <https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
-  Jupyter notebook 
+  Jupyter notebook (also available on `Google Colab
+  <https://colab.research.google.com/github/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__)
 
 - Python example scripts to:
 
@@ -110,6 +124,29 @@ For more examples, see:
     <https://github.com/NREL/OCHRE/blob/main/bin/run_cosimulation.py>`__ using
     HELICS
 
+Command Line Interface
+~~~~~~~~~~~~~~~~~~~~~~
+
+OCHRE can be run from the command line using the following commands:
+
+- ``ochre single``: Run a single dwelling simulation
+
+- ``ochre local``: Run multiple dwellings in parallel or in series
+
+- ``ochre hpc``: Run multiple dwellings using Slurm
+
+- ``ochre-gui-basic``: Run a single dwelling by specifying a run directory.
+  Uses default options only.
+
+- ``ochre-gui-detailed``: Run a single dwelling using a graphical user
+  interface
+
+A small set of simulation options is available for most of these commands,
+including time resolution and duration, file paths, and verbosity level. Run
+``ochre single --help`` for more information on the available options. To run
+simulations for single pieces of equipment or with more advanced controls, use
+the Python interface.
+
 License
 -------
 
@@ -123,72 +160,50 @@ Citation and Publications
 
 When using OCHRE in your publications, please cite:
 
-1. Blonsky, M., Maguire, J., McKenna, K., Cutler, D., Balamurugan, S.
-   P., & Jin, X. (2021). **OCHRE: The Object-oriented, Controllable,
-   High-resolution Residential Energy Model for Dynamic Integration
-   Studies.** *Applied Energy*, *290*, 116732.
-   https://doi.org/10.1016/j.apenergy.2021.116732
+1. Blonsky, M., Maguire, J., McKenna, K., Cutler, D., Balamurugan, S. P., &
+   Jin, X. (2021). **OCHRE: The Object-oriented, Controllable, High-resolution
+   Residential Energy Model for Dynamic Integration Studies.** *Applied
+   Energy*, *290*, 116732. https://doi.org/10.1016/j.apenergy.2021.116732
 
-Below is a list of publications that have used OCHRE:
+Below is a list of select publications that have used OCHRE:
 
-2.  Munankarmi, P., Maguire, J., Balamurugan, S. P., Blonsky, M.,
-    Roberts, D., & Jin, X. (2021). Community-scale interaction of energy
-    efficiency and demand flexibility in residential buildings. *Applied
-    Energy*, *298*, 117149.
-    https://doi.org/10.1016/j.apenergy.2021.117149
+2.  Jeff Maguire, Michael Blonsky, Sean Ericson, Amanda Farthing, Indu
+    Manogaran, and Sugi Ramaraj. 2024. *Nova Analysis: Holistically Valuing
+    the Contributions of Residential Efficiency, Solar and Storage*. Golden,
+    CO: National Renewable Energy Laboratory. NREL/TP-5500-84658.
+    https://www.nrel.gov/docs/fy24osti/84658.pdf.
 
-3.  Pattawi, K., Munankarmi, P., Blonsky, M., Maguire, J., Balamurugan,
-    S. P., Jin, X., & Lee, H. (2021). Sensitivity Analysis of Occupant
-    Preferences on Energy Usage in Residential Buildings. *Proceedings
-    of the ASME 2021 15th International Conference on Energy
-    Sustainability, ES 2021*. https://doi.org/10.1115/ES2021-64053
+3.  Earle, L., Maguire, J., Munankarmi, P., & Roberts, D. (2023). The impact
+    of energy-efficiency upgrades and other distributed energy resources on a
+    residential neighborhood-scale electrification retrofit. *Applied Energy*,
+    *329*, 120256. https://doi.org/10.1016/J.APENERGY.2022.120256
 
-4.  Blonsky, M., Munankarmi, P., & Balamurugan, S. P. (2021).
-    Incorporating residential smart electric vehicle charging in home
-    energy management systems. *IEEE Green Technologies Conference*,
-    *2021-April*, 187–194.
-    https://doi.org/10.1109/GREENTECH48523.2021.00039
+4.  Blonsky, M., McKenna, K., Maguire, J., & Vincent, T. (2022). Home energy
+    management under realistic and uncertain conditions: A comparison of
+    heuristic, deterministic, and stochastic control methods. *Applied
+    Energy*, *325*, 119770. https://doi.org/10.1016/J.APENERGY.2022.119770
 
-5.  Cutler, D., Kwasnik, T., Balamurugan, S., Elgindy, T., Swaminathan,
-    S., Maguire, J., & Christensen, D. (2021). Co-simulation of
-    transactive energy markets: A framework for market testing and
-    evaluation. *International Journal of Electrical Power & Energy
-    Systems*, *128*, 106664.
-    https://doi.org/10.1016/J.IJEPES.2020.106664
+5.  Wang, J., Munankarmi, P., Maguire, J., Shi, C., Zuo, W., Roberts, D., &
+    Jin, X. (2022). Carbon emission responsive building control: A case study
+    with an all-electric residential community in a cold climate. *Applied
+    Energy*, *314*, 118910. https://doi.org/10.1016/J.APENERGY.2022.118910
 
-6.  Utkarsh, K., Ding, F., Jin, X., Blonsky, M., Padullaparti, H., &
-    Balamurugan, S. P. (2021). A Network-Aware Distributed Energy
-    Resource Aggregation Framework for Flexible, Cost-Optimal, and
-    Resilient Operation. *IEEE Transactions on Smart Grid*.
+6.	Munankarmi P., Maguire J., Jin X. (2023). Control of Behind-the-Meter
+  	Resources for Enhancing the Resilience of Residential Buildings. *IEEE
+  	Power and Energy Society General Meeting*, 2023-July.
+  	https://doi.org/10.1109/PESGM52003.2023.10253443
+
+7.	Graf, P. and Emami, P. (2024). Three Pathways to Neurosymbolic
+  	Reinforcement Learning with Interpretable Model and Policy Networks.
+  	*arXiv*. https://arxiv.org/abs/2402.05307 (see also: `Github: ochre-gym
+  	<https://nrel.github.io/ochre_gym/>`__)
+
+8.  Utkarsh, K., Ding, F., Jin, X., Blonsky, M., Padullaparti, H., &
+    Balamurugan, S. P. (2021). A Network-Aware Distributed Energy Resource
+    Aggregation Framework for Flexible, Cost-Optimal, and Resilient Operation.
+    *IEEE Transactions on Smart Grid*.
     https://doi.org/10.1109/TSG.2021.3124198
 
-7.  Blonsky, M., McKenna, K., Maguire, J., & Vincent, T. (2022). Home
-    energy management under realistic and uncertain conditions: A
-    comparison of heuristic, deterministic, and stochastic control
-    methods. *Applied Energy*, *325*, 119770.
-    https://doi.org/10.1016/J.APENERGY.2022.119770
-
-8.  Munankarmi, P., Maguire, J., & Jin, X. (2022). *Occupancy-Based
-    Controls for an All-Electric Residential Community in a Cold
-    Climate*. 1–5. https://doi.org/10.1109/PESGM48719.2022.9917067
-
-9.  Wang, J., Munankarmi, P., Maguire, J., Shi, C., Zuo, W., Roberts,
-    D., & Jin, X. (2022). Carbon emission responsive building control: A
-    case study with an all-electric residential community in a cold
-    climate. *Applied Energy*, *314*, 118910.
-    https://doi.org/10.1016/J.APENERGY.2022.118910
-
-10. O’Shaughnessy, E., Cutler, D., Farthing, A., Elgqvist, E., Maguire,
-    J., Blonsky, M., Li, X., Ericson, S., Jena, S., & Cook, J. J.
-    (2022). *Savings in Action: Lessons from Observed and Modeled
-    Residential Solar Plus Storage Systems*.
-    https://doi.org/10.2172/1884300
-
-11. Earle, L., Maguire, J., Munankarmi, P., & Roberts, D. (2023). The
-    impact of energy-efficiency upgrades and other distributed energy
-    resources on a residential neighborhood-scale electrification
-    retrofit. *Applied Energy*, *329*, 120256.
-    https://doi.org/10.1016/J.APENERGY.2022.120256
 
 Contact
 -------

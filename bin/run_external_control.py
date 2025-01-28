@@ -202,7 +202,7 @@ def run_ev_tou():
         # Equipment parameters
         "vehicle_type": "BEV",
         "charging_level": "Level 1",
-        "mileage": 150,
+        "range": 150,
     }
 
     # Initialize
@@ -234,7 +234,7 @@ def run_ev_perfect():
         # Equipment parameters
         "vehicle_type": "BEV",
         "charging_level": "Level 1",
-        "mileage": 150,
+        "range": 150,
     }
 
     # Initialize

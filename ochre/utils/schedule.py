@@ -350,14 +350,14 @@ def import_occupancy_schedule(
     occupancy,
     equipment,
     start_time,
-    schedule_input_file=None,
-    default_schedule_file="Default Schedule Parameters.csv",
+    hpxml_schedule_file=None,
+    simple_schedule_file="Simple Schedule Parameters.csv",
     **kwargs,
 ):
-    # Import stochastic occupancy schedule file. Note that initial values are normalized to max_value=1
+    # Import HPXML schedule file. Note that initial values are normalized to max_value=1
     # FUTURE: for sub-annual schedules, create annual schedule and then shorten to simulation time
-    if schedule_input_file is not None:
-        df_norm = load_csv(schedule_input_file, sub_folder='Input Files')
+    if hpxml_schedule_file is not None:
+        df_norm = load_csv(hpxml_schedule_file, sub_folder='Input Files')
     else:
         # create empty, hourly DataFrame
         df_norm = pd.DataFrame(index=range(8760))
@@ -437,7 +437,7 @@ def import_occupancy_schedule(
             # Schedule is not used in OCHRE
             continue
         else:
-            raise OCHREException(f'Unknown column in schedule file: {hpxml_name}')
+            raise OCHREException(f'Unknown column in schedule: {hpxml_name}')
 
     schedule = pd.concat(schedule_data, axis=1)
 
@@ -577,8 +577,8 @@ def load_schedule(properties, schedule=None, time_zone=None, **house_args):
         setpoint_diff = schedule['HVAC Cooling Setpoint (C)'] - schedule['HVAC Heating Setpoint (C)']
         if setpoint_diff.min() < 1:
             # if min(setpoint_diff) < 0:
-            #     raise OCHREException('ERROR: Cooling setpoint is equal or less than heating setpoint in schedule file')
-            print('WARNING: Cooling setpoint is within 1C of heating setpoint in schedule file.'
+            #     raise OCHREException('ERROR: Cooling setpoint is equal or less than heating setpoint in schedule')
+            print('WARNING: Cooling setpoint is within 1C of heating setpoint.'
                   ' Separating setpoints by at least 1C.')
             setpoint_avg = (schedule['HVAC Cooling Setpoint (C)'] + schedule['HVAC Heating Setpoint (C)']) / 2
             schedule['HVAC Cooling Setpoint (C)'] = schedule['HVAC Cooling Setpoint (C)'].clip(lower=setpoint_avg + 0.5)

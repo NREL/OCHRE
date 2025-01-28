@@ -47,7 +47,7 @@ house = Dwelling(
     time_res=dt.timedelta(minutes=10),       
     duration=dt.timedelta(days=3),
     hpxml_file=os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
-    schedule_input_file=os.path.join(default_input_path, "Input Files", "bldg0112631_schedule.csv"),
+    hpxml_schedule_file=os.path.join(default_input_path, "Input Files", "bldg0112631_schedule.csv"),
     weather_file=os.path.join(default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"),
     verbosity=3,
 )
@@ -61,7 +61,9 @@ This will return 3 variables:
  * `hourly`: a Pandas DataFrame with 1 hour resolution (verbosity >= 3 only)
 
 For more examples, see:
-* The [OCHRE User Tutorial](https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb) notebook 
+* The [OCHRE User
+  Tutorial](https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb)
+  Jupyter notebook 
 * Python example scripts to:
   * Run a [single dwelling](https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py)
   * Run a [single piece of equipment](https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py)
