@@ -2,7 +2,6 @@ import numpy as np
 
 from ochre.Models import StratifiedWaterModel
 
-
 # PCM properties from manufacturer, same units as water properties
 PCM_PROPERTIES = {
     "t_m1": 50,  # C
@@ -44,14 +43,21 @@ class TankWithPCM(StratifiedWaterModel):
     name = "Water Tank with PCM"
 
     def __init__(self, pcm_water_node=5, pcm_vol_fraction=0.5, **kwargs):
+        
         # PCM node data
         self.pcm_water_node = pcm_water_node  # node number, from the top
         self.t_pcm_wh_idx = self.pcm_water_node - 1
         self.pcm_vol_fraction = pcm_vol_fraction
         self.pcm_mass = None  # in g
-
+        
         super().__init__(**kwargs)
 
+        # Bounds check for pcm_vol_fraction for stability
+        if not (6.582730627258115e-08 <= self.pcm_vol_fraction <= 0.9999999999999725):
+            raise ValueError(f"pcm_vol_fraction {pcm_vol_fraction} must be between 6.582730627258115e-08 and 0.9999999999999725 to ensure stability.")
+        if self.pcm_vol_fraction < 0.01 or self.pcm_vol_fraction > 0.99:
+            self.warn(f"pcm_vol_fraction {pcm_vol_fraction} is outside the recommended range (0.01 to 0.99). Results may be inaccurate.")
+        
         self.key_temp, self.key_enthalpy = calculate_interpolation_data(**PCM_PROPERTIES)
         self.key_enthalpy *= self.pcm_mass  # in J
 
@@ -93,11 +99,11 @@ class TankWithPCM(StratifiedWaterModel):
         # if convection coefficient changes by phase, add heat transfer here
 
         # # calculate heat transfer (pcm to water)
-        # t_water = self.states[self.t_pcm_wh_idx]
-        # t_pcm = self.states[self.t_pcm_idx]
-        # h_pcm = PCM_PROPERTIES["h_conv"] * (t_pcm - t_water)  # in W
-        # return h_pcm
-        return 0
+        t_water = self.states[self.t_pcm_wh_idx]
+        t_pcm = self.states[self.t_pcm_idx]
+        h_pcm = PCM_PROPERTIES["h_conv"] * (t_pcm - t_water)  # in W
+        return h_pcm
+        # return 0
 
 
     def update_inputs(self, schedule_inputs=None):
@@ -107,10 +113,10 @@ class TankWithPCM(StratifiedWaterModel):
         # get heat injections from PCM
         self.pcm_heat_to_water = self.get_pcm_heat_xfer()
 
-        # add PCM heat to inputs
-        self.inputs_init = np.append(self.inputs_init, self.pcm_heat_to_water)
+        # add PCM heat to inputs       
+        self.inputs_init = np.append(self.inputs_init, -self.pcm_heat_to_water) # fix heat flow direction
         # self.inputs_init[self.h_pcm_idx] = self.pcm_heat_to_water
-        self.inputs_init[self.h_pcm_wh_idx] = -self.pcm_heat_to_water
+        self.inputs_init[self.h_pcm_wh_idx] += self.pcm_heat_to_water # fix heat flow direction
 
     def update_model(self, control_signal=None):
         super().update_model(control_signal)
