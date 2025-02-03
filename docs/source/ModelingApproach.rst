@@ -379,16 +379,13 @@ Co-simulation
 OCHRE is designed to be run in co-simulation with controllers, aggregators,
 grid models, and other agents. The inputs and outputs of key functions are
 designed to connect with these agents for streamlined integration. See
-`Controller Integration
-<https://ochre-nrel.readthedocs.io/en/latest/ControllerIntegration.html>`__
-and `Outputs and Analysis
-<https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__ for details on
-the inputs and outputs, respectively.
+`Controller Integration`_ and `Outputs and Analysis`_ for details on the
+inputs and outputs, respectively.
 
 See `here <https://github.com/NREL/OCHRE/blob/main/bin/run_cosimulation.py>`__
 for a simple example that implements OCHRE in co-simulation using HELICS.
 There are also co-simulation examples in our `publications list
-<https://ochre-nrel.readthedocs.io/en/latest/Introduction.html#citation-and-publications>`__
+<#citation-and-publications>`_
 
 Unsupported Features
 --------------------

@@ -152,9 +152,9 @@ The table below lists the optional arguments for creating a ``Dwelling`` model.
 +---------------------------+------------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``time_zone``             | string                 | None (no time zone modeled)                     | Include time zone in timestamps [#]_                                                                                                                        |
 +---------------------------+------------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``verbosity``             | int                    | 1                                               | Verbosity of the time series results, from 0-9. See `Outputs and Analysis <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__  for details        |
+| ``verbosity``             | int                    | 1                                               | Verbosity of the time series results, from 0-9. See `Outputs and Analysis`_  for details                                                                    |
 +---------------------------+------------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``metrics_verbosity``     | int                    | 6                                               | Verbosity of the output metrics, from 0-9. See `Dwelling Metrics <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html#dwelling-metrics>`__ for details |
+| ``metrics_verbosity``     | int                    | 6                                               | Verbosity of the output metrics, from 0-9. See `Dwelling Metrics`_ for details                                                                              |
 +---------------------------+------------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``output_path``           | string                 | HPXML file or equipment schedule file directory | Path to save output files                                                                                                                                   |
 +---------------------------+------------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -189,8 +189,7 @@ The table below lists the optional arguments for creating a ``Dwelling`` model.
     for local U.S. time zone without daylight savings, or any time zone in
     ``pytz.all_timezones``.
 .. [#] Uses OCHRE units and naming conventions, see the `OCHRE schedule file
-    <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html#additional-output-files-and-print-statements>`__
-    for an example.
+    <#additional-output-files-and-print-statements>`_ for an example.
 
 ``Envelope`` arguments can be included to modify the default envelope model
 that is based on the HPXML file. The table below lists optional arguments for
@@ -318,7 +317,7 @@ described in the sections below.
 +-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
 | ``envelope_model``                | ``ochre.Envelope``             | None                                            | Envelope model for measuring temperature impacts (required for HVAC equipment)                                                           |
 +-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
-| ``verbosity``                     | int                            | 1                                               | Verbosity of the outputs, from 0-9. See `Outputs and Analysis <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__  for details |
+| ``verbosity``                     | int                            | 1                                               | Verbosity of the outputs, from 0-9. See `Outputs and Analysis`_ for details                                                              |
 +-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
 | ``output_path``                   | string                         | HPXML file or equipment schedule file directory | Path to save output files                                                                                                                |
 +-----------------------------------+--------------------------------+-------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
@@ -346,8 +345,7 @@ described in the sections below.
     simulation.
 .. [#] Required for some equipment, see below for details. Uses OCHRE units
     and naming conventions, see the `OCHRE schedule file
-    <https://ochre-nrel.readthedocs.io/en/latest/Outputs.html#additional-output-files-and-print-statements>`__
-    for an example
+    <#additional-output-files-and-print-statements>`_ for an example
 .. [#] If the output path is not specified, the random seed will not be set.
     This can lead to differences in results for the same set of inputs.
 

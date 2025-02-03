@@ -213,9 +213,9 @@ The following code sends a voltage of 0.97 p.u. to a Dwelling model:
 External model signals can also modify any time series schedule values
 including weather and occupancy variables. The names and units of these
 variables can be found in the header of the `OCHRE schedule file
-<https://ochre-nrel.readthedocs.io/en/latest/Outputs.html#additional-output-files-and-print-statements>`__.
-Alternatively, these variables can be reset at the beginning of the
-simulation; see the `OCHRE User Tutorial
+<#additional-output-files-and-print-statements>`_. Alternatively, these
+variables can be reset at the beginning of the simulation; see the `OCHRE User
+Tutorial
 <https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
 Jupyter notebook for more details.
 
@@ -225,9 +225,8 @@ Status Variables
 The ``update`` function for equipment and dwellings returns a Python
 dictionary with status variables that can be sent to the external controller.
 These status variables are equivalent to the time series results described in
-`Outputs and Analysis
-<https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__. Note that the
-``verbosity`` applies to the status variables in the same way as the outputs.
+`Outputs and Analysis`_. Note that the ``verbosity`` applies to the status
+variables in the same way as the outputs.
 
 See ``run_hvac_dynamic_control`` in `bin/run_external_control.py
 <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__ for
@@ -253,6 +252,5 @@ co-optimization or simulation across varying time-scales. See the
 <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>` as an
 example.
 
-See the `publications list
-<https://ochre-nrel.readthedocs.io/en/latest/Introduction.html#citation-and-publications>`__
-for examples of more advanced co-simulation architectures that use OCHRE.
+See the `publications list <#citation-and-publications>`_ for examples of more
+advanced co-simulation architectures that use OCHRE.

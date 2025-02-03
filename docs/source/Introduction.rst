@@ -62,7 +62,14 @@ Python Interface
 OCHRE can be used to simulate a residential dwelling or individual pieces of
 equipment. In either case, a Python object is instantiated and then simulated.
 
-Below is a simple example to simulate a dwelling:
+The following code will simulate a dwelling model using `sample files
+<https://github.com/NREL/OCHRE/tree/main/ochre/defaults/Input%20Files>`__ that
+contain building and equipment properties, occupancy schedules, and weather
+data. In addition to `input files <#generating-input-files>`_, OCHRE requires
+`input arguments <#dwelling-arguments>`_ to specify the simulation start time,
+time resolution, and duration. `Time series results
+<#dwelling-time-series-results>`_ and simulation `metrics <#all-metrics>`_ can
+be saved to memory and/or in output files.
 
 .. code-block:: python
 
@@ -78,23 +85,13 @@ Below is a simple example to simulate a dwelling:
         hpxml_file=os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
         hpxml_schedule_file=os.path.join(default_input_path, "Input Files", "bldg0112631_schedule.csv"),
         weather_file=os.path.join(default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"),
-        verbosity=3,
     )
 
-    df, metrics, hourly = house.simulate()
-
-This code will return 3 variables:
-
-- ``df``: a Pandas DataFrame with 10 minute resolution
-
-- ``metrics``: a dictionary of energy metrics
-
-- ``hourly``: a Pandas DataFrame with 1 hour resolution (``verbosity >= 3`` only)
+    house.simulate()
 
 OCHRE can also be used to model a single piece of equipment, a fleet of
-equipment, or multiple dwellings. It can also be run in co-simulation with
-custom controllers, home energy management systems, aggregators, and grid
-models. 
+equipment, or multiple dwellings. It can be run in co-simulation with custom
+controllers, home energy management systems, aggregators, and grid models. 
 
 For more examples, see:
 
