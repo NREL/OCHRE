@@ -279,7 +279,7 @@ class Dwelling(Simulator):
             for equipment in self.equipment.values():
                 if equipment.is_electric:
                     equipment.current_schedule["Voltage (-)"] = 0
-            self.update_model(control_signal)
+            super().update_model(control_signal)
 
     def start_sub_update(self, sub, control_signal):
         sub_control_signal = super().start_sub_update(sub, control_signal)
