@@ -18,8 +18,8 @@ includes detailed models for flexible devices including HVAC equipment, water
 heaters, electric vehicles, solar PV, and batteries. It can examine the
 impacts of novel control strategies on energy consumption and occupant comfort
 metrics. OCHRE integrates with many of NREL's established modeling tools,
-including `ResStock\ |tm| <https://resstock.nrel.gov/>__`, `BEopt\ |tm|
-<https://www.nrel.gov/buildings/beopt.html>__`, `EVI-Pro
+including `ResStock <https://resstock.nrel.gov/>__`\ |tm|, `BEopt
+<https://www.nrel.gov/buildings/beopt.html>__`\ |tm|, `EVI-Pro
 <https://www.nrel.gov/transportation/evi-pro.html>`__, `SAM
 <https://sam.nrel.gov/>`__, and `HELICS <https://helics.org/>`__.
 

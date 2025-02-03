@@ -69,13 +69,19 @@ Generating Input Files
 
 HPXML and occupancy schedule input files can be generated from:
 
+-  `ResStock Datasets <https://resstock.nrel.gov/datasets>`__: best for using
+   building models from previous ResStock runs. OCHRE includes some code to
+   easily download this data for specific building IDs and upgrades (defaults
+   to 2024.2 release):
+
+   .. code-block:: python
+
+      from ochre import Analysis
+      Analysis.download_resstock_model("bldg0112631", "up00")
+
 -  `BEopt <https://www.nrel.gov/buildings/beopt.html>`__ 3.0 or later: best
    for designing a single building model. Includes a user interface to select
    building features.
-
--  `End-Use Load Profiles
-   <https://www.nrel.gov/buildings/end-use-load-profiles.html>`__ Database:
-   best for using building models from previous ResStock runs
 
 -  `ResStock <https://resstock.nrel.gov/>`__: best for users in need of a
    large sample of building models with specific features

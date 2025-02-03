@@ -2,14 +2,21 @@
 
 # OCHRE: The Object-oriented Controllable High-resolution Residential Energy Model
 
-OCHRE&trade; is a Python-based building energy modeling (BEM) tool designed to model flexible loads in residential buildings. OCHRE includes detailed models and controls for flexible devices including HVAC equipment, water heaters, electric vehicles, solar PV, and batteries. It is designed to run in co-simulation with custom controllers, aggregators, and grid models.
+OCHRE&trade; is a Python-based energy modeling tool designed to model flexible
+end-use loads and distributed energy resources in residential buildings. OCHRE
+includes detailed models for flexible devices including HVAC equipment, water
+heaters, electric vehicles, solar PV, and batteries. It can examine the
+impacts of novel control strategies on energy consumption and occupant comfort
+metrics. OCHRE integrates with many of NREL's established modeling tools,
+including [ResStock&trade;](https://resstock.nrel.gov/),
+[BEopt&trade;](https://www.nrel.gov/buildings/beopt.html),
+[EVI-Pro](https://www.nrel.gov/transportation/evi-pro.html),
+[SAM](https://sam.nrel.gov/), and [HELICS](https://helics.org).
 
-The full documentation for OCHRE can be found at
-https://ochre-nrel.readthedocs.io/
-
-More information about OCHRE can be found on [NREL's
-website](https://www.nrel.gov/grid/ochre.html) and from the [Powered By
-OCHRE](https://www.youtube.com/watch?v=B5elLVtYDbI) webinar recording. 
+More information about OCHRE can be found in [our
+documentation](https://ochre-nrel.readthedocs.io/), on [NREL's
+website](https://www.nrel.gov/grid/ochre.html), and from the [Powered By
+OCHRE](https://www.youtube.com/watch?v=B5elLVtYDbI) webinar recording.
 
 If you use OCHRE for your research or other projects, please fill out our [user survey](https://forms.office.com/g/U4xYhaWEvs).
 
@@ -62,7 +69,7 @@ This will return 3 variables:
 
 For more examples, see:
 * The [OCHRE User
-  Tutorial](https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb)
+  Tutorial](https://colab.research.google.com/github/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb)
   Jupyter notebook 
 * Python example scripts to:
   * Run a [single dwelling](https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py)
