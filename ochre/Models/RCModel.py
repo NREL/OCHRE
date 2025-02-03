@@ -83,31 +83,31 @@ class RCModel(StateSpaceModel):
     """
     name = 'Generic RC'
 
-    def __init__(self, external_nodes, rc_params=None, unused_inputs=None, **kwargs):
+    def __init__(
+        self,
+        capacitances,
+        resistances, 
+        external_nodes,
+        energy_flow_states=None,
+        unused_inputs=None,
+        **kwargs,
+    ):
         self.solver_params = None  # saves parameters for faster solving, see self.solve_for_multi_inputs
 
-        # Load RC parameters
-        if rc_params is None:
-            rc_params = self.load_rc_data(**kwargs)
-        if not rc_params:
-            raise ModelException(f'No RC Parameters found for {self.name} Model')
-
         # Parse RC parameters
-        all_cap = {name.upper().split('_')[1:][0]: val for name, val in rc_params.items() if name[0] == 'C'}
-        all_res = {tuple(name.upper().split('_')[1:]): val for name, val in rc_params.items() if name[0] == 'R'}
-        self.capacitances = np.array(list(all_cap.values()))
+        self.capacitances = np.array(list(capacitances.values()))
 
         # Get node names from RC parameters (internal nodes have a C)
-        internal_nodes = list(all_cap.keys())
-        all_nodes = set([node for name in all_res.keys() for node in name])
+        internal_nodes = list(capacitances.keys())
+        all_nodes = set([node for name in resistances.keys() for node in name])
 
         # remove floating nodes using star-mesh transform
         floating_nodes = [node for node in all_nodes if node not in internal_nodes + external_nodes]
         for node in floating_nodes:
-            all_res = transform_floating_node(node, all_res)
+            resistances = transform_floating_node(node, resistances)
 
         # check for zero or negative RC parameters
-        bad_params = [c for c, val in all_cap.items() if val <= 0] + [r for r, val in all_res.items() if val <= 0]
+        bad_params = [c for c, val in capacitances.items() if val <= 0] + [r for r, val in resistances.items() if val <= 0]
         if bad_params:
             raise ModelException(f'RC parameters for {self.name} Model must be positive: {bad_params}')
 
@@ -116,7 +116,12 @@ class RCModel(StateSpaceModel):
         input_names = ['T_' + node for node in external_nodes] + ['H_' + node for node in internal_nodes]
 
         # Create A and B matrices from RC parameters and get state and input names
-        A_c, B_c = self.create_rc_matrices(all_cap, all_res, internal_nodes, external_nodes)
+        A_c, B_c = self.create_rc_matrices(capacitances, resistances, internal_nodes, external_nodes)
+
+        # add energy flow states
+        if energy_flow_states:
+            A_c, B_c = self.add_energy_flow_states(energy_flow_states, A_c, B_c, internal_nodes, resistances)
+            # state_names.extend()
 
         # Create A and B abstract matrices
         # A_ab, B_ab = self.create_matrices(all_cap, all_res, internal_nodes, external_nodes, print_abstract=True)
@@ -148,15 +153,6 @@ class RCModel(StateSpaceModel):
             df_a.to_csv(file_name_format + '_matrixA.csv', index=True)
             df_b.to_csv(file_name_format + '_matrixB.csv', index=True)
             df_c.to_csv(file_name_format + '_matrixC.csv', index=True)
-
-    def load_rc_data(self, rc_filename=None, name_col='Name', value_col='Value', **kwargs):
-        if rc_filename is None:
-            raise ModelException(f'Missing filename with RC parameters for {self.name}')
-        # Load file
-        df = pd.read_csv(rc_filename, index_col=name_col)
-
-        # Convert to dict of {Parameter Name: Parameter Value}
-        return df[value_col].to_dict()
 
     @staticmethod
     def create_rc_matrices(all_cap, all_res, internal_nodes, external_nodes, return_abstract=False):
@@ -233,6 +229,29 @@ class RCModel(StateSpaceModel):
             return A_abstract, B_abstract
         else:
             return A, B
+
+    def add_energy_flow_states(self, energy_flow_states, A_c, B_c, internal_nodes, resistances):
+        # add states for energy flows through specific resistors
+        # extend A and B matrices
+        n_new = len(energy_flow_states)
+        A_c = np.pad(A_c, ((0, n_new), (0, n_new)))
+        B_c = np.pad(B_c, ((0, n_new), (0, 0)))
+        
+        # fill in energy flow equations:
+        # x = Q, x_dot = (T_2 - T_1) / R
+        row = len(internal_nodes)
+        for (node_from, node_to) in energy_flow_states:
+            res = resistances[(node_from, node_to)]
+            i1 = internal_nodes.index(node_from)
+            i2 = internal_nodes.index(node_to)
+            A_c[row, i1] = 1 / res
+            A_c[row, i2] = -1 / res
+            row += 1
+
+        # add to state names
+        new_state_names = None
+
+        return A_c, B_c, new_state_names
 
     @staticmethod
     def initialize_state(state_names, input_names, A_c, B_c, **kwargs):
@@ -367,11 +386,10 @@ class OneNodeRCModel(RCModel):
     ext_name = 'EXT'
 
     def __init__(self, resistance, capacitance, **kwargs):
+
         self.resistance = resistance
         self.capacitance = capacitance
-        rc_params = {
-            f'R_{self.int_name}_{self.ext_name}': self.resistance,
-            f'C_{self.int_name}': self.capacitance
-        }
+        capacitances = {self.int_name: self.capacitance}
+        resistances = {(self.int_name, self.ext_name): self.resistance}
 
-        super().__init__([self.ext_name], rc_params, **kwargs)
+        super().__init__(capacitances, resistances, [self.ext_name], **kwargs)

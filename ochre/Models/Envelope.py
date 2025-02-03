@@ -167,6 +167,93 @@ class ExteriorZone:
         self.temperature = None
 
 
+class Boundary:
+    """
+    Class for a specific boundary within a building envelope, e.g. exterior walls, garage walls, etc.
+    """
+
+    def __init__(self, name, location, **kwargs):
+        self.name = name
+        self.label = kwargs["Boundary Label"]
+        self.area = sum(kwargs["Area (m^2)"])
+        self.ext_zone_label = kwargs["Exterior Zone Label"]
+        self.int_zone_label = kwargs["Interior Zone Label"]
+
+        # Get film resistances
+        new_bd_properties = utils.calculate_film_resistances(self.name, kwargs, location)
+        kwargs = {**new_bd_properties, **kwargs}
+
+        # Define starting (exterior) and ending (interior) zones
+        # zone_labels = [zone.label for zone in zones] + list(EXT_ZONES.keys())
+        # if ext_zone not in zone_labels:
+        #     raise ModelException(
+        #         'Cannot use {} boundary when {} zone is not included.'.format(self.name, ext_zone))
+        # if int_zone not in zone_labels:
+        #     raise ModelException(
+        #         'Cannot use {} boundary when {} zone is not included.'.format(self.name, int_zone))
+
+        # parse RC parameters to be readable for RCModel, get number and names for nodes
+        cap_values = kwargs.get("Capacitances", [])
+        res_values = kwargs.get("Resistances", [])
+        if not len(cap_values) and self.name != "Window":
+            raise OCHREException(
+                f"Missing RC coefficients for {self.name} with properties: {kwargs}"
+            )
+        if len(res_values) != len(cap_values):
+            raise ModelException(
+                f"Cannot parse RC data for {self.name}. Number of resistors ({len(res_values)}) is not"
+                f" compatible with the number of capacitors ({len(cap_values)})"
+            )
+        same_zones = self.ext_zone_label == self.int_zone_label
+        u_window = kwargs.get("U Factor (W/m^2-K)")
+
+        # convert RC parameters into RC network, remove 0 capacitance values, etc.
+        cap_values, res_values = utils.create_rc_data(cap_values, res_values, same_zones, u_window)
+        self.n_nodes = len(cap_values)
+        self.all_nodes = [self.label + str(i + 1) for i in range(self.n_nodes)]
+
+        # Create exterior and interior boundary surfaces
+        node_ext = (
+            self.all_nodes[0] if self.n_nodes else self.int_zone_label
+        )  # node name closest to external zone
+        self.ext_surface = BoundarySurface(
+            self, True, self.ext_zone_label, node_ext, res_material=res_values[0], **kwargs
+        )
+        if not same_zones:
+            node_int = (
+                self.all_nodes[-1] if self.n_nodes else self.ext_zone_label
+            )  # node name closest to internal zone
+            self.int_surface = BoundarySurface(
+                self, False, self.int_zone_label, node_int, res_material=res_values[-1], **kwargs
+            )
+        else:
+            self.int_surface = BoundarySurface(self, False, **kwargs)  # empty surface
+
+        # Save capacitor parameters, converts kJ/m^2-K to kJ/K
+        self.capacitors = {
+            node: val * self.area for node, val in zip(self.all_nodes, cap_values)
+        }  # in kJ/K
+
+        # get all resistance node names and values (including film resistances)
+        node_list = [self.ext_zone_label, self.label + "-ext"] + self.all_nodes
+        res_values = [self.ext_surface.res_film] + res_values
+        if not same_zones:
+            # do not include int_zone if int and ext zones are the same
+            node_list += [self.label + "-int", self.int_zone_label]
+            res_values += [self.int_surface.res_film]
+        else:
+            # flip order of nodes and resistances
+            node_list = node_list[::-1]
+            res_values = res_values[::-1]
+
+        # for resistances, label each node pair
+        # e.g., R_ATC_CL1, R_CL1_CL2, R_CL2_LIV
+        assert len(node_list) == len(res_values) + 1
+        self.resistors = {
+            (node_list[i], node_list[i + 1]): r / self.area for i, r in enumerate(res_values)
+        }  # in K/W
+
+
 class Zone:
     """
     Class for interior air zone, e.g. main indoor zone, garage, attic, foundation.
@@ -187,7 +274,7 @@ class Zone:
         self.hvac_latent_gain = 0  # for HVAC equipment latent gains, in W
 
         # Internal zone radiation parameters
-        self.surfaces = []
+        self.surfaces: list[BoundarySurface] = []
         self.s_view_factors = None  # all surface view factors
         self.s_e_factors = None  # all surface emissivity factors
         self.s_rad_fractions = None  # all surface radiation fractions
@@ -244,7 +331,7 @@ class Zone:
         self.nat_vent_wind_coeff = zone_args.get('ELA wind coefficient (L/s/cm^4/(m/s))')
         self.open_window_area = None
 
-    def create_surfaces(self, boundaries):
+    def create_surfaces(self, boundaries: list[Boundary]):
         if not boundaries:
             return
 
@@ -442,76 +529,6 @@ class Zone:
             s.lwr_gain = h_lwr_net[i]
 
 
-class Boundary:
-    """
-    Class for a specific boundary within a building envelope, e.g. exterior walls, garage walls, etc.
-    """
-
-    def __init__(self, name, location, **kwargs):
-        self.name = name
-        self.label = kwargs['Boundary Label']
-        self.area = sum(kwargs['Area (m^2)'])
-        self.ext_zone_label = kwargs['Exterior Zone Label']
-        self.int_zone_label = kwargs['Interior Zone Label']
-
-        # Get film resistances
-        new_bd_properties = utils.calculate_film_resistances(self.name, kwargs, location)
-        kwargs = {**new_bd_properties, **kwargs}
-
-        # Define starting (exterior) and ending (interior) zones
-        # zone_labels = [zone.label for zone in zones] + list(EXT_ZONES.keys())
-        # if ext_zone not in zone_labels:
-        #     raise ModelException(
-        #         'Cannot use {} boundary when {} zone is not included.'.format(self.name, ext_zone))
-        # if int_zone not in zone_labels:
-        #     raise ModelException(
-        #         'Cannot use {} boundary when {} zone is not included.'.format(self.name, int_zone))
-
-        # parse RC parameters to be readable for RCModel, get number and names for nodes
-        cap_values = [kwargs['C_' + self.label + str(i)] for i in range(10) if 'C_' + self.label + str(i) in kwargs]
-        res_values = [kwargs['R_' + self.label + str(i)] for i in range(10) if 'R_' + self.label + str(i) in kwargs]
-        if not len(cap_values) and self.name != 'Window':
-            raise OCHREException(f'Missing RC coefficients for {self.name} with properties: {kwargs}')
-        if len(res_values) != len(cap_values):
-            raise ModelException(f'Cannot parse RC data for {self.name}. Number of resistors ({len(res_values)}) is not'
-                                 f' compatible with the number of capacitors ({len(cap_values)})')
-        same_zones = self.ext_zone_label == self.int_zone_label
-        u_window = kwargs.get('U Factor (W/m^2-K)')
-
-        # convert RC parameters into RC network, remove 0 capacitance values, etc.
-        cap_values, res_values = utils.create_rc_data(cap_values, res_values, same_zones, u_window)
-        self.n_nodes = len(cap_values)
-        self.all_nodes = [self.label + str(i + 1) for i in range(self.n_nodes)]
-
-        # Create exterior and interior boundary surfaces
-        node_ext = self.all_nodes[0] if self.n_nodes else self.int_zone_label  # node name closest to external zone
-        self.ext_surface = BoundarySurface(self, True, self.ext_zone_label, node_ext, res_material=res_values[0],
-                                           **kwargs)
-        if not same_zones:
-            node_int = self.all_nodes[-1] if self.n_nodes else self.ext_zone_label  # node name closest to internal zone
-            self.int_surface = BoundarySurface(self, False, self.int_zone_label, node_int, res_material=res_values[-1],
-                                               **kwargs)
-        else:
-            self.int_surface = BoundarySurface(self, False, **kwargs)  # empty surface
-
-        # Save capacitor parameters, converts kJ/m^2-K to kJ/K
-        self.capacitors = {'C_' + node: val * self.area for node, val in zip(self.all_nodes, cap_values)}  # in kJ/K
-
-        # get all resistance node names and values (including film resistances)
-        node_list = [self.ext_zone_label, self.label + '-ext'] + self.all_nodes
-        res_values = [self.ext_surface.res_film] + res_values
-        if not same_zones:
-            # do not include int_zone if int and ext zones are the same
-            node_list += [self.label + '-int', self.int_zone_label]
-            res_values += [self.int_surface.res_film]
-
-        # for resistances, convert boundary names to node names,
-        # e.g. R_CL1 -> R_ATC_CL1,  R_CL2 -> R_CL1_CL2,  R_CL3 -> R_CL2_LIV
-        assert len(node_list) == len(res_values) + 1
-        self.resistors = {f'R_{node_list[i]}_{node_list[i + 1]}': r / self.area
-                          for i, r in enumerate(res_values)}  # in K/W
-
-
 class Envelope(RCModel):
     name = 'Envelope'
     optional_inputs = [
@@ -560,14 +577,11 @@ class Envelope(RCModel):
         for zone in self.zones.values():
             zone.create_surfaces(self.boundaries)
 
-        # Add required inputs for envelope schedule
-        required_inputs = ['Ambient Dry Bulb (C)']
-        if 'Ground' in self.ext_zones:
-            required_inputs.append('Ground Temperature (C)')
-        if any([zone.infiltration_method == 'ASHRAE' for zone in self.zones.values()]):
-            required_inputs.append('Wind Speed (m/s)')
-        required_inputs.extend([f'{bd.name} Irradiance (W)'
-                                for bd in self.ext_boundaries if bd.name not in ['Raised Floor']])
+        # collect RC information
+        capacitances, resistances = self.load_rc_data(**kwargs)
+
+        if self.verbosity >= 4:
+            energy_flow_states = [r for r in resistances if self.indoor_zone.label in r]
 
         # remove heat injection inputs that aren't into main nodes or nodes with a radiation injection
         unused_inputs = [f'H_{node}' for bd in self.boundaries for node in bd.all_nodes
@@ -577,11 +591,26 @@ class Envelope(RCModel):
             unused_inputs += [f'H_{s.node}' for zone in self.zones.values() for s in zone.surfaces
                               if s.boundary.n_nodes > 1]
 
+        # Add required inputs for envelope schedule
+        required_inputs = ['Ambient Dry Bulb (C)']
+        if 'Ground' in self.ext_zones:
+            required_inputs.append('Ground Temperature (C)')
+        if any([zone.infiltration_method == 'ASHRAE' for zone in self.zones.values()]):
+            required_inputs.append('Wind Speed (m/s)')
+        required_inputs.extend([f'{bd.name} Irradiance (W)'
+                                for bd in self.ext_boundaries if bd.name not in ['Raised Floor']])
+
         # Generate RC Model
-        external_nodes = [zone.label for zone in self.ext_zones.values()]
-        outputs = ['T_' + zone.label for zone in self.zones.values()]
-        super().__init__(external_nodes=external_nodes, outputs=outputs, unused_inputs=unused_inputs,
-                         required_inputs=required_inputs, **kwargs)
+        super().__init__(
+            capacitances,
+            resistances,
+            external_nodes=[zone.label for zone in self.ext_zones.values()],
+            energy_flow_states=energy_flow_states,
+            outputs=["T_" + zone.label for zone in self.zones.values()],
+            unused_inputs=unused_inputs,
+            required_inputs=required_inputs,
+            **kwargs,
+        )
 
         # Check that envelope model is not reduced if non-linear radiation methods are used
         if self.reduced and (self.run_internal_rad or self.run_external_rad):
@@ -648,30 +677,29 @@ class Envelope(RCModel):
                     dict1[key] = self.par(dict1[key], val)
             return dict1
 
-        all_resistances = {}
-        all_capacitances = {}
+        resistances = {}
+        capacitances = {}
         for boundary in self.boundaries:
-            all_resistances = update_with_par(all_resistances, boundary.resistors)
-
-            all_capacitances.update(**boundary.capacitors)
+            resistances = update_with_par(resistances, boundary.resistors)
+            capacitances.update(**boundary.capacitors)
 
         # add capacitances from zones
-        all_capacitances.update({'C_' + zone.label: zone.capacitance for zone in self.zones.values()})
+        capacitances.update({zone.label: zone.capacitance for zone in self.zones.values()})
 
         # For linear internal radiation, add resistors to RC network to approximate internal radiation
         # Note: linear external radiation updates are done in Boundary initialization
         if self.linearize_int_radiation:
-            all_resistances = update_with_par(all_resistances, self.add_radiation_resistances())
+            resistances = update_with_par(resistances, self.add_radiation_resistances())
 
         # For linear infiltration, add resistors to RC network to approximate infiltration
         if self.linearize_infiltration:
-            all_resistances = update_with_par(all_resistances,
+            resistances = update_with_par(resistances,
                                               self.add_infiltration_resistances(kwargs['initial_schedule']))
 
         # Convert capacitances from kJ to J
-        all_capacitances = {key: val * 1000 for key, val in all_capacitances.items()}
+        capacitances = {key: val * 1000 for key, val in capacitances.items()}
 
-        return {**all_resistances, **all_capacitances}
+        return capacitances, resistances
 
     @staticmethod
     def initialize_state(state_names, input_names, A_c, B_c, initial_temp_setpoint=None, **kwargs):
@@ -755,7 +783,7 @@ class Envelope(RCModel):
         radiation_res = {}
         for zone in self.zones.values():
             for surface in zone.surfaces:
-                radiation_res[f'R_{surface.node}_{zone.label}-rad'] = 1 / (4 * surface.e_factor * t_ref ** 3)
+                radiation_res[(surface.node, f'{zone.label}-rad')] = 1 / (4 * surface.e_factor * t_ref ** 3)
 
         return radiation_res
 
@@ -776,7 +804,7 @@ class Envelope(RCModel):
             heat = zone.update_infiltration(t_ext_op, t_zone_op, wind_speed_op, density, vent_cfm=vent_cfm_op)
             if heat:
                 res = (t_ext_op - t_zone_op) / heat
-                radiation_res[f'R_{zone.label}_EXT'] = res
+                radiation_res[("EXT", zone.label)] = res
 
         return radiation_res
 
