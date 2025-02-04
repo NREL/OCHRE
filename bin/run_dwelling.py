@@ -15,27 +15,25 @@ pd.set_option("display.max_rows", 30)  # Shows up to 30 rows of data
 
 dwelling_args = {
     "name": "MyHouse",  # simulation name
-    # 
+    #
     # Timing parameters
     "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
     "time_res": dt.timedelta(minutes=60),         # time resolution of the simulation
     "duration": dt.timedelta(days=1),             # duration of the simulation
     "initialization_time": dt.timedelta(days=1),  # used to create realistic starting temperature
     # "time_zone": None,                          # option to specify daylight savings, in development
-    # 
+    #
     # Input files
     "hpxml_file": os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
     "hpxml_schedule_file": os.path.join(
         default_input_path, "Input Files", "bldg0112631_schedule.csv"
     ),
-    "weather_file": os.path.join(
-        default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"
-    ),
+    "weather_file": os.path.join(default_input_path, "Weather", "G0800310.epw"),
     # note: weather_path can be used when Weather Station is specified in HPXML file
     # "weather_path": weather_path,
-    # 
+    #
     # Output parameters
-    "verbosity": 3,                         # verbosity of time series files (0-9)
+    # "verbosity": 3,                       # verbosity of time series files (0-9)
     # "metrics_verbosity": 6,               # verbosity of metrics file (0-9), default=6
     # "save_results": False,                # saves results to files. Defaults to True if verbosity > 0
     "output_path": os.getcwd(),             # defaults to hpxml_file path
@@ -43,7 +41,7 @@ dwelling_args = {
     # "output_to_parquet": True,            # saves time series files as parquet files (False saves as csv files)
     # "save_schedule_columns": [],          # list of time series inputs to save to schedule file
     # "export_res": dt.timedelta(days=61),  # time resolution for saving files, to reduce memory requirements
-    # 
+    #
     # Envelope parameters
     # "Envelope": {
     #     "save_results": True,  # Saves detailed envelope inputs and states
@@ -59,12 +57,12 @@ dwelling_args = {
     #         }
     #     },
     # },
-    # 
+    #
     # Occupancy parameters
     # "Occupancy": {
     #     "Number of Occupants (-)": 3,
     # },
-    # 
+    #
     # Equipment parameters
     "Equipment": {
         # HVAC equipment
@@ -101,7 +99,7 @@ dwelling_args = {
         # "Electric Resistance Water Heater": {
         #     "use_ideal_capacity": True,
         # },
-        # 
+        #
         # Other equipment
         # "EV": {
         #     "vehicle_type": "BEV",
