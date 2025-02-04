@@ -1,3 +1,5 @@
+.. _outputs:
+
 Outputs and Analysis
 ====================
 
@@ -6,6 +8,8 @@ series results are used to calculate metrics that summarize the simulation
 results. The set of time series results depends on the ``verbosity`` of the
 simulation, and the set of metrics depends on the ``metrics_verbosity``. OCHRE
 also includes modules with useful code for analysis and visualization. 
+
+.. _dwelling-results:
 
 Dwelling Time Series Results
 ----------------------------
@@ -301,6 +305,7 @@ Currently, this functions works for the following end uses:
 | <end use> EBM Discharge Efficiency (-) | unitless    | N/A       | Power generation/discharging efficiency. For Battery only             |
 +----------------------------------------+-------------+-----------+-----------------------------------------------------------------------+
 
+.. _output-files:
 
 Additional Output Files and Print Statements
 --------------------------------------------
@@ -334,6 +339,8 @@ is False. Additional output files include:
 The ``verbosity`` will also impact the print statements provided during the
 simulation. Setting ``verbosity >= 3`` will allow most print statements to be
 written.
+
+.. _all-metrics:
 
 All Metrics
 -----------
@@ -524,7 +531,7 @@ multiple OCHRE simulations:
     df = Analysis.combine_time_series_files(results_files, agg_type="House")
 
 For a more complete example to compile data across multiple OCHRE simulations,
-see the ``compile_results`` function in `bin/run_multiple.py
+see the ``compile_results`` function in `run_multiple.py
 <https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py#L16>`__.
 
 Other functions can:

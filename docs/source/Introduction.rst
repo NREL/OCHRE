@@ -28,11 +28,11 @@ and batteries. OCHRE can:
   through energy costs and occupant comfort
 
 - Assess grid reliability and resilience through building-to-grid
-  co-simulation
+  co-simulation 
 
 - Integrate with many of NREL's established modeling tools, including
-  `ResStock <https://resstock.nrel.gov/>__`\ |tm|, `BEopt
-  <https://www.nrel.gov/buildings/beopt.html>__`\ |tm|, `EVI-Pro
+  `ResStock <https://resstock.nrel.gov/>`__\ |tm|, `BEopt
+  <https://www.nrel.gov/buildings/beopt.html>`__\ |tm|, `EVI-Pro
   <https://www.nrel.gov/transportation/evi-pro.html>`__, `SAM
   <https://sam.nrel.gov/>`__, and `HELICS <https://helics.org/>`__.
 
@@ -79,11 +79,11 @@ equipment. In either case, a Python object is instantiated and then simulated.
 The following code will simulate a dwelling model using `sample files
 <https://github.com/NREL/OCHRE/tree/main/ochre/defaults/Input%20Files>`__ that
 contain building and equipment properties, occupancy schedules, and weather
-data. In addition to `input files <#generating-input-files>`_, OCHRE requires
-`input arguments <#dwelling-arguments>`_ to specify the simulation start time,
-time resolution, and duration. `Time series results
-<#dwelling-time-series-results>`_ and simulation `metrics <#all-metrics>`_ can
-be saved to memory and/or in output files.
+data. In addition to :ref:`input files <input-files>`, OCHRE requires
+:ref:`input arguments <dwelling-arguments>` to specify the simulation start
+time, time resolution, and duration. :ref:`Time series results
+<dwelling-results>` and simulation :ref:`metrics <all-metrics>` can be saved
+to memory and/or in output files.
 
 .. code-block:: python
 
@@ -111,7 +111,7 @@ For more examples, see:
 
 - The `OCHRE User Tutorial
   <https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
-  Jupyter notebook (also available on `Google Colab
+  Jupyter notebook (available on `Google Colab
   <https://colab.research.google.com/github/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__)
 
 - Python example scripts to:
@@ -165,6 +165,7 @@ This project is available under a BSD-3-like license, which is a free,
 open-source, and permissive license. For more information, check out the
 `license file <https://github.com/NREL/OCHRE/blob/main/LICENSE>`__.
 
+.. _publications:
 
 Citation and Publications
 -------------------------

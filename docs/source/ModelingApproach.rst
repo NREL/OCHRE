@@ -61,13 +61,19 @@ temperature. The figures below show a a high-level overview of the heat
 transfer pathways and an example of how a boundary is converted into an RC
 network.
 
-.. image:: images/Heat_Transfer_Pathways.png
-  :width: 500
-  :alt: Schematic of a home with all optional zones and heat transfer pathways
+.. figure:: images/Heat_Transfer_Pathways.png
+  :width: 600
+  :align: center
+  :alt: Schematic of a dwelling envelope
 
-.. image:: images/Wall_RC_Network.png
+  Schematic of a dwelling envelope with all zones and heat transfer pathways
+
+.. figure:: images/Wall_RC_Network.png
   :width: 800
-  :alt: Schematic of how RC networks are generated for each surface
+  :align: center
+  :alt: Schematic of an RC network for a boundary
+
+  Schematic of an RC network for a single boundary with four materials
 
 Thermal resistance and capacitance coefficients are determined from the HPXML
 file and are based on values from EnergyPlus input/output (.eio) files. Some
@@ -83,9 +89,13 @@ or crawlspaces, and garages. The figure below shows the most complicated RC
 network in OCHRE, where an attic, crawlspace/basement, and garage are all
 included in the building.
 
-.. image:: images/RC_network.png
+.. figure:: images/RC_network.png
   :width: 500
-  :alt: The full RC network for a building. Each rectangle represents the RC network shown in Figure 1
+  :align: center
+  :alt: An RC network for a dwelling envelope
+
+  An RC network for a dwelling envelope. Each rectangle represents an RC
+  network as shown in Figure 1.
 
 OCHRE includes the capability to model multifamily buildings using a unit by
 unit-based approach. Each unit is modeled as a separate dwelling unit with
@@ -379,13 +389,12 @@ Co-simulation
 OCHRE is designed to be run in co-simulation with controllers, aggregators,
 grid models, and other agents. The inputs and outputs of key functions are
 designed to connect with these agents for streamlined integration. See
-`Controller Integration`_ and `Outputs and Analysis`_ for details on the
-inputs and outputs, respectively.
+:ref:`controllers` and :ref:`outputs` for details on the inputs and outputs,
+respectively.
 
 See `here <https://github.com/NREL/OCHRE/blob/main/bin/run_cosimulation.py>`__
 for a simple example that implements OCHRE in co-simulation using HELICS.
-There are also co-simulation examples in our `publications list
-<#citation-and-publications>`_
+There are also co-simulation examples in :ref:`publications`.
 
 Unsupported Features
 --------------------
