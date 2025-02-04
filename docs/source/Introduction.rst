@@ -98,7 +98,7 @@ be saved to memory and/or in output files.
         duration=dt.timedelta(days=3),
         hpxml_file=os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
         hpxml_schedule_file=os.path.join(default_input_path, "Input Files", "bldg0112631_schedule.csv"),
-        weather_file=os.path.join(default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"),
+        weather_file=os.path.join(default_input_path, "Weather", "G0800310.epw"),
     )
 
     house.simulate()

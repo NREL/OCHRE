@@ -257,7 +257,7 @@ An ``Equipment`` model can be initialized in a very similar way to a
    from ochre import Battery
    equipment = Battery(**equipment_args)
 
-where ````equipment_args`` is a Python dictionary of Equipment arguments. This
+where ``equipment_args`` is a Python dictionary of Equipment arguments. This
 section lists each equipment name and class and their required and optional
 arguments, by end use.
 
