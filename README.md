@@ -2,16 +2,14 @@
 
 # OCHRE: The Object-oriented Controllable High-resolution Residential Energy Model
 
-OCHRE&trade; is a Python-based energy modeling tool designed to model flexible
-end-use loads and distributed energy resources in residential buildings. OCHRE
-includes detailed models for flexible devices including HVAC equipment, water
-heaters, electric vehicles, solar PV, and batteries. It can examine the
-impacts of novel control strategies on energy consumption and occupant comfort
-metrics. OCHRE integrates with many of NREL's established modeling tools,
-including [ResStock&trade;](https://resstock.nrel.gov/),
-[BEopt&trade;](https://www.nrel.gov/buildings/beopt.html),
-[EVI-Pro](https://www.nrel.gov/transportation/evi-pro.html),
-[SAM](https://sam.nrel.gov/), and [HELICS](https://helics.org).
+OCHRE&trade; is a Python-based energy modeling tool designed to model end-use
+loads and distributed energy resources in residential buildings. It can model
+flexible devices---including HVAC equipment, water heaters, electric vehicles,
+solar PV, and batteries---and the thermal and electrical interactions between
+them. OCHRE has been used to generate diverse and high-resolution load
+profiles, examine the impacts of advanced control strategies on energy costs
+and occupant comfort, and assess grid reliability and resilience through
+building-to-grid co-simulation.
 
 More information about OCHRE can be found in [our
 documentation](https://ochre-nrel.readthedocs.io/), on [NREL's

@@ -12,16 +12,30 @@ Getting Started
 OCHRE Overview
 --------------
 
-OCHRE\ |tm| is a Python-based energy modeling tool designed to model flexible
-end-use loads and distributed energy resources in residential buildings. OCHRE
-includes detailed models for flexible devices including HVAC equipment, water
-heaters, electric vehicles, solar PV, and batteries. It can examine the
-impacts of novel control strategies on energy consumption and occupant comfort
-metrics. OCHRE integrates with many of NREL's established modeling tools,
-including `ResStock <https://resstock.nrel.gov/>__`\ |tm|, `BEopt
-<https://www.nrel.gov/buildings/beopt.html>__`\ |tm|, `EVI-Pro
-<https://www.nrel.gov/transportation/evi-pro.html>`__, `SAM
-<https://sam.nrel.gov/>`__, and `HELICS <https://helics.org/>`__.
+OCHRE\ |tm| is a Python-based energy modeling tool designed to model end-use
+loads and distributed energy resources in residential buildings. OCHRE
+includes detailed models for building thermal envelopes and for flexible
+devices including HVAC equipment, water heaters, electric vehicles, solar PV,
+and batteries. OCHRE can:
+
+- Generate diverse and representative end-use load profiles at a high temporal
+  resolution
+
+- Simulate advanced control strategies for single devices, fleets, individual
+  homes, and neighborhoods 
+
+- Examine the impacts of energy efficiency and flexibility on customers
+  through energy costs and occupant comfort
+
+- Assess grid reliability and resilience through building-to-grid
+  co-simulation
+
+- Integrate with many of NREL's established modeling tools, including
+  `ResStock <https://resstock.nrel.gov/>__`\ |tm|, `BEopt
+  <https://www.nrel.gov/buildings/beopt.html>__`\ |tm|, `EVI-Pro
+  <https://www.nrel.gov/transportation/evi-pro.html>`__, `SAM
+  <https://sam.nrel.gov/>`__, and `HELICS <https://helics.org/>`__.
+
 
 .. |tm| unicode:: U+2122
 
