@@ -20,13 +20,13 @@
 # -- Project information -----------------------------------------------------
 
 project = u'OCHRE'
-copyright = u'2024, NREL'
+copyright = u'2025, NREL'
 author = u'NREL'
 
 # The short X.Y version
-version = "0.8"
+version = "0.9"
 # The full version, including alpha/beta/rc tags
-release = "0.8.4"
+release = "0.9.0"
 
 
 # -- General configuration ---------------------------------------------------
