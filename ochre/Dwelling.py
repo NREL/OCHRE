@@ -13,7 +13,15 @@ import numpy as np
 from ochre import Simulator, Analysis
 from ochre.utils import OCHREException, load_hpxml, load_schedule, nested_update, update_equipment_properties, save_json
 from ochre.Models import Envelope
-from ochre.Equipment import *
+from ochre.Equipment import (
+    Equipment,
+    HVAC,
+    WaterHeater,
+    Generator,
+    Battery,
+    EQUIPMENT_BY_NAME,
+    ALL_END_USES,
+)
 
 
 class Dwelling(Simulator):
@@ -23,7 +31,7 @@ class Dwelling(Simulator):
     the timing of the simulation.
     """
 
-    def __init__(self, metrics_verbosity=6, save_schedule_columns=None, save_args_to_json=False, 
+    def __init__(self, metrics_verbosity=3, save_schedule_columns=None, save_args_to_json=False, 
                  **house_args):
         super().__init__(**house_args)
         house_args.pop('name', None)  # remove name from kwargs
@@ -278,21 +286,8 @@ class Dwelling(Simulator):
             self.total_gas_therms_per_hour += sub.gas_therms_per_hour
 
     def generate_results(self):
-        # Results columns are in this order (minimum verbosity level):
-        # 1. Total house power in kW: P, Q, Gas (0)
-        # 2. Total house energy in kWh: P, Q, Gas (1)
-        # 3. Electric and/or gas power by end use (2)
-        # 4. House voltage and reactive power by end use (5)
-        # 5. Envelope results:
-        #    - Air temperatures from main zones, includes wet bulb (1)
-        #    - Humidity, infiltration, and convection results (4)
-        #    - Detailed model results (8)
-        # 6. Specific equipment results, including:
-        #    - HVAC heat delivered (3)
-        #    - Water tank main results (3)
-        #    - Battery and EV SOC (3)
-        #    - All other equipment results (6)
-        # 8. Water tank model detailed results (9)
+        # Add results for dwelling, envelope, and equipment
+        # See docs for list of results and verbosity levels
         results = super().generate_results()
 
         if self.verbosity >= 0:
@@ -302,7 +297,7 @@ class Dwelling(Simulator):
                 'Total Gas Power (therms/hour)': self.total_gas_therms_per_hour
             })
 
-        if self.verbosity >= 1:
+        if self.verbosity >= 6:
             hours_per_step = self.time_res / dt.timedelta(hours=1)
             results.update({
                 'Total Electric Energy (kWh)': self.total_p_kw * hours_per_step,
@@ -317,11 +312,11 @@ class Dwelling(Simulator):
             for end_use, equipment in self.equipment_by_end_use.items():
                 if equipment and any([e.is_gas for e in equipment]):
                     results[end_use + ' Gas Power (therms/hour)'] = sum([e.gas_therms_per_hour for e in equipment])
-        if self.verbosity >= 5:
-            results['Grid Voltage (-)'] = self.voltage
+        if self.verbosity >= 8:
             for end_use, equipment in self.equipment_by_end_use.items():
                 if equipment and any([e.is_electric for e in equipment]):
                     results[end_use + ' Reactive Power (kVAR)'] = sum([e.reactive_kvar for e in equipment])
+            results['Grid Voltage (-)'] = self.voltage
 
         return results
 

@@ -42,7 +42,6 @@ sim_times = pd.date_range(
 
 # other OCHRE parameters
 initialization_time = dt.timedelta(days=1)
-verbosity = 3
 equipment_args = {
     "PV": {"capacity": 5},
     "Battery": {"capacity": 5, "capacity_kwh": 10},
@@ -137,7 +136,6 @@ def house(name, input_path):
         hpxml_schedule_file=os.path.join(input_path, "in.schedules.csv"),
         weather_path=input_path,
         output_path=input_path,
-        verbosity=verbosity,
         Equipment=equipment_args,
     )
     assert (dwelling.sim_times == sim_times).all()

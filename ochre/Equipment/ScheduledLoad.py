@@ -116,7 +116,8 @@ class ScheduledLoad(Equipment):
         if self.verbosity >= 6 and self.name != self.end_use:
             if self.is_electric:
                 results[f'{self.results_name} Electric Power (kW)'] = self.electric_kw
-                results[f'{self.results_name} Reactive Power (kVAR)'] = self.reactive_kvar
+                if self.verbosity >= 8:
+                    results[f'{self.results_name} Reactive Power (kVAR)'] = self.reactive_kvar
             if self.is_gas:
                 results[f'{self.results_name} Gas Power (therms/hour)'] = self.gas_therms_per_hour
         return results

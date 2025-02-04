@@ -319,17 +319,10 @@ def add_eplus_detailed_results(df, df_ochre, ochre_properties):
 
 
 def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_verbosity=8):
-    # Included in verbosity level:
-    #  1. Total energy metrics (without kVAR)
-    #  2. End-use energy metrics (without kVAR)
-    #  3. Average zone temperatures
-    #  4. HVAC metrics (most), water heater metrics, battery/generator
-    #     metrics, EV metrics, outage metrics
-    #  5. Equipment-level energy metrics (without kVAR) and cycling metrics
-    #  6. Peak electric power
-    #  7. Reactive energy metrics
-    #  8. Zone temperature std. dev., other equipment metrics
-    #  9. Average value metrics for most time-series results
+    # Calculate metrics from time series data
+    # Can take a DataFrame (results), or load it from a file or a dwelling
+    # object
+    # See docs for a list of metrics by verbosity level
     if results is None:
         if results_file is None:
             results_file = dwelling.results_file
@@ -348,7 +341,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
         ("Electric Power (kW)", "Electric Energy (kWh)"),
         ("Gas Power (therms/hour)", "Gas Energy (therms)"),
     ]
-    if metrics_verbosity >= 7:
+    if metrics_verbosity >= 8:
         power_names += [("Reactive Power (kVAR)", "Reactive Energy (kVARh)")]
     for power_name, energy_name in power_names:
         col = "Total " + power_name
@@ -358,17 +351,14 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             )
 
     # Average and peak electrical power
-    if metrics_verbosity >= 6:
-        p = results["Total Electric Power (kW)"]
-        metrics.update(
-            {
-                "Average Electric Power (kW)": p.mean(),
-                "Peak Electric Power (kW)": p.max(),
-                "Peak Electric Power - 15 min avg (kW)": p.resample("15min").mean().max(),
-                "Peak Electric Power - 30 min avg (kW)": p.resample("30min").mean().max(),
-                "Peak Electric Power - 1 hour avg (kW)": p.resample("1h").mean().max(),
-            }
-        )
+    p = results["Total Electric Power (kW)"]
+    if metrics_verbosity >= 1:
+        metrics["Average Electric Power (kW)"] = p.mean()
+        metrics["Peak Electric Power (kW)"] = p.max()
+    if metrics_verbosity >= 7:
+        metrics["Peak Electric Power - 15 min avg (kW)"] = p.resample("15min").mean().max()
+        metrics["Peak Electric Power - 30 min avg (kW)"] = p.resample("30min").mean().max()
+        metrics["Peak Electric Power - 1 hour avg (kW)"] = p.resample("1h").mean().max()
 
     # End use power metrics
     if metrics_verbosity >= 2:
@@ -381,15 +371,17 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
                     )
 
     # Envelope metrics
-    if metrics_verbosity >= 3:
-        # Average and std. dev. of zone temperatures
-        for node in ZONES.values():
+    # Average and std. dev. of zone temperatures
+    for node in ZONES.values():
+        min_verbosity = 3 if node == "Indoor" else 5
+        if metrics_verbosity >= min_verbosity:
             col = "Temperature - {} (C)".format(node)
             if col in results:
                 metrics["Average " + col] = results[col].mean()
                 if metrics_verbosity >= 8:
                     metrics[f"Std. Dev. Temperature - {node} (C)"] = results[col].std()
-    if metrics_verbosity >= 6:
+
+    if metrics_verbosity >= 5:
         # Total component load values
         # Note: component loads are pos for inducing heating, opposite sign of heat gain results
         component_load_names = [
@@ -411,7 +403,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
                 metrics[metric_name] = -results[result_name].sum() * hr_per_step / 1000
 
     # HVAC metrics
-    if metrics_verbosity >= 4:
+    if metrics_verbosity >= 3:
         if "Unmet HVAC Load (C)" in results:
             unmet_hvac = results["Unmet HVAC Load (C)"]
             metrics["Unmet Heating Load (C-hours)"] = (
@@ -464,12 +456,18 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
                     )
 
                 # HVAC capacity - only when device is on
-                if metrics_verbosity >= 8:
+                if metrics_verbosity >= 7:
                     metrics["Average {} Capacity (kW)".format(end_use)] = capacity[
                         capacity > 0
                     ].mean()
 
     # Water heater and hot water metrics
+    if metrics_verbosity >= 3 and "Hot Water Unmet Demand (kW)" in results:
+        # Unmet hot water demand
+        metrics["Total Hot Water Unmet Demand (kWh)"] = (
+            results["Hot Water Unmet Demand (kW)"].sum(skipna=False) * hr_per_step
+        )
+
     if metrics_verbosity >= 4 and "Water Heating Delivered (W)" in results:
         heat = results["Water Heating Delivered (W)"] / 1000  # in kW
         metrics["Total Water Heating Delivered (kWh)"] = heat.sum(skipna=False) * hr_per_step
@@ -479,12 +477,6 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             cop = results["Water Heating COP (-)"]
             metrics["Average Water Heating COP (-)"] = (cop * heat).sum(skipna=False) / heat.sum(
                 skipna=False
-            )
-
-        # Unmet hot water demand
-        if "Hot Water Unmet Demand (kW)" in results:
-            metrics["Total Hot Water Unmet Demand (kWh)"] = (
-                results["Hot Water Unmet Demand (kW)"].sum(skipna=False) * hr_per_step
             )
 
         # Hot water delivered
@@ -541,7 +533,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
         ] / convert(metrics["Gas Generator Gas Energy (therms)"], "therm", "kWh")
 
     # Outage metrics
-    if metrics_verbosity >= 4 and "Grid Voltage (-)" in results:
+    if metrics_verbosity >= 1 and "Grid Voltage (-)" in results:
         outage = results["Grid Voltage (-)"] == 0
         if outage.any():
             outage_sum = outage.sum(skipna=False) * hr_per_step
@@ -555,7 +547,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             ).max() * hr_per_step
 
     # Equipment power metrics
-    if metrics_verbosity >= 5:
+    if metrics_verbosity >= 6:
         for power_name, energy_name in power_names:
             power_cols = [col for col in results.columns if power_name in col]
             metrics.update(
@@ -567,7 +559,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             )
 
     # Equipment cycling metrics
-    if metrics_verbosity >= 5:
+    if metrics_verbosity >= 7:
         mode_cols = [col for col in results if " Mode" in col]
         for mode_col in mode_cols:
             name = re.fullmatch("(.*) Mode", mode_col).group(1)
