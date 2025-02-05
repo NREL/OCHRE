@@ -6,6 +6,9 @@
 - Renamed `schedule_input_file` input to `hpxml_schedule_file` 
 - Renamed `equipment_schedule_file` to `schedule_file` and enabled it for all
   Simulator subclasses
+- Created EventDataLoad class and added event schedules for Clothes Dryer and
+  Cooking Range [#162](https://github.com/NREL/OCHRE/issues/162)
+- Added `equipment_class` input [#162](https://github.com/NREL/OCHRE/issues/162)
 - Added HVAC parameters for deadband offset and ASHP backup controls
   [#155](https://github.com/NREL/OCHRE/issues/155)
 - Added multi-speed HVAC parameters for ResStock 2024 dataset
@@ -13,6 +16,7 @@
 - Updated with OS-HPXML v1.7 naming conventions (e.g., spa equipment, indoor
   zone) #76
 - Updated EV model to accept new EV charging data
+- Modified EV setpoint controls and removed `enable_part_load`
 - Added EV `event_day_ratio` and `max_power` parameters and renamed `mileage`
   to `range`
 - Added EV average SOC and unmet load metrics
@@ -20,9 +24,14 @@
 - Added new EV event-based charging data
 - Updated PV model to use latitude/south for tilt/azimuth if no roof model
   exists
+- Updated power setpoint controls for EventBasedLoad
+- Set default class to EventBasedLoad for Clothes Washer, Clothes Dryer,
+  Dishwasher, and Cooking Range
+  [#162](https://github.com/NREL/OCHRE/issues/162)
 - Enabled .epw files with leap year data (we remove Feb 29, similar to
   Cambium)
 - Added Analysis function for downloading ResStock 2024 data
+- Fixed issue with saving classes and DataFrames to json
 - Fixed EV unmet load units [#144](https://github.com/NREL/OCHRE/issues/144)
 - Fixed bug when no EV events in simulation
 - Fixed bug when reading water heater deadband from schedule
