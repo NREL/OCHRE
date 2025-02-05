@@ -99,11 +99,11 @@ class TankWithPCM(StratifiedWaterModel):
         # if convection coefficient changes by phase, add heat transfer here
 
         # # calculate heat transfer (pcm to water)
-        t_water = self.states[self.t_pcm_wh_idx]
-        t_pcm = self.states[self.t_pcm_idx]
-        h_pcm = PCM_PROPERTIES["h_conv"] * (t_pcm - t_water)  # in W
-        return h_pcm
-        # return 0
+        # t_water = self.states[self.t_pcm_wh_idx]
+        # t_pcm = self.states[self.t_pcm_idx]
+        # h_pcm = PCM_PROPERTIES["h_conv"] * (t_pcm - t_water)  # in W
+        # return h_pcm
+        return 0 # keep zero for now to prevent double counting pcm heat transfer
 
 
     def update_inputs(self, schedule_inputs=None):
