@@ -23,7 +23,7 @@ class EventBasedLoadTestCase(unittest.TestCase):
         self.e = DailyLoad(name='Event Widget', **init_args)
 
     def test_init(self):
-        self.assertEqual(len(self.e.event_schedule), 2)
+        self.assertEqual(len(self.e.all_events), 2)
         self.assertGreater(self.e.event_start, self.e.current_time)
         self.assertEqual(self.e.event_start.date(), self.e.current_time.date())
         self.assertEqual(self.e.event_end - self.e.event_start, init_args['event_duration'])
