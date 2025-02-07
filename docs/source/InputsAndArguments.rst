@@ -67,29 +67,32 @@ A weather input file is required for simulating a dwelling. OCHRE accepts
 and `National Solar Radiation Database <https://nsrdb.nrel.gov/>`__ (NSRDB)
 weather file formats.
 
-.. _generating-input-files:
+.. _getting-input-files:
 
-Generating Input Files
-~~~~~~~~~~~~~~~~~~~~~~
+Getting Input Files
+~~~~~~~~~~~~~~~~~~~
 
-HPXML and occupancy schedule input files can be generated from:
+HPXML and occupancy schedule input files can be downloaded or generated from:
 
--  `ResStock Datasets <https://resstock.nrel.gov/datasets>`__: best for using
-   building models from previous ResStock runs. OCHRE includes some code to
-   easily download this data for specific building IDs and upgrades (defaults
-   to 2024.2 release):
+-  `ResStock Datasets <https://resstock.nrel.gov/datasets>`__: Best for basic
+   users who do not want to generate new building models. OCHRE includes some
+   code to easily download this data for specific building IDs and upgrades
+   (defaults to 2024.2 release):
 
    .. code-block:: python
 
       from ochre import Analysis
       Analysis.download_resstock_model("bldg0112631", "up00")
 
--  `BEopt <https://www.nrel.gov/buildings/beopt.html>`__ 3.0 or later: best
-   for designing a single building model. Includes a user interface to select
-   building features.
+-  `BEopt <https://www.nrel.gov/buildings/beopt.html>`__ 3.0 or later: Best
+   for users who want to design individual building models. Includes a user
+   interface to select building features. Only works on Windows.
 
--  `ResStock <https://resstock.nrel.gov/>`__: best for users in need of a
-   large sample of building models with specific features
+-  `ResStock <https://resstock.nrel.gov/>`__ (via `BuildStockBatch
+   <https://buildstockbatch.readthedocs.io/en/stable/>`__): Best for users in
+   need of a large sample of building models with specific features. Due to
+   the complexity in usage, we suggest reviewing the existing models in
+   the ResStock Datasets before running a new sample in ResStock.
 
 .. note:: 
    When using BEopt, users must specify stochastic occupancy to generate the

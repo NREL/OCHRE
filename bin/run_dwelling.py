@@ -34,7 +34,7 @@ dwelling_args = {
     #
     # Output parameters
     # "verbosity": 3,                       # verbosity of time series files (0-9)
-    # "metrics_verbosity": 6,               # verbosity of metrics file (0-9), default=6
+    # "metrics_verbosity": 3,               # verbosity of metrics file (0-9)
     # "save_results": False,                # saves results to files. Defaults to True if verbosity > 0
     "output_path": os.getcwd(),             # defaults to hpxml_file path
     # "save_args_to_json": True,            # includes data from this dictionary in the json file
