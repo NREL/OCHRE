@@ -129,12 +129,12 @@ class PV(ScheduledLoad):
 
         self.q_set_point = 0  # in kW, positive = consuming power
         if self.capacity is None:
-            self.capacity = -self.schedule[self.electric_name].min()
+            self.capacity = -self.schedule["Power (kW)"].min()
         if self.inverter_capacity is None:
             self.inverter_capacity = self.capacity
 
         # check that schedule is negative
-        if self.schedule[self.electric_name].mean() > 0:
+        if self.schedule["Power (kW)"].mean() > 0:
             self.warn('Schedule should be negative (i.e. generating power).',
                       'Reversing schedule so that PV power is negative/generating')
             self.schedule = self.schedule * -1
