@@ -75,8 +75,13 @@ Getting Input Files
 HPXML and occupancy schedule input files can be downloaded or generated from:
 
 -  `ResStock Datasets <https://resstock.nrel.gov/datasets>`__: Best for basic
-   users who do not want to generate new building models. OCHRE includes some
-   code to easily download this data for specific building IDs and upgrades
+   users who do not want to generate new building models. Users can view
+   ResStock `documentation
+   <https://oedi-data-lake.s3.amazonaws.com/nrel-pds-building-stock/end-use-load-profiles-for-us-building-stock/2024/resstock_tmy3_release_2/resstock_documentation_2024_release_2.pdf>`__
+   and `metadata files
+   <https://data.openei.org/s3_viewer?bucket=oedi-data-lake&prefix=nrel-pds-building-stock%2Fend-use-load-profiles-for-us-building-stock%2F2024%2Fresstock_tmy3_release_2%2Fmetadata_and_annual_results%2F>`__
+   to determine which building ID and upgrade to select. OCHRE includes some
+   code to download input files for a specific building ID and upgrade:
    (defaults to 2024.2 release):
 
    .. code-block:: python
