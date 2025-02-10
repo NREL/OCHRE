@@ -514,10 +514,8 @@ class HVAC(Equipment):
         results = super().generate_results()
         on = 'On' in self.mode
 
-        # Note: using end use, not equipment name, for all results
-        if self.verbosity >= 3:
-            results[f'{self.end_use} Delivered (W)'] = abs(self.delivered_heat) * self.duct_dse
-        if self.verbosity >= 6:
+        if self.verbosity >= 4:
+            # add delivered heat, setpoint, and COP
             # recalculate COP to account for any changes in power (e.g. crankcase, pan heater)
             main_power = self.electric_kw + self.gas_therms_per_hour / kwh_to_therms - self.fan_power / 1000
             if on and main_power != 0:
@@ -526,13 +524,21 @@ class HVAC(Equipment):
                 cop = 1 / self.eir
             else:
                 cop = 0
-            results[f'{self.end_use} Duct Losses (W)'] = abs(self.delivered_heat) * (1 - self.duct_dse)
+            results[f'{self.end_use} Delivered (W)'] = abs(self.delivered_heat) * self.duct_dse
             results[f'{self.end_use} Setpoint (C)'] = self.temp_setpoint
+            results[f'{self.end_use} COP (-)'] = cop
+
+        if self.verbosity >= 5:
+            # add component loads (ducts)
+            results[f'{self.end_use} Duct Losses (W)'] = abs(self.delivered_heat) * (1 - self.duct_dse)
+
+        if self.verbosity >= 7:
+            # add other results
             results[f'{self.end_use} Main Power (kW)'] = main_power
             results[f'{self.end_use} Fan Power (kW)'] = self.fan_power / 1000
-            results[f'{self.end_use} Latent Gains (W)'] = self.latent_gain * self.space_fraction
-            results[f'{self.end_use} COP (-)'] = cop
-            results[f'{self.end_use} SHR (-)'] = self.shr if on or self.show_eir_shr else 0
+            if not self.is_heater:
+                results[f'{self.end_use} Latent Gains (W)'] = self.latent_gain * self.space_fraction
+                results[f'{self.end_use} SHR (-)'] = self.shr if on or self.show_eir_shr else 0
             results[f'{self.end_use} Speed (-)'] = self.speed_idx
             results[f'{self.end_use} Capacity (W)'] = self.capacity
             results[f'{self.end_use} Max Capacity (W)'] = self.capacity_max
@@ -1331,7 +1337,7 @@ class ASHPHeater(HeatPumpHeater):
     def generate_results(self):
         results = super().generate_results()
 
-        if self.verbosity >= 6:
+        if self.verbosity >= 7:
             tot_power = self.capacity * self.eir * self.space_fraction / 1000
             er_power = self.er_capacity * self.er_eir_rated * self.space_fraction / 1000
             results[f'{self.end_use} Main Power (kW)'] = tot_power - er_power

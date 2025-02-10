@@ -261,7 +261,7 @@ class EventBasedLoad(Equipment):
             # waiting for next event to start
             return "Off"
         elif self.current_time < self.event_end:
-            if self.in_event:
+            if not self.in_event:
                 self.start_event()
             return "On"
         else:

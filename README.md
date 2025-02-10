@@ -2,14 +2,19 @@
 
 # OCHRE: The Object-oriented Controllable High-resolution Residential Energy Model
 
-OCHRE&trade; is a Python-based building energy modeling (BEM) tool designed to model flexible loads in residential buildings. OCHRE includes detailed models and controls for flexible devices including HVAC equipment, water heaters, electric vehicles, solar PV, and batteries. It is designed to run in co-simulation with custom controllers, aggregators, and grid models.
+OCHRE&trade; is a Python-based energy modeling tool designed to model end-use
+loads and distributed energy resources in residential buildings. It can model
+flexible devices---including HVAC equipment, water heaters, electric vehicles,
+solar PV, and batteries---and the thermal and electrical interactions between
+them. OCHRE has been used to generate diverse and high-resolution load
+profiles, examine the impacts of advanced control strategies on energy costs
+and occupant comfort, and assess grid reliability and resilience through
+building-to-grid co-simulation.
 
-The full documentation for OCHRE can be found at
-https://ochre-nrel.readthedocs.io/
-
-More information about OCHRE can be found on [NREL's
-website](https://www.nrel.gov/grid/ochre.html) and from the [Powered By
-OCHRE](https://www.youtube.com/watch?v=B5elLVtYDbI) webinar recording. 
+More information about OCHRE can be found in [our
+documentation](https://ochre-nrel.readthedocs.io/), on [NREL's
+website](https://www.nrel.gov/grid/ochre.html), and from the [Powered By
+OCHRE](https://www.youtube.com/watch?v=B5elLVtYDbI) webinar recording.
 
 If you use OCHRE for your research or other projects, please fill out our [user survey](https://forms.office.com/g/U4xYhaWEvs).
 
@@ -49,7 +54,6 @@ house = Dwelling(
     hpxml_file=os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
     hpxml_schedule_file=os.path.join(default_input_path, "Input Files", "bldg0112631_schedule.csv"),
     weather_file=os.path.join(default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"),
-    verbosity=3,
 )
 
 df, metrics, hourly = dwelling.simulate()
@@ -62,7 +66,7 @@ This will return 3 variables:
 
 For more examples, see:
 * The [OCHRE User
-  Tutorial](https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb)
+  Tutorial](https://colab.research.google.com/github/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb)
   Jupyter notebook 
 * Python example scripts to:
   * Run a [single dwelling](https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py)

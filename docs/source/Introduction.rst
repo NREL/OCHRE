@@ -12,16 +12,30 @@ Getting Started
 OCHRE Overview
 --------------
 
-OCHRE\ |tm| is a Python-based energy modeling tool designed to model flexible
-end-use loads and distributed energy resources in residential buildings. OCHRE
-includes detailed models for flexible devices including HVAC equipment, water
-heaters, electric vehicles, solar PV, and batteries. It can examine the
-impacts of novel control strategies on energy consumption and occupant comfort
-metrics. OCHRE integrates with many of NREL's established modeling tools,
-including `ResStock\ |tm| <https://resstock.nrel.gov/>__`, `BEopt\ |tm|
-<https://www.nrel.gov/buildings/beopt.html>__`, `EVI-Pro
-<https://www.nrel.gov/transportation/evi-pro.html>`__, `SAM
-<https://sam.nrel.gov/>`__, and `HELICS <https://helics.org/>`__.
+OCHRE\ |tm| is a Python-based energy modeling tool designed to model end-use
+loads and distributed energy resources in residential buildings. OCHRE
+includes detailed models for building thermal envelopes and for flexible
+devices including HVAC equipment, water heaters, electric vehicles, solar PV,
+and batteries. OCHRE can:
+
+- Generate diverse and representative end-use load profiles at a high temporal
+  resolution
+
+- Simulate advanced control strategies for single devices, fleets, individual
+  homes, and neighborhoods 
+
+- Examine the impacts of energy efficiency and flexibility on customers
+  through energy costs and occupant comfort
+
+- Assess grid reliability and resilience through building-to-grid
+  co-simulation 
+
+- Integrate with many of NREL's established modeling tools, including
+  `ResStock <https://resstock.nrel.gov/>`__\ |tm|, `BEopt
+  <https://www.nrel.gov/buildings/beopt.html>`__\ |tm|, `EVI-Pro
+  <https://www.nrel.gov/transportation/evi-pro.html>`__, `SAM
+  <https://sam.nrel.gov/>`__, and `HELICS <https://helics.org/>`__.
+
 
 .. |tm| unicode:: U+2122
 
@@ -62,7 +76,14 @@ Python Interface
 OCHRE can be used to simulate a residential dwelling or individual pieces of
 equipment. In either case, a Python object is instantiated and then simulated.
 
-Below is a simple example to simulate a dwelling:
+The following code will simulate a dwelling model using `sample files
+<https://github.com/NREL/OCHRE/tree/main/ochre/defaults/Input%20Files>`__ that
+contain building and equipment properties, occupancy schedules, and weather
+data. In addition to :ref:`input files <input-files>`, OCHRE requires
+:ref:`input arguments <dwelling-arguments>` to specify the simulation start
+time, time resolution, and duration. :ref:`Time series results
+<dwelling-results>` and simulation :ref:`metrics <all-metrics>` can be saved
+to memory and/or in output files.
 
 .. code-block:: python
 
@@ -78,29 +99,19 @@ Below is a simple example to simulate a dwelling:
         hpxml_file=os.path.join(default_input_path, "Input Files", "bldg0112631-up11.xml"),
         hpxml_schedule_file=os.path.join(default_input_path, "Input Files", "bldg0112631_schedule.csv"),
         weather_file=os.path.join(default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"),
-        verbosity=3,
     )
 
-    df, metrics, hourly = house.simulate()
-
-This code will return 3 variables:
-
-- ``df``: a Pandas DataFrame with 10 minute resolution
-
-- ``metrics``: a dictionary of energy metrics
-
-- ``hourly``: a Pandas DataFrame with 1 hour resolution (``verbosity >= 3`` only)
+    house.simulate()
 
 OCHRE can also be used to model a single piece of equipment, a fleet of
-equipment, or multiple dwellings. It can also be run in co-simulation with
-custom controllers, home energy management systems, aggregators, and grid
-models. 
+equipment, or multiple dwellings. It can be run in co-simulation with custom
+controllers, home energy management systems, aggregators, and grid models. 
 
 For more examples, see:
 
 - The `OCHRE User Tutorial
   <https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
-  Jupyter notebook (also available on `Google Colab
+  Jupyter notebook (available on `Google Colab
   <https://colab.research.google.com/github/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__)
 
 - Python example scripts to:
@@ -154,6 +165,7 @@ This project is available under a BSD-3-like license, which is a free,
 open-source, and permissive license. For more information, check out the
 `license file <https://github.com/NREL/OCHRE/blob/main/LICENSE>`__.
 
+.. _publications:
 
 Citation and Publications
 -------------------------

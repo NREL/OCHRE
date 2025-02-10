@@ -16,7 +16,7 @@ class Simulator:
     optional_inputs = []
 
     def __init__(self, start_time, time_res, duration, name=None, main_sim_name=None, seed=None,
-                 verbosity=1, save_results=None, save_status=None, output_path=None, output_to_parquet=False,
+                 verbosity=3, save_results=None, save_status=None, output_path=None, output_to_parquet=False,
                  initialization_time=None, export_res=None, **kwargs):
         if name is not None:
             self.name = name
