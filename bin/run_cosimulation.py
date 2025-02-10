@@ -53,7 +53,9 @@ status_keys = [
 
 # Note: see documentation for where to download other weather files
 # https://ochre-nrel.readthedocs.io/en/latest/InputsAndArguments.html#weather-file
-default_weather_file = os.path.join(default_input_path, "Weather", "G0800310.epw")
+default_weather_file = os.path.join(
+    default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"
+)
 
 # control parameters - keep net load within +/- 1 kW per house
 min_net_load = -1 * n
@@ -111,7 +113,7 @@ def setup():
             input_path = os.path.join(main_path, building, upgrade)
             os.makedirs(input_path, exist_ok=True)
             Analysis.download_resstock_model(building, upgrade, input_path, overwrite=False)
-            shutil.copy(default_weather_file, input_path)
+            # shutil.copy(default_weather_file, input_path)
 
 
 @cli.command()
@@ -134,7 +136,7 @@ def house(name, input_path):
         initialization_time=dt.timedelta(days=1),
         hpxml_file=os.path.join(input_path, "home.xml"),
         hpxml_schedule_file=os.path.join(input_path, "in.schedules.csv"),
-        weather_path=input_path,
+        weather_file=default_weather_file,
         output_path=input_path,
         Equipment=equipment_args,
     )
