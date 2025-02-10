@@ -1,6 +1,6 @@
 ## OCHRE Changelog
 
-### New from PRs
+### OCHRE v0.9.0
 
 - Created command line interface (CLI)
 - Renamed `schedule_input_file` input to `hpxml_schedule_file` 
