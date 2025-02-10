@@ -9,7 +9,7 @@ dependencies = [
     "numpy ~= 1.26",
     "pandas >=1.4, < 3.0",
     "scipy ~= 1.11",
-    "matplotlib ~= 3.8",
+    "matplotlib ~= 3.9",
     "pint ~= 0.23",
     "pvlib ~= 0.10.4",
     "nrel-pysam ~= 5.1",
@@ -21,6 +21,8 @@ dependencies = [
     "rainflow ~= 3.2",
     "pytz >= 2024.0",
     "python-dateutil ~= 2.9",
+    "click ~= 8.1",
+    "boto3 ~= 1.35",
 ]
 requires-python = ">=3.9"
 authors = [
@@ -49,6 +51,11 @@ Documentation = "https://ochre-nrel.readthedocs.io/en/latest/"
 Repository = "https://github.com/NREL/OCHRE.git"
 Issues = "https://github.com/NREL/OCHRE/issues"
 Changelog = "https://github.com/NREL/OCHRE/blob/main/changelog.md"
+
+[project.scripts]
+ochre = "ochre:cli"
+ochre-gui-basic = "ochre:gui_basic"
+ochre-gui-detailed = "ochre:gui_detailed"
 
 [tool.hatch.version]
 path = "ochre/__init__.py"

@@ -78,8 +78,7 @@ class PV(ScheduledLoad):
     If using SAM, the PV capacity must be specified. Tilt and azimuth can be specified, but will default to the
     angle of the most southern facing roof.
 
-    If not using SAM, an external schedule must be specified as a DataFrame (via `schedule`) or as a file (as
-    `equipment_schedule_file`)
+    If not using SAM, an external schedule must be specified as a DataFrame (via `schedule`).
     """
     name = 'PV'
     end_use = 'PV'
@@ -104,13 +103,17 @@ class PV(ScheduledLoad):
             if envelope_model is None:
                 raise OCHREException('Must specify PV tilt and azimuth, or provide an envelope_model with a roof.')
             roofs = [bd.ext_surface for bd in envelope_model.boundaries if 'Roof' in bd.name]
-            if not roofs:
-                raise OCHREException('No roofs in envelope model. Must specify PV tilt and azimuth')
-            # Use roof closest to south with preference to west (0-45 degrees)
-            roof_data = pd.DataFrame([[bd.tilt, az] for bd in roofs for az in bd.azimuths], columns=['Tilt', 'Az'])
-            best_idx = (roof_data['Az'] - 185).abs().idxmax()
-            self.tilt = roof_data.loc[best_idx, 'Tilt']
-            self.azimuth = roof_data.loc[best_idx, 'Az']
+            if roofs:
+                # Use roof closest to south with preference to west (0-45 degrees)
+                roof_data = pd.DataFrame([[bd.tilt, az] for bd in roofs for az in bd.azimuths], columns=['Tilt', 'Az'])
+                best_idx = (roof_data['Az'] - 185).abs().idxmax()
+                self.tilt = roof_data.loc[best_idx, 'Tilt']
+                self.azimuth = roof_data.loc[best_idx, 'Az']
+            else:
+                # TODO: convert to self.warn. Need to initialize Simulator first.
+                print('No roofs in envelope model. Defaulting PV tilt to latitude and azimuth to south.')
+                self.tilt = kwargs["location"]["latitude"]
+                self.azimuth = 0
 
         # Inverter constraints
         self.inverter_capacity = inverter_capacity or self.capacity  # in kVA, AC
@@ -126,25 +129,25 @@ class PV(ScheduledLoad):
 
         self.q_set_point = 0  # in kW, positive = consuming power
         if self.capacity is None:
-            self.capacity = -self.schedule[self.electric_name].min()
+            self.capacity = -self.schedule["Power (kW)"].min()
         if self.inverter_capacity is None:
             self.inverter_capacity = self.capacity
 
         # check that schedule is negative
-        if self.schedule[self.electric_name].mean() > 0:
+        if self.schedule["Power (kW)"].mean() > 0:
             self.warn('Schedule should be negative (i.e. generating power).',
                       'Reversing schedule so that PV power is negative/generating')
             self.schedule = self.schedule * -1
             self.reset_time()
 
-    def initialize_schedule(self, schedule=None, equipment_schedule_file=None, location=None, **kwargs):
-        if (schedule is None or self.name + ' (kW)' not in schedule) and equipment_schedule_file is None:
+    def initialize_schedule(self, schedule=None, location=None, **kwargs):
+        if schedule is None or self.name + ' (kW)' not in schedule:
             self.print('Running SAM')
             schedule = run_sam(self.capacity, self.tilt, self.azimuth, schedule, location,
                                self.inverter_capacity, self.inverter_efficiency)
             schedule = schedule.to_frame(self.name + ' (kW)')
 
-        return super().initialize_schedule(schedule, equipment_schedule_file, **kwargs)
+        return super().initialize_schedule(schedule, **kwargs)
 
     def update_external_control(self, control_signal):
         # External PV control options:

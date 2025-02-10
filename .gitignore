@@ -13,7 +13,4 @@ docs/_build
 *.egg-info/
 *.code-workspace
 
-defaults/Input Files/OCHRE*
-outputs/
-test/outputs/
-ochre/Models/SAM_weather_*.csv
+ochre/defaults/Input Files/OCHRE*

@@ -18,54 +18,56 @@ from ochre.utils.envelope import calculate_solar_irradiance
 
 # TODO: move to simple schedule parameters file?
 SCHEDULE_NAMES = {
-    'Occupancy': {
-        'occupants': 'Occupancy',
+    "Occupancy": {
+        "occupants": "Occupancy",
     },
-    'Power': {
-        'clothes_washer': 'Clothes Washer',
-        'clothes_dryer': 'Clothes Dryer',
-        'dishwasher': 'Dishwasher',
-        'refrigerator': 'Refrigerator',
-        'cooking_range': 'Cooking Range',
-        'lighting_interior': 'Indoor Lighting',
-        'lighting_exterior': 'Exterior Lighting',
-        'lighting_basement': 'Basement Lighting',
-        'lighting_garage': 'Garage Lighting',
-        'plug_loads_other': 'MELs',
-        'plug_loads_tv': 'TV',
-        'plug_loads_well_pump': 'Well Pump',
+    "Power": {
+        "clothes_washer": "Clothes Washer",
+        "clothes_dryer": "Clothes Dryer",
+        "dishwasher": "Dishwasher",
+        "refrigerator": "Refrigerator",
+        "cooking_range": "Cooking Range",
+        "lighting_interior": "Indoor Lighting",
+        "lighting_exterior": "Exterior Lighting",
+        "lighting_basement": "Basement Lighting",
+        "lighting_garage": "Garage Lighting",
+        "plug_loads_other": "MELs",
+        "plug_loads_tv": "TV",
+        "plug_loads_well_pump": "Well Pump",
         # 'plug_loads_vehicle': 'electric vehicle charging',  # Not using scheduled EV load
-        'fuel_loads_grill': 'Gas Grill',
-        'fuel_loads_fireplace': 'Gas Fireplace',
-        'fuel_loads_lighting': 'Gas Lighting',
-        'pool_pump': 'Pool Pump',
-        'pool_heater': 'Pool Heater',
-        'hot_tub_pump': 'Hot Tub Pump',
-        'hot_tub_heater': 'Hot Tub Heater',
-        'ceiling_fan': 'Ceiling Fan',
+        "fuel_loads_grill": "Gas Grill",
+        "fuel_loads_fireplace": "Gas Fireplace",
+        "fuel_loads_lighting": "Gas Lighting",
+        "pool_pump": "Pool Pump",
+        "pool_heater": "Pool Heater",
+        "permanent_spa_pump": "Spa Pump",
+        "permanent_spa_heater": "Spa Heater",
+        "ceiling_fan": "Ceiling Fan",
         # 'vent_fan': 'Ventilation Fan',  # not included in schedule
         # 'basement_mels': 'Basement MELs',  # not modeled
     },
-    'Water': {
-        'hot_water_fixtures': 'Water Heating',
-        'hot_water_clothes_washer': 'Clothes Washer',
-        'hot_water_dishwasher': 'Dishwasher',
+    "Water": {
+        "hot_water_fixtures": "Water Heating",
+        "hot_water_clothes_washer": "Clothes Washer",
+        "hot_water_dishwasher": "Dishwasher",
     },
-    'Setpoint': {
-        'heating_setpoint': 'HVAC Heating',
-        'cooling_setpoint': 'HVAC Cooling',
-        'water_heater_setpoint': 'Water Heating',
+    "Setpoint": {
+        "heating_setpoint": "HVAC Heating",
+        "cooling_setpoint": "HVAC Cooling",
+        "water_heater_setpoint": "Water Heating",
     },
-    'Ignore': {
-        'extra_refrigerator': None,
-        'freezer': None,
-        'clothes_dryer_exhaust': None,
-        'lighting_exterior_holiday': None,
-        'plug_loads_vehicle': None,
-        'battery': None,
-        'vacancy': None,
-        'water_heater_operating_mode': None,
-    }
+    "Ignore": {
+        "extra_refrigerator": None,
+        "freezer": None,
+        "clothes_dryer_exhaust": None,
+        "lighting_exterior_holiday": None,
+        "plug_loads_vehicle": None,
+        "battery": None,
+        "vacancy": None,
+        "water_heater_operating_mode": None,
+        "Vacancy": None,
+        "Power Outage": None,
+    },
 }
 
 ALL_SCHEDULE_NAMES = {
@@ -162,6 +164,10 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
     elif ext == '.epw':
         offset = dt.timedelta(minutes=30)
         df, location = pvlib.iotools.read_epw(weather_file)
+
+        if len(df) == 8784:
+            # leap year, remove Feb 29 data
+            df = df.loc[~((df.index.month == 2) & (df.index.day == 29)), :]
 
         # Update year and save time zone info
         df = set_annual_index(df, start_year, offset=offset, timezone=df.index.tzinfo)
@@ -339,12 +345,12 @@ def convert_schedule_column(s_hpxml, ochre_name, properties, category='Power'):
     return out
 
 
-def import_occupancy_schedule(occupancy, equipment, start_time, schedule_input_file=None,
+def import_occupancy_schedule(occupancy, equipment, start_time, hpxml_schedule_file=None,
                               simple_schedule_file='Simple Schedule Parameters.csv', **kwargs):
-    # Import stochastic occupancy schedule file. Note that initial values are normalized to max_value=1
+    # Import HPXML schedule file. Note that initial values are normalized to max_value=1
     # FUTURE: for sub-annual schedules, create annual schedule and then shorten to simulation time
-    if schedule_input_file is not None:
-        df_norm = load_csv(schedule_input_file, sub_folder='Input Files')
+    if hpxml_schedule_file is not None:
+        df_norm = load_csv(hpxml_schedule_file, sub_folder='Input Files')
     else:
         # create empty, hourly DataFrame
         df_norm = pd.DataFrame(index=range(8760))
@@ -420,7 +426,7 @@ def import_occupancy_schedule(occupancy, equipment, start_time, schedule_input_f
             # Schedule is not used in OCHRE
             continue
         else:
-            raise OCHREException(f'Unknown column in schedule file: {hpxml_name}')
+            raise OCHREException(f'Unknown column in schedule: {hpxml_name}')
 
     schedule = pd.concat(schedule_data, axis=1)
 
@@ -560,8 +566,8 @@ def load_schedule(properties, schedule=None, time_zone=None, **house_args):
         setpoint_diff = schedule['HVAC Cooling Setpoint (C)'] - schedule['HVAC Heating Setpoint (C)']
         if setpoint_diff.min() < 1:
             # if min(setpoint_diff) < 0:
-            #     raise OCHREException('ERROR: Cooling setpoint is equal or less than heating setpoint in schedule file')
-            print('WARNING: Cooling setpoint is within 1C of heating setpoint in schedule file.'
+            #     raise OCHREException('ERROR: Cooling setpoint is equal or less than heating setpoint in schedule')
+            print('WARNING: Cooling setpoint is within 1C of heating setpoint.'
                   ' Separating setpoints by at least 1C.')
             setpoint_avg = (schedule['HVAC Cooling Setpoint (C)'] + schedule['HVAC Heating Setpoint (C)']) / 2
             schedule['HVAC Cooling Setpoint (C)'] = schedule['HVAC Cooling Setpoint (C)'].clip(lower=setpoint_avg + 0.5)

@@ -1,169 +1,371 @@
 import datetime as dt
+import numpy as np
 import pandas as pd
 
-from ochre import Dwelling, CreateFigures
+from ochre import (
+    Dwelling,
+    HeatPumpWaterHeater,
+    ElectricVehicle,
+    PV,
+    Battery,
+    CreateFigures,
+)
 from bin.run_dwelling import dwelling_args
+from ochre.Equipment.EV import EV_EFFICIENCY
+from ochre.utils.schedule import import_weather
 
-# Test script to run single Dwelling with constant external control signal
+# Example scripts to run Dwelling or equipment models with external control
+# signals, including:
+#  - Run Dwelling/HVAC with modified schedule
+#  - Run Dwelling/HVAC with dynamic control
+#  - Run HPWH with CTA-2045 control
+#  - Run EV with no TOU peak charging
+#  - Run EV with perfectly managed charging
+#  - Run PV with Volt-VAR control (using co-optimization)
+#  - Run Battery with dynamic (random) controls
 
+
+# update dwelling_args for HVAC control examples
 dwelling_args.update(
     {
-        "time_res": dt.timedelta(minutes=10),
-        "ext_time_res": dt.timedelta(minutes=60),  # for duty cycle control only
-        "Equipment": {
-            "EV": {
-                'vehicle_type': 'BEV',
-                'charging_level': 'Level 2',
-                'mileage': 150,
-            },
-        },
+        "time_res": dt.timedelta(minutes=1),  # time resolution of the simulation
+        "duration": dt.timedelta(days=1),  # duration of the simulation
+        "verbosity": 6,  # verbosity of time series files (0-9)
     }
 )
 
-example_control_signal = {
-    "HVAC Heating": {
-        "Setpoint": 19,
-        #  'Max Capacity Fraction': 0.8,
-        "Max ER Capacity Fraction": 0.5,
-    },  # in C
-    "HVAC Cooling": {"Setpoint": 22},  # in C
-    "Water Heating": {"Setpoint": 50},  # in C
-    "PV": {"P Setpoint": -1.1, "Q Setpoint": 0.5},  # in kW, kVAR
-    "Battery": {
-        # 'P Setpoint': -1.0,  # in kW
-        # "SOC": 0.8,
-        "Self Consumption Mode": True,
-        "Max Import Limit": 1,  # in kW
-        "Max Export Limit": 1,  # in kW
-        # 'Min SOC': 0.2,
-        # 'Max SOC': 0.8,
-    },
-    "EV": {
-        # "Delay": True,
-        "Max Power": 6,
-        "Max SOC": 0.7,
-        # "P Setpoint": 5,
-        # "SOC": 0.6,
-        # "SOC Rate": 0.02,
-    },
-}
 
+def run_hvac_modify_schedule():
+    # Initialize
+    dwelling = Dwelling(**dwelling_args)
 
-def run_with_schedule_control():
-    # Create Dwelling model (same as above)
-    dwelling = Dwelling(name="Test House with Controller", **dwelling_args)
+    # Get HVAC heater schedule
+    heater = dwelling.get_equipment_by_end_use("HVAC Heating")
+    schedule = heater.schedule
 
-    # Get HVAC heater setpoints
-    heater = dwelling.get_equipment_by_end_use('HVAC Heating')
-    setpoints = heater.schedule['HVAC Heating Setpoint (C)']
+    # Reduce heating setpoint by 1C from 5-9PM (setpoint is already in the schedule)
+    peak_times = (schedule.index.hour >= 17) & (schedule.index.hour < 21)
+    schedule.loc[peak_times, "HVAC Heating Setpoint (C)"] -= 1
 
-    # Reduce heating setpoint by 1C from 5-9PM
-    peak_times = setpoints.between_time(dt.time(17, 0, 0), dt.time(21, 0, 0), inclusive='left').index
-    setpoints.loc[peak_times] -= 1
-    heater.reset_time()  # resets the schedule
+    # Adjust the HVAC deadband temperature (not in the schedule yet)
+    schedule["HVAC Heating Deadband (C)"] = 1
+    schedule.loc[peak_times, "HVAC Heating Deadband (C)"] = 2
 
-    # Run simulation
-    dwelling.simulate()
+    # Reset the schedule to implement the changes
+    heater.reset_time()
 
+    # Simulate
+    df, _, _ = dwelling.simulate()
 
-def run_constant_control_signal(control_signal=None):
-    # Initialization
-    dwelling = Dwelling(name='OCHRE with Controller', **dwelling_args)
-
-    # Simulation
-    for t in dwelling.sim_times:
-        # assert dwelling.current_time == t
-        house_status = dwelling.update(control_signal=control_signal)
-
-    df, _, _ = dwelling.finalize()
-
-    df["EV Electric Power (kW)"].plot()
-    df["EV SOC (-)"].plot()
+    cols_to_plot = [
+        "HVAC Heating Setpoint (C)",
+        "Temperature - Indoor (C)",
+        "Temperature - Outdoor (C)",
+        "Unmet HVAC Load (C)",
+        "HVAC Heating Electric Power (kW)",
+    ]
+    df.loc[:, cols_to_plot].plot()
     CreateFigures.plt.show()
 
 
-def get_hvac_controls(hour_of_day, occupancy, heating_setpoint, **unused_inputs):
-    # Use some of the controller_inputs to determine setpoints (or other control signals)
-    if 14 <= hour_of_day < 20:  # 2PM-8PM
-        heating_setpoint -= 1  # reduce setpoint by 1 degree C
-        # if occupancy > 0:
-        #     heating_setpoint -= 1  # reduce setpoint by 1 degree C
-        # else:
-        #     heating_setpoint -= 2  # reduce setpoint by 2 degrees C
+def run_hvac_dynamic_control():
+    # Update verbosity to get setpoint and temperature results
+    if dwelling_args.get("verbosity", 0) < 6:
+        dwelling_args["verbosity"] = 6
 
-    return {
-            'HVAC Heating': {
-                'Capacity': 1000,
-                # 'Setpoint': heating_setpoint,
-                #  'Deadband': 2,
-                # 'Load Fraction': 0,  # Set to 0 for force heater off
-                # 'Duty Cycle': 0.5,  # Sets fraction of on-time explicitly
-            },
-            # 'HVAC Cooling': {...},
-        }
+    # Initialize
+    dwelling = Dwelling(**dwelling_args)
 
+    # Get HVAC heater setpoint schedule and ambient temperature
+    heater = dwelling.get_equipment_by_end_use("HVAC Heating")
+    setpoints = heater.schedule["HVAC Heating Setpoint (C)"]
+    ambient_temps = dwelling.envelope.schedule["Ambient Dry Bulb (C)"]
 
-def run_with_hvac_controller():
-    # Initialization
-    dwelling = Dwelling(name="OCHRE with Controller", **dwelling_args)
-    heater = dwelling.get_equipment_by_end_use('HVAC Heating')
-    cooler = dwelling.get_equipment_by_end_use('HVAC Cooling')
-
-    # Change initial parameters if necessary (note, best to change both heater and cooler setpoints to prevent overlap)
-    # heater.schedule['HVAC Heating Setpoint (C)'] = 20  # Override original HVAC setpoint schedule, can be time-varying
-    # heater.schedule['HVAC Heating Deadband (C)'] = 2  # Override original HVAC deadband, can be time-varying
-    # heater.reset_time()
-
-    # Simulation
-    controller_inputs = {}
+    # Simulate
+    control_signal = {}
     for t in dwelling.sim_times:
-        assert dwelling.current_time == t
+        # Get setpoint and ambient temperature at current time
+        setpoint = setpoints[t]
+        ambient_temp = ambient_temps[t]
 
-        # get control inputs from schedule
-        controller_inputs.update({
-            'current_time': t,
-            'hour_of_day': t.hour,
-            'outdoor_temp': dwelling.envelope.schedule.loc[t, 'Ambient Dry Bulb (C)'],
-            'occupancy': dwelling.envelope.schedule.loc[t, 'Occupancy (Persons)'],
-            # Original setpoints for current time
-            'heating_setpoint': heater.schedule.loc[t, 'HVAC Heating Setpoint (C)'],  
-            'cooling_setpoint': cooler.schedule.loc[t, 'HVAC Cooling Setpoint (C)'],
-        })
+        # Change setpoint based on ambient temperature
+        if ambient_temp < 0:
+            control_signal = {"HVAC Heating": {"Setpoint": setpoint - 1}}
+        else:
+            control_signal = {}
 
-        control_signal = get_hvac_controls(**controller_inputs)
+        # Run with controls
         house_status = dwelling.update(control_signal=control_signal)
 
-        # get control inputs from house status (note this will be used in the next time step)
-        controller_inputs.update({
-            'indoor_temp': house_status['Temperature - Indoor (C)'],
-            # 'net_heat_gains': house_status['Net Sensible Heat Gain - Indoor (W)'],
-        })
+        # Get setpoint and ambient temperature from house status (optional)
+        setpoint = house_status["HVAC Heating Setpoint (C)"]
+        ambient_temp = house_status["Temperature - Outdoor (C)"]
 
-    return dwelling.finalize()
+    df, _, _ = dwelling.finalize()
 
-
-def run_controls_from_file(control_file):
-    # Load external control file
-    # Note: will need a MultiIndex, or some other method to convert to a dict of dicts
-    df_ext = pd.read_csv(control_file, index_col='Time', parse_dates=True)
-
-    # Initialization
-    dwelling = Dwelling(name="OCHRE with Controller", **dwelling_args)
-
-    # Simulation
-    control_signal = None
-    for t in dwelling.sim_times:
-        assert dwelling.current_time == t
-        if t in df_ext.index:
-            control_signal = df_ext.loc[t].to_dict()  # May need a more complex process here
-
-        dwelling.update(control_signal=control_signal)
-
-    return dwelling.finalize()
+    cols_to_plot = [
+        "HVAC Heating Setpoint (C)",
+        "Temperature - Indoor (C)",
+        "Temperature - Outdoor (C)",
+        "Unmet HVAC Load (C)",
+        "HVAC Heating Electric Power (kW)",
+    ]
+    df.loc[:, cols_to_plot].plot()
+    CreateFigures.plt.show()
 
 
-if __name__ == '__main__':
-    # run_with_schedule_control()
-    run_constant_control_signal(example_control_signal)
-    # run_with_hvac_controller()
-    # run_controls_from_file(external_control_file='path/to/control_file.csv')
+def run_hpwh_cta_2045():
+    # Define equipment and simulation parameters
+    setpoint_default = 51.67  # in C
+    deadband_default = 5.56  # in C
+    equipment_args = {
+        "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=1),
+        "duration": dt.timedelta(days=1),
+        "verbosity": 6,  # required to get setpoint and deadband in results
+        "save_results": False,  # if True, must specify output_path
+        # "output_path": os.getcwd(),        # Equipment parameters
+        "Setpoint Temperature (C)": setpoint_default,
+        "Tank Volume (L)": 250,
+        "Tank Height (m)": 1.22,
+        "UA (W/K)": 2.17,
+        "HPWH COP (-)": 4.5,
+    }
+
+    # Create water draw schedule
+    times = pd.date_range(
+        equipment_args["start_time"],
+        equipment_args["start_time"] + equipment_args["duration"],
+        freq=equipment_args["time_res"],
+        inclusive="left",
+    )
+    water_draw_magnitude = 12  # L/min
+    withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=len(times))
+    schedule = pd.DataFrame(
+        {
+            "Water Heating (L/min)": withdraw_rate,
+            "Water Heating Setpoint (C)": setpoint_default,  # Setting so that it can reset
+            "Water Heating Deadband (C)": deadband_default,  # Setting so that it can reset
+            "Zone Temperature (C)": 20,
+            "Zone Wet Bulb Temperature (C)": 15,  # Required for HPWH
+            "Mains Temperature (C)": 7,
+        },
+        index=times,
+    )
+
+    # Initialize equipment
+    hpwh = HeatPumpWaterHeater(schedule=schedule, **equipment_args)
+
+    # Simulate
+    control_signal = {}
+    for t in hpwh.sim_times:
+        # Change setpoint based on hour of day
+        if t.hour in [7, 16]:
+            # CTA-2045 Basic Load Add command
+            control_signal = {"Deadband": deadband_default - 2.78}
+        elif t.hour in [8, 17]:
+            # CTA-2045 Load Shed command
+            control_signal = {
+                "Setpoint": setpoint_default - 5.56,
+                "Deadband": deadband_default - 2.78,
+            }
+        else:
+            control_signal = {}
+
+        # Run with controls
+        _ = hpwh.update(control_signal=control_signal)
+
+    df = hpwh.finalize()
+
+    # print(df.head())
+    cols_to_plot = [
+        "Hot Water Outlet Temperature (C)",
+        "Hot Water Average Temperature (C)",
+        "Water Heating Deadband Upper Limit (C)",
+        "Water Heating Deadband Lower Limit (C)",
+        "Water Heating Electric Power (kW)",
+        "Hot Water Unmet Demand (kW)",
+        "Hot Water Delivered (L/min)",
+    ]
+    df.loc[:, cols_to_plot].plot()
+    CreateFigures.plt.show()
+
+
+def run_ev_tou():
+    equipment_args = {
+        "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=60),
+        "duration": dt.timedelta(days=20),
+        "verbosity": 3,
+        "save_results": False,  # if True, must specify output_path
+        # "output_path": os.getcwd(),
+        # Equipment parameters
+        "vehicle_type": "BEV",
+        "charging_level": "Level 1",
+        "range": 150,
+    }
+
+    # Initialize
+    ev = ElectricVehicle(**equipment_args)
+
+    # Set max power to zero during peak period
+    ev.schedule = pd.DataFrame(index=ev.sim_times)  # create schedule
+    ev.schedule["EV Max Power (kW)"] = ev.max_power
+    # Using a long peak period to show unmet loads
+    peak_times = (ev.sim_times.hour >= 15) & (ev.sim_times.hour < 24)
+    ev.schedule.loc[peak_times, "EV Max Power (kW)"] = 0
+    ev.reset_time()
+
+    df = ev.simulate()
+
+    CreateFigures.plot_daily_profile(df, "EV Electric Power (kW)", plot_max=False, plot_min=False)
+    df.loc[:, ["EV Electric Power (kW)", "EV Unmet Load (kWh)", "EV SOC (-)"]].plot()
+    CreateFigures.plt.show()
+
+
+def run_ev_perfect():
+    equipment_args = {
+        "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=60),
+        "duration": dt.timedelta(days=20),
+        "verbosity": 3,
+        "save_results": False,  # if True, must specify output_path
+        # "output_path": os.getcwd(),
+        # Equipment parameters
+        "vehicle_type": "BEV",
+        "charging_level": "Level 1",
+        "range": 150,
+    }
+
+    # Initialize
+    ev = ElectricVehicle(**equipment_args)
+
+    # slow charge from start to end of parking
+    for t in ev.sim_times:
+        remaining_hours = (ev.event_end - t).total_seconds() / 3600
+        remaining_kwh = (1 - ev.soc) * ev.capacity
+        if t >= ev.event_start and remaining_hours:
+            power = remaining_kwh / remaining_hours / EV_EFFICIENCY
+            ev.update({"Max Power": power})
+        else:
+            ev.update()
+
+    df = ev.finalize()
+
+    CreateFigures.plot_daily_profile(df, "EV Electric Power (kW)", plot_max=False, plot_min=False)
+    df.loc[:, ["EV Electric Power (kW)", "EV Unmet Load (kWh)", "EV SOC (-)"]].plot()
+    CreateFigures.plt.show()
+
+
+def run_pv_voltvar():
+    # load weather data (based on parameters in run_dwelling)
+    weather, location = import_weather(**dwelling_args)
+
+    equipment_args = {
+        "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=15),
+        "duration": dt.timedelta(days=10),
+        "verbosity": 1,
+        "save_results": False,  # if True, must specify output_path
+        # "output_path": os.getcwd(),
+        # Equipment parameters
+        "capacity": 5,
+        "tilt": 20,
+        "azimuth": 0,
+        "schedule": weather,
+        "location": location,
+    }
+
+    # Initialize
+    pv = PV(**equipment_args)
+
+    # Simulate
+    voltage_results = []
+    for _ in pv.sim_times:
+        # set up simulation time step (only run once)
+        pv.update_inputs()
+
+        # Run 1 time step with different controls under converged
+        q_setpoint = 0
+        converged = False
+        while not converged:
+            # run model and get results without advancing time
+            pv.update_model(control_signal={"Q Setpoint": q_setpoint})
+            results = pv.generate_results()
+            p = results["PV Electric Power (kW)"]
+            q = results["PV Reactive Power (kVAR)"]
+
+            # very simple grid model to determine voltage
+            voltage = 1 - p / 50 - q / 50
+
+            # check voltage for convergence
+            if 0.95 <= voltage <= 1.05:
+                converged = True
+            else:
+                # change reactive power if necessary
+                q_setpoint += (voltage - 1) / 10
+
+        # complete time step and get results
+        _ = pv.update_results()
+        voltage_results.append(voltage)
+
+    # Finalize simulation
+    df = pv.finalize()
+
+    df["Voltage (-)"] = voltage_results
+    # print(df.head())
+    df.plot()
+    CreateFigures.plt.show()
+
+
+def run_battery_dynamic_control():
+    equipment_args = {
+        "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
+        "time_res": dt.timedelta(minutes=15),
+        "duration": dt.timedelta(days=3),
+        "verbosity": 6,
+        "save_results": False,  # if True, must specify output_path
+        # "output_path": os.getcwd(),
+        # Equipment parameters
+        "capacity": 5,  # in kW
+        "capacity_kwh": 10,
+    }
+
+    # Initialize equipment
+    battery = Battery(**equipment_args)
+
+    power = 0
+    for _ in battery.sim_times:
+        # Set the battery power randomly
+        power += np.random.randint(-1, 2)
+        power = min(max(power, -5), 5)
+        battery.update({"P Setpoint": power})
+
+    df = battery.finalize()
+
+    # print(df.head())
+    df.loc[:, ["Battery Electric Power (kW)", "Battery Setpoint (kW)", "Battery SOC (-)"]].plot()
+    CreateFigures.plt.show()
+
+
+if __name__ == "__main__":
+    # Run HVAC with modified schedule
+    # run_hvac_modify_schedule()
+
+    # Run HVAC with dynamic control
+    # run_hvac_dynamic_control()
+
+    # # Run HPWH with CTA-2045 control
+    # run_hpwh_cta_2045()
+
+    # # Run EV with no TOU peak charging
+    run_ev_tou()
+
+    # # Run EV with perfectly managed charging
+    # run_ev_perfect()
+
+    # # Run PV with Volt-VAR control (using co-optimization)
+    # run_pv_voltvar()
+
+    # # Run Battery with dynamic (random) controls
+    # run_battery_dynamic_control()

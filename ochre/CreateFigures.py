@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.cm as cm
 
-default_colors = cm.get_cmap('tab10').colors  # discrete color map with 10 colors
+default_colors = cm.tab10.colors  # discrete color map with 10 colors
 register_matplotlib_converters()
 locator = mdates.AutoDateLocator()
 formatter = mdates.ConciseDateFormatter(locator, show_offset=False)
@@ -40,12 +40,6 @@ zone_data = [('Temperature - {} (C)'.format(zone), zone + ' Temp', color) for zo
 ls_list = ['-', '--', ':', '-.']
 
 
-def valid_file(s):
-    # removes special characters like ",:$#*" from file names
-    valid_chars = "-_.() {}{}".format(string.ascii_letters, string.digits)
-    return ''.join(c for c in s if c in valid_chars)
-
-
 # **** Time-based figures ****
 def plot_daily_profile(df_raw, column, plot_average=True, plot_singles=True, plot_min=True, plot_max=True,
                        plot_sd=False, **kwargs):
@@ -64,7 +58,7 @@ def plot_daily_profile(df_raw, column, plot_average=True, plot_singles=True, plo
     fig, ax = plt.subplots()
 
     if plot_singles:
-        df_singles = pd.pivot(df, 'Time of Day', 'Date', column)
+        df_singles = pd.pivot(df, index="Time of Day", columns="Date", values=column)
         alpha = kwargs.pop('singles_alpha', 1 / len(df_singles.columns))
         for col in df_singles.columns:
             ax.plot(times, df_singles[col], 'k', alpha=alpha, label=None)
@@ -117,6 +111,9 @@ def plot_power_stack(df, add_gas=False, **kwargs):
     power_cols = {key: color for key, color in all_power_colors.items() if key +
                   ' Electric Power (kW)' in df.columns and df[key + ' Electric Power (kW)'].sum() != 0}
     df_power = df.loc[:, [key + ' Electric Power (kW)' for key in power_cols]]
+    if df_power.empty:
+        print("No power data to plot")
+        return
     ax1.stackplot(df_power.index, df_power.clip(lower=0).values.T,
                   colors=power_cols.values(), labels=power_cols.keys())
     ax1.stackplot(df_power.index, df_power.clip(upper=0).loc[:, ::-1].values.T,
