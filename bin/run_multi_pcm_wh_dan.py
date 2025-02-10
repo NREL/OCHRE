@@ -2,7 +2,7 @@ import datetime as dt
 
 
 from ochre import Dwelling, CreateFigures
-from ochre.Models import TankWithPCM
+from ochre.Models import TankWithPCM, TankWithMultiPCM
 from bin.run_dwelling import dwelling_args
 import matplotlib.pyplot as plt
 import time
@@ -13,31 +13,40 @@ pcm_water_node = 7
 # pcm_vol_fraction = 0.9999999999999725
 # pcm_vol_fraction = 6.582730627258115e-08
 
+# pcm_vol_fractions = [
+#     6.582730627258115e-08,
+#     0.0001,
+#     0.001,
+#     0.005,
+#     0.01,
+#     0.02,
+#     0.05,
+#     0.1,
+#     0.2,
+#     0.3,
+#     0.4,
+#     0.5,
+#     0.6,
+#     0.7,
+#     0.8,
+#     0.9,
+#     0.99,
+#     0.999,
+#     0.9999,
+#     0.9999999999999725,
+# ]
+
 pcm_vol_fractions = [
-    6.582730627258115e-08,
-    0.0001,
-    0.001,
-    0.005,
-    0.01,
-    0.02,
-    0.05,
-    0.1,
-    0.2,
-    0.3,
-    0.4,
-    0.5,
-    0.6,
-    0.7,
-    0.8,
-    0.9,
-    0.99,
-    0.999,
-    0.9999,
-    0.9999999999999725,
-]
+                    {i: 0.0001 for i in range(1, 12+1)}
+                    ]
 
-pcm_vol_fractions = [0.5]
+pcm_vol_fractions = [
+                    {7: 0.5, 8: 0.0000001, 9: 0.0000001},
+                    ]
 
+# pcm_vol_fractions = [
+#                     {7: 0.5},
+#                     ]
 
 # UEF draw profiles
 # LowUseUEF = 'LowUseL.csv'
@@ -48,6 +57,9 @@ pcm_vol_fractions = [0.5]
 # with_pcm_title = "With PCM, PCM Water Node:"+ str(pcm_water_node) +", PCM Vol Fraction:" +str(pcm_vol_fraction)
 
 load_profile = "MediumUseL.csv"
+
+def convert_dict_to_name(dict):
+    return "".join([str(key) + "_" + str(value) + "_" for key, value in dict.items()])
 
 dwelling_args.update(
     {
@@ -61,13 +73,12 @@ dwelling_args.update(
 )
 
 
-def add_pcm_model(dwelling_args, name, pcm_vol_fraction):
+def add_pcm_model(dwelling_args, name, pcm_vol_fractions):
     dwelling_args["Equipment"]["Water Heating"] = {
-        "model_class": TankWithPCM,
+        "model_class": TankWithMultiPCM,
         "water_nodes": 12,
         "Water Tank": {
-            "pcm_water_node": pcm_water_node,
-            "pcm_vol_fraction": pcm_vol_fraction,
+            "pcm_node_vol_fractions": pcm_vol_fractions,
         },
     }
 
@@ -141,15 +152,15 @@ if __name__ == "__main__":
     uef = []
     for i, pcm_vol_fraction in enumerate(pcm_vol_fractions):
         dwelling_args = add_pcm_model(
-            dwelling_args, f"pcm_{pcm_vol_fraction}", pcm_vol_fraction
+            dwelling_args, f"pcm_{convert_dict_to_name(pcm_vol_fraction)}", pcm_vol_fraction
         )
 
         # #Run with PCM
         uef_val = run_water_heater(
             dwelling_args,
-            f"PCM_VOL_FRACTION:{pcm_vol_fraction}",
+            f"PCM_VOL_FRACTION:{convert_dict_to_name(pcm_vol_fraction)}",
             load_profile,
-            f"PCM_VOL_FRACTION:{pcm_vol_fraction}",
+            f"PCM_VOL_FRACTION:{convert_dict_to_name(pcm_vol_fraction)}",
         )
         uef.append(uef_val)
 
