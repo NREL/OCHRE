@@ -11,11 +11,6 @@ from itertools import combinations
 
 from . import StateSpaceModel, ModelException
 
-try:
-    import sympy  # Optional package - only for generating abstract matrices
-except ImportError:
-    sympy = None
-
 
 def transform_floating_node(float_node, all_resistors):
     # use star-mesh transform to remove floating node, see https://en.wikipedia.org/wiki/Star-mesh_transform
@@ -123,9 +118,6 @@ class RCModel(StateSpaceModel):
             A_c, B_c = self.add_energy_flow_states(energy_flow_states, A_c, B_c, internal_nodes, resistances)
             state_names.extend([f"H_{node_from}_{node_to}" for (node_from, node_to) in energy_flow_states])
 
-        # Create A and B abstract matrices
-        # A_ab, B_ab = self.create_matrices(all_cap, all_res, internal_nodes, external_nodes, print_abstract=True)
-
         # remove unused inputs
         if unused_inputs is not None:
             good_input_idx = [i for (i, name) in enumerate(input_names) if name not in unused_inputs]
@@ -154,13 +146,18 @@ class RCModel(StateSpaceModel):
             df_b.to_csv(file_name_format + '_matrixB.csv', index=True)
             df_c.to_csv(file_name_format + '_matrixC.csv', index=True)
 
+    # @staticmethod
+    # def create_abstract_matrices(all_cap, all_res, internal_nodes, external_nodes):
+    #     # Create A and B abstract matrices (not working anymore)
+    #     import sympy
+    #     all_cap = {name: sympy.Symbol("C_" + name) for name in all_cap.keys()}
+    #     all_res = {name: sympy.Symbol("R_" + "_".join(name)) for name in all_res.keys()}
+    #     return RCModel.create_rc_matrices(all_cap, all_res, internal_nodes, external_nodes)
+
     @staticmethod
-    def create_rc_matrices(all_cap, all_res, internal_nodes, external_nodes, return_abstract=False):
+    def create_rc_matrices(all_cap, all_res, internal_nodes, external_nodes):
         # uses RC parameter names to get list of internal/external nodes
         # C names should be 'C_{node}'; R names should be 'R_{node1}_{node2}'
-        if sympy is None:
-            return_abstract = False
-
         n = len(internal_nodes)
         m = len(external_nodes)
 
@@ -168,19 +165,6 @@ class RCModel(StateSpaceModel):
         A = np.zeros((n, n))
         b_diag = [1 / all_cap[node] for node in internal_nodes]
         B = np.concatenate((np.zeros((n, m)), np.diag(b_diag)), axis=1)
-
-        # Create A and B abstract matrices
-        if return_abstract:
-            cap_abstract = {name: sympy.Symbol('C_' + name) for name in all_cap.keys()}
-            res_abstract = {name: sympy.Symbol('R_' + '_'.join(name)) for name in all_res.keys()}
-            A_abstract = sympy.zeros(n, n)
-            b_diag = [1 / c for c in cap_abstract.values()]
-            B_abstract = np.concatenate((sympy.zeros(n, m), np.diag(b_diag)), axis=1)
-        else:
-            cap_abstract = None
-            res_abstract = None
-            A_abstract = None
-            B_abstract = None
 
         # Iterate through resistances to build A, B matrices
         for (node1, node2), r_val in all_res.items():
@@ -195,14 +179,6 @@ class RCModel(StateSpaceModel):
                 A[i2, i2] -= 1 / c2 / r_val
                 A[i1, i2] += 1 / c1 / r_val
                 A[i2, i1] += 1 / c2 / r_val
-                if return_abstract:
-                    r = res_abstract[(node1, node2)]
-                    c1 = cap_abstract[node1]
-                    c2 = cap_abstract[node2]
-                    A_abstract[i1, i1] -= 1 / c1 / r
-                    A_abstract[i2, i2] -= 1 / c2 / r
-                    A_abstract[i1, i2] += 1 / c1 / r
-                    A_abstract[i2, i1] += 1 / c2 / r
             else:
                 if node1 in internal_nodes:
                     # node2 is external, update A and B
@@ -219,16 +195,8 @@ class RCModel(StateSpaceModel):
                     raise ModelException(f'Cannot parse resistor R_{node1}_{node2}, no internal nodes defined')
                 A[i_int, i_int] -= 1 / c / r_val
                 B[i_int, i_ext] += 1 / c / r_val
-                if return_abstract:
-                    r = res_abstract[(node1, node2)]
-                    c = cap_abstract[node1] if node1 in internal_nodes else cap_abstract[node2]
-                    A_abstract[i_int, i_int] -= 1 / c / r
-                    B_abstract[i_int, i_ext] += 1 / c / r
 
-        if return_abstract:
-            return A_abstract, B_abstract
-        else:
-            return A, B
+        return A, B
 
     def add_energy_flow_states(self, energy_flow_states, A_c, B_c, internal_nodes, resistances):
         # add states for energy flows through specific resistors
