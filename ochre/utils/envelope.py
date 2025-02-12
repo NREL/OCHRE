@@ -22,6 +22,21 @@ CARDINAL_DIRECTIONS = {
     270: 'West',
 }
 
+# mapping boundaries to component loads
+COMPONENT_LOAD_MAP = {
+    "Attic": ["Roof", "Attic Floor"],
+    "Foundation": ["Floor", "Raised Floor", "Foundation Ceiling"],
+    "Walls": ["Exterior Wall", "Door", "Garage Attached Wall", "Garage Interior Ceiling"],
+    "Windows": ["Window"],
+    "Internal Mass": [
+        "Interior Wall",
+        "Indoor Furniture",
+        "Adjacent Wall",
+        "Adjacent Ceiling",
+        "Adjacent Floor",
+    ],
+}
+
 
 def get_boundary_tilt(name):
     # get boundary tilt based on boundary name (0-90 degrees)
