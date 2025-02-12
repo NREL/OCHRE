@@ -5,7 +5,6 @@ from ochre.utils import OCHREException
 from ochre.utils.units import convert, degC_to_K, cfm_to_m3s
 import ochre.utils.envelope as utils
 from ochre.Models import RCModel, HumidityModel, ModelException
-from ochre import Simulator
 
 cp_air = 1.006  # kJ/kg-K
 rho_air = 1.2041  # kg/m^3, used for determining capacitance only
@@ -580,8 +579,13 @@ class Envelope(RCModel):
         # collect RC information
         capacitances, resistances = self.load_rc_data(**kwargs)
 
-        if self.verbosity >= 4:
-            energy_flow_states = [r for r in resistances if self.indoor_zone.label in r]
+        # add energy flow states for component loads
+        if kwargs.get("verbosity", 3) >= 5:
+            energy_flow_states = [
+                (s.node, self.indoor_zone.label) for s in self.indoor_zone.surfaces
+            ]
+        else:
+            energy_flow_states = None
 
         # remove heat injection inputs that aren't into main nodes or nodes with a radiation injection
         unused_inputs = [f'H_{node}' for bd in self.boundaries for node in bd.all_nodes
@@ -1040,7 +1044,8 @@ class Envelope(RCModel):
     def add_component_loads(self):
         # TODO
         # add conduction components, compare to a model with constant temperature across all states
-        constant_state = np.ones(self.nx) * self.indoor_zone.temperature
+        # constant_state = np.ones(self.nx) * self.indoor_zone.temperature
+
         # m_i_inv.dot(y_values - c_i.dot(self.A.dot(self.states - constant_state)
         # same for outdoor temp, ground temp
         # assign a component (one for each boundary next to a conditioned space) to each state/temperature

@@ -121,7 +121,7 @@ class RCModel(StateSpaceModel):
         # add energy flow states
         if energy_flow_states:
             A_c, B_c = self.add_energy_flow_states(energy_flow_states, A_c, B_c, internal_nodes, resistances)
-            # state_names.extend()
+            state_names.extend([f"H_{node_from}_{node_to}" for (node_from, node_to) in energy_flow_states])
 
         # Create A and B abstract matrices
         # A_ab, B_ab = self.create_matrices(all_cap, all_res, internal_nodes, external_nodes, print_abstract=True)
@@ -233,25 +233,31 @@ class RCModel(StateSpaceModel):
     def add_energy_flow_states(self, energy_flow_states, A_c, B_c, internal_nodes, resistances):
         # add states for energy flows through specific resistors
         # extend A and B matrices
+        if not energy_flow_states:
+            return (
+                A_c,
+                B_c,
+            )
+
         n_new = len(energy_flow_states)
         A_c = np.pad(A_c, ((0, n_new), (0, n_new)))
         B_c = np.pad(B_c, ((0, n_new), (0, 0)))
         
         # fill in energy flow equations:
-        # x = Q, x_dot = (T_2 - T_1) / R
+        # x = Q, x_dot = H = (T_2 - T_1) / R
         row = len(internal_nodes)
         for (node_from, node_to) in energy_flow_states:
-            res = resistances[(node_from, node_to)]
+            if (node_from, node_to) in resistances:
+                res = resistances[(node_from, node_to)]
+            else:
+                res = resistances[(node_to, node_from)]
             i1 = internal_nodes.index(node_from)
             i2 = internal_nodes.index(node_to)
             A_c[row, i1] = 1 / res
             A_c[row, i2] = -1 / res
             row += 1
 
-        # add to state names
-        new_state_names = None
-
-        return A_c, B_c, new_state_names
+        return A_c, B_c
 
     @staticmethod
     def initialize_state(state_names, input_names, A_c, B_c, **kwargs):
