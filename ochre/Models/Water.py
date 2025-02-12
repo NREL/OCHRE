@@ -321,11 +321,12 @@ class StratifiedWaterModel(RCModel):
         results = super().generate_results()
 
         if self.verbosity >= 3:
-            results['Hot Water Delivered (L/min)'] = self.draw_total
-            results['Hot Water Outlet Temperature (C)'] = self.outlet_temp
-            results['Hot Water Delivered (W)'] = self.h_delivered
             results['Hot Water Unmet Demand (kW)'] = self.h_unmet_load / 1000
-        if self.verbosity >= 6:
+            results['Hot Water Outlet Temperature (C)'] = self.outlet_temp
+        if self.verbosity >= 4:
+            results['Hot Water Delivered (L/min)'] = self.draw_total
+            results['Hot Water Delivered (W)'] = self.h_delivered
+        if self.verbosity >= 7:
             results['Hot Water Heat Injected (W)'] = self.h_injections
             results['Hot Water Heat Loss (W)'] = self.h_loss
             results['Hot Water Average Temperature (C)'] = self.states.dot(self.vol_fractions)

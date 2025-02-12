@@ -1,11 +1,12 @@
 ## OCHRE Changelog
 
-### New from PRs
+### OCHRE v0.9.0
 
 - Created command line interface (CLI)
 - Renamed `schedule_input_file` input to `hpxml_schedule_file` 
 - Renamed `equipment_schedule_file` to `schedule_file` and enabled it for all
   Simulator subclasses
+- Modified default `verbosity` and `metrics_verbosity` to 3.
 - Created EventDataLoad class and added event schedules for Clothes Dryer and
   Cooking Range [#162](https://github.com/NREL/OCHRE/issues/162)
 - Added `equipment_class` input [#162](https://github.com/NREL/OCHRE/issues/162)

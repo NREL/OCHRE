@@ -1064,26 +1064,52 @@ class Envelope(RCModel):
         # Note: most results are included in Dwelling/HVAC. Only inputs and states are saved to self.results
         results = super().generate_results()
 
-        if self.verbosity >= 1:
-            results.update({f'Temperature - {name} (C)': zone.temperature for name, zone in self.zones.items()})
-            results.update({f'Temperature - {name} (C)': zone.temperature for name, zone in self.ext_zones.items()})
+        if self.verbosity >= 3:
+            # Indoor temperature and unmet loads
+            results["Temperature - Indoor (C)"] = self.indoor_zone.temperature
             results['Unmet HVAC Load (C)'] = self.unmet_hvac_load
 
-        if self.verbosity >= 4:
-            results['Occupancy (Persons)'] = self.current_schedule.get('Occupancy (Persons)', 0)
+        if self.verbosity >= 5:
+            # All zone temperatures
+            results.update({f'Temperature - {name} (C)': zone.temperature for name, zone in self.zones.items()})
+            results.update({f'Temperature - {name} (C)': zone.temperature for name, zone in self.ext_zones.items()})
 
+            # All component loads (for indoor zone) and net load
             # Net sensible gains =  occupancy + HVAC + equipment
             #                     + infiltration + forced ventilation + natural ventilation
             #                     + absorbed ext. radiation (windows) + transmitted window gains + interior radiation
             results.update({f'Net Sensible Heat Gain - {name} (W)': self.inputs[zone.h_idx]
                             for name, zone in self.zones.items()})
+            if not self.linearize_infiltration:
+                results["Infiltration Heat Gain - Indoor (W)"] = self.indoor_zone.inf_heat
+            results["Forced Ventilation Heat Gain - Indoor (W)"] = self.indoor_zone.forced_vent_heat
+            results["Natural Ventilation Heat Gain - Indoor (W)"] = self.indoor_zone.nat_vent_heat
+            occupant_gain = self.current_schedule.get('Occupancy (Persons)', 0) * self.occupancy_sensible_gain
+            # internal gains = occupancy + non-HVAC equipment only
+            results["Internal Heat Gain - Indoor (W)"] = (
+                occupant_gain + self.indoor_zone.internal_sens_gain
+            )
 
             # Add window transmittance (note, gains go to indoor zone and to interior boundaries)
             windows = [bd for bd in self.ext_boundaries if bd.name == 'Window']
             if windows:
                 results['Window Transmitted Solar Gain (W)'] = windows[0].ext_surface.transmitted_gain
 
-        if self.verbosity >= 7:
+            # TODO: add other component loads
+            if not self.reduced:
+                results.update(self.add_component_loads())
+                # add heat injections from boundaries into zones (pos=heat injected to zone)
+                # outdoor_zone = self.ext_zones['Outdoor']
+                # zone_surfaces = [(outdoor_zone, bd.ext_surface) for bd in self.ext_boundaries]
+                # zone_surfaces += [(zone, s) for zone in self.zones.values() for s in zone.surfaces]
+                # for zone, surface in zone_surfaces:
+                #     if not surface.node or surface.t_boundary is None:
+                #         continue
+                #     convection = (surface.t_boundary - zone.temperature) / surface.res_total
+                #     results[f'Convection from {surface.boundary_name} to {zone.name} (W)'] = convection
+
+        if self.verbosity >= 8:
+            results['Occupancy (Persons)'] = self.current_schedule.get('Occupancy (Persons)', 0)
             # Add detailed heat gain results for each zone
             for name, zone in self.zones.items():
                 if not self.linearize_infiltration:
@@ -1092,9 +1118,7 @@ class Envelope(RCModel):
 
                 if name == 'Indoor':
                     results[f'Forced Ventilation Flow Rate - {name} (m^3/s)'] = zone.forced_vent_flow
-                    results[f'Forced Ventilation Heat Gain - {name} (W)'] = zone.forced_vent_heat
                     results[f'Natural Ventilation Flow Rate - {name} (m^3/s)'] = zone.nat_vent_flow
-                    results[f'Natural Ventilation Heat Gain - {name} (W)'] = zone.nat_vent_heat
                     air_changes = (zone.inf_flow + zone.forced_vent_flow + zone.nat_vent_flow) / zone.volume * 3600
                     results[f'Air Changes per Hour - {name} (1/hour)'] = air_changes
 
@@ -1119,20 +1143,7 @@ class Envelope(RCModel):
                     results[f'Net Latent Heat Gain - {name} (W)'] = zone.humidity.latent_gains
                     results[f'Air Density - {name} (kg/m^3)'] = zone.humidity.density
 
-        if self.verbosity >= 8:
-            if not self.reduced:
-                # add component loads
-                results.update(self.add_component_loads())
-                # add heat injections from boundaries into zones (pos=heat injected to zone)
-                # outdoor_zone = self.ext_zones['Outdoor']
-                # zone_surfaces = [(outdoor_zone, bd.ext_surface) for bd in self.ext_boundaries]
-                # zone_surfaces += [(zone, s) for zone in self.zones.values() for s in zone.surfaces]
-                # for zone, surface in zone_surfaces:
-                #     if not surface.node or surface.t_boundary is None:
-                #         continue
-                #     convection = (surface.t_boundary - zone.temperature) / surface.res_total
-                #     results[f'Convection from {surface.boundary_name} to {zone.name} (W)'] = convection
-
+        if self.verbosity >= 9:
             if self.run_external_rad:
                 # add surface temperature, solar and LWR gains for each exterior surface
                 for bd in self.ext_boundaries:

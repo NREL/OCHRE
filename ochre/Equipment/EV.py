@@ -346,9 +346,10 @@ class ElectricVehicle(EventBasedLoad):
 
         if self.verbosity >= 3:
             results[f"{self.end_use} SOC (-)"] = self.soc
-            results[f"{self.end_use} Parked"] = self.in_event
             results[f"{self.end_use} Unmet Load (kWh)"] = self.unmet_load
-        if self.verbosity >= 6:
+        if self.verbosity >= 4:
+            results[f"{self.end_use} Parked"] = self.in_event
+        if self.verbosity >= 7:
             # results[f'{self.end_use} Setpoint Power (kW)'] = self.setpoint_power or 0
             results[f"{self.end_use} Start Time"] = self.event_start
             results[f"{self.end_use} End Time"] = self.event_end

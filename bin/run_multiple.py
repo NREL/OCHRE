@@ -10,7 +10,8 @@ from ochre.utils import default_input_path
 
 # Note: see documentation for where to download other weather files
 # https://ochre-nrel.readthedocs.io/en/latest/InputsAndArguments.html#weather-file
-default_weather_file = os.path.join(default_input_path, "Weather", "G0800310.epw")
+default_weather_file_name = "USA_CO_Denver.Intl.AP.725650_TMY3.epw"
+default_weather_file = os.path.join(default_input_path, "Weather", default_weather_file_name)
 
 
 def compile_results(main_path, n_max=None):
@@ -84,15 +85,28 @@ if __name__ == "__main__":
     # input_paths = limit_input_paths(input_paths, overwrite=False)
 
     # Run Dwelling models sequentially
-    # for input_path in input_paths:
-    #     dwelling = create_dwelling(input_path, duration=7)
-    #     dwelling.simulate()
+    for input_path in input_paths:
+        dwelling = create_dwelling(
+            input_path,
+            duration=7,
+            weather_file_or_path=default_weather_file_name,
+        )
+        dwelling.simulate()
 
     # Run simulations in parallel
-    run_multiple_local(input_paths, n_parallel=1, duration=7)
+    # run_multiple_local(
+    #     input_paths,
+    #     n_parallel=2,
+    #     duration=7,
+    #     weather_file_or_path=default_weather_file_name,
+    # )
 
     # Run simulations on HPC using Slurm
-    # run_multiple_hpc(input_paths, duration=7)
+    # run_multiple_hpc(
+    #     input_paths,
+    #     duration=7,
+    #     weather_file_or_path=default_weather_file_name,
+    # )
 
     # Compile simulation data
     compile_results(main_path)

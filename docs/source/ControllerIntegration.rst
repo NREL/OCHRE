@@ -1,3 +1,5 @@
+.. _controllers:
+
 Controller Integration
 ======================
 
@@ -9,9 +11,12 @@ controllers to enable more advanced control strategies. The following table
 provides an overview of the control signals and status various that OCHRE can
 send and receive.
 
-.. image:: images/Controls-Overview.png
-  :width: 500
+.. figure:: images/Controls-Overview.png
+  :width: 700
+  :align: center
   :alt: OCHRE Controls Overview
+
+  Overview of OCHRE control options and status variables
 
 For example, the code below will create a battery model and discharge it at 5
 kW for one time step.
@@ -31,8 +36,8 @@ kW for one time step.
     status = battery.update(control_signal)  # Run for 1 time step
 
 See the `OCHRE User Tutorial
-<https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
-Jupyter notebook or `bin/run_external_control.py
+<https://colab.research.google.com/github/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
+Jupyter notebook or `run_external_control.py
 <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__ for
 example code for multiple end uses.
 
@@ -217,11 +222,10 @@ The following code sends a voltage of 0.97 p.u. to a Dwelling model:
 
 External model signals can also modify any time series schedule values
 including weather and occupancy variables. The names and units of these
-variables can be found in the header of the `OCHRE schedule file
-<https://ochre-nrel.readthedocs.io/en/latest/Outputs.html#additional-output-files-and-print-statements>`__.
-Alternatively, these variables can be reset at the beginning of the
-simulation; see the `OCHRE User Tutorial
-<https://github.com/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
+variables can be found in the header of the :ref:`OCHRE schedule file
+<output-files>`. Alternatively, these variables can be set at the beginning of
+the simulation; see the `OCHRE User Tutorial
+<https://colab.research.google.com/github/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb>`__
 Jupyter notebook for more details.
 
 Status Variables
@@ -230,11 +234,10 @@ Status Variables
 The ``update`` function for equipment and dwellings returns a Python
 dictionary with status variables that can be sent to the external controller.
 These status variables are equivalent to the time series results described in
-`Outputs and Analysis
-<https://ochre-nrel.readthedocs.io/en/latest/Outputs.html>`__. Note that the
-``verbosity`` applies to the status variables in the same way as the outputs.
+:ref:`Outputs and Analysis <outputs>`. Note that the ``verbosity`` applies to
+the status variables in the same way as the outputs.
 
-See ``run_hvac_dynamic_control`` in `bin/run_external_control.py
+See ``run_hvac_dynamic_control`` in `run_external_control.py
 <https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__ for
 an example.
 
@@ -246,7 +249,7 @@ models, and other simulation agents. OCHRE models can communicate with other
 agents via their external control signals, external model signals, and status
 variables.
 
-See `bin/run_cosimulation.py
+See `run_cosimulation.py
 <https://github.com/NREL/OCHRE/blob/main/bin/run_cosimulation.py>`__ for a very
 basic co-simulation implementation using the `HELICS <https://helics.org/>`__
 platform. The example shows a simple aggregator that controls batteries in two
@@ -254,10 +257,9 @@ different OCHRE dwellings.
 
 OCHRE can also repeat a single timestep with multiple control options, enabling
 co-optimization or simulation across varying time-scales. See the
-``run_pv_voltvar`` function in `bin/run_external_control.py
-<https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>` as an
+``run_pv_voltvar`` function in `run_external_control.py
+<https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py>`__ as an
 example.
 
-See the `publications list
-<https://ochre-nrel.readthedocs.io/en/latest/Introduction.html#citation-and-publications>`__
-for examples of more advanced co-simulation architectures that use OCHRE.
+See the :ref:`publications` for examples of more advanced
+co-simulation architectures that use OCHRE.
