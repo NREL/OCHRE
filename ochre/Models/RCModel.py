@@ -15,7 +15,9 @@ from . import StateSpaceModel, ModelException
 def transform_floating_node(float_node, all_resistors):
     # use star-mesh transform to remove floating node, see https://en.wikipedia.org/wiki/Star-mesh_transform
     adj_resistors = {nodes: val for nodes, val in all_resistors.items() if float_node in nodes}
-    adj_resistors = {node: val for nodes, val in adj_resistors.items() for node in nodes if node != float_node}
+    adj_resistors = {
+        node: val for nodes, val in adj_resistors.items() for node in nodes if node != float_node
+    }
 
     new_resistors = {nodes: val for nodes, val in all_resistors.items() if float_node not in nodes}
     zeros = [node for node, r in adj_resistors.items() if r == 0]
@@ -76,18 +78,20 @@ class RCModel(StateSpaceModel):
      - Temperature: degrees C
      - Heat: W
     """
-    name = 'Generic RC'
+
+    name = "Generic RC"
 
     def __init__(
         self,
         capacitances,
-        resistances, 
+        resistances,
         external_nodes,
         energy_flow_states=None,
         unused_inputs=None,
         **kwargs,
     ):
-        self.solver_params = None  # saves parameters for faster solving, see self.solve_for_multi_inputs
+        # saves parameters for faster solving, see self.solve_for_multi_inputs
+        self.solver_params = None
 
         # Parse RC parameters
         self.capacitances = np.array(list(capacitances.values()))
@@ -102,25 +106,37 @@ class RCModel(StateSpaceModel):
             resistances = transform_floating_node(node, resistances)
 
         # check for zero or negative RC parameters
-        bad_params = [c for c, val in capacitances.items() if val <= 0] + [r for r, val in resistances.items() if val <= 0]
+        bad_params = [c for c, val in capacitances.items() if val <= 0]
+        bad_params += [r for r, val in resistances.items() if val <= 0]
         if bad_params:
-            raise ModelException(f'RC parameters for {self.name} Model must be positive: {bad_params}')
+            raise ModelException(
+                f"RC parameters for {self.name} Model must be positive: {bad_params}"
+            )
 
         # Define state and input names
-        state_names = ['T_' + node for node in internal_nodes]
-        input_names = ['T_' + node for node in external_nodes] + ['H_' + node for node in internal_nodes]
+        state_names = ["T_" + node for node in internal_nodes]
+        input_names = ["T_" + node for node in external_nodes]
+        input_names += ["H_" + node for node in internal_nodes]
 
         # Create A and B matrices from RC parameters and get state and input names
-        A_c, B_c = self.create_rc_matrices(capacitances, resistances, internal_nodes, external_nodes)
+        A_c, B_c = self.create_rc_matrices(
+            capacitances, resistances, internal_nodes, external_nodes
+        )
 
         # add energy flow states
         if energy_flow_states:
-            A_c, B_c = self.add_energy_flow_states(energy_flow_states, A_c, B_c, internal_nodes, resistances)
-            state_names.extend([f"H_{node_from}_{node_to}" for (node_from, node_to) in energy_flow_states])
+            A_c, B_c = self.add_energy_flow_states(
+                energy_flow_states, A_c, B_c, internal_nodes, resistances
+            )
+            state_names.extend(
+                [f"H_{node_from}_{node_to}" for (node_from, node_to) in energy_flow_states]
+            )
 
         # remove unused inputs
         if unused_inputs is not None:
-            good_input_idx = [i for (i, name) in enumerate(input_names) if name not in unused_inputs]
+            good_input_idx = [
+                i for (i, name) in enumerate(input_names) if name not in unused_inputs
+            ]
             B_c = B_c[:, good_input_idx]
             input_names = [name for name in input_names if name not in unused_inputs]
 
@@ -132,19 +148,19 @@ class RCModel(StateSpaceModel):
 
         self.high_res = self.time_res < dt.timedelta(minutes=5)
 
-        if kwargs.get('save_matrices', False) and self.output_path is not None:
+        if kwargs.get("save_matrices", False) and self.output_path is not None:
             # convert A and B matrices to a data frame
             # Note: set save_matrices_time_res to dt.timedelta(0) to save continuous time matrices
-            A, B = self.to_discrete(time_res=kwargs.get('save_matrices_time_res'))
+            A, B = self.to_discrete(time_res=kwargs.get("save_matrices_time_res"))
             df_a = pd.DataFrame(A, index=self.state_names, columns=self.state_names)
             df_b = pd.DataFrame(B, index=self.state_names, columns=self.input_names)
             df_c = pd.DataFrame(self.C, index=self.output_names, columns=self.state_names)
 
             # save as csv files
-            file_name_format = os.path.join(self.output_path, f'{self.name}_{self.main_sim_name}')
-            df_a.to_csv(file_name_format + '_matrixA.csv', index=True)
-            df_b.to_csv(file_name_format + '_matrixB.csv', index=True)
-            df_c.to_csv(file_name_format + '_matrixC.csv', index=True)
+            file_name_format = os.path.join(self.output_path, f"{self.name}_{self.main_sim_name}")
+            df_a.to_csv(file_name_format + "_matrixA.csv", index=True)
+            df_b.to_csv(file_name_format + "_matrixB.csv", index=True)
+            df_c.to_csv(file_name_format + "_matrixC.csv", index=True)
 
     # @staticmethod
     # def create_abstract_matrices(all_cap, all_res, internal_nodes, external_nodes):
@@ -192,7 +208,9 @@ class RCModel(StateSpaceModel):
                     c = all_cap[node2]
                 else:
                     # neither is internal, raise an error
-                    raise ModelException(f'Cannot parse resistor R_{node1}_{node2}, no internal nodes defined')
+                    raise ModelException(
+                        f"Cannot parse resistor R_{node1}_{node2}, no internal nodes defined"
+                    )
                 A[i_int, i_int] -= 1 / c / r_val
                 B[i_int, i_ext] += 1 / c / r_val
 
@@ -210,11 +228,11 @@ class RCModel(StateSpaceModel):
         n_new = len(energy_flow_states)
         A_c = np.pad(A_c, ((0, n_new), (0, n_new)))
         B_c = np.pad(B_c, ((0, n_new), (0, 0)))
-        
+
         # fill in energy flow equations:
         # x = Q, x_dot = H = (T_2 - T_1) / R
         row = len(internal_nodes)
-        for (node_from, node_to) in energy_flow_states:
+        for node_from, node_to in energy_flow_states:
             if (node_from, node_to) in resistances:
                 res = resistances[(node_from, node_to)]
             else:
@@ -252,10 +270,12 @@ class RCModel(StateSpaceModel):
             u_idx = self.input_names.index(u_idx)
 
         if solve_as_output is None:
-            raise ModelException('Must specify if y_idx is a state or an output.')
+            raise ModelException("Must specify if y_idx is a state or an output.")
         return self.solve_for_inputs(y_idx, [u_idx], x_desired, solve_as_output=solve_as_output)
 
-    def solve_for_inputs(self, y_idx, u_idxs, y_desired, u_ratios=None, solve_as_output=True, use_inputs_init=True):
+    def solve_for_inputs(
+        self, y_idx, u_idxs, y_desired, u_ratios=None, solve_as_output=True, use_inputs_init=True
+    ):
         # solve for n inputs that controls 1 state or output to desired setpoint
         # assumes 1 state or output is fixed at setpoint, and ratio of n inputs are known
         # Returns input with a ratio of 1 (usually the sum of the inputs)
@@ -273,8 +293,8 @@ class RCModel(StateSpaceModel):
             c_i = self.C[y_idx, :]
             d_i = self.D[y_idx, :]
             u_factor = (d_i + c_i.dot(self.B))[u_idxs].dot(u_ratios)
-            u_desired = 1 / u_factor * (y_desired - c_i.dot(self.A.dot(self.states) + self.B.dot(inputs))
-                                        - d_i.dot(inputs))
+            y_current = c_i.dot(self.A.dot(self.states) + self.B.dot(inputs)) + d_i.dot(inputs)
+            u_desired = 1 / u_factor * (y_desired - y_current)
         else:
             # solves: y_desired = a_i * x + b_i * (u + u')
             # u' = u_desired * [dict(zip(u_idxs, u_ratios)).get(idx, 0) for idx in range(len(u))]
@@ -305,9 +325,11 @@ class RCModel(StateSpaceModel):
                 input_ratios[y_idx] = np.zeros(self.nu)
                 input_ratios[y_idx][u_idx] = 1
             if isinstance(u_data, dict):
-                input_ratios[y_idx] = np.array([u_data.get(u_name, 0) for u_name in self.input_names])
+                input_ratios[y_idx] = np.array(
+                    [u_data.get(u_name, 0) for u_name in self.input_names]
+                )
         input_ratios = pd.DataFrame(input_ratios)
-        
+
         if solve_as_output:
             m_i = self.C[y_idxs, :].dot(self.B) + self.D[y_idxs, :]
         else:
@@ -333,7 +355,8 @@ class RCModel(StateSpaceModel):
             # m_i = c_i * B + d_i
             c_i = self.C[y_idxs, :]
             d_i = self.D[y_idxs, :]
-            u_desired = m_i_inv.dot(y_values - c_i.dot(self.A.dot(self.states) + self.B.dot(inputs)) - d_i.dot(inputs))
+            y_current = c_i.dot(self.A.dot(self.states) + self.B.dot(inputs)) + d_i.dot(inputs)
+            u_desired = m_i_inv.dot(y_values - y_current)
         else:
             # solves: y_values = a_i * x + b_i * (u + u')
             # u' = u_desired * [dict(zip(u_idxs, u_ratios)).get(idx, 0) for idx in range(len(u))]
@@ -355,12 +378,12 @@ class OneNodeRCModel(RCModel):
      - 2 Inputs: "T_EXT" and "H_INT"
      - 1 Output: "T_INT"
     """
-    name = 'One Node RC'
-    int_name = 'INT'
-    ext_name = 'EXT'
+
+    name = "One Node RC"
+    int_name = "INT"
+    ext_name = "EXT"
 
     def __init__(self, resistance, capacitance, **kwargs):
-
         self.resistance = resistance
         self.capacitance = capacitance
         capacitances = {self.int_name: self.capacitance}
