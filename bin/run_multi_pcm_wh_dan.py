@@ -2,42 +2,28 @@ import datetime as dt
 
 
 from ochre import Dwelling, CreateFigures
-from ochre.Models import TankWithPCM
+from ochre.Models import TankWithPCM, TankWithMultiPCM
 from bin.run_dwelling import dwelling_args
 import matplotlib.pyplot as plt
 import time
+from itertools import chain, combinations
 
 
-pcm_water_node = 7
-# pcm_vol_fraction = 6.59375e-8 # min fraction or thereabouts
-# pcm_vol_fraction = 0.9999999999999725
-# pcm_vol_fraction = 6.582730627258115e-08
 
-pcm_vol_fractions = [
-    6.582730627258115e-08,
-    0.0001,
-    0.001,
-    0.005,
-    0.01,
-    0.02,
-    0.05,
-    0.1,
-    0.2,
-    0.3,
-    0.4,
-    0.5,
-    0.6,
-    0.7,
-    0.8,
-    0.9,
-    0.99,
-    0.999,
-    0.9999,
-    0.9999999999999725,
-]
 
-pcm_vol_fractions = [0.5]
+num_nodes = 12
+vol_fract = 0.5
 
+# pcm_vol_fractions = [{i: vol_fract for i in range(1, n + 1)} for n in range(1, num_nodes + 1)]
+# pcm_vol_fractions = [
+#                     {7: vol_fract},
+#                     ]
+
+# pcm_vol_fractions = [
+#                     {12: vol_fract},
+#                     ]
+
+pcm_vol_fractions = [{node: vol_fract for node in range(1, num_nodes + 1)}]
 
 # UEF draw profiles
 # LowUseUEF = 'LowUseL.csv'
@@ -49,25 +35,27 @@ pcm_vol_fractions = [0.5]
 
 load_profile = "MediumUseL.csv"
 
+def convert_dict_to_name(dict):
+    return "".join([str(key) + "_" + str(value) + "_" for key, value in dict.items()])
+
 dwelling_args.update(
     {
         "time_res": dt.timedelta(minutes=1),  # time resolution of the simulation
         "duration": dt.timedelta(days=2),  # duration of the simulation
         "verbosity": 9,
         "schedule_input_file": load_profile,  # changes the default load profile in run_dwelling.py for this code to call the UEF load_profile
-        "output_path": "../OCHRE_output/OCHRE_results/results/",
+        "output_path": "../OCHRE_output/OCHRE_results/results/all_nodes",
         "name": "pcm_none_default_water_heater",
     }
 )
 
 
-def add_pcm_model(dwelling_args, name, pcm_vol_fraction):
+def add_pcm_model(dwelling_args, name, pcm_vol_fractions):
     dwelling_args["Equipment"]["Water Heating"] = {
-        "model_class": TankWithPCM,
+        "model_class": TankWithMultiPCM,
         "water_nodes": 12,
         "Water Tank": {
-            "pcm_water_node": pcm_water_node,
-            "pcm_vol_fraction": pcm_vol_fraction,
+            "pcm_node_vol_fractions": pcm_vol_fractions,
         },
     }
 
@@ -106,17 +94,17 @@ def run_water_heater(dwelling_args, plot_title, load_profile_in, name):
     # print(df.columns)
 
     # # # print(df.head())
-    # CreateFigures.plot_time_series_detailed((df["Hot Water Outlet Temperature (C)"],))
-    # CreateFigures.plt.title(plot_title)
-    # CreateFigures.plt.suptitle(load_profile_in)
+    CreateFigures.plot_time_series_detailed((df["Hot Water Outlet Temperature (C)"],))
+    CreateFigures.plt.title(plot_title)
+    CreateFigures.plt.suptitle(load_profile_in)
 
     # # print all water tank temperatures
     cols = [f"T_WH{i}" for i in range(1, 13)]
     if "With PCM" in plot_title:
         cols += ["T_PCM"]
 
-    # df[cols].plot()
-    # CreateFigures.plt.show()
+    df[cols].plot()
+    CreateFigures.plt.show()
 
     # calculate UEF
     Q_cons = (
@@ -141,49 +129,14 @@ if __name__ == "__main__":
     uef = []
     for i, pcm_vol_fraction in enumerate(pcm_vol_fractions):
         dwelling_args = add_pcm_model(
-            dwelling_args, f"pcm_{pcm_vol_fraction}", pcm_vol_fraction
+            dwelling_args, f"pcm_{convert_dict_to_name(pcm_vol_fraction)}", pcm_vol_fraction
         )
 
         # #Run with PCM
         uef_val = run_water_heater(
             dwelling_args,
-            f"PCM_VOL_FRACTION:{pcm_vol_fraction}",
+            f"PCM_VOL_FRACTION:{convert_dict_to_name(pcm_vol_fraction)}",
             load_profile,
-            f"PCM_VOL_FRACTION:{pcm_vol_fraction}",
+            f"PCM_VOL_FRACTION:{convert_dict_to_name(pcm_vol_fraction)}",
         )
         uef.append(uef_val)
-
-# uef = [
-#     0.9604064550862321,
-#     0.9372060523311518,
-#     0.9372248110213233,
-#     0.9372466030232178,
-#     0.9372942471509957,
-#     0.9373411576821054,
-#     0.9373929128440206,
-#     0.9374401194642804,
-#     0.9374761080657925,
-#     0.9375125569208861,
-#     0.9375628003756745,
-#     0.937752258394644,
-#     0.937778664503084,
-#     0.9378047377363584,
-#     0.9636448250902498,
-# ]
-plt.plot(pcm_vol_fractions, uef, marker="o", label="UEF Data")
-
-# for x, y in zip(pcm_vol_fractions, uef):
-#     plt.text(x, y, f"(UEF:{y:.2f})", fontsize=8, ha='right', va='bottom')
-
-# Label the axes and add a title
-plt.xlabel("PCM Volume Fraction")
-plt.ylabel("UEF")
-plt.title("UEF vs PCM Volume Fraction at Node 7")
-
-print(f"Time taken: {(time.perf_counter() - _start_time):.3f} sec")
-print(f"vol_fractions: {pcm_vol_fractions}")
-print(f"UEF: {uef}")
-# Display the plot
-plt.legend()
-plt.grid(True)
-plt.show()
