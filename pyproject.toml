@@ -14,7 +14,7 @@ dependencies = [
     "pvlib >= 0.10, <1.0",
     "nrel-pysam >= 5.1, <7.0",
     "psychrolib ~= 2.5",
-    "numba ~= 0.59",  # required for psychrolib
+    "numba ~= 0.61",  # required for psychrolib
     "xmltodict >= 0.13, <1.0",
     "pyarrow >= 15.0",
     "fastparquet >= 2024.0",
@@ -24,7 +24,7 @@ dependencies = [
     "click ~= 8.1",
     "boto3 ~= 1.36",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.9, <3.13"
 authors = [
   { name="Jeff Maguire", email="Jeff.Maguire@nrel.gov" },
   { name="Michael Blonsky", email="Michael.Blonsky@nrel.gov" },

@@ -32,7 +32,7 @@ Alternatively, you can install a specific branch, for example:
 pip install git+https://github.com/NREL/OCHRE@dev
 ```
 
-Note that OCHRE requires Python version >=3.9 and <3.12.
+Note that OCHRE requires Python version >=3.9 and <3.13.
 
 ## Usage
 
