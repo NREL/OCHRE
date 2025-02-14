@@ -1,6 +1,5 @@
 import os
 import datetime as dt
-import pandas as pd
 
 from ochre import Dwelling, CreateFigures
 # from ochre import Analysis
@@ -8,18 +7,13 @@ from ochre.utils import default_input_path
 
 # Test script to run single Dwelling
 
-pd.set_option("display.precision", 3)  # precision in print statements
-pd.set_option("expand_frame_repr", False)  # Keeps results on 1 line
-pd.set_option("display.max_rows", 30)  # Shows up to 30 rows of data
-# pd.set_option("max_columns", None)       # Prints all columns
-
 dwelling_args = {
     "name": "MyHouse",  # simulation name
     #
     # Timing parameters
     "start_time": dt.datetime(2018, 1, 1, 0, 0),  # year, month, day, hour, minute
-    "time_res": dt.timedelta(minutes=60),  # time resolution of the simulation
-    "duration": dt.timedelta(days=1),  # duration of the simulation
+    "time_res": dt.timedelta(minutes=60),         # time resolution of the simulation
+    "duration": dt.timedelta(days=1),             # duration of the simulation
     "initialization_time": dt.timedelta(days=1),  # used to create realistic starting temperature
     # "time_zone": None,                          # option to specify daylight savings, in development
     #
@@ -38,7 +32,7 @@ dwelling_args = {
     # "verbosity": 3,                       # verbosity of time series files (0-9)
     # "metrics_verbosity": 3,               # verbosity of metrics file (0-9)
     # "save_results": False,                # saves results to files. Defaults to True if verbosity > 0
-    "output_path": os.getcwd(),  # defaults to hpxml_file path
+    "output_path": os.getcwd(),             # defaults to hpxml_file path
     # "save_args_to_json": True,            # includes data from this dictionary in the json file
     # "output_to_parquet": True,            # saves time series files as parquet files (False saves as csv files)
     # "save_schedule_columns": [],          # list of time series inputs to save to schedule file
