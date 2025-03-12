@@ -15,3 +15,21 @@ docs/_build
 environment.yml
 
 ochre/defaults/Input Files/OCHRE*
+bin/run_external_control copy.py
+bin/run_external_control_janelle.py
+bin/run_pcm_wh_janelle.ipynb
+notebook/Sample House.csv
+notebook/Sample House.json
+notebook/Sample House_complete
+notebook/Sample House_hourly.csv
+notebook/Sample House_metrics.csv
+notebook/user_tutorial.ipynb
+ochre/defaults/Input Files/HistoricalUseL.csv
+notebook/user_tutorial.ipynb
+bin/output_avg.csv
+bin/output_avgYear.csv
+bin/output_noAvg.csv
+bin/output_site1.csv
+bin/output_site_10292.csv
+bin/output_site_10441.csv
+bin/output_test.csv
