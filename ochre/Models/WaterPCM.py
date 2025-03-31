@@ -1,8 +1,6 @@
 import numpy as np
 import os
 import math
-import time
-import tqdm
 
 from ochre.Models import StratifiedWaterModel
 
