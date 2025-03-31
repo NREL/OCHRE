@@ -281,6 +281,9 @@ def move_results(results_folder, graphings_results_folder, num_files_to_move):
     if os.path.exists(graphings_results_folder):
         shutil.rmtree(graphings_results_folder)
         os.mkdir(graphings_results_folder)
+    else:
+        os.mkdir(graphing_results_folder)    
+    
     
     for file in files_to_move:
         # move file to graphings_results_folder
@@ -298,25 +301,37 @@ CYAN = "\033[96m"
 YELLOW = "\033[93m"
 RED = "\033[91m"
 
-def run_water_heater_process(dwelling_args, title, load_profile, filename):
-    """ Function wrapper to execute run_water_heater in a separate process and measure execution time. """
-    start_time = time.perf_counter()
-    print(f"{CYAN}Starting simulation process: {filename}{RESET}")
+def run_water_heater_process(dwelling_args, title, load_profile, filename, submission_time):
+    """
+    Function wrapper to execute run_water_heater in a separate process and measure:
+    - Queue wait time (time from submission to actual start)
+    - Active simulation processing time
+    - Total time (waiting + processing)
+    """
+    actual_start_time = time.perf_counter()
+    wait_time = actual_start_time - submission_time
+    print(f"{CYAN}Starting simulation process: {filename}; waited {wait_time:.2f} sec in queue{RESET}")
+    
+    # Run the actual simulation
     result = run_water_heater(dwelling_args, title, load_profile, filename)
+    
     end_time = time.perf_counter()
+    sim_duration = end_time - actual_start_time  # time spent in simulation function
+    total_duration = end_time - submission_time  # includes waiting time
     
-    duration = end_time - start_time
-    print(f"{CYAN}Process {filename}: {title} completed in {duration:.2f} seconds{RESET}")
+    print(f"{CYAN}Process {filename}: {title} completed in {sim_duration:.2f} sec (simulation), "
+          f"total {total_duration:.2f} sec (including wait){RESET}")
     
-    return title, result, duration
+    return title, result, sim_duration, wait_time, total_duration
 
 if __name__ == "__main__":
+    
     print(f"{BOLD}{GREEN}Starting parallel execution of water heater simulations...{RESET}\n")
     _start_time = time.perf_counter()
 
     # Create a deep copy of dwelling arguments to avoid modifying original
     dwelling_args_default = copy.deepcopy(dwelling_args)
-    process_results = {}  # Dictionary to store execution times and UEF values
+    process_results = {}  # Dictionary to store execution times, wait times and UEF values
     uef_values = []
     
     # Initialize multiprocessing pool with limited number of processes to avoid resource contention
@@ -324,10 +339,11 @@ if __name__ == "__main__":
         # Create a list to store all async results, including the default case
         async_results = []
         
-        # Add the default (no PCM) case to the processing queue
+        # Add the default (no PCM) case to the processing queue with submission timestamp
+        submission_time = time.perf_counter()
         no_pcm_future = pool.apply_async(
             run_water_heater_process,
-            (dwelling_args_default, no_pcm_title, load_profile, no_pcm_title)
+            (dwelling_args_default, no_pcm_title, load_profile, no_pcm_title, submission_time)
         )
         async_results.append(no_pcm_future)
         print(f"{YELLOW}Submitted default NO_PCM simulation to queue{RESET}")
@@ -345,10 +361,11 @@ if __name__ == "__main__":
                 pcm_vol_fraction
             )
             
-            # Submit task to process pool
+            # Record submission time for this task
+            submission_time = time.perf_counter()
             async_result = pool.apply_async(
                 run_water_heater_process,
-                (current_dwelling_args, model_name, load_profile, model_name)
+                (current_dwelling_args, model_name, load_profile, model_name, submission_time)
             )
             async_results.append(async_result)
             print(f"{YELLOW}Submitted {model_name} simulation to queue{RESET}")
@@ -356,20 +373,44 @@ if __name__ == "__main__":
         # Collect results from all simulations with improved error handling
         for async_result in async_results:
             try:
-                title, result, duration = async_result.get()  # 5 minute timeout
-                process_results[title] = {"uef": result, "time": duration}
+                # Now we get five return values: title, result, sim_duration, wait_time, total_duration
+                title, result, sim_duration, wait_time, total_duration = async_result.get()  # 5 minute timeout
+                process_results[title] = {
+                    "uef": result,
+                    "sim_time": sim_duration,
+                    "wait_time": wait_time,
+                    "total_task_time": total_duration,
+                }
                 uef_values.append(result)
                 print(f"{GREEN}Successfully completed: {title}{RESET}")
             except multiprocessing.TimeoutError:
-                print(f"{RED}A simulation timed out after 300 seconds{RESET}")
+                print(f"{RED}{title} simulation timed out after 300 seconds{RESET}")
             except Exception as e:
-                print(f"{RED}Error in simulation process: {str(e)}{RESET}")
+                print(f"{RED}{title} error in simulation process: {str(e)}{RESET}")
 
     # Print summary with colors
     print(f"\n{BOLD}{YELLOW}Execution Summary:{RESET}")
     for process, data in process_results.items():
-        print(f"{GREEN}{process}: {data['time']:.2f} seconds, UEF: {data['uef']:.6f}{RESET}")
+        print(f"{GREEN}{process}: simulation time = {data['sim_time']:.2f} sec, "
+              f"wait time = {data['wait_time']:.2f} sec, total = {data['total_task_time']:.2f} sec, "
+              f"UEF: {data['uef']:.6f}{RESET}")
     
+    # --- Calculate and print overall overhead statistics ---
+    _end_time = time.perf_counter()
+    total_time = _end_time - _start_time
+
+    # Sum up the total active simulation time and waiting time across all tasks
+    total_simulation_time = sum(data["sim_time"] for data in process_results.values())
+    total_wait_time = sum(data["wait_time"] for data in process_results.values())
+    
+    # Note: total_simulation_time is the sum across tasks, which is useful for profiling resource usage,
+    # but it will be larger than the wall-clock time since tasks run concurrently.
+    print(f"\n{BOLD}{RED}Total wall-clock execution time: {total_time:.2f} seconds{RESET}")
+    print(f"{BOLD}{RED}Aggregate simulation (processing) time: {total_simulation_time:.2f} seconds{RESET}")
+    print(f"{BOLD}{RED}Aggregate waiting (queue delay) time: {total_wait_time:.2f} seconds{RESET}")
+    overhead_percentage = (total_wait_time / total_time * 100) if total_time > 0 else 0
+    print(f"{BOLD}{RED}Overhead due to queue delays: {total_wait_time:.2f} seconds ({overhead_percentage:.2f}% of wall-clock time){RESET}") 
+
     _start_time_move_results = time.perf_counter()
     move_results(main_results_folder, graphing_results_folder, num_files_to_move=len(process_results.items()))
     print(f"{BOLD}{GREEN}{len(process_results.items())} results moved to {graphing_results_folder} in {time.perf_counter() - _start_time_move_results:.2f} seconds{RESET}")
@@ -377,9 +418,9 @@ if __name__ == "__main__":
     _start_time_plot_results = time.perf_counter()
     dfs  = load_data(results_folder=graphing_results_folder)
     plot = create_heat_exchanger_plots(dfs)
-    temp_plots,_= create_temperature_plots(dfs, uef_values=uef_values, patterns=['T_WH', 'T_PCM'])
+    temp_plots, _ = create_temperature_plots(dfs, uef_values=uef_values, patterns=['T_WH', 'T_PCM'])
     enthalpy_plot = plot_pcm_enthalpies(np.loadtxt(os.path.join(os.path.dirname(__file__), "..", "ochre", "Models", "cp_h-T_data.csv"), delimiter=",", skiprows=1))
-    capacitance_plots,_ = create_capacitance_plots(dfs, uef_values=uef_values)
+    capacitance_plots, _ = create_capacitance_plots(dfs, uef_values=uef_values)
     plot.show()
     enthalpy_plot.show()
     for temp_plot in temp_plots:
@@ -392,10 +433,7 @@ if __name__ == "__main__":
     # Draw data summary
     output = calculate_hot_water_delivered(dfs)
     plot_draw_event_summary(output)
-    plot_draw_events(output) 
+    plot_draw_events(output)
     
-    _end_time = time.perf_counter()
-    total_time = _end_time - _start_time
-    print(f"\n{BOLD}{RED}Total execution time: {total_time:.2f} seconds{RESET}")
-    
-    
+    run_time = time.perf_counter() - _start_time
+    print(f"{BOLD}{GREEN}Total Run time: {run_time:.2f} seconds{RESET}")
