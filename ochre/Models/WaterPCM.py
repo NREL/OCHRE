@@ -294,7 +294,7 @@ class TankWithMultiPCM(StratifiedWaterModel):
             self.vol_fractions[idx] *= (1 - pcm_frac)
             
             # Add the water-PCM thermal resistance for this node (in K/W)
-            ha = PCM_PROPERTIES["h"] * pcm_volume * 1e-3 * PCM_PROPERTIES["sa_ratio"] # in W/m^2K
+            ha = PCM_PROPERTIES["h"] * pcm_volume * 1e-3 * PCM_PROPERTIES["sa_ratio"] # in W/K
             r_wh_pcm_dict[f"R_PCM{node}_WH{node}"] = 1 / ha
             
             # use pure thermal conductivity for this

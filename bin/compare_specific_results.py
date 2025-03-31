@@ -676,7 +676,7 @@ def create_capacitance_plots(dfs, uef_values):
                 
         # Update the layout with UEF and other file-specific info in the title
         fig.update_layout(
-            title=f'PCM Temperatures - {file}<br>'
+            title=f'PCM Capacitances - {file}<br>'
                       f'UEF: {uef:.3f} | PCM h: {pcm_h} W/m^2K | PCM SA Ratio: {pcm_sa} | PCM Mass: {pcm_mass:.3f} kg | '
                       f'Water Volume: {water_volume_gal:.1f} gal',
             xaxis_title='Time',
@@ -1412,8 +1412,9 @@ if __name__ == "__main__":
     enthalpy_plot.show()
     temp_plots,_= create_temperature_plots(dfs, uef_values=uef, patterns=['T_WH', 'T_PCM'])
     plot.show()
-    for temp_plot, capacitance_plot in zip(temp_plots, capacitance_plots):
+    for temp_plot in temp_plots:
         temp_plot.show()
+    for capacitance_plot in capacitance_plots:
         capacitance_plot.show()
     
     # Draw data summary
