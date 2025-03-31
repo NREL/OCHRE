@@ -337,6 +337,7 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
     with upper and lower heating element overlays on the water temperature curves."""
     all_figs = []
     figure_metadata = []  # List to store metadata separately
+    water_temp_cutoff = 43.3333  # 110 F 15 deg delta from 125 F for UEF test
 
     for i, (file, df) in enumerate(dfs.items()):
         # Get UEF value for this file
@@ -479,6 +480,17 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
                         )
                     )
 
+
+            # Add hot water cutoff line
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Time'], y=[water_temp_cutoff for _ in df['Time']],  # invisible point 
+                    mode='lines',
+                    line=dict(color='red', width=1),
+                    name='Hot Water Cutoff Temp (110°F / 43.33°C)',
+                    showlegend=True
+                )
+            )
             # Update the layout with UEF and other file-specific info in the title
             fig.update_layout(
                 title=f'{pattern} Temperatures - {file}<br>'
@@ -497,6 +509,8 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
                 'file': file,
                 'type': 'temperature_pattern'
             })
+            
+
 
             all_figs.append(fig)
 
@@ -662,7 +676,7 @@ def create_capacitance_plots(dfs, uef_values):
                 
         # Update the layout with UEF and other file-specific info in the title
         fig.update_layout(
-            title=f'Temperatures - {file}<br>'
+            title=f'PCM Temperatures - {file}<br>'
                       f'UEF: {uef:.3f} | PCM h: {pcm_h} W/m^2K | PCM SA Ratio: {pcm_sa} | PCM Mass: {pcm_mass:.3f} kg | '
                       f'Water Volume: {water_volume_gal:.1f} gal',
             xaxis_title='Time',
@@ -821,6 +835,8 @@ def create_heat_exchanger_plots(dfs):
     with the power y-axis scaled larger and grouped power > 0 overlays for each dataset.
     The third subplot displays heating element status overlays alongside temperature data."""
     
+    water_temp_cutoff = 43.3333  # 110 F 15 deg delta from 125 F for UEF test
+    
     # Create a figure with 3 subplot rows and 1 column
     fig = make_subplots(
         rows=3, 
@@ -896,6 +912,19 @@ def create_heat_exchanger_plots(dfs):
                 ),
                 row=1, col=1, secondary_y=False
             )
+            
+            # Add hot water cutoff line
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Time'], y=[water_temp_cutoff for _ in df['Time']],  # invisible point 
+                    mode='lines',
+                    line=dict(color='red', width=1),
+                    name='Hot Water Cutoff Temp (110°F / 43.33°C)',
+                    showlegend=True
+                ),
+                row=1, col=1
+            )
+
         
         # Add Heating Power trace with dashed line for first subplot
         if 'Water Heating Delivered (W)' in df.columns:
@@ -1000,6 +1029,17 @@ def create_heat_exchanger_plots(dfs):
                     showlegend=True
                 ),
                 row=3, col=1, secondary_y=False
+            )
+            # Add hot water cutoff line
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Time'], y=[water_temp_cutoff for _ in df['Time']],  # invisible point 
+                    mode='lines',
+                    line=dict(color='red', width=1),
+                    name='Hot Water Cutoff Temp (110°F / 43.33°C)',
+                    showlegend=True
+                ),
+                row=3, col=1
             )
         
         # Calculate the adjusted ranges for both axes
