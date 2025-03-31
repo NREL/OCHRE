@@ -301,7 +301,8 @@ class StratifiedWaterModel(RCModel):
          # commented this out due to it throwing an error when trying to use the UEF draw profile
 
         # If any temperatures are inverted, run inversion mixing algorithm
-        delta_t = 0.1 if self.high_res else 0.01
+        # swap to 0.01 if self.high_res
+        delta_t = 0.01 if self.high_res else 0.1
         if any(np.diff(self.next_states) > delta_t):
             self.run_inversion_mixing_rule()
 
