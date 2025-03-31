@@ -1368,7 +1368,7 @@ def plot_pcm_enthalpies(df):
 
     # Update layout with dual y-axis
     fig.update_layout(
-        title='cp and Enthalpy vs Temperature',
+        title='PCM cp and Enthalpy vs Temperature',
         xaxis=dict(title='Temperature (C)'),
         yaxis=dict(
             title='cp (J/g-C)', 
