@@ -14,7 +14,7 @@ from ochre.Models import StratifiedWaterModel
 
 
 # PCM properties from manufacturer, same units as water properties
-PCM_PROPERTIES = {
+DEFAULT_PCM_PROPERTIES = {
     "t_m1": 50,  # C
     "t_m2": 55,  # C
     "h_fus": 226,  # J/g
@@ -36,18 +36,18 @@ PCM_PROPERTIES = {
     "enthalpy_lut": np.loadtxt(os.path.join(os.path.dirname(__file__), "cp_h-T_data.csv"), delimiter=",", skiprows=1)
 }
 
-def calculate_interpolation_data(t_m1, t_m2, h_fus, solid, liquid, t_max=100, **kwargs):
+def calculate_interpolation_data(pcm_properties):
     # TODO: add in the enthalpy intorpolation values based on current temperature
     # short timesteps can use previous temperatures
     # investigate the timestep bounds where this starts getting wonky
     # temps = np.array([0, t_m1, t_m2, t_max])   # in C
-    temps = PCM_PROPERTIES['enthalpy_lut'][:,0]  # in C 
+    temps = pcm_properties['enthalpy_lut'][:,0]  # in C 
 
-    specific_heats = PCM_PROPERTIES['enthalpy_lut'][:,1]           # in J/g
+    specific_heats = pcm_properties['enthalpy_lut'][:,1]           # in J/g
     # adjusted enthalpy values from real data
     # [0, 76, 267, 326]
     # enthalpies = np.array([0.0, 76.0, 267.0, 326.0])          # in J/g
-    enthalpies = PCM_PROPERTIES["enthalpy_lut"][:,2]           # in J/g
+    enthalpies = pcm_properties["enthalpy_lut"][:,2]           # in J/g
     return temps, specific_heats, enthalpies
 
 
@@ -77,7 +77,7 @@ class TankWithPCM(StratifiedWaterModel):
 
     name = "Water Tank with PCM"
 
-    def __init__(self, pcm_water_node=5, pcm_vol_fraction=0.5, **kwargs):
+    def __init__(self, pcm_properties=DEFAULT_PCM_PROPERTIES, pcm_water_node=5, pcm_vol_fraction=0.5, **kwargs):
         
         # PCM node data
         self.pcm_water_node = pcm_water_node  # node number, from the top
@@ -86,6 +86,8 @@ class TankWithPCM(StratifiedWaterModel):
         self.pcm_mass = None  # in g
         
         super().__init__(**kwargs)
+        
+        self.pcm_properties = pcm_properties
 
         # Bounds check for pcm_vol_fraction for stability
         if not (6.582730627258115e-08 <= self.pcm_vol_fraction <= 0.9999999999999725):
@@ -93,7 +95,7 @@ class TankWithPCM(StratifiedWaterModel):
         if self.pcm_vol_fraction < 0.01 or self.pcm_vol_fraction > 0.99:
             self.warn(f"pcm_vol_fraction {pcm_vol_fraction} is outside the recommended range (0.01 to 0.99). Results may be inaccurate.")
         
-        self.key_temp, self.specific_heats, self.key_enthalpy = calculate_interpolation_data(**PCM_PROPERTIES)
+        self.key_temp, self.specific_heats, self.key_enthalpy = calculate_interpolation_data(**self.pcm_properties)
         self.key_enthalpy *= self.pcm_mass  # in J
 
         # PCM state and input indices
@@ -113,8 +115,8 @@ class TankWithPCM(StratifiedWaterModel):
         # Add PCM capacitance, default to solid state for now
         pcm_node_vol_fraction = self.vol_fractions[self.t_pcm_wh_idx]
         pcm_volume = self.volume * pcm_node_vol_fraction * self.pcm_vol_fraction
-        self.pcm_mass = PCM_PROPERTIES["solid"]["pcm_density"] * pcm_volume / 1e3  # in g
-        rc_params["C_PCM"] = PCM_PROPERTIES["solid"]["pcm_cp"] * self.pcm_mass  # in J/K
+        self.pcm_mass = self.pcm_porperties["solid"]["pcm_density"] * pcm_volume / 1e3  # in g
+        rc_params["C_PCM"] = self.pcm_porperties["solid"]["pcm_cp"] * self.pcm_mass  # in J/K
         # rc_params["C_PCM"] = PCM_PROPERTIES["solid"]["pcm_c"] * pcm_volume
 
         # Reduce water volume and vol_fractions from PCM volume
@@ -192,7 +194,7 @@ class TankWithMultiPCM(StratifiedWaterModel):
 
     name = "Water Tank with Multi PCM"
 
-    def __init__(self, pcm_node_vol_fractions: dict[int:float]={4:0.5, 5:0.5, 6:0.5}, **kwargs):
+    def __init__(self, pcm_properties: dict=DEFAULT_PCM_PROPERTIES, pcm_node_vol_fractions: dict[int:float]={4:0.5, 5:0.5, 6:0.5}, **kwargs):
         
         # PCM node data
         self.pcm_node_vol_fractions = pcm_node_vol_fractions  # node number, from the top
@@ -203,6 +205,8 @@ class TankWithMultiPCM(StratifiedWaterModel):
         self.external_nodes = ['AMB']
         self.pcm_heat_to_water_rc_network = None
         self.enthalpy_pcm = None
+        self.pcm_properties = pcm_properties
+        self.pcm_properties['enthalpy_lut'] = np.loadtxt(os.path.join(os.path.dirname(__file__), "cp_h-T_data.csv"), delimiter=",", skiprows=1)
         
         super().__init__(**kwargs)
 
@@ -212,10 +216,10 @@ class TankWithMultiPCM(StratifiedWaterModel):
         #         raise ValueError(f"pcm_node: {node} vol_fraction {vol_fraction} must be between 6.582730627258115e-08 and 0.9999999999999725 to ensure stability.")
         #     if vol_fraction < 0.01 or vol_fraction> 0.85:
         #         self.warn(f"pcm_node: {node} pcm_vol_fraction {vol_fraction} is outside the recommended range (0.01 to 0.99). Results may be inaccurate.")
-        self.h = PCM_PROPERTIES['h']
-        self.ha = PCM_PROPERTIES['h_conv']
-        self.conductivity= PCM_PROPERTIES['solid']['pcm_conductivity']
-        self.key_temp, self.key_specific_heats, self.key_enthalpy = calculate_interpolation_data(**PCM_PROPERTIES)
+        self.h = self.pcm_properties['h']
+        self.ha = self.pcm_properties['h_conv']
+        self.conductivity= self.pcm_properties['solid']['pcm_conductivity']
+        self.key_temp, self.key_specific_heats, self.key_enthalpy = calculate_interpolation_data(self.pcm_properties)
         self.key_enthalpy *= self.pcm_mass  # in J
         # self.time_res = datetime.timedelta(seconds=5)
 
@@ -280,12 +284,12 @@ class TankWithMultiPCM(StratifiedWaterModel):
             total_pcm_volume += pcm_volume
             
             # Compute the PCM mass in this node (in grams) and store it
-            pcm_mass = PCM_PROPERTIES["solid"]["pcm_density"] * pcm_volume * 1e3 # ensure units are in g
+            pcm_mass = self.pcm_properties["solid"]["pcm_density"] * pcm_volume * 1e3 # ensure units are in g
             self.pcm_mass_dict[node] = pcm_mass
             total_pcm_mass += pcm_mass
             
             # Add PCM capacitance for this node (in J/K)
-            c_pcm_dict[f"C_PCM{node}"] = PCM_PROPERTIES["solid"]["pcm_cp"] * pcm_mass
+            c_pcm_dict[f"C_PCM{node}"] = self.pcm_properties["solid"]["pcm_cp"] * pcm_mass
             
             # Reduce the water node capacitance for this node by the PCM fraction
             rc_params[f"C_WH{node}"] *= (1 - pcm_frac)
@@ -294,18 +298,18 @@ class TankWithMultiPCM(StratifiedWaterModel):
             self.vol_fractions[idx] *= (1 - pcm_frac)
             
             # Add the water-PCM thermal resistance for this node (in K/W)
-            ha = PCM_PROPERTIES["h"] * pcm_volume * 1e-3 * PCM_PROPERTIES["sa_ratio"] # in W/K
+            ha = self.pcm_properties["h"] * pcm_volume * 1e-3 * self.pcm_properties["sa_ratio"] # in W/K
             r_wh_pcm_dict[f"R_PCM{node}_WH{node}"] = 1 / ha
             
             # use pure thermal conductivity for this
             if i < len(self.pcm_water_nodes) - 1:
                 next_pcm_node = self.pcm_water_nodes[i + 1]
                 if next_pcm_node - node == 1:  # Check if sequential
-                    r_pcm_pcm_dict[f"R_PCM{node}_PCM{next_pcm_node}"] = length/(PCM_PROPERTIES['solid']['pcm_conductivity'] * effective_area * pcm_frac) # L/(kA)
+                    r_pcm_pcm_dict[f"R_PCM{node}_PCM{next_pcm_node}"] = length/(self.pcm_properties['solid']['pcm_conductivity'] * effective_area * pcm_frac) # L/(kA)
                     
             # add PCM-AMB thermal resistance for node (in K/W) Should be arbitrarily high
             r_pcm_amb_dict[f"R_PCM{node}_AMB"] = 200000
-            self.pcm_node_properties[node] = {"volume[L]": pcm_volume, "ha": ha, "sa_ratio": PCM_PROPERTIES["sa_ratio"], "h": PCM_PROPERTIES["h"]}
+            self.pcm_node_properties[node] = {"volume[L]": pcm_volume, "ha": ha, "sa_ratio": self.pcm_properties["sa_ratio"], "h": self.pcm_properties["h"]}
             print(f"Node {node} pcm mass: {(pcm_mass)/1000:.3e} kg")        
         # extend the rc_params dictionary with the thermal capacitance and resitances
         rc_params.update(c_pcm_dict)

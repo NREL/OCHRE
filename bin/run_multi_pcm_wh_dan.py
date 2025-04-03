@@ -20,8 +20,39 @@ from bin.compare_specific_results import load_data, create_heat_exchanger_plots,
 
 start_node = 4
 end_node = 9
+DEFAULT_PCM_PROPERTIES = {
+    "t_m1": 50,  # C
+    "t_m2": 55,  # C
+    "h_fus": 226,  # J/g
+    "h": 600,  # W/m^2K
+    "sa_ratio": 15, # m^2/m^3 of total pcm volume
+    "h_conv": 100,  # W/K, accounts for surface area (ha)
+    "solid": {
+        "pcm_density": 0.904,  # g/cm**3
+        "pcm_cp": 1.20,  # J/g-C # adjusted by real measurements average from 0-45c
+        "pcm_conductivity": 0.28,  # W/m-C, not used
+        # "pcm_c": 1717.6,  # J/m**3-C, not used
+    },
+    "liquid": {
+        "pcm_density": 0.829,  # g/cm**3
+        "pcm_cp": 1.33,  # J/g-C # adjusted by real measurements average from 55-100c
+        "pcm_conductivity": 0.16,  # W/m-C, not used
+        # "pcm_c": 1823.8,  # J/m**3-C, not used
+    },
+    "enthalpy_lut_file": "cp_h-T_data.csv"
+}
 
 water_heater_setpoint_temp = 59
+
+num_points = 10
+
+sa_ratios = np.linspace(2, 30, num_points)
+h_values = np.linspace(50, 1700, num_points)
+
+
+# sa_ratios = [10]
+# h_values = [100]
+
 
 vol_fract = 0.00000001 # 1.540e-06 kg
 vol_fract = 0.0001 # 1.540e-02 kg
@@ -190,12 +221,13 @@ def calculate_net_PCM_enthalpy(df):
     
     return net_PCM_enthalpy
 
-def add_pcm_model(dwelling_args, name, pcm_vol_fractions):
+def add_pcm_model(dwelling_args, name, pcm_vol_fractions, pcm_properties):
     dwelling_args["Equipment"]["Water Heating"] = {
         "model_class": TankWithMultiPCM,
         "water_nodes": 12,
         "Water Tank": {
             "pcm_node_vol_fractions": pcm_vol_fractions,
+            "pcm_properties": pcm_properties,
         },
     }
 
@@ -272,22 +304,26 @@ graphing_results_folder = "../OCHRE_output/results/"
 
 
 def move_results(results_folder, graphings_results_folder, num_files_to_move):
-    # find most recent num_files_to_move files in results_folder
-    files = os.listdir(results_folder)
+    # List CSV files that do not have '_schedule' in the name.
+    files = [f for f in os.listdir(results_folder)
+             if f.endswith('.csv') and '_schedule' not in f]
+    
+    # Sort files by modification time.
     files.sort(key=lambda x: os.path.getmtime(os.path.join(results_folder, x)))
+    
+    # Select the last num_files_to_move files.
     files_to_move = files[-num_files_to_move:]
     
-    # clear graphings_results_folder
+    # Clear or create the graphings_results_folder.
     if os.path.exists(graphings_results_folder):
         shutil.rmtree(graphings_results_folder)
-        os.mkdir(graphings_results_folder)
-    else:
-        os.mkdir(graphing_results_folder)    
+    os.mkdir(graphings_results_folder)
     
-    
+    # Move each selected file.
     for file in files_to_move:
-        # move file to graphings_results_folder
-        os.rename(os.path.join(results_folder, file), os.path.join(graphings_results_folder, file))
+        source = os.path.join(results_folder, file)
+        destination = os.path.join(graphings_results_folder, file)
+        os.rename(source, destination)
         
         
 
@@ -313,8 +349,10 @@ def run_water_heater_process(dwelling_args, title, load_profile, filename, submi
     print(f"{CYAN}Starting simulation process: {filename}; waited {wait_time:.2f} sec in queue{RESET}")
     
     # Run the actual simulation
-    result = run_water_heater(dwelling_args, title, load_profile, filename)
-    
+    try:
+        result = run_water_heater(dwelling_args, title, load_profile, filename)
+    except Exception as e:
+        print(f"{RED}{title}Error in simulation process run_water_heater: {str(e)}{RESET}") 
     end_time = time.perf_counter()
     sim_duration = end_time - actual_start_time  # time spent in simulation function
     total_duration = end_time - submission_time  # includes waiting time
@@ -340,36 +378,48 @@ if __name__ == "__main__":
         async_results = []
         
         # Add the default (no PCM) case to the processing queue with submission timestamp
+        i = 0
         submission_time = time.perf_counter()
+        no_pcm_title = f"{no_pcm_title}_{i}"
         no_pcm_future = pool.apply_async(
             run_water_heater_process,
             (dwelling_args_default, no_pcm_title, load_profile, no_pcm_title, submission_time)
         )
+        i += 1
         async_results.append(no_pcm_future)
         print(f"{YELLOW}Submitted default NO_PCM simulation to queue{RESET}")
         
         # Add all PCM variation tasks to the queue
         for pcm_vol_fraction in pcm_vol_fractions:
-            # Create fresh copy of default args for each simulation
-            current_dwelling_args = copy.deepcopy(dwelling_args_default)
-            
-            # Add PCM model with specific volume fraction
-            model_name = convert_dict_to_name(pcm_vol_fraction)
-            current_dwelling_args = add_pcm_model(
-                current_dwelling_args, 
-                model_name, 
-                pcm_vol_fraction
-            )
-            
-            # Record submission time for this task
-            submission_time = time.perf_counter()
-            async_result = pool.apply_async(
-                run_water_heater_process,
-                (current_dwelling_args, model_name, load_profile, model_name, submission_time)
-            )
-            async_results.append(async_result)
-            print(f"{YELLOW}Submitted {model_name} simulation to queue{RESET}")
-        
+            for sa_ratio in sa_ratios:
+                for h_value in h_values:
+                    # Create fresh copy of default args for each simulation
+                    current_dwelling_args = copy.deepcopy(dwelling_args_default)
+                    current_pcm_properties = copy.deepcopy(DEFAULT_PCM_PROPERTIES)
+                    current_pcm_properties["sa_ratio"] = sa_ratio
+                    current_pcm_properties["h"] = h_value
+                    
+                    # Add PCM model with specific volume fraction
+                    model_name = convert_dict_to_name(pcm_vol_fraction)
+                    
+                    model_name = f"{model_name}_SA-{sa_ratio}_H-{h_value}_{i}"
+                    i += 1
+                    current_dwelling_args = add_pcm_model(
+                        current_dwelling_args, 
+                        model_name, 
+                        pcm_vol_fraction,
+                        current_pcm_properties
+                    )
+                    
+                    # Record submission time for this task
+                    submission_time = time.perf_counter()
+                    async_result = pool.apply_async(
+                        run_water_heater_process,
+                        (current_dwelling_args, model_name, load_profile, model_name, submission_time)
+                    )
+                    async_results.append(async_result)
+                    print(f"{YELLOW}Submitted {model_name} simulation to queue{RESET}")
+                
         # Collect results from all simulations with improved error handling
         for async_result in async_results:
             try:
@@ -415,25 +465,25 @@ if __name__ == "__main__":
     move_results(main_results_folder, graphing_results_folder, num_files_to_move=len(process_results.items()))
     print(f"{BOLD}{GREEN}{len(process_results.items())} results moved to {graphing_results_folder} in {time.perf_counter() - _start_time_move_results:.2f} seconds{RESET}")
     
-    _start_time_plot_results = time.perf_counter()
-    dfs  = load_data(results_folder=graphing_results_folder)
-    plot = create_heat_exchanger_plots(dfs)
-    temp_plots, _ = create_temperature_plots(dfs, uef_values=uef_values, patterns=['T_WH', 'T_PCM'])
-    enthalpy_plot = plot_pcm_enthalpies(np.loadtxt(os.path.join(os.path.dirname(__file__), "..", "ochre", "Models", "cp_h-T_data.csv"), delimiter=",", skiprows=1))
-    capacitance_plots, _ = create_capacitance_plots(dfs, uef_values=uef_values)
-    plot.show()
-    enthalpy_plot.show()
-    for temp_plot in temp_plots:
-        temp_plot.show()
-    for capacitance_plot in capacitance_plots:
-        capacitance_plot.show()
+    # _start_time_plot_results = time.perf_counter()
+    # dfs  = load_data(results_folder=graphing_results_folder)
+    # plot = create_heat_exchanger_plots(dfs)
+    # temp_plots, _ = create_temperature_plots(dfs, uef_values=uef_values, patterns=['T_WH', 'T_PCM'])
+    # enthalpy_plot = plot_pcm_enthalpies(np.loadtxt(os.path.join(os.path.dirname(__file__), "..", "ochre", "Models", "cp_h-T_data.csv"), delimiter=",", skiprows=1))
+    # capacitance_plots, _ = create_capacitance_plots(dfs, uef_values=uef_values)
+    # plot.show()
+    # enthalpy_plot.show()
+    # for temp_plot in temp_plots:
+    #     temp_plot.show()
+    # for capacitance_plot in capacitance_plots:
+    #     capacitance_plot.show()
     
-    print(f"{BOLD}{GREEN}Plots created in {time.perf_counter() - _start_time_plot_results:.2f} seconds{RESET}")
+    # print(f"{BOLD}{GREEN}Plots created in {time.perf_counter() - _start_time_plot_results:.2f} seconds{RESET}")
     
-    # Draw data summary
-    output = calculate_hot_water_delivered(dfs)
-    plot_draw_event_summary(output)
-    plot_draw_events(output)
+    # # Draw data summary
+    # output = calculate_hot_water_delivered(dfs)
+    # plot_draw_event_summary(output)
+    # plot_draw_events(output)
     
     run_time = time.perf_counter() - _start_time
     print(f"{BOLD}{GREEN}Total Run time: {run_time:.2f} seconds{RESET}")

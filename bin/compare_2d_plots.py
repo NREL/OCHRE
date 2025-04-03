@@ -164,7 +164,7 @@ def plot_draw_events(draw_outputs):
     fig.show()
 
 
-def plot_comparison(dfs, draw_outputs):
+def plot_2d_comparison(dfs, draw_outputs):
     """
     Create two scatter plots comparing average h_value (W/m^2K) and average sa_ratio 
     for each file. The first plot colors the points by the total hot water energy delivered 
@@ -249,15 +249,22 @@ def plot_comparison(dfs, draw_outputs):
         points = df[['avg_sa_ratio', 'avg_h_value']].values
         values = df[z_column].values
         
-        # Perform interpolation - using 'cubic' for smoother results
+        # Perform interpolation - using 'linear' instead of 'cubic'
         grid_z = griddata(points, values, (x_mesh, y_mesh), method='linear')
         
         # Get min and max values for color scale normalization
         z_min = np.nanmin(values)
         z_max = np.nanmax(values)
         
+        # Round min/max to the nearest whole number for tick calculation
+        z_min_rounded = np.floor(z_min)
+        z_max_rounded = np.ceil(z_max)
+        
+        # Create 10 evenly spaced tick values, rounded to the nearest whole number
+        tick_values = np.linspace(z_min_rounded, z_max_rounded, 10)
+        tick_values = np.round(tick_values, 1)  # Round to 1 decimal place
+        
         # Create a custom color scale with more gradations
-        # You can add as many color points as needed for finer gradations
         custom_colorscale = [
             [0.0, 'rgb(68, 1, 84)'],       # Dark purple
             [0.1, 'rgb(72, 40, 120)'],     # Purple
@@ -285,7 +292,9 @@ def plot_comparison(dfs, draw_outputs):
                 title=z_label,
                 ticks="outside",
                 tickfont=dict(size=12),
-                len=0.75
+                len=0.75,
+                tickvals=tick_values,  # Set specific tick values
+                ticktext=[f"{val:.1f}" for val in tick_values]  # Format tick labels
             ),
             # Increase number of contour levels for more gradations
             ncontours=20,
@@ -294,7 +303,10 @@ def plot_comparison(dfs, draw_outputs):
                 labelfont=dict(size=12, color='white')
             ),
             # Smooth the contours
-            line=dict(width=0.5, smoothing=0.85)
+            line=dict(width=0.5, smoothing=0.85),
+            # Set the same range as the ticks
+            zmin=z_min_rounded,
+            zmax=z_max_rounded
         )
         fig.add_trace(contour)
         
@@ -307,8 +319,8 @@ def plot_comparison(dfs, draw_outputs):
                 size=10,
                 color=df[z_column],
                 colorscale=custom_colorscale,
-                cmin=z_min,
-                cmax=z_max,
+                cmin=z_min_rounded,
+                cmax=z_max_rounded,
                 line=dict(width=1, color='black'),
                 showscale=False
             ),
@@ -323,16 +335,10 @@ def plot_comparison(dfs, draw_outputs):
             xaxis_title="SA Ratio",
             yaxis_title="h value (W/m²K)",
             height=600,
-            width=800,
-            # Add a color axis for more control
-            coloraxis=dict(
-                colorscale=custom_colorscale,
-                colorbar=dict(title=z_label)
-            )
+            width=800
         )
         
         return fig
-
     # Create plot for delivered energy
     fig_delivered = create_interpolated_plot(
         df_plot_clean.dropna(subset=['total_heat_delivered_kWh']),
@@ -1550,9 +1556,9 @@ if __name__ == "__main__":
     
     # Draw data summary
     output = calculate_hot_water_delivered(dfs)
-    plot_draw_event_summary(output)
-    plot_draw_events(output)
-    plot_comparison(dfs, output)
+    # plot_draw_event_summary(output)
+    # plot_draw_events(output)
+    plot_2d_comparison(dfs, output)
     
     print(f"{BOLD}{GREEN}Plots created in {time.perf_counter() - _start_time_plot_results:.2f} seconds{RESET}")
     
