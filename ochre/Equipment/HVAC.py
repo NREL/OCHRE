@@ -69,6 +69,7 @@ class HVAC(Equipment):
         self.eir_list = [self.eir_list[0]] + self.eir_list  # add lowest speed EIR as 'off' EIR
         self.eir = self.eir_list[self.speed_idx]
         self.eir_max = self.eir_list[-1]  # eir at max capacity (not the largest EIR for multispeed equipment)
+        self.c_d = self.calc_c_d(self)  # Coefficient of degradation, for startup losses
 
         # SHR (sensible heat ratio), cooling only
         shr = kwargs.get('SHR (-)')
@@ -360,6 +361,55 @@ class HVAC(Equipment):
             return 'Off'
         else:
             return None
+        
+    def calc_c_d(self):
+        #Calculate coefficient of degredation (c_d) of equipment based on equipment type and EER/SEER/HSPF
+        #Should only affect cases with single speed and two speed compressor driven equipment (ASHP/AC)
+        #Capacity losses based on Jon Winkler's thesis and match what's in E+ with "Advanced Research Features for startup losses"
+        #https://drum.lib.umd.edu/bitstream/handle/1903/9493/Winkler_umd_0117E_10504.pdf?sequence=1&isAllowed=y page 200
+
+        if self.is_heater:
+            hspf = convert(1 / self.eir, 'W', 'Btu/hour')
+            if self.n_speeds == 1:
+                if hspf < 7.0:
+                    c_d = 0.2
+                else:
+                    c_d = 0.11
+            elif self.n_speeds == 2:
+                c_d = 0.11
+            else:
+                c_d = 0.0 #Do no capacity degredation at startup, since this isn't on/off equipment
+        else: #cooling equipment
+            seer = convert(1 / self.eir, 'W', 'Btu/hour')
+            if self.name =='Room AC':
+                c_d = 0.22
+            elif self.n_speeds == 1:
+                if seer < 13.0:
+                    c_d = 0.2
+                else:
+                    c_d = 0.07
+            elif self.n_speeds == 2:
+                c_d = 0.11
+            else:
+                c_d = 0.0 #Do no capacity degredation at startup, since this isn't on/off equipment
+
+        return c_d
+
+    def calc_startup_capacity_degredation(self):
+        #JEFF
+        c_d = self.calc_c_d(self)
+        if c_d == 0.0:
+            return 1.0
+        else:
+            time_full_cap = 20.0 * c_d + 0.4 ## time to full capacity, in minutes
+
+            timestep_min = self.time_res # minutes
+            time_fron_start = self.time_res #FIXME: what's the best way to calculate how long it's been since we've gone from some other mode to 'HP on' 
+            time = time_from_start + 0.5 * timestep_min # time in minutes of the midpoint of this timestep
+            time = self.time_step.total_seconds() / 60.0 # time step in minutes
+            exp_term = (-3.79936 * (time / time_full_cap))
+            capacity_mult = max(0,min(1.0, -1.025*np.exp(exp_term)+1.025))
+            return capacity_mult
 
     def solve_ideal_capacity(self):
         # Update capacity using ideal algorithm - maintains setpoint exactly
@@ -1040,7 +1090,9 @@ class HeatPumpHeater(DynamicHVAC, Heater):
         else:
             self.defrost_power_mult = 0
             self.power_defrost = 0
-
+        if self.time_res < 2: #5 min is max to full capacity
+            startup_cap_mult = self.calc_startup_capacity_degredation #JEFF
+            capacity *= startup_cap_mult
         return capacity
 
     def update_eir(self):
@@ -1190,6 +1242,7 @@ class ASHPHeater(HeatPumpHeater):
                 return 'HP On'
             else:
                 return 'Off'
+        self.hp_on_prev = hp_on
 
     def run_er_thermostat_control(
             self,
