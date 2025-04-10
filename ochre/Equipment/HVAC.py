@@ -179,6 +179,7 @@ class HVAC(Equipment):
         self.ext_ignore_thermostat = kwargs.get('ext_ignore_thermostat', False)
         #self.setpoint_ramp_rate = kwargs.get('setpoint_ramp_rate')  # max setpoint ramp rate, in C/min
         self.temp_indoor_prev = self.temp_setpoint
+        self.mode_prev = 'Off' #assumed initial value, updated later in results
         self.ext_capacity = None  # Option to set capacity directly, ideal capacity only
         self.ext_capacity_frac = 1  # Option to limit max capacity, ideal capacity only
 
@@ -378,7 +379,7 @@ class HVAC(Equipment):
             elif self.n_speeds == 2:
                 c_d = 0.11
             else:
-                c_d = 0.0 #Do no capacity degredation at startup, since this isn't on/off equipment
+                c_d = 0.0 #Do no capacity degradation at startup, since this isn't on/off equipment
         else: #cooling equipment
             seer = convert(1 / self.eir, 'W', 'Btu/hour')
             if self.name =='Room AC':
@@ -391,7 +392,7 @@ class HVAC(Equipment):
             elif self.n_speeds == 2:
                 c_d = 0.11
             else:
-                c_d = 0.0 #Do no capacity degredation at startup, since this isn't on/off equipment
+                c_d = 0.0 #Do no capacity degradation at startup, since this isn't on/off equipment
 
         return c_d
 
@@ -405,10 +406,11 @@ class HVAC(Equipment):
 
             timestep_min = self.time_res # minutes
             time_fron_start = self.time_res #FIXME: what's the best way to calculate how long it's been since we've gone from some other mode to 'HP on' 
-            time = time_from_start + 0.5 * timestep_min # time in minutes of the midpoint of this timestep
-            time = self.time_step.total_seconds() / 60.0 # time step in minutes
-            exp_term = (-3.79936 * (time / time_full_cap))
+            if self.mode_prev != 'HP on' and self.mode == 'HP on': #from off, ER on, etc. to using a HP with capacity degradation
+                time_from_start = 0.5 * self.time_res
+            exp_term = (-3.79936 * (time_from_start / time_full_cap))
             capacity_mult = max(0,min(1.0, -1.025*np.exp(exp_term)+1.025))
+            time_from_start += self.time_res
             return capacity_mult
 
     def solve_ideal_capacity(self):
@@ -606,6 +608,9 @@ class HVAC(Equipment):
 
         # update previous indoor temperature
         self.temp_indoor_prev = self.zone.temperature
+
+        #update previous mode
+        self.mode_prev = self.mode
 
         return current_results
 
