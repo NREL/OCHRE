@@ -961,7 +961,12 @@ class DynamicHVAC(HVAC):
             return capacity
         else:
             # Update capacity using biquadratic model. speed_idx should already be set
-            return self.calculate_biquadratic_param(param='cap', speed_idx=self.speed_idx)
+            capacity = self.calculate_biquadratic_param(param='cap', speed_idx=self.speed_idx)
+            #update capacity for any startup degredation
+            if self.time_res < 2: #5 min is max to full capacity
+                startup_cap_mult = self.calc_startup_capacity_degredation #JEFF
+                capacity *= startup_cap_mult
+            return capacity
 
     def update_eir(self):
         # Update eir and eir_max using biquadratic model
@@ -1095,9 +1100,6 @@ class HeatPumpHeater(DynamicHVAC, Heater):
         else:
             self.defrost_power_mult = 0
             self.power_defrost = 0
-        if self.time_res < 2: #5 min is max to full capacity
-            startup_cap_mult = self.calc_startup_capacity_degredation #JEFF
-            capacity *= startup_cap_mult
         return capacity
 
     def update_eir(self):
