@@ -364,28 +364,33 @@ def plot_comparison(dfs, draw_outputs):
     if fig_total_water:
         fig_total_water.show()
 
+def c_to_f(c):
+    return c * 9/5 + 32
+
 def calculate_hot_water_delivered(dfs):
     """
     Calculate the total hot water delivered (W) and gallons for each file,
     capturing individual draw events with their time ranges and metrics.
+    
+    A draw event is defined as any continuous period where water is being drawn (water_draw > 0).
+    However, water volume and heat energy are only added when the outlet temperature is >= water_temp_cutoff.
     """
     water_draw_col = "Hot Water Delivered (L/min)"
     water_output_W_col = "Hot Water Delivered (W)"
     water_outlet_temp = "Hot Water Outlet Temperature (C)"
     energy_used = "Water Heating Delivered (W)"
     
-    water_temp_cutoff = 43.3333  # 110 F 15 deg delta from 125 F for UEF test
+    water_temp_cutoff = 43.3333  # 110 F, 15 deg delta from 125 F for UEF test
+    # water_temp_cutoff = 40.5556  # 105 
     
     output = {}
     
     for file, df in dfs.items():
-        # Create a copy of the dataframe to avoid modifying the origina
-        
         # Create a copy of the dataframe to avoid modifying the original
         df_copy = df.copy()
         
-        # Initialize variables to track water draw events
-        max_water_volume_L = df_copy['Hot Water Delivered (L/min)'].sum()
+        # Initialize variables to track water draw events and totals
+        max_water_volume_L = df_copy[water_draw_col].sum()  # This is maximum possible, regardless of temp
         total_water_volume_L = 0
         total_heat_delivered_J = 0
         is_draw_active = False
@@ -396,17 +401,13 @@ def calculate_hot_water_delivered(dfs):
         
         # Calculate time delta using the "Time" index
         if not pd.api.types.is_numeric_dtype(df_copy.index):
-            # If Time index is datetime
             if pd.api.types.is_datetime64_any_dtype(df_copy.index):
                 df_copy['time_delta'] = df_copy.index.to_series().diff().dt.total_seconds()
             else:
-                # Try to convert to numeric
                 df_copy['time_delta'] = pd.to_numeric(df_copy.index.to_series().diff(), errors='coerce')
         else:
             df_copy['time_delta'] = df_copy.index.to_series().diff()
         
-        # Fill NaN for the first row
-        # df_copy['time_delta'].fillna(0, inplace=True)
         df_copy.fillna({'time_delta': 0}, inplace=True)
         
         for i, row in df_copy.iterrows():
@@ -416,83 +417,54 @@ def calculate_hot_water_delivered(dfs):
             time_delta = row['time_delta']
             current_time = i  # "Time" index value
             
-            # Check if water is being drawn
             if water_draw > 0:
-                # Check if this is a new draw event or continuation
-                if not is_draw_active and outlet_temp >= water_temp_cutoff:
-                    # Start of a new draw event that meets temperature requirements
+                # Start a new event if one is not active
+                if not is_draw_active:
                     is_draw_active = True
                     current_event = {
                         'start_time': current_time,
                         'end_time': None,
-                        'water_volume_L': 0,
+                        'water_volume_L': 0,  # Only accumulate if outlet_temp >= cutoff
                         'heat_delivered_J': 0,
                         'max_temp': outlet_temp,
                         'min_temp': outlet_temp,
                         'max_flow_rate': water_draw
                     }
+                # Update event regardless of temperature
+                current_event['end_time'] = current_time
+                current_event['max_flow_rate'] = max(current_event['max_flow_rate'], water_draw)
+                current_event['max_temp'] = max(current_event['max_temp'], outlet_temp)
+                current_event['min_temp'] = min(current_event['min_temp'], outlet_temp)
                 
-                if is_draw_active:
-                    # Only count water and heat if we're in an active draw event with acceptable temperature
-                    if outlet_temp >= water_temp_cutoff:
-                        # Calculate water volume (L/min * min) = L
-                        water_volume = water_draw * time_delta
-                        
-                        # Calculate heat energy (W * s) = J
-                        heat_energy = heat_output * time_delta
-                        
-                        # Add to totals
-                        total_water_volume_L += water_volume
-                        total_heat_delivered_J += heat_energy
-                        
-                        # Update current event
-                        current_event['water_volume_L'] += water_volume
-                        current_event['heat_delivered_J'] += heat_energy
-                        current_event['end_time'] = current_time
-                        current_event['max_temp'] = max(current_event['max_temp'], outlet_temp)
-                        current_event['min_temp'] = min(current_event['min_temp'], outlet_temp)
-                        current_event['max_flow_rate'] = max(current_event['max_flow_rate'], water_draw)
-                    else:
-                        # Temperature dropped below cutoff during draw
-                        # End the current event if we had one
-                        if current_event and current_event['water_volume_L'] > 0:
-                            # Calculate gallons and kWh for this event
-                            current_event['water_volume_gal'] = current_event['water_volume_L'] * L_TO_GAL_RATIO
-                            current_event['heat_delivered_kWh'] = current_event['heat_delivered_J'] * 2.77778e-7
-                            draw_events.append(current_event)
-                            
-                            # Reset event tracking
-                            is_draw_active = False
-                            current_event = None
-            
-            # Check if water draw stops
+                # Only accumulate water and heat if the outlet temperature is high enough.
+                if outlet_temp >= water_temp_cutoff:
+                    water_volume = water_draw * time_delta  # (L/min * s) gives liters (if time_delta is in minutes, adjust accordingly)
+                    heat_energy = heat_output * time_delta    # (W * s) gives Joules
+                    total_water_volume_L += water_volume
+                    total_heat_delivered_J += heat_energy
+                    
+                    current_event['water_volume_L'] += water_volume
+                    current_event['heat_delivered_J'] += heat_energy
+                    
             elif is_draw_active:
-                # End of draw event
-                # Save the current event if it collected any water
+                # Water draw dropped to 0: close the active event if it has any hot water delivered.
                 if current_event and current_event['water_volume_L'] > 0:
-                    # Calculate gallons and kWh for this event
                     current_event['water_volume_gal'] = current_event['water_volume_L'] * L_TO_GAL_RATIO
                     current_event['heat_delivered_kWh'] = current_event['heat_delivered_J'] * 2.77778e-7
                     draw_events.append(current_event)
-                
-                # Reset event tracking
                 is_draw_active = False
                 current_event = None
         
-        # Handle case where the last draw event is still active at the end of the data
+        # If the last draw event is still active, close it out.
         if is_draw_active and current_event and current_event['water_volume_L'] > 0:
-            # Calculate gallons and kWh for this event
             current_event['water_volume_gal'] = current_event['water_volume_L'] * L_TO_GAL_RATIO
             current_event['heat_delivered_kWh'] = current_event['heat_delivered_J'] * 2.77778e-7
             draw_events.append(current_event)
         
-        # Convert liters to gallons (1 liter = 0.264172 gallons)
         total_water_volume_gal = total_water_volume_L * L_TO_GAL_RATIO
         max_water_volume_gal = max_water_volume_L * L_TO_GAL_RATIO
-        
-        # Convert joules to kWh for easier reporting (1 J = 2.77778e-7 kWh)
         total_heat_delivered_kWh = total_heat_delivered_J * 2.77778e-7
-        total_energy_used_kwh = sum(df[energy_used])/60/1000
+        total_energy_used_kwh = sum(df[energy_used]) / 60 / 1000
         
         output[file] = {
             'total_water_volume_L': total_water_volume_L,
@@ -504,8 +476,7 @@ def calculate_hot_water_delivered(dfs):
             'draw_events': draw_events,
             'num_draw_events': len(draw_events)
         }
-    return output
-    
+    return output  
 
 # Predefined lookup arrays for water properties at 1 atm.
 _TEMPS = np.array([0, 4, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], dtype=float)
@@ -561,6 +532,7 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
     all_figs = []
     figure_metadata = []  # List to store metadata separately
     water_temp_cutoff = 43.3333  # 110 F 15 deg delta from 125 F for UEF test
+    # water_temp_cutoff = 40.5556  # 105 F test
 
     for i, (file, df) in enumerate(dfs.items()):
         # Get UEF value for this file
@@ -710,14 +682,14 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
                     x=df['Time'], y=[water_temp_cutoff for _ in df['Time']],  # invisible point 
                     mode='lines',
                     line=dict(color='red', width=1),
-                    name='Hot Water Cutoff Temp (110°F / 43.33°C)',
+                    name=f'Hot Water Cutoff Temp ({c_to_f(water_temp_cutoff)}°F)',
                     showlegend=True
                 )
             )
             # Update the layout with UEF and other file-specific info in the title
             fig.update_layout(
                 title=f'{pattern} Temperatures - {file}<br>'
-                      f'UEF: {uef:.3f} | PCM h: {pcm_h} W/m^2K | PCM SA Ratio: {pcm_sa} | PCM Mass: {pcm_mass:.3f} kg | '
+                      f'UEF: {uef:.3f} | PCM h: {pcm_h:.2f} W/m^2K | PCM SA Ratio: {pcm_sa:.2f} | PCM Mass: {pcm_mass:.3f} kg | '
                       f'Water Volume: {water_volume_gal:.1f} gal',
                 xaxis_title='Time',
                 yaxis_title='Temperature',
@@ -900,7 +872,7 @@ def create_capacitance_plots(dfs, uef_values):
         # Update the layout with UEF and other file-specific info in the title
         fig.update_layout(
             title=f'PCM Capacitances - {file}<br>'
-                      f'UEF: {uef:.3f} | PCM h: {pcm_h} W/m^2K | PCM SA Ratio: {pcm_sa} | PCM Mass: {pcm_mass:.3f} kg | '
+                      f'UEF: {uef:.3f} | PCM h: {pcm_h:.2f} W/m^2K | PCM SA Ratio: {pcm_sa:.2f} | PCM Mass: {pcm_mass:.3f} kg | '
                       f'Water Volume: {water_volume_gal:.1f} gal',
             xaxis_title='Time',
             yaxis_title='Capacitance (J/K)',
@@ -1058,7 +1030,7 @@ def create_heat_exchanger_plots(dfs):
     with the power y-axis scaled larger and grouped power > 0 overlays for each dataset.
     The third subplot displays heating element status overlays alongside temperature data."""
     
-    water_temp_cutoff = 43.3333  # 110 F 15 deg delta from 125 F for UEF test
+    water_temp_cutoff = 40.5556  # 110 F 15 deg delta from 125 F for UEF test
     
     # Create a figure with 3 subplot rows and 1 column
     fig = make_subplots(
@@ -1116,7 +1088,7 @@ def create_heat_exchanger_plots(dfs):
                     x=df['Time'], y=[water_temp_cutoff for _ in df['Time']],  # invisible point 
                     mode='lines',
                     line=dict(color='red', width=1),
-                    name='Hot Water Cutoff Temp (110°F / 43.33°C)',
+                    name=f'Hot Water Cutoff Temp ({c_to_f(water_temp_cutoff)}°F)', 
                     showlegend=True
                 ),
                 row=1, col=1
@@ -1537,22 +1509,22 @@ if __name__ == "__main__":
     print(os.getcwd())
     dfs  = load_data(results_folder=graphing_results_folder)
     uef = calculate_uef(dfs)
-    # plot = create_heat_exchanger_plots(dfs)
-    # enthalpy_plot = plot_pcm_enthalpies(np.loadtxt(os.path.join(os.path.dirname(__file__), "..", "ochre", "Models", "cp_h-T_data.csv"), delimiter=",", skiprows=1))
-    # capacitance_plots, _ = create_capacitance_plots(dfs, uef)
-    # enthalpy_plot.show()
-    # temp_plots,_= create_temperature_plots(dfs, uef_values=uef, patterns=['T_WH', 'T_PCM'])
-    # plot.show()
-    # for temp_plot in temp_plots:
-    #     temp_plot.show()
-    # for capacitance_plot in capacitance_plots:
-    #     capacitance_plot.show()
+    plot = create_heat_exchanger_plots(dfs)
+    enthalpy_plot = plot_pcm_enthalpies(np.loadtxt(os.path.join(os.path.dirname(__file__), "..", "ochre", "Models", "cp_h-T_data_shifted_120F.csv"), delimiter=",", skiprows=1))
+    capacitance_plots, _ = create_capacitance_plots(dfs, uef)
+    enthalpy_plot.show()
+    temp_plots,_= create_temperature_plots(dfs, uef_values=uef, patterns=['T_WH', 'T_PCM'])
+    plot.show()
+    for temp_plot in temp_plots:
+        temp_plot.show()
+    for capacitance_plot in capacitance_plots:
+        capacitance_plot.show()
     
     # Draw data summary
     output = calculate_hot_water_delivered(dfs)
     plot_draw_event_summary(output)
     plot_draw_events(output)
-    plot_comparison(dfs, output)
+    # plot_comparison(dfs, output)
     
     print(f"{BOLD}{GREEN}Plots created in {time.perf_counter() - _start_time_plot_results:.2f} seconds{RESET}")
     

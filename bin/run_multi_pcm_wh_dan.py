@@ -27,6 +27,7 @@ DEFAULT_PCM_PROPERTIES = {
     "h": 600,  # W/m^2K
     "sa_ratio": 15, # m^2/m^3 of total pcm volume
     "h_conv": 100,  # W/K, accounts for surface area (ha)
+    "setpoint_temp": 50, # C
     "solid": {
         "pcm_density": 0.904,  # g/cm**3
         "pcm_cp": 1.20,  # J/g-C # adjusted by real measurements average from 0-45c
@@ -39,19 +40,29 @@ DEFAULT_PCM_PROPERTIES = {
         "pcm_conductivity": 0.16,  # W/m-C, not used
         # "pcm_c": 1823.8,  # J/m**3-C, not used
     },
-    "enthalpy_lut_file": "cp_h-T_data.csv"
+    "enthalpty_lut": "cp_h-T_data_shifted_120F.csv"
 }
 
 water_heater_setpoint_temp = 59
 
 num_points = 10
 
-sa_ratios = np.linspace(2, 30, num_points)
-h_values = np.linspace(50, 1700, num_points)
+# sa_ratios = [5, 10, 15, 20, 25, 30]
+sa_ratios = [15]
+h_values = np.logspace(np.log10(50), np.log10(5000), num_points)
+
+# sa_ratios = [10000]
+h_values = [1000]
 
 
 # sa_ratios = [10]
 # h_values = [100]
+
+# setpoint_temps_f = [125, 130, 135, 140, 145, 150]
+setpoint_temps_f = [140]
+setpoint_temps_c = [(setpoint_temp - 32) * (5/9) for setpoint_temp in setpoint_temps_f] 
+
+
 
 
 vol_fract = 0.00000001 # 1.540e-06 kg
@@ -80,14 +91,17 @@ for vol_fract in vol_fracs:
 # MediumUseUEF = 'MediumUseL.csv'
 # HighUseUEF = 'HighUseL.csv'
 
-no_pcm_title = "No PCM"
+no_pcm_title_base = "zDefault_No_PCM"
 # with_pcm_title = "With PCM, PCM Water Node:"+ str(pcm_water_node) +", PCM Vol Fraction:" +str(pcm_vol_fraction)
 
 load_profile = "2.00gpm30min_0gpm180min_cycling.csv"
 load_profile = "2.00gpm30min_0gpm600min_cycling.csv"
 load_profile = "MediumUseL.csv"
 load_profile = "2.00gpm120min_0gpm600min_cycling.csv"
+load_profile = "2.00gpm_1200minStartIdle_2cycles_30minDraw_240minOff_0minEndIdle.csv"
 load_profiles = ["MediumUseL.csv", "2.00gpm30min_0gpm600min_cycling.csv"]
+
+
 
 # updated names if all nodes have same vol_fract
 def convert_dict_to_name(dict):
@@ -108,12 +122,14 @@ dwelling_args.update(
         "time_res": dt.timedelta(minutes=1),  # time resolution of the simulation
         "duration": dt.timedelta(days=2),  # duration of the simulation
         "verbosity": 9,
+        'Tank Volume (L)': 151.416,
         'Setpoint Temperature (C)': 60,
         "schedule_input_file": load_profile,  # changes the default load profile in run_dwelling.py for this code to call the UEF load_profile
         "output_path": "../OCHRE_output/OCHRE_results/results/",
-        "name": "zDefault",
+        "name": "name",
     }
 )
+# dwelling_args['Equipment']['Tank Volume (L)'] = 151.416
 
 def calculate_uef(df, water_volume):
     # calculate UEF of the water tank
@@ -233,10 +249,60 @@ def add_pcm_model(dwelling_args, name, pcm_vol_fractions, pcm_properties):
 
     dwelling_args["name"] = name
     dwelling_args["output_path"] = "../OCHRE_output/OCHRE_results/results/"
+    dwelling_args['Tank Volume (L)'] = 151.416
     return dwelling_args
 
 
-def run_water_heater(dwelling_args, plot_title, load_profile_in, name):
+def set_water_heating_setpoint(df, setpoint_temp, load_profile):
+    # Ensure the index is in datetime format
+    if not isinstance(df.index, pd.DatetimeIndex):
+        df.index = pd.to_datetime(df.index)
+    
+    # Sort the DataFrame by the datetime index (optional if already sorted)
+    df = df.sort_index()
+    
+    # Calculate elapsed time in hours from the first timestamp in the index
+    elapsed_hours = (df.index - df.index[0]).total_seconds() / 3600.0
+    
+    # Calculate position within each 12-hour cycle (2 hours at 5°C, then 10 hours at 59°C)
+    cycle_hours = 12
+    remainder = elapsed_hours % cycle_hours
+    
+    # Assign setpoint based on the schedule: first 2 hours get 5°C, then 10 hours get 59°C.
+    df['Water Heating Setpoint (C)'] = [5 if rem < 2 else setpoint_temp for rem in remainder]
+    
+    return df
+
+def update_setpoints_from_load_profile(schedule_df, load_profile_file,
+                                         load_column='hot_water_dishwasher',
+                                         idle_setpoint=59,
+                                         draw_setpoint=5):
+
+    # Load the load profile CSV into a DataFrame
+    load_df = pd.read_csv(load_profile_file)
+    
+    #clip load_df to 2880 points
+    load_df = load_df.iloc[:len(schedule_df)]
+    
+    # Check if the expected load column exists in the load profile DataFrame
+    if load_column not in load_df.columns:
+        raise ValueError(f"Column '{load_column}' not found in load profile CSV.")
+    
+    # Check that both DataFrames have the same length
+    if len(schedule_df) != len(load_df):
+        raise ValueError("The schedule DataFrame and load profile CSV must have the same number of rows.")
+    
+    # Initialize all rows with the idle setpoint
+    schedule_df['Water Heating Setpoint (C)'] = idle_setpoint
+    
+    # Update rows where the load profile indicates a draw (nonzero) to the draw setpoint
+    schedule_df['Water Heating Setpoint (C)'] = np.where(load_df[load_column].to_numpy() != 0, draw_setpoint, idle_setpoint)
+    
+    return schedule_df
+
+
+
+def run_water_heater(dwelling_args, plot_title, load_profile_in, setpoint_temp):
     # Create Dwelling from input files, see bin/run_dwelling.py
 
     
@@ -256,10 +322,12 @@ def run_water_heater(dwelling_args, plot_title, load_profile_in, name):
     equipment.metrics_verbosity = 9
 
     # If necessary, update equipment schedule
-    equipment.current_schedule['Water Heating Setpoint (C)'] = 60
-    equipment.setpoint_temp = water_heater_setpoint_temp
+    equipment.current_schedule['Water Heating Setpoint (C)'] = setpoint_temp
+    equipment.setpoint_temp = setpoint_temp
     # set all values of equipment.schedule to water_heater_setpoint_temp
-    equipment.schedule['Water Heating Setpoint (C)'] = water_heater_setpoint_temp
+    equipment.schedule = update_setpoints_from_load_profile(equipment.schedule, '2.00gpm_1200minStartIdle_2cycles_30minDraw_240minOff_0minEndIdle.csv', load_column='hot_water_dishwasher', idle_setpoint=setpoint_temp, draw_setpoint=5)
+    # equipment.schedule['Water Heating Setpoint (C)'] = water_heater_setpoint_temp
+    equipment.model.volume = 1000
     water_volume = equipment.model.volume
     equipment.model.schedule["Zone Temperature (C)"] = (
         19.722222  # from the UEF standard https://www.energy.gov/eere/buildings/articles/2014-06-27-issuance-test-procedures-residential-and-commercial-water
@@ -337,7 +405,7 @@ CYAN = "\033[96m"
 YELLOW = "\033[93m"
 RED = "\033[91m"
 
-def run_water_heater_process(dwelling_args, title, load_profile, filename, submission_time):
+def run_water_heater_process(dwelling_args, title, load_profile, setpoint_temp, filename, submission_time):
     """
     Function wrapper to execute run_water_heater in a separate process and measure:
     - Queue wait time (time from submission to actual start)
@@ -350,7 +418,7 @@ def run_water_heater_process(dwelling_args, title, load_profile, filename, submi
     
     # Run the actual simulation
     try:
-        result = run_water_heater(dwelling_args, title, load_profile, filename)
+        result = run_water_heater(dwelling_args, title, load_profile, setpoint_temp)
     except Exception as e:
         print(f"{RED}{title}Error in simulation process run_water_heater: {str(e)}{RESET}") 
     end_time = time.perf_counter()
@@ -378,47 +446,50 @@ if __name__ == "__main__":
         async_results = []
         
         # Add the default (no PCM) case to the processing queue with submission timestamp
-        i = 0
-        submission_time = time.perf_counter()
-        no_pcm_title = f"{no_pcm_title}_{i}"
-        no_pcm_future = pool.apply_async(
-            run_water_heater_process,
-            (dwelling_args_default, no_pcm_title, load_profile, no_pcm_title, submission_time)
-        )
-        i += 1
-        async_results.append(no_pcm_future)
-        print(f"{YELLOW}Submitted default NO_PCM simulation to queue{RESET}")
-        
-        # Add all PCM variation tasks to the queue
-        for pcm_vol_fraction in pcm_vol_fractions:
-            for sa_ratio in sa_ratios:
-                for h_value in h_values:
-                    # Create fresh copy of default args for each simulation
-                    current_dwelling_args = copy.deepcopy(dwelling_args_default)
-                    current_pcm_properties = copy.deepcopy(DEFAULT_PCM_PROPERTIES)
-                    current_pcm_properties["sa_ratio"] = sa_ratio
-                    current_pcm_properties["h"] = h_value
-                    
-                    # Add PCM model with specific volume fraction
-                    model_name = convert_dict_to_name(pcm_vol_fraction)
-                    
-                    model_name = f"{model_name}_SA-{sa_ratio}_H-{h_value}_{i}"
-                    i += 1
-                    current_dwelling_args = add_pcm_model(
-                        current_dwelling_args, 
-                        model_name, 
-                        pcm_vol_fraction,
-                        current_pcm_properties
-                    )
-                    
-                    # Record submission time for this task
-                    submission_time = time.perf_counter()
-                    async_result = pool.apply_async(
-                        run_water_heater_process,
-                        (current_dwelling_args, model_name, load_profile, model_name, submission_time)
-                    )
-                    async_results.append(async_result)
-                    print(f"{YELLOW}Submitted {model_name} simulation to queue{RESET}")
+        for setpoint_temp in setpoint_temps_c:
+            i = 0
+            submission_time = time.perf_counter()
+            current_dwelling_args = copy.deepcopy(dwelling_args_default)
+            no_pcm_title = f"{no_pcm_title_base}_setpoint-{setpoint_temp:.2f}C_{i}"
+            current_dwelling_args['name'] = no_pcm_title
+            no_pcm_future = pool.apply_async(
+                run_water_heater_process,
+                (current_dwelling_args, no_pcm_title, load_profile, setpoint_temp, no_pcm_title, submission_time)
+            )
+            i += 1
+            async_results.append(no_pcm_future)
+            print(f"{YELLOW}Submitted default {no_pcm_title} simulation to queue{RESET}")
+            
+            # Add all PCM variation tasks to the queue
+            for pcm_vol_fraction in pcm_vol_fractions:
+                for sa_ratio in sa_ratios:
+                    for h_value in h_values:
+                        # Create fresh copy of default args for each simulation
+                        current_dwelling_args = copy.deepcopy(dwelling_args_default)
+                        current_pcm_properties = copy.deepcopy(DEFAULT_PCM_PROPERTIES)
+                        current_pcm_properties["sa_ratio"] = sa_ratio
+                        current_pcm_properties["h"] = h_value
+                        
+                        # Add PCM model with specific volume fraction
+                        model_name = convert_dict_to_name(pcm_vol_fraction)
+                        
+                        model_name = f"{model_name}_SA-{sa_ratio:.2f}_H-{h_value:.2f}_setpoint-{setpoint_temp:.2f}C_{i}"
+                        i += 1
+                        current_dwelling_args = add_pcm_model(
+                            current_dwelling_args, 
+                            model_name, 
+                            pcm_vol_fraction,
+                            current_pcm_properties,
+                        )
+                        
+                        # Record submission time for this task
+                        submission_time = time.perf_counter()
+                        async_result = pool.apply_async(
+                            run_water_heater_process,
+                            (current_dwelling_args, model_name, load_profile, setpoint_temp, model_name, submission_time)
+                        )
+                        async_results.append(async_result)
+                        print(f"{YELLOW}Submitted {model_name} simulation to queue{RESET}")
                 
         # Collect results from all simulations with improved error handling
         for async_result in async_results:

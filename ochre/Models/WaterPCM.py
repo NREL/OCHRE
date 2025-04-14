@@ -21,6 +21,7 @@ DEFAULT_PCM_PROPERTIES = {
     "h": 600,  # W/m^2K
     "sa_ratio": 15, # m^2/m^3 of total pcm volume
     "h_conv": 100,  # W/K, accounts for surface area (ha)
+    "setpoint_temp": 60,
     "solid": {
         "pcm_density": 0.904,  # g/cm**3
         "pcm_cp": 1.20,  # J/g-C # adjusted by real measurements average from 0-45c
@@ -33,7 +34,7 @@ DEFAULT_PCM_PROPERTIES = {
         "pcm_conductivity": 0.16,  # W/m-C, not used
         # "pcm_c": 1823.8,  # J/m**3-C, not used
     },
-    "enthalpy_lut": np.loadtxt(os.path.join(os.path.dirname(__file__), "cp_h-T_data.csv"), delimiter=",", skiprows=1)
+    "enthalpy_lut": np.loadtxt(os.path.join(os.path.dirname(__file__), "cp_h-T_data_shifted_120F.csv"), delimiter=",", skiprows=1)
 }
 
 def calculate_interpolation_data(pcm_properties):
@@ -206,7 +207,7 @@ class TankWithMultiPCM(StratifiedWaterModel):
         self.pcm_heat_to_water_rc_network = None
         self.enthalpy_pcm = None
         self.pcm_properties = pcm_properties
-        self.pcm_properties['enthalpy_lut'] = np.loadtxt(os.path.join(os.path.dirname(__file__), "cp_h-T_data.csv"), delimiter=",", skiprows=1)
+        self.pcm_properties['enthalpy_lut'] = np.loadtxt(os.path.join(os.path.dirname(__file__), "cp_h-T_data_shifted_120F.csv"), delimiter=",", skiprows=1)
         
         super().__init__(**kwargs)
 
@@ -260,6 +261,7 @@ class TankWithMultiPCM(StratifiedWaterModel):
         # backout radius from volume and height
         
         self.tank_height = 4 * 0.3048 # in m
+        start_temp = kwargs.get('Start Temperature (C)', 51.666666666666686)
         self.volume_m3 = self.volume / 1e3 # convert liters to m3
         self.tank_radius = math.sqrt(self.volume_m3 / (math.pi * self.tank_height))
         effective_area_ratio = 0.8
@@ -289,7 +291,9 @@ class TankWithMultiPCM(StratifiedWaterModel):
             total_pcm_mass += pcm_mass
             
             # Add PCM capacitance for this node (in J/K)
-            c_pcm_dict[f"C_PCM{node}"] = self.pcm_properties["solid"]["pcm_cp"] * pcm_mass
+            pcm_cp = np.interp(start_temp, self.pcm_properties['enthalpy_lut'][:,0], self.pcm_properties['enthalpy_lut'][:,1])
+            c_pcm_dict[f"C_PCM{node}"] = pcm_cp * pcm_mass
+            # c_pcm_dict[f"C_PCM{node}"] = 1e-3
             
             # Reduce the water node capacitance for this node by the PCM fraction
             rc_params[f"C_WH{node}"] *= (1 - pcm_frac)
@@ -344,6 +348,7 @@ class TankWithMultiPCM(StratifiedWaterModel):
             
             # Update the capacitance for this node (in J/K)
             self.rc_params[f"C_PCM{node}"] = pcm_specific_heat * pcm_node_mass
+            # self.rc_params[f"C_PCM{node}"] = 1e-3
         return self.rc_params
         
     def update_state_space_model(self, **kwargs):
@@ -483,16 +488,20 @@ class TankWithMultiPCM(StratifiedWaterModel):
 
         # Call the parent's update_model function.
         super().update_model(control_signal)
-
-        # Calculate new PCM enthalpy based on the linear temperature change.
-        delta_t = self.next_states[self.t_pcm_idx] - self.states[self.t_pcm_idx]
-        q_pcm = delta_t * self.capacitances[self.t_pcm_idx]  # in Joules
+        
+        # Only use temperatures output from state space model and enthalpies nothing else
+        enthalpy_state = np.interp(self.states[self.t_pcm_idx], self.key_temp, self.key_enthalpy)
+        enthalpy_next_state = np.interp(self.next_states[self.t_pcm_idx], self.key_temp, self.key_enthalpy)
+        q_pcm = enthalpy_next_state - enthalpy_state
         self.pcm_heat_to_water_rc_network = -q_pcm / self.time_res.total_seconds()
-        self.enthalpy_pcm += q_pcm
+        self.enthalpy_pcm = enthalpy_next_state
+        
+        
 
         # Update the PCM temperature using interpolation from enthalpy to temperature.
-        t_pcm = np.interp(self.enthalpy_pcm, self.key_enthalpy, self.key_temp)
-        self.next_states[self.t_pcm_idx] = t_pcm
+        # t_pcm = np.interp(self.enthalpy_pcm, self.key_enthalpy, self.key_temp)
+        # t_pcm = self.next_states[self.t_pcm_idx]
+        # self.next_states[self.t_pcm_idx] = t_pcm
 
         # Call the state space model update (which may modify states, inputs, and inputs_init).
         self.update_state_space_model()

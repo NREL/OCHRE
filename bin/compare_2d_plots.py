@@ -6,6 +6,7 @@ from scipy.interpolate import griddata
 import re
 import time
 import numpy as np
+import concurrent.futures
 
 
 L_TO_GAL_RATIO = 0.264172
@@ -164,11 +165,10 @@ def plot_draw_events(draw_outputs):
     fig.show()
 
 
-def plot_2d_comparison(dfs, draw_outputs):
+def plot_2d_comparison(dfs, draw_outputs, setpoint, pcm_temp):
     """
-    Create two scatter plots comparing average h_value (W/m^2K) and average sa_ratio 
-    for each file. The first plot colors the points by the total hot water energy delivered 
-    (computed from draw_events), and the second plot by energy used (assumed to be stored in draw_outputs).
+    Create scatter plots comparing average h_value (W/m^2K) and average sa_ratio 
+    for each file with special highlighting for the baseline case.
     
     Parameters:
     - dfs: dict
@@ -179,23 +179,46 @@ def plot_2d_comparison(dfs, draw_outputs):
           - draw_outputs[file]['draw_events'] is a list of events, each with key 'heat_delivered_kWh'.
           - draw_outputs[file]['energy_used_kWh'] exists for the energy used metric.
     """
+    import re
+    import numpy as np
+    import pandas as pd
+    import plotly.graph_objects as go
+    from scipy.interpolate import griddata
+    
     data = []
+    baseline_file = None
     
     for file, df in dfs.items():
+        # Check if this is a baseline file (without PCM in column names)
+        has_pcm = any('PCM' in col for col in df.columns)
+        is_baseline = not has_pcm
+        
         # Extract values from columns matching the h_value and sa_ratio patterns
         h_values = []
         sa_ratios = []
         
-        for col in df.columns:
-            # Regex for h_value
-            h_match = re.search(r"Water Tank PCM(\d+)\s*h\s*\(W/m\^?2K\)", col)
-            if h_match:
-                h_values.append(df[col].mean())
-            
-            # Regex for sa_ratio
-            sa_match = re.search(r"Water Tank PCM(\d+)\s*sa_ratio", col)
-            if sa_match:
-                sa_ratios.append(df[col].mean())
+        # For baseline, look for columns without PCM
+        if is_baseline:
+            baseline_file = file
+            # Extract values from non-PCM columns
+            for col in df.columns:
+                h_match = re.search(r"Water Tank\s*h\s*\(W/m\^?2K\)", col)
+                if h_match:
+                    h_values.append(df[col].mean())
+                
+                sa_match = re.search(r"Water Tank\s*sa_ratio", col)
+                if sa_match:
+                    sa_ratios.append(df[col].mean())
+        else:
+            # Normal PCM extraction as before
+            for col in df.columns:
+                h_match = re.search(r"Water Tank PCM(\d+)\s*h\s*\(W/m\^?2K\)", col)
+                if h_match:
+                    h_values.append(df[col].mean())
+                
+                sa_match = re.search(r"Water Tank PCM(\d+)\s*sa_ratio", col)
+                if sa_match:
+                    sa_ratios.append(df[col].mean())
         
         # Compute average values if we found at least one value from each group
         if h_values and sa_ratios:
@@ -207,7 +230,7 @@ def plot_2d_comparison(dfs, draw_outputs):
 
         # Get energy metrics from draw_outputs
         total_gal_hot_water_delivered = draw_outputs[file].get('total_water_volume_gal', None)
-        total_delivered = draw_outputs[file].get('total_heat_delivered_kWh', None)  # Fixed key name
+        total_delivered = draw_outputs[file].get('total_heat_delivered_kWh', None)
         total_used = draw_outputs[file].get('total_energy_used_kwh', None)
         
         data.append({
@@ -215,8 +238,9 @@ def plot_2d_comparison(dfs, draw_outputs):
             'avg_h_value': avg_h,
             'avg_sa_ratio': avg_sa,
             'total_gal_hot_water_delivered': total_gal_hot_water_delivered,
-            'total_heat_delivered_kWh': total_delivered,  # Added this field which was missing
-            'total_energy_used': total_used
+            'total_heat_delivered_kWh': total_delivered,
+            'total_energy_used': total_used,
+            'is_baseline': is_baseline
         })
 
     # Create a DataFrame from the collected data
@@ -224,9 +248,20 @@ def plot_2d_comparison(dfs, draw_outputs):
 
     # Drop any rows with missing values for plotting
     df_plot_clean = df_plot.dropna(subset=['avg_h_value', 'avg_sa_ratio'])
+    
+    # Get baseline values for each metric
+    baseline_values = {}
+    if baseline_file:
+        baseline_row = df_plot_clean[df_plot_clean['is_baseline'] == True]
+        if not baseline_row.empty:
+            baseline_values = {
+                'total_heat_delivered_kWh': baseline_row['total_heat_delivered_kWh'].values[0],
+                'total_energy_used': baseline_row['total_energy_used'].values[0],
+                'total_gal_hot_water_delivered': baseline_row['total_gal_hot_water_delivered'].values[0],
+                'baseline_file': baseline_file
+            }
 
     # Create interpolation grid
-    # Create a grid of points to interpolate over
     grid_resolution = 100
     x_min, x_max = df_plot_clean['avg_sa_ratio'].min(), df_plot_clean['avg_sa_ratio'].max()
     y_min, y_max = df_plot_clean['avg_h_value'].min(), df_plot_clean['avg_h_value'].max()
@@ -239,33 +274,40 @@ def plot_2d_comparison(dfs, draw_outputs):
     y_grid = np.linspace(y_min - y_buffer, y_max + y_buffer, grid_resolution)
     x_mesh, y_mesh = np.meshgrid(x_grid, y_grid)
 
-    # Function to create interpolated plot
-    def create_interpolated_plot(df, z_column, title, z_label):
+    # Function to create interpolated plot with baseline reference
+    def create_interpolated_plot(df, z_column, title, z_label, baseline_value=None):
         if df.empty or df[z_column].isna().all():
             print(f"No valid data for {z_column}")
             return None
-        
+
         # Points for interpolation
         points = df[['avg_sa_ratio', 'avg_h_value']].values
         values = df[z_column].values
-        
-        # Perform interpolation - using 'linear' instead of 'cubic'
+
+        # Perform interpolation
         grid_z = griddata(points, values, (x_mesh, y_mesh), method='linear')
-        
+
         # Get min and max values for color scale normalization
         z_min = np.nanmin(values)
         z_max = np.nanmax(values)
-        
-        # Round min/max to the nearest whole number for tick calculation
+
+        # Round min/max for tick calculation
         z_min_rounded = np.floor(z_min)
         z_max_rounded = np.ceil(z_max)
-        
-        # Create 10 evenly spaced tick values, rounded to the nearest whole number
+
+        # Create 10 evenly spaced tick values
         tick_values = np.linspace(z_min_rounded, z_max_rounded, 10)
         tick_values = np.round(tick_values, 1)  # Round to 1 decimal place
-        
-        # Create a custom color scale with more gradations
-        custom_colorscale = [
+
+        # Create figure
+        fig = go.Figure()
+
+        # Define whether higher values are better or worse based on metric
+        higher_is_better = z_column in ['total_heat_delivered_kWh', 'total_gal_hot_water_delivered', 'total_energy_used']
+        higher_is_worse = None
+
+        # Create two color scales - one vibrant, one desaturated
+        vibrant_colorscale = [
             [0.0, 'rgb(68, 1, 84)'],       # Dark purple
             [0.1, 'rgb(72, 40, 120)'],     # Purple
             [0.2, 'rgb(62, 74, 137)'],     # Blue-purple
@@ -278,60 +320,199 @@ def plot_2d_comparison(dfs, draw_outputs):
             [0.9, 'rgb(223, 205, 35)'],    # Yellow
             [1.0, 'rgb(253, 231, 37)']     # Bright yellow
         ]
+
+        desaturated_colorscale = [
+            [0.0, 'rgb(220, 220, 220)'],  # Light gray
+            [0.2, 'rgb(200, 200, 200)'],  # Gray
+            [0.4, 'rgb(180, 180, 180)'],  # Gray
+            [0.6, 'rgb(160, 160, 160)'],  # Gray
+            [0.8, 'rgb(140, 140, 140)'],  # Gray
+            [1.0, 'rgb(120, 120, 120)']   # Dark gray
+        ]
+
+        # If we have a baseline value, create a mask for the contour plot
+        if baseline_value is not None:
+            # Create mask for values that are better than baseline
+            mask_better = np.zeros_like(grid_z, dtype=bool)
+            
+            if higher_is_better:
+                mask_better = grid_z > baseline_value
+            elif higher_is_worse:
+                mask_better = grid_z < baseline_value
+
+            # Create two separate z arrays for better and worse than baseline
+            grid_z_better = np.copy(grid_z)
+            grid_z_worse = np.copy(grid_z)
+            
+            # Set values outside the mask to NaN
+            grid_z_better[~mask_better] = np.nan
+            grid_z_worse[mask_better] = np.nan
+            
+            # Add contour plot for values worse than baseline (desaturated)
+            contour_worse = go.Contour(
+                z=grid_z_worse,
+                x=x_grid,
+                y=y_grid,
+                colorscale=desaturated_colorscale,
+                colorbar=dict(
+                    title=z_label,
+                    ticks="outside",
+                    tickfont=dict(size=12),
+                    len=0.75,
+                    tickvals=tick_values,
+                    ticktext=[f"{val:.1f}" for val in tick_values]
+                ),
+                ncontours=20,
+                contours=dict(showlabels=True, labelfont=dict(size=12, color='white')),
+                line=dict(width=0.5, smoothing=0.85),
+                zmin=z_min_rounded,
+                zmax=z_max_rounded,
+                showscale=False  # Hide colorbar for this trace
+            )
+            fig.add_trace(contour_worse)
+            
+            # Add contour plot for values better than baseline (vibrant)
+            contour_better = go.Contour(
+                z=grid_z_better,
+                x=x_grid,
+                y=y_grid,
+                colorscale=vibrant_colorscale,
+                colorbar=dict(
+                    title=z_label,
+                    ticks="outside",
+                    tickfont=dict(size=12),
+                    len=0.75,
+                    tickvals=tick_values,
+                    ticktext=[f"{val:.1f}" for val in tick_values]
+                ),
+                ncontours=20,
+                contours=dict(showlabels=True, labelfont=dict(size=12, color='white')),
+                line=dict(width=0.5, smoothing=0.85),
+                zmin=z_min_rounded,
+                zmax=z_max_rounded
+            )
+            fig.add_trace(contour_better)
+        else:
+            # Add regular contour plot if no baseline
+            contour = go.Contour(
+                z=grid_z,
+                x=x_grid,
+                y=y_grid,
+                colorscale=vibrant_colorscale,
+                colorbar=dict(
+                    title=z_label,
+                    ticks="outside",
+                    tickfont=dict(size=12),
+                    len=0.75,
+                    tickvals=tick_values,
+                    ticktext=[f"{val:.1f}" for val in tick_values]
+                ),
+                ncontours=20,
+                contours=dict(showlabels=True, labelfont=dict(size=12, color='white')),
+                line=dict(width=0.5, smoothing=0.85),
+                zmin=z_min_rounded,
+                zmax=z_max_rounded
+            )
+            fig.add_trace(contour)
         
-        # Create the figure
-        fig = go.Figure()
+        # Add scatter points for the data with special marker for baseline
+        for i, row in df.iterrows():
+            marker_props = {}
+            
+            if row['is_baseline']:
+                # Make baseline point stand out
+                marker_props = dict(
+                    size=15,
+                    symbol='star',
+                    color='black',
+                    line=dict(width=2, color='white')
+                )
+                hover_text = f"BASELINE<br>File: {row['file']}<br>{z_label}: {row[z_column]:.2f}"
+            else:
+                # Color by whether it's better or worse than baseline
+                if baseline_value is not None:
+                    is_better = (higher_is_better and row[z_column] > baseline_value) or \
+                                (higher_is_worse and row[z_column] < baseline_value)
+                    
+                    if is_better:
+                        # Use color from vibrant scale for points better than baseline
+                        color_idx = min(int((row[z_column] - z_min) / (z_max - z_min) * 10), 9)
+                        color = vibrant_colorscale[color_idx][1]
+                    else:
+                        # Use gray for points worse than baseline
+                        color = 'rgb(150, 150, 150)'
+                else:
+                    # Normal coloring if no baseline
+                    color_idx = min(int((row[z_column] - z_min) / (z_max - z_min) * 10), 9)
+                    color = vibrant_colorscale[color_idx][1]
+                
+                marker_props = dict(
+                    size=10,
+                    color=color,
+                    line=dict(width=1, color='black')
+                )
+                hover_text = f"File: {row['file']}<br>{z_label}: {row[z_column]:.2f}"
+                
+                # Add comparison to baseline if available
+                if baseline_value is not None:
+                    diff = row[z_column] - baseline_value
+                    diff_pct = (row[z_column] / baseline_value - 1) * 100
+                    
+                    if higher_is_better:
+                        comparison = "better" if diff > 0 else "worse"
+                    elif higher_is_worse:
+                        comparison = "better" if diff < 0 else "worse"
+                    else:
+                        comparison = "different"
+                    
+                    hover_text += f"<br>Compared to baseline: {diff:.2f} ({diff_pct:.1f}%), {comparison}"
+            
+            # Add the point
+            fig.add_trace(go.Scatter(
+                x=[row['avg_sa_ratio']],
+                y=[row['avg_h_value']],
+                mode='markers',
+                marker=marker_props,
+                text=[hover_text],
+                hoverinfo='text',
+                showlegend=False
+            ))
         
-        # Add contour plot with more levels for finer gradations
-        contour = go.Contour(
-            z=grid_z,
-            x=x_grid,
-            y=y_grid,
-            colorscale=custom_colorscale,
-            colorbar=dict(
-                title=z_label,
-                ticks="outside",
-                tickfont=dict(size=12),
-                len=0.75,
-                tickvals=tick_values,  # Set specific tick values
-                ticktext=[f"{val:.1f}" for val in tick_values]  # Format tick labels
-            ),
-            # Increase number of contour levels for more gradations
-            ncontours=20,
-            contours=dict(
-                showlabels=True,
-                labelfont=dict(size=12, color='white')
-            ),
-            # Smooth the contours
-            line=dict(width=0.5, smoothing=0.85),
-            # Set the same range as the ticks
-            zmin=z_min_rounded,
-            zmax=z_max_rounded
-        )
-        fig.add_trace(contour)
-        
-        # Add scatter points for actual data
-        scatter = go.Scatter(
-            x=df['avg_sa_ratio'],
-            y=df['avg_h_value'],
-            mode='markers',
-            marker=dict(
-                size=10,
-                color=df[z_column],
-                colorscale=custom_colorscale,
-                cmin=z_min_rounded,
-                cmax=z_max_rounded,
-                line=dict(width=1, color='black'),
-                showscale=False
-            ),
-            text=[f"File: {file}<br>{z_label}: {val:.2f}" for file, val in zip(df['file'], df[z_column])],
-            hoverinfo='text'
-        )
-        fig.add_trace(scatter)
+        # Add a baseline reference line or region if we have a baseline value
+        # if baseline_value is not None:
+        #     # Convert baseline_value into a paper coordinate for the colorbar.
+        #     # Using default colorbar settings: len=0.75 and y centered at 0.5, so y spans from 0.125 to 0.875.
+        #     colorbar_y_start = 0.5 - 0.75 / 2  # 0.125
+        #     colorbar_length = 0.75
+        #     fraction = (baseline_value - z_min_rounded) / (z_max_rounded - z_min_rounded)
+        #     baseline_y = colorbar_y_start + fraction * colorbar_length
+
+        #     # Add a horizontal line at the baseline value on the colorbar (using paper coordinates)
+        #     fig.add_shape(
+        #         type="line",
+        #         xref="paper",
+        #         yref="paper",
+        #         x0=1.02,  # Just right of the colorbar
+        #         y0=baseline_y,  # Converted y position
+        #         x1=1.14,  # Extend past the colorbar
+        #         y1=baseline_y,
+        #         line=dict(color="black", width=2, dash="dash"),
+        #     )
+            
+        #     # Add a "BASELINE" annotation
+        #     fig.add_annotation(
+        #         x=1.3,  # Position to the right of the line
+        #         y=baseline_y,  # Same converted y position
+        #         xref="paper",
+        #         yref="paper",
+        #         text="BASELINE",
+        #         showarrow=False,
+        #         font=dict(size=12, color="black"),
+        #     )
         
         # Update layout
         fig.update_layout(
-            title=title,
+            title=f"{title} (Baseline Value: {baseline_value:.2f})" if baseline_value is not None else title,
             xaxis_title="SA Ratio",
             yaxis_title="h value (W/m²K)",
             height=600,
@@ -339,59 +520,74 @@ def plot_2d_comparison(dfs, draw_outputs):
         )
         
         return fig
-    # Create plot for delivered energy
-    fig_delivered = create_interpolated_plot(
-        df_plot_clean.dropna(subset=['total_heat_delivered_kWh']),
-        'total_heat_delivered_kWh',
-        "h_value vs SA_ratio with Interpolated Hot Water Delivered Energy",
-        "Total Hot Water Delivered (kWh)"
-    )
 
-    # Create plot for energy used
-    fig_used = create_interpolated_plot(
-        df_plot_clean.dropna(subset=['total_energy_used']),
-        'total_energy_used',
-        "h_value vs SA_ratio with Interpolated Energy Used",
-        "Total Energy Used (kWh)"
-    )
+    # Create plots with baseline references
+    # fig_delivered = create_interpolated_plot(
+    #     df_plot_clean.dropna(subset=['total_heat_delivered_kWh']),
+    #     'total_heat_delivered_kWh',
+    #     "h_value vs SA_ratio with Hot Water Delivered Energy pcm_125F",
+    #     "Total Hot Water Delivered (kWh)",
+    #     baseline_values.get('total_heat_delivered_kWh')
+    # )
+
+    # fig_used = create_interpolated_plot(
+    #     df_plot_clean.dropna(subset=['total_energy_used']),
+    #     'total_energy_used',
+    #     "h_value vs SA_ratio with Energy Used pcm_125F",
+    #     "Total Energy Used (kWh)",
+    #     baseline_values.get('total_energy_used')
+    # )
     
     fig_total_water = create_interpolated_plot(
         df_plot_clean.dropna(subset=['total_gal_hot_water_delivered']),
         'total_gal_hot_water_delivered',
-        "h_value vs SA_ratio with Interpolated Total Water Delivered",
-        "Total Water Delivered (gal)"
+        f"h_value vs SA_ratio with Total Hot Water 105°F <br>Delivered Setpoint: {setpoint}F <br>pcm_melt_temp: {pcm_temp}",
+        "Total Hot Water (105°F) Delivered (gal)",
+        baseline_values.get('total_gal_hot_water_delivered')
     )
 
     # Show the plots
-    if fig_delivered:
-        fig_delivered.show()
-    if fig_used:
-        fig_used.show()
+    # if fig_delivered:
+    #     fig_delivered.show()
+    # if fig_used:
+    #     fig_used.show()
     if fig_total_water:
         fig_total_water.show()
-
+    
+    return {
+        "baseline_values": baseline_values,
+        "figures": {
+            # "delivered": fig_delivered,
+            # "used": fig_used,
+            "water": fig_total_water
+        }
+    }
+    
+    
 def calculate_hot_water_delivered(dfs):
     """
     Calculate the total hot water delivered (W) and gallons for each file,
     capturing individual draw events with their time ranges and metrics.
+    
+    A draw event is defined as any continuous period where water is being drawn (water_draw > 0).
+    However, water volume and heat energy are only added when the outlet temperature is >= water_temp_cutoff.
     """
     water_draw_col = "Hot Water Delivered (L/min)"
     water_output_W_col = "Hot Water Delivered (W)"
     water_outlet_temp = "Hot Water Outlet Temperature (C)"
     energy_used = "Water Heating Delivered (W)"
     
-    water_temp_cutoff = 43.3333  # 110 F 15 deg delta from 125 F for UEF test
+    # water_temp_cutoff = 43.3333  # 110 F, 15 deg delta from 125 F for UEF test
+    water_temp_cutoff = 40.5556  # 105
     
     output = {}
     
     for file, df in dfs.items():
-        # Create a copy of the dataframe to avoid modifying the origina
-        
         # Create a copy of the dataframe to avoid modifying the original
         df_copy = df.copy()
         
-        # Initialize variables to track water draw events
-        max_water_volume_L = df_copy['Hot Water Delivered (L/min)'].sum()
+        # Initialize variables to track water draw events and totals
+        max_water_volume_L = df_copy[water_draw_col].sum()  # This is maximum possible, regardless of temp
         total_water_volume_L = 0
         total_heat_delivered_J = 0
         is_draw_active = False
@@ -402,17 +598,13 @@ def calculate_hot_water_delivered(dfs):
         
         # Calculate time delta using the "Time" index
         if not pd.api.types.is_numeric_dtype(df_copy.index):
-            # If Time index is datetime
             if pd.api.types.is_datetime64_any_dtype(df_copy.index):
                 df_copy['time_delta'] = df_copy.index.to_series().diff().dt.total_seconds()
             else:
-                # Try to convert to numeric
                 df_copy['time_delta'] = pd.to_numeric(df_copy.index.to_series().diff(), errors='coerce')
         else:
             df_copy['time_delta'] = df_copy.index.to_series().diff()
         
-        # Fill NaN for the first row
-        # df_copy['time_delta'].fillna(0, inplace=True)
         df_copy.fillna({'time_delta': 0}, inplace=True)
         
         for i, row in df_copy.iterrows():
@@ -422,83 +614,54 @@ def calculate_hot_water_delivered(dfs):
             time_delta = row['time_delta']
             current_time = i  # "Time" index value
             
-            # Check if water is being drawn
             if water_draw > 0:
-                # Check if this is a new draw event or continuation
-                if not is_draw_active and outlet_temp >= water_temp_cutoff:
-                    # Start of a new draw event that meets temperature requirements
+                # Start a new event if one is not active
+                if not is_draw_active:
                     is_draw_active = True
                     current_event = {
                         'start_time': current_time,
                         'end_time': None,
-                        'water_volume_L': 0,
+                        'water_volume_L': 0,  # Only accumulate if outlet_temp >= cutoff
                         'heat_delivered_J': 0,
                         'max_temp': outlet_temp,
                         'min_temp': outlet_temp,
                         'max_flow_rate': water_draw
                     }
+                # Update event regardless of temperature
+                current_event['end_time'] = current_time
+                current_event['max_flow_rate'] = max(current_event['max_flow_rate'], water_draw)
+                current_event['max_temp'] = max(current_event['max_temp'], outlet_temp)
+                current_event['min_temp'] = min(current_event['min_temp'], outlet_temp)
                 
-                if is_draw_active:
-                    # Only count water and heat if we're in an active draw event with acceptable temperature
-                    if outlet_temp >= water_temp_cutoff:
-                        # Calculate water volume (L/min * min) = L
-                        water_volume = water_draw * time_delta
-                        
-                        # Calculate heat energy (W * s) = J
-                        heat_energy = heat_output * time_delta
-                        
-                        # Add to totals
-                        total_water_volume_L += water_volume
-                        total_heat_delivered_J += heat_energy
-                        
-                        # Update current event
-                        current_event['water_volume_L'] += water_volume
-                        current_event['heat_delivered_J'] += heat_energy
-                        current_event['end_time'] = current_time
-                        current_event['max_temp'] = max(current_event['max_temp'], outlet_temp)
-                        current_event['min_temp'] = min(current_event['min_temp'], outlet_temp)
-                        current_event['max_flow_rate'] = max(current_event['max_flow_rate'], water_draw)
-                    else:
-                        # Temperature dropped below cutoff during draw
-                        # End the current event if we had one
-                        if current_event and current_event['water_volume_L'] > 0:
-                            # Calculate gallons and kWh for this event
-                            current_event['water_volume_gal'] = current_event['water_volume_L'] * L_TO_GAL_RATIO
-                            current_event['heat_delivered_kWh'] = current_event['heat_delivered_J'] * 2.77778e-7
-                            draw_events.append(current_event)
-                            
-                            # Reset event tracking
-                            is_draw_active = False
-                            current_event = None
-            
-            # Check if water draw stops
+                # Only accumulate water and heat if the outlet temperature is high enough.
+                if outlet_temp >= water_temp_cutoff:
+                    water_volume = water_draw * time_delta  # (L/min * s) gives liters (if time_delta is in minutes, adjust accordingly)
+                    heat_energy = heat_output * time_delta    # (W * s) gives Joules
+                    total_water_volume_L += water_volume
+                    total_heat_delivered_J += heat_energy
+                    
+                    current_event['water_volume_L'] += water_volume
+                    current_event['heat_delivered_J'] += heat_energy
+                    
             elif is_draw_active:
-                # End of draw event
-                # Save the current event if it collected any water
+                # Water draw dropped to 0: close the active event if it has any hot water delivered.
                 if current_event and current_event['water_volume_L'] > 0:
-                    # Calculate gallons and kWh for this event
                     current_event['water_volume_gal'] = current_event['water_volume_L'] * L_TO_GAL_RATIO
                     current_event['heat_delivered_kWh'] = current_event['heat_delivered_J'] * 2.77778e-7
                     draw_events.append(current_event)
-                
-                # Reset event tracking
                 is_draw_active = False
                 current_event = None
         
-        # Handle case where the last draw event is still active at the end of the data
+        # If the last draw event is still active, close it out.
         if is_draw_active and current_event and current_event['water_volume_L'] > 0:
-            # Calculate gallons and kWh for this event
             current_event['water_volume_gal'] = current_event['water_volume_L'] * L_TO_GAL_RATIO
             current_event['heat_delivered_kWh'] = current_event['heat_delivered_J'] * 2.77778e-7
             draw_events.append(current_event)
         
-        # Convert liters to gallons (1 liter = 0.264172 gallons)
         total_water_volume_gal = total_water_volume_L * L_TO_GAL_RATIO
         max_water_volume_gal = max_water_volume_L * L_TO_GAL_RATIO
-        
-        # Convert joules to kWh for easier reporting (1 J = 2.77778e-7 kWh)
         total_heat_delivered_kWh = total_heat_delivered_J * 2.77778e-7
-        total_energy_used_kwh = sum(df[energy_used])/60/1000
+        total_energy_used_kwh = sum(df[energy_used]) / 60 / 1000
         
         output[file] = {
             'total_water_volume_L': total_water_volume_L,
@@ -510,8 +673,8 @@ def calculate_hot_water_delivered(dfs):
             'draw_events': draw_events,
             'num_draw_events': len(draw_events)
         }
-    return output
-    
+    return output  
+ 
 
 # Predefined lookup arrays for water properties at 1 atm.
 _TEMPS = np.array([0, 4, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], dtype=float)
@@ -1533,16 +1696,24 @@ CYAN = "\033[96m"
 YELLOW = "\033[93m"
 RED = "\033[91m"
 
-graphing_results_folder = "../OCHRE_output/results/"
 
 # Example usage:
-if __name__ == "__main__":
-    # Load data
-    _start_time = time.perf_counter()
-    _start_time_plot_results = time.perf_counter()
-    print(os.getcwd())
-    dfs  = load_data(results_folder=graphing_results_folder)
-    uef = calculate_uef(dfs)
+def process_single_folder(output_folder, folder):
+    """Process one folder (setpoint) within an output folder."""
+    # Derive setpoint from folder name (assumes folder ends with something like 'XXF')
+    try:
+        setpoint = float(folder.split(" ")[-1].replace("F", ""))
+    except Exception as e:
+        print(f"Could not parse setpoint from folder {folder}: {e}")
+        return
+
+    # Extract pcm_temp from the output folder path
+    pcm_temp = output_folder.split("/")[-1]
+    pcm_temp = "_".join(pcm_temp.split("_")[-2:])
+    
+    folder_path = os.path.join(output_folder, folder)
+    dfs = load_data(results_folder=folder_path)
+    # uef = calculate_uef(dfs)
     # plot = create_heat_exchanger_plots(dfs)
     # enthalpy_plot = plot_pcm_enthalpies(np.loadtxt(os.path.join(os.path.dirname(__file__), "..", "ochre", "Models", "cp_h-T_data.csv"), delimiter=",", skiprows=1))
     # capacitance_plots, _ = create_capacitance_plots(dfs, uef)
@@ -1552,19 +1723,58 @@ if __name__ == "__main__":
     # for temp_plot in temp_plots:
     #     temp_plot.show()
     # for capacitance_plot in capacitance_plots:
-    #     capacitance_plot.show()
-    
+        # capacitance_plot.show()
+            
     # Draw data summary
     output = calculate_hot_water_delivered(dfs)
-    # plot_draw_event_summary(output)
-    # plot_draw_events(output)
-    plot_2d_comparison(dfs, output)
+    plot_draw_event_summary(output)
+    plot_draw_events(output)
+    # Generate the plot (this function should handle saving/showing the plot)
+    plot_2d_comparison(dfs, output, setpoint, pcm_temp)
     
-    print(f"{BOLD}{GREEN}Plots created in {time.perf_counter() - _start_time_plot_results:.2f} seconds{RESET}")
+def process_output_folder(output_folder):
+    """Process all sub-folders (setpoints) in one output folder sequentially.
+       This function is intended to be run within a process for one output folder.
+    """
+    # Get only the directories from the output folder
+    folders = [f for f in os.listdir(output_folder)
+               if os.path.isdir(os.path.join(output_folder, f))]
+    print(f"Processing folders in {output_folder}: {folders}")
     
-    _end_time = time.perf_counter()
-    total_time = _end_time - _start_time
-    print(f"\n{BOLD}{RED}Total execution time: {total_time:.2f} seconds{RESET}")
+    for folder in folders:
+        process_single_folder(output_folder, folder)
+
+if __name__ == "__main__":
+    _start_time = time.perf_counter()
+    _start_time_plot_results = time.perf_counter()
+    
+    output_folders  = [
+        "../OCHRE_output/results_pcm_120F",
+        "../OCHRE_output/results_pcm_125F",
+        "../OCHRE_output/results_pcm_130F",
+        "../OCHRE_output/results_pcm_135F",
+        "../OCHRE_output/results_pcm_140F"
+    ]
+    
+    # Use ProcessPoolExecutor to run tasks concurrently across multiple processes.
+    tasks = []
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        # Submit one task per subfolder in each output folder.
+        # Here, you can choose to submit either each folder as a separate process or each output folder.
+        # The following submits each folder individually.
+        for output_folder in output_folders:
+            # List subfolders within each output folder
+            folders = [f for f in os.listdir(output_folder)
+                       if os.path.isdir(os.path.join(output_folder, f))]
+            for folder in folders:
+                tasks.append(executor.submit(process_single_folder, output_folder, folder))
+        
+        # Wait for all tasks to complete
+        concurrent.futures.wait(tasks)
+    
+    print(f"Plots created in {time.perf_counter() - _start_time_plot_results:.2f} seconds")
+    total_time = time.perf_counter() - _start_time
+    print(f"\nTotal execution time: {total_time:.2f} seconds")
     
     # # Combine all figures and metadata
     # all_figures = pattern_figures + [outlet_temp_fig]
