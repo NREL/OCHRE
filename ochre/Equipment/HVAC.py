@@ -69,7 +69,6 @@ class HVAC(Equipment):
         self.eir_list = [self.eir_list[0]] + self.eir_list  # add lowest speed EIR as 'off' EIR
         self.eir = self.eir_list[self.speed_idx]
         self.eir_max = self.eir_list[-1]  # eir at max capacity (not the largest EIR for multispeed equipment)
-        self.c_d = self.calc_c_d(self)  # Coefficient of degradation, for startup losses
 
         # SHR (sensible heat ratio), cooling only
         shr = kwargs.get('SHR (-)')
@@ -393,25 +392,30 @@ class HVAC(Equipment):
                 c_d = 0.11
             else:
                 c_d = 0.0 #Do no capacity degradation at startup, since this isn't on/off equipment
-
         return c_d
 
     def calc_startup_capacity_degredation(self):
         #JEFF
-        c_d = self.calc_c_d(self)
+        c_d = self.calc_c_d()
+        print("c_d", c_d)
         if c_d == 0.0:
             return 1.0
         else:
-            time_full_cap = 20.0 * c_d + 0.4 ## time to full capacity, in minutes
-
-            timestep_min = self.time_res # minutes
-            time_fron_start = self.time_res #FIXME: what's the best way to calculate how long it's been since we've gone from some other mode to 'HP on' 
-            if self.mode_prev != 'HP on' and self.mode == 'HP on': #from off, ER on, etc. to using a HP with capacity degradation
-                time_from_start = 0.5 * self.time_res
-            exp_term = (-3.79936 * (time_from_start / time_full_cap))
-            capacity_mult = max(0,min(1.0, -1.025*np.exp(exp_term)+1.025))
-            time_from_start += self.time_res
-            return capacity_mult
+            t_full = 20.0 * c_d + 0.4 ## time to full capacity, in minutes
+            time_full_cap = dt.timedelta(minutes=t_full)
+            if "HP" in self.mode:
+                if "HP" not in self.mode_prev: #from off, ER on, etc. to using a HP with capacity degradation
+                    self.time_from_start = 0.5 * self.time_res
+                if self.time_from_start > time_full_cap:
+                    return 1.0
+                else:
+                    exp_term = (-3.79936 * (self.time_from_start / time_full_cap))
+                    capacity_mult = max(0,min(1.0, -1.025*np.exp(exp_term)+1.025))
+                    self.time_from_start += self.time_res
+                    print("capacity_mult", capacity_mult)
+                    return capacity_mult
+            else:
+                return 1.0
 
     def solve_ideal_capacity(self):
         # Update capacity using ideal algorithm - maintains setpoint exactly
@@ -728,7 +732,6 @@ class DynamicHVAC(HVAC):
     def __init__(self, control_type='Time', **kwargs):
         # Get number of speeds
         self.n_speeds = kwargs.get('Number of Speeds (-)', 1)
-
         # 2-speed control type and timing variables
         self.control_type = control_type  # 'Time', 'Time2', or 'Setpoint'
         self.disable_speeds = np.zeros(self.n_speeds, dtype=bool)  # if True, disable that speed
@@ -963,8 +966,8 @@ class DynamicHVAC(HVAC):
             # Update capacity using biquadratic model. speed_idx should already be set
             capacity = self.calculate_biquadratic_param(param='cap', speed_idx=self.speed_idx)
             #update capacity for any startup degredation
-            if self.time_res < 2: #5 min is max to full capacity
-                startup_cap_mult = self.calc_startup_capacity_degredation #JEFF
+            if self.time_res <= dt.timedelta(minutes=2): #5 min is max to full capacity
+                startup_cap_mult = self.calc_startup_capacity_degredation() #JEFF
                 capacity *= startup_cap_mult
             return capacity
 
