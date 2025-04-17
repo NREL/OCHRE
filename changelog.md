@@ -1,5 +1,9 @@
 ## OCHRE Changelog
 
+### OCHRE v0.9.1
+
+- Updated and relaxed dependencies
+
 ### OCHRE v0.9.0
 
 - Created command line interface (CLI)
