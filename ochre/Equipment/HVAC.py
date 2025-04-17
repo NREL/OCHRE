@@ -395,9 +395,7 @@ class HVAC(Equipment):
         return c_d
 
     def calc_startup_capacity_degredation(self):
-        #JEFF
         c_d = self.calc_c_d()
-        print("c_d", c_d)
         if c_d == 0.0:
             return 1.0
         else:
@@ -412,7 +410,6 @@ class HVAC(Equipment):
                     exp_term = (-3.79936 * (self.time_from_start / time_full_cap))
                     capacity_mult = max(0,min(1.0, -1.025*np.exp(exp_term)+1.025))
                     self.time_from_start += self.time_res
-                    print("capacity_mult", capacity_mult)
                     return capacity_mult
             else:
                 return 1.0
@@ -732,6 +729,7 @@ class DynamicHVAC(HVAC):
     def __init__(self, control_type='Time', **kwargs):
         # Get number of speeds
         self.n_speeds = kwargs.get('Number of Speeds (-)', 1)
+        self.startup_cap_mult = 1.0 #initialize startup capacity multiplier to 1.0, will be updated in update_capacity
         # 2-speed control type and timing variables
         self.control_type = control_type  # 'Time', 'Time2', or 'Setpoint'
         self.disable_speeds = np.zeros(self.n_speeds, dtype=bool)  # if True, disable that speed
@@ -967,8 +965,8 @@ class DynamicHVAC(HVAC):
             capacity = self.calculate_biquadratic_param(param='cap', speed_idx=self.speed_idx)
             #update capacity for any startup degredation
             if self.time_res <= dt.timedelta(minutes=2): #5 min is max to full capacity
-                startup_cap_mult = self.calc_startup_capacity_degredation() #JEFF
-                capacity *= startup_cap_mult
+                self.startup_cap_mult = self.calc_startup_capacity_degredation()
+                capacity *= self.startup_cap_mult
             return capacity
 
     def update_eir(self):
@@ -977,10 +975,12 @@ class DynamicHVAC(HVAC):
         self.eir_max = self.calculate_biquadratic_param(param='eir', speed_idx=max_speed)
 
         if isinstance(self.speed_idx, int):
-            return self.calculate_biquadratic_param(param='eir', speed_idx=self.speed_idx)
+            eir = self.calculate_biquadratic_param(param='eir', speed_idx=self.speed_idx) * (1/self.startup_cap_mult)
+            return eir
         elif self.speed_idx < 1:
             # capacity is below lowest rated capacity, run at lowest speed with part load ratio
-            return self.calculate_biquadratic_param(param='eir', speed_idx=1, part_load_ratio=self.speed_idx)
+            eir = self.calculate_biquadratic_param(param='eir', speed_idx=1, part_load_ratio=self.speed_idx) * (1/self.startup_cap_mult)
+            return eir
         else:
             # interpolate between the 2 closest speeds to get EIR
             speed_low = int(self.speed_idx // 1)
@@ -991,6 +991,7 @@ class DynamicHVAC(HVAC):
                 eir = eir_low * (1 - frac_high) + eir_high * frac_high
             else:
                 eir = eir_low
+            eir *= (1/self.startup_cap_mult) #account for any startup losses
             return eir
 
 
