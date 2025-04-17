@@ -362,40 +362,9 @@ class HVAC(Equipment):
         else:
             return None
         
-    def calc_c_d(self):
-        #Calculate coefficient of degredation (c_d) of equipment based on equipment type and EER/SEER/HSPF
-        #Should only affect cases with single speed and two speed compressor driven equipment (ASHP/AC)
-        #Capacity losses based on Jon Winkler's thesis and match what's in E+ with "Advanced Research Features for startup losses"
-        #https://drum.lib.umd.edu/bitstream/handle/1903/9493/Winkler_umd_0117E_10504.pdf?sequence=1&isAllowed=y page 200
-
-        if self.is_heater:
-            hspf = convert(1 / self.eir, 'W', 'Btu/hour')
-            if self.n_speeds == 1:
-                if hspf < 7.0:
-                    c_d = 0.2
-                else:
-                    c_d = 0.11
-            elif self.n_speeds == 2:
-                c_d = 0.11
-            else:
-                c_d = 0.0 #Do no capacity degradation at startup, since this isn't on/off equipment
-        else: #cooling equipment
-            seer = convert(1 / self.eir, 'W', 'Btu/hour')
-            if self.name =='Room AC':
-                c_d = 0.22
-            elif self.n_speeds == 1:
-                if seer < 13.0:
-                    c_d = 0.2
-                else:
-                    c_d = 0.07
-            elif self.n_speeds == 2:
-                c_d = 0.11
-            else:
-                c_d = 0.0 #Do no capacity degradation at startup, since this isn't on/off equipment
-        return c_d
 
     def calc_startup_capacity_degredation(self):
-        c_d = self.calc_c_d()
+        c_d = utils_equipment.calc_c_d(self)
         if c_d == 0.0:
             return 1.0
         else:
