@@ -96,8 +96,10 @@ class RCModel(StateSpaceModel):
         # Parse RC parameters
         self.capacitances = np.array(list(capacitances.values()))
 
-        # Get node names from RC parameters (internal nodes have a C)
+        # Get node names from RC parameters
         internal_nodes = list(capacitances.keys())
+        self.n_internal_nodes = len(internal_nodes)
+        self.n_external_nodes = len(external_nodes)
         all_nodes = set([node for name in resistances.keys() for node in name])
 
         # remove floating nodes using star-mesh transform
@@ -124,13 +126,16 @@ class RCModel(StateSpaceModel):
         )
 
         # add energy flow states
-        if energy_flow_states:
-            A_c, B_c = self.add_energy_flow_states(
-                energy_flow_states, A_c, B_c, internal_nodes, resistances
-            )
-            state_names.extend(
-                [f"H_{node_from}_{node_to}" for (node_from, node_to) in energy_flow_states]
-            )
+        # TODO: don't allow energy flow states with model reduction
+        if energy_flow_states is None:
+            energy_flow_states = []
+        self.n_energy_flow_states = len(energy_flow_states)
+        A_c, B_c = self.add_energy_flow_states(
+            energy_flow_states, A_c, B_c, internal_nodes, external_nodes, resistances
+        )
+        state_names.extend(
+            [f"H_{node_from}_{node_to}" for (node_from, node_to) in energy_flow_states]
+        )
 
         # remove unused inputs
         if unused_inputs is not None:
@@ -147,6 +152,11 @@ class RCModel(StateSpaceModel):
         super().__init__(states, input_names, matrices=(A_c, B_c), **kwargs)
 
         self.high_res = self.time_res < dt.timedelta(minutes=5)
+
+        # remove summation of energy flow states in discrete time matrices
+        for i in range(self.n_internal_nodes, self.n_internal_nodes + self.n_energy_flow_states):
+            assert self.A[i, i] == 1
+            self.A[i, i] = 0
 
         if kwargs.get("save_matrices", False) and self.output_path is not None:
             # convert A and B matrices to a data frame
@@ -216,7 +226,10 @@ class RCModel(StateSpaceModel):
 
         return A, B
 
-    def add_energy_flow_states(self, energy_flow_states, A_c, B_c, internal_nodes, resistances):
+    @staticmethod
+    def add_energy_flow_states(
+        energy_flow_states, A_c, B_c, internal_nodes, external_nodes, resistances
+    ):
         # add states for energy flows through specific resistors
         # extend A and B matrices
         if not energy_flow_states:
@@ -230,16 +243,23 @@ class RCModel(StateSpaceModel):
         B_c = np.pad(B_c, ((0, n_new), (0, 0)))
 
         # fill in energy flow equations:
-        # x = Q, x_dot = H = (T_2 - T_1) / R
+        # x = Q (kWh), x_dot = H (energy flow through R) = (T_2 - T_1) / R
         row = len(internal_nodes)
         for node_from, node_to in energy_flow_states:
+            # get resistance value
             if (node_from, node_to) in resistances:
                 res = resistances[(node_from, node_to)]
             else:
                 res = resistances[(node_to, node_from)]
-            i1 = internal_nodes.index(node_from)
+
+            # get node indices and update A and B matrices
+            if node_from in internal_nodes:
+                i1 = internal_nodes.index(node_from)
+                A_c[row, i1] = 1 / res
+            else:
+                i1 = external_nodes.index(node_from)
+                B_c[row, i1] = 1 / res
             i2 = internal_nodes.index(node_to)
-            A_c[row, i1] = 1 / res
             A_c[row, i2] = -1 / res
             row += 1
 

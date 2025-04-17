@@ -858,8 +858,7 @@ class Envelope(RCModel):
 
         # Update continuous time matrices to swap T_LIV from state to input
         x_idx = state_names.index("T_LIV")
-        keep_states = np.ones(len(state_names), dtype=bool)
-        keep_states[x_idx] = False
+        keep_states = [name != "T_LIV" and name[:2] != "H_" for name in state_names]
         keep_inputs = [input_names.index("T_EXT")]
         input_values = [indoor_temp, outdoor_temp]
         if "T_GND" in input_names:
@@ -872,7 +871,10 @@ class Envelope(RCModel):
 
         # Calculate steady state values (effectively interpolates from the input temperatures)
         x = -np.linalg.inv(A).dot(B).dot(u)
+
+        # add indoor temperature and energy flow states (initial value = 0)
         x = np.insert(x, x_idx, indoor_temp)
+        x = np.append(x, np.zeros(len(state_names) - len(x)))
 
         # Return states as a dictionary
         return {name: val for name, val in zip(state_names, x)}
@@ -1057,7 +1059,7 @@ class Envelope(RCModel):
         super().update_inputs(schedule_inputs)
 
         # reset all inputs to defaults, including latent gains
-        self.inputs_init = np.zeros(len(self.input_names))
+        self.inputs_init = np.zeros(self.nu)
         for zone in self.zones.values():
             if zone.humidity is not None:
                 zone.humidity.latent_gains_init = 0
@@ -1117,35 +1119,35 @@ class Envelope(RCModel):
         return super().update_model(control_signal)
 
     def update_results(self):
-        # check that states are within reasonable range
+        # check that indoor temperature is within reasonable range
         t_liv = self.next_outputs[self.indoor_zone.t_idx]
-        t_state_min = self.next_states.min()
-        t_state_max = self.next_states.max()
-        if (
-            (self.cooling_setpoint is not None and t_liv > 30)
-            or (self.heating_setpoint is not None and t_liv < 10)
-            or (not self.reduced and ((t_state_min < -40) or (t_state_max > 110)))
+        if not (-20 < t_liv < 50):
+            raise ModelException(f"Extreme indoor temperature ({t_liv}) C")
+        elif (self.cooling_setpoint is not None and t_liv > 30) or (
+            self.heating_setpoint is not None and t_liv < 10
         ):
+            self.warn(f"Extreme indoor temperature ({t_liv}) C")
+
+        # check that all temperatures are within reasonable range
+        if not self.reduced:
+            n = self.n_internal_nodes
+            t_state_min = self.next_states[:n].min()
+            t_state_max = self.next_states[:n].max()
+
+        if (t_state_min < -55) or (t_state_max > 130):
             bad_temps = {
                 name: t
-                for name, t in zip(self.state_names, self.next_states)
-                if (t < -40) or (t > 110)
-            }
-            self.warn(
-                f"Extreme envelope temperatures. Indoor temp={t_liv}. Extreme temps: {bad_temps}"
-            )
-        if not (-20 < t_liv < 50) or (
-            not self.reduced and ((t_state_min < -55) or (t_state_max > 130))
-        ):
-            bad_temps = {
-                name: t
-                for name, t in zip(self.state_names, self.next_states)
+                for name, t in zip(self.state_names[:n], self.next_states[:n])
                 if (t < -55) or (t > 130)
             }
-            raise ModelException(
-                f"Envelope temperatures are outside acceptable range. "
-                f"Indoor temp={t_liv}. Extreme temps: {bad_temps}"
-            )
+            raise ModelException(f"Extreme envelope temperatures: {bad_temps}")
+        elif (t_state_min < -40) or (t_state_max > 110):
+            bad_temps = {
+                name: t
+                for name, t in zip(self.state_names[:n], self.next_states[:n])
+                if (t < -40) or (t > 110)
+            }
+            self.warn(f"Extreme envelope temperatures: {bad_temps}")
 
         current_results = super().update_results()
 
