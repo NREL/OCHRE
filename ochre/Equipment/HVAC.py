@@ -964,9 +964,8 @@ class DynamicHVAC(HVAC):
             # Update capacity using biquadratic model. speed_idx should already be set
             capacity = self.calculate_biquadratic_param(param='cap', speed_idx=self.speed_idx)
             #update capacity for any startup degredation
-            if self.time_res <= dt.timedelta(minutes=2): #5 min is max to full capacity
-                self.startup_cap_mult = self.calc_startup_capacity_degredation()
-                capacity *= self.startup_cap_mult
+            self.startup_cap_mult = self.calc_startup_capacity_degredation()
+            capacity *= self.startup_cap_mult
             return capacity
 
     def update_eir(self):
