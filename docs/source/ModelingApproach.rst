@@ -192,6 +192,9 @@ pump heating model includes a few unique features:
    threshold.
 -  A reverse cycle defrost algorithm that reduces heat pump efficiency and
    capacity at low temperatures.
+-  Startup capacity degredation, where it takes several minutes to reach the
+   nominal capacity depending on the coefficient of degredation (c_d) of
+   the heat pump.
 
 All HVAC equipment can be externally controlled by updating the thermostat
 setpoints and deadband or by direct load control (i.e., shut-off). Specific
