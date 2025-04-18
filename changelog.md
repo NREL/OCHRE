@@ -3,6 +3,9 @@
 ### OCHRE v0.9.1
 
 - Updated and relaxed dependencies
+- Added capacity degredation for ASHP/MSHP/AC at startup. Time to reach
+  full capacity calculated based on c_d of equipment to explicitly
+  account for cycling losses
 
 ### OCHRE v0.9.0
 
