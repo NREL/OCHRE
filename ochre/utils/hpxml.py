@@ -830,9 +830,6 @@ def parse_hvac(hvac_type, hvac_all):
     else:
         aux_power = hvac_ext.get('FanPowerWatts', 0)
 
-    # Get startup capacity degradation factor
-    c_d = utils_equipment.calc_c_d(is_heater, name, cop, number_of_speeds)
-
     out = {
         'Equipment Name': name,
         'Fuel': fuel.capitalize(),
@@ -843,8 +840,12 @@ def parse_hvac(hvac_type, hvac_all):
         'Conditioned Space Fraction (-)': space_fraction,
         'Number of Speeds (-)': number_of_speeds,
         'Rated Auxiliary Power (W)': aux_power,
-        "Startup Capacity Degradation (-)": c_d,
     }
+
+    # Add startup capacity degradation factor for AC and heat pumps
+    if has_heat_pump or not is_heater:
+        c_d = utils_equipment.calc_c_d(is_heater, name, cop, number_of_speeds)
+        out['Startup Capacity Degradation (-)'] = c_d
 
     # Get HVAC setpoints, optional
     controls = hvac_all['HVACControl']
