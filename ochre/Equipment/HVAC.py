@@ -60,7 +60,6 @@ class HVAC(Equipment):
         self.capacity_min = kwargs.get('Minimum Capacity (W)', 0)  # for ideal equipment, in W
         self.space_fraction = kwargs.get('Conditioned Space Fraction (-)', 1.0)
         self.delivered_heat = 0  # in W, total sensible heat gain, excluding duct losses
-        self.c_d = kwargs.get("Startup Capacity Degradation (-)", 0.0)  # startup capacity degradation factor, unitless
 
         # Efficiency and loss parameters
         if isinstance(kwargs['EIR (-)'], list):
@@ -363,26 +362,6 @@ class HVAC(Equipment):
         else:
             return None
         
-
-    def calc_startup_capacity_degredation(self):
-        if self.c_d == 0.0:
-            return 1.0
-        else:
-            t_full = 20.0 * self.c_d + 0.4 ## time to full capacity, in minutes
-            time_full_cap = dt.timedelta(minutes=t_full)
-            if "HP" in self.mode:
-                if "HP" not in self.mode_prev: #from off, ER on, etc. to using a HP with capacity degradation
-                    self.time_from_start = 0.5 * self.time_res
-                if self.time_from_start > time_full_cap:
-                    return 1.0
-                else:
-                    exp_term = (-3.79936 * (self.time_from_start / time_full_cap))
-                    capacity_mult = max(0,min(1.0, -1.025*np.exp(exp_term)+1.025))
-                    self.time_from_start += self.time_res
-                    return capacity_mult
-            else:
-                return 1.0
-
     def solve_ideal_capacity(self):
         # Update capacity using ideal algorithm - maintains setpoint exactly
         x_desired = self.temp_setpoint
@@ -698,7 +677,6 @@ class DynamicHVAC(HVAC):
     def __init__(self, control_type='Time', **kwargs):
         # Get number of speeds
         self.n_speeds = kwargs.get('Number of Speeds (-)', 1)
-        self.startup_cap_mult = 1.0 #initialize startup capacity multiplier to 1.0, will be updated in update_capacity
         # 2-speed control type and timing variables
         self.control_type = control_type  # 'Time', 'Time2', or 'Setpoint'
         self.disable_speeds = np.zeros(self.n_speeds, dtype=bool)  # if True, disable that speed
@@ -706,6 +684,10 @@ class DynamicHVAC(HVAC):
         min_time_in_low = kwargs.get('Minimum Low Time (minutes)', 5)
         min_time_in_high = kwargs.get('Minimum High Time (minutes)', 5)
         self.min_time_in_speed = [dt.timedelta(minutes=min_time_in_low), dt.timedelta(minutes=min_time_in_high)]
+
+        # startup capacity degradation parameters
+        self.startup_cap_mult = 1.0  # multiplier, unitless
+        self.c_d = kwargs.get("Startup Capacity Degradation (-)", 0.0)  # degradation factor, unitless
 
         # Load biquadratic parameters from file - only keep those with the correct speed type
         if not kwargs.get('Disable HVAC Biquadratics', False):
@@ -898,6 +880,27 @@ class DynamicHVAC(HVAC):
         plf_ratio = min(max(plf_ratio, params['min_plf']), params['max_plf'])
 
         return rated * t_ratio * ff_ratio / plf_ratio
+
+    def calc_startup_capacity_degredation(self):
+        if self.c_d == 0.0:
+            return 1.0
+        else:
+            t_full = 20.0 * self.c_d + 0.4  ## time to full capacity, in minutes
+            time_full_cap = dt.timedelta(minutes=t_full)
+            if "HP" in self.mode:
+                if (
+                    "HP" not in self.mode_prev
+                ):  # from off, ER on, etc. to using a HP with capacity degradation
+                    self.time_from_start = 0.5 * self.time_res
+                if self.time_from_start > time_full_cap:
+                    return 1.0
+                else:
+                    exp_term = -3.79936 * (self.time_from_start / time_full_cap)
+                    capacity_mult = max(0, min(1.0, -1.025 * np.exp(exp_term) + 1.025))
+                    self.time_from_start += self.time_res
+                    return capacity_mult
+            else:
+                return 1.0
 
     def update_capacity(self):
         # update max capacity using highest enabled speed
