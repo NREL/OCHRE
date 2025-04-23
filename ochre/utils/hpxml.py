@@ -4,6 +4,7 @@ import pandas as pd
 from ochre.utils import OCHREException, convert, nested_update, import_hpxml
 from ochre.utils.units import pitch2deg
 import ochre.utils.envelope as utils_envelope
+import ochre.utils.equipment as utils_equipment
 
 # List of variables and functions for loading and parsing HPXML files
 
@@ -778,12 +779,12 @@ def parse_hvac(hvac_type, hvac_all):
     space_fraction = hvac.get(f'Fraction{hvac_type[:-3]}LoadServed', 1.0)
     efficiency = hvac[f'Annual{hvac_type}Efficiency']
     if efficiency['Units'] in ['Percent', 'AFUE']:
-        eir = 1 / efficiency['Value']
+        cop = efficiency['Value']
         if efficiency['Units'] == 'Percent':
             # for reporting only
             efficiency['Value'] *= 100
     elif efficiency['Units'] in ['EER', 'SEER', 'HSPF']:
-        eir = 1 / convert(efficiency['Value'], 'Btu/hour', 'W')
+        cop = convert(efficiency["Value"], "Btu/hour", "W")
     else:
         raise OCHREException(f'Unknown inputs for HVAC {hvac_type} efficiency: {efficiency}')
     efficiency_string = f"{efficiency['Value']} {efficiency['Units']}"
@@ -798,9 +799,9 @@ def parse_hvac(hvac_type, hvac_all):
         number_of_speeds = 4  # MSHP always variable speed
     elif hvac.get('CompressorType') in speed_options:
         number_of_speeds = speed_options[hvac.get('CompressorType')]
-    elif convert(1 / eir, 'W', 'Btu/hour') <= 15:
+    elif convert(cop, "W", "Btu/hour") <= 15:
         number_of_speeds = 1  # Single-speed for SEER <= 15
-    elif convert(1 / eir, 'W', 'Btu/hour') <= 21:
+    elif convert(cop, "W", "Btu/hour") <= 21:
         number_of_speeds = 2  # Two-speed for 15 < SEER <= 21
     else:
         number_of_speeds = 4  # Variable speed for SEER > 21
@@ -829,16 +830,20 @@ def parse_hvac(hvac_type, hvac_all):
     else:
         aux_power = hvac_ext.get('FanPowerWatts', 0)
 
+    # Get startup capacity degradation factor
+    c_d = utils_equipment.calc_c_d(is_heater, name, cop, number_of_speeds)
+
     out = {
         'Equipment Name': name,
         'Fuel': fuel.capitalize(),
         'Capacity (W)': capacity,
-        'EIR (-)': eir,
+        'EIR (-)': 1 / cop,
         'Rated Efficiency': efficiency_string,
         'SHR (-)': shr,
         'Conditioned Space Fraction (-)': space_fraction,
         'Number of Speeds (-)': number_of_speeds,
         'Rated Auxiliary Power (W)': aux_power,
+        "Startup Capacity Degradation (-)": c_d,
     }
 
     # Get HVAC setpoints, optional
@@ -889,7 +894,6 @@ def parse_hvac(hvac_type, hvac_all):
             )
 
     # Get duct info for calculating DSE
-    
     distribution = hvac_all.get('HVACDistribution', {})
     distribution_type = distribution.get('DistributionSystemType', {})
     air_distribution = distribution_type.get('AirDistribution', {})

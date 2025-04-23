@@ -428,37 +428,39 @@ def calculate_duct_dse(hvac, ducts, climate_file='ASHRAE152_climate_data.csv',
 
     return dse
 
-def calc_c_d(hvac):
-    #Calculate coefficient of degredation (c_d) of equipment based on equipment type and EER/SEER/HSPF
-    #Should only affect cases with single speed and two speed compressor driven equipment (ASHP/AC)
-    #Capacity losses based on Jon Winkler's thesis and match what's in E+ with "Advanced Research Features for startup losses"
-    #https://drum.lib.umd.edu/bitstream/handle/1903/9493/Winkler_umd_0117E_10504.pdf?sequence=1&isAllowed=y page 200
 
-    if hvac.is_heater:
-        hspf = convert(1 / hvac.eir, 'W', 'Btu/hour')
-        if hvac.n_speeds == 1:
+def calc_c_d(is_heater, name, cop, number_of_speeds):
+    # Calculate coefficient of degredation (c_d) of equipment based on equipment type and EER/SEER/HSPF
+    # Should only affect cases with single speed and two speed compressor driven equipment (ASHP/AC)
+    # Capacity losses based on Jon Winkler's thesis and match what's in E+ with "Advanced Research Features for startup losses"
+    # https://drum.lib.umd.edu/bitstream/handle/1903/9493/Winkler_umd_0117E_10504.pdf?sequence=1&isAllowed=y page 200
+
+    if is_heater:
+        hspf = convert(cop, "W", "Btu/hour")
+        if number_of_speeds == 1:
             if hspf < 7.0:
                 c_d = 0.2
             else:
                 c_d = 0.11
-        elif hvac.n_speeds == 2:
+        elif number_of_speeds == 2:
             c_d = 0.11
         else:
-            c_d = 0.0 #Do no capacity degradation at startup, since this isn't on/off equipment
+            c_d = 0.0 # Do no capacity degradation at startup, since this isn't on/off equipment
     else: #cooling equipment
-        seer = convert(1 / hvac.eir, 'W', 'Btu/hour')
-        if hvac.name =='Room AC':
+        seer = convert(cop, "W", "Btu/hour")
+        if name =='Room AC':
             c_d = 0.22
-        elif hvac.n_speeds == 1:
+        elif number_of_speeds == 1:
             if seer < 13.0:
                 c_d = 0.2
             else:
                 c_d = 0.07
-        elif hvac.n_speeds == 2:
+        elif number_of_speeds == 2:
             c_d = 0.11
         else:
-            c_d = 0.0 #Do no capacity degradation at startup, since this isn't on/off equipment
+            c_d = 0.0 # Do no capacity degradation at startup, since this isn't on/off equipment
     return c_d
+
 
 # Psychrometric functions for HVAC
 # Originally taken from BEopt python code, author: shorowit

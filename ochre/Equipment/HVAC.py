@@ -60,6 +60,7 @@ class HVAC(Equipment):
         self.capacity_min = kwargs.get('Minimum Capacity (W)', 0)  # for ideal equipment, in W
         self.space_fraction = kwargs.get('Conditioned Space Fraction (-)', 1.0)
         self.delivered_heat = 0  # in W, total sensible heat gain, excluding duct losses
+        self.c_d = kwargs.get("Startup Capacity Degradation (-)", 0.0)  # startup capacity degradation factor, unitless
 
         # Efficiency and loss parameters
         if isinstance(kwargs['EIR (-)'], list):
@@ -364,11 +365,10 @@ class HVAC(Equipment):
         
 
     def calc_startup_capacity_degredation(self):
-        c_d = utils_equipment.calc_c_d(self)
-        if c_d == 0.0:
+        if self.c_d == 0.0:
             return 1.0
         else:
-            t_full = 20.0 * c_d + 0.4 ## time to full capacity, in minutes
+            t_full = 20.0 * self.c_d + 0.4 ## time to full capacity, in minutes
             time_full_cap = dt.timedelta(minutes=t_full)
             if "HP" in self.mode:
                 if "HP" not in self.mode_prev: #from off, ER on, etc. to using a HP with capacity degradation
