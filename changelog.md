@@ -1,5 +1,11 @@
 ## OCHRE Changelog
 
+### Updates from PRs
+
+- Fixed bug in EV equivalent battery model (EBM) results
+- Updated `Analysis.combine_time_series_files` to aggregate across dwellings
+  only
+
 ### OCHRE v0.9.1
 
 - Updated and relaxed dependencies
