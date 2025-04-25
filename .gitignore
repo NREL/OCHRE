@@ -33,3 +33,11 @@ bin/output_site1.csv
 bin/output_site_10292.csv
 bin/output_site_10441.csv
 bin/output_test.csv
+bin/output_site_90023.csv
+notebook/user_tutorial.ipynb
+notebook/user_tutorial.ipynb
+notebook/user_tutorial.ipynb
+ochre/defaults/Input Files/net_flow_90023.csv
+bin/run_pcm_wh.py
+bin/output_site_90159.csv
+*.csv
