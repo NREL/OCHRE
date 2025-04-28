@@ -1,5 +1,10 @@
 ## OCHRE Changelog
 
+### Updates from PRs
+
+- Added startup capacity degredation for ASHP/MSHP/AC
+  [#179](https://github.com/NREL/OCHRE/issues/179)
+
 ### OCHRE v0.9.1
 
 - Updated and relaxed dependencies
