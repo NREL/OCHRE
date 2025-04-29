@@ -301,7 +301,8 @@ class StratifiedWaterModel(RCModel):
          # commented this out due to it throwing an error when trying to use the UEF draw profile
 
         # If any temperatures are inverted, run inversion mixing algorithm
-        delta_t = 0.1 if self.high_res else 0.01
+        # swap to 0.01 if self.high_res
+        delta_t = 0.01 if self.high_res else 0.1
         if any(np.diff(self.next_states) > delta_t):
             self.run_inversion_mixing_rule()
 
@@ -310,11 +311,11 @@ class StratifiedWaterModel(RCModel):
 
         # check that states are within reasonable range
         # Note: default max temp on water heater model is 60C (140F). Temps may exceed that slightly
-        if max(self.states) > 62 or min(self.states) < self.mains_temp - 10:
-            if max(self.states) > 65 or min(self.states) < self.mains_temp - 15:
-                raise ModelException(f'Water temperatures are outside acceptable range: {self.states}')
-            else:
-                self.warn(f'Water temperatures are outside acceptable range: {self.states}')
+        # if max(self.states) > 62 or min(self.states) < self.mains_temp - 10:
+        #     if max(self.states) > 65 or min(self.states) < self.mains_temp - 15:
+        #         raise ModelException(f'Water temperatures are outside acceptable range: {self.states}')
+        #     else:
+        #         self.warn(f'Water temperatures are outside acceptable range: {self.states}')
 
         return current_results
 

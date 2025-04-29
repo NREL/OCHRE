@@ -21,6 +21,7 @@ dependencies = [
     "rainflow ~= 3.2",
     "pytz >= 2024.0",
     "python-dateutil ~= 2.9",
+    "plotly ~= 6.0.1"
 ]
 requires-python = ">=3.9"
 authors = [
