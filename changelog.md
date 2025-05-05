@@ -1,7 +1,8 @@
 ## OCHRE Changelog
 
 ### Updates from PRs
-
+- Added startup capacity degredation for ASHP/MSHP/AC
+  [#179](https://github.com/NREL/OCHRE/issues/179)
 - Fixed bug in EV equivalent battery model (EBM) results
 - Updated `Analysis.combine_time_series_files` to aggregate across dwellings
   only
