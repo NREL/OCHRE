@@ -327,7 +327,7 @@ class ElectricVehicle(EventBasedLoad):
         started_event = self.event_start - self.time_res < self.current_time <= self.event_start
         if started_event:
             # baseline power set to reach the initial SOC of the event
-            start_soc = self.event_schedule.loc[self.event_index, "start_soc"]
+            start_soc = self.all_events.loc[self.event_index, "start_soc"]
             baseline_power = (1 - start_soc) * self.capacity / self.time_res.total_seconds() * 3600
         else:
             baseline_power = 0
@@ -358,6 +358,10 @@ class ElectricVehicle(EventBasedLoad):
                 (1 - self.soc) * self.capacity / (self.max_power_ctrl * EV_EFFICIENCY) * 60
             )
             results[f"{self.end_use} Remaining Charge Time (min)"] = remaining_charge_minutes
+
+        if self.save_ebm_results:
+            results.update(self.make_equivalent_battery_model())
+
         return results
 
     def update_results(self):

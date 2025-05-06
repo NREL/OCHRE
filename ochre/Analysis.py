@@ -66,17 +66,17 @@ def download_resstock_model(
     else:
         s3_client = boto3.client("s3", config=Config(signature_version=UNSIGNED))
         s3_client.download_file("oedi-data-lake", oedi_path, zip_file)
-    
+
     # extract zip file
     shutil.unpack_archive(zip_file, local_folder)
 
     # check that files exist
     file_names = ["home.xml", "in.schedules.csv"]
-    missing = [f for f in file_names
-                if not os.path.exists(os.path.join(local_folder, f))]
+    missing = [f for f in file_names if not os.path.exists(os.path.join(local_folder, f))]
     if missing:
-        print(f"WARNING: Couldn't download ResStock files for "
-                f"{building_id}-{upgrade_str}: {missing}")
+        print(
+            f"WARNING: Couldn't download ResStock files for {building_id}-{upgrade_str}: {missing}"
+        )
 
 
 def get_unit(column):
@@ -84,14 +84,14 @@ def get_unit(column):
     return matches[-1][1:-1] if matches else None
 
 
-def get_agg_func(column, agg_type="Time"):
+def get_agg_func(column, agg_by="Time"):
     unit = get_unit(column)
     if unit is None:
         return None
-    if agg_type == "Time":
+    if agg_by == "Time":
         units_to_sum = ["kWh", "kVARh", "therms", "$", "lbs"]
         return "sum" if unit in units_to_sum else "mean"
-    if agg_type == "House":
+    if agg_by == "House":
         units_to_mean = ["-", "C"]
         return "mean" if unit in units_to_mean else "sum"
 
@@ -809,12 +809,13 @@ def combine_time_series_column(column, results_files=None, **kwargs):
     return df
 
 
-def combine_time_series_files(results_files=None, agg_type=None, **kwargs):
+def combine_time_series_files(results_files=None, aggregate=False, **kwargs):
     # combines time series results from multiple OCHRE simulations into single DataFrame
     # results_files is a dictionary of {run_name: file_path}
     # columns specifies the columns to load (using pd.read_csv(use_cols=columns))
-    # agg_func will aggregate the results, see GroupBy.agg for options
-    # Otherwise, will return a DataFrame with a MultiIndex for (Run Name, Time)
+    # if aggregate, will aggregate the results across files
+    #  - Sums or averages each column based on the unit
+    #  - Otherwise, will return a DataFrame with a MultiIndex for (Run Name, Time)
     # Other arguments are passed to read_csv (e.g., use_cols)
     if results_files is None:
         find_kwargs = {arg: kwargs.pop(arg) for arg in FIND_FILE_KWARGS}
@@ -832,15 +833,11 @@ def combine_time_series_files(results_files=None, agg_type=None, **kwargs):
 
     df = pd.concat(dfs, ignore_index=True)
 
-    if agg_type is None:
-        df = df.set_index(["Time", "House"])
-    elif agg_type in ["Time", "House"]:
-        agg_dict = {
-            col: get_agg_func(col, agg_type) for col in df.columns if col not in ["Time", "House"]
-        }
+    if aggregate:
+        agg_dict = {col: get_agg_func(col, "House") for col in df.columns}
         agg_dict = {key: val for key, val in agg_dict.items() if val is not None}
-        df = df.groupby(agg_type).agg(agg_dict)
+        df = df.groupby("Time").agg(agg_dict)
     else:
-        df = df.groupby("Time").agg(agg_type)
+        df = df.set_index(["Time", "House"])
 
     return df
