@@ -16,14 +16,14 @@ max_setpoint = 60
 min_setpoint = 49
 
 run_range = True #runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 1 #172 #220
-site_number = 90159#10292#'10441'
+simulation_days = 172 #172 #220
+site_number = 10441 #90159#10292#'10441'
 
 flow_data = f'net_flow_{site_number}.csv'
 
-#start_date = dt.datetime(2013, 1, 17, 0, 1) #10441
+start_date = dt.datetime(2013, 1, 17, 0, 1) #10441
 #start_date = dt.datetime(2013, 1, 1, 0, 1) #10292, 90023
-start_date = dt.datetime(2013, 1, 23, 0, 1) #90159
+#start_date = dt.datetime(2013, 1, 23, 0, 1) #90159
 setpoint_range = [setpoint_default]
 
 if run_range == True:
@@ -36,7 +36,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
         "start_time": start_date,  # year, month, day, hour, minute
         "time_res": dt.timedelta(minutes=1),
         "duration": dt.timedelta(days=simulation_days),
-        "verbosity": 9,  # required to get setpoint and deadband in results
+        "verbosity": 10,  # required to get setpoint and deadband in results
         "save_results": False,  # if True, must specify output_path
         # "output_path": os.getcwd(),        # Equipment parameters
         "Setpoint Temperature (C)": setpoint_default,
@@ -152,17 +152,21 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
 
     avg_electric = np.convolve(df['Water Heating Electric Power (kW)'], np.ones(15)/15, 'same')
 
+    net_heating = np.convolve(df['Water Heating Delivered (W)'], np.ones(15)/15, 'same')
+
     # For the DataFrame, select columns and calculate the rolling average for each column
     to_save = df[cols_to_save].rolling(window=15).mean()
 
     draw_data = avg_withdraw_rate[14::15]
     avg_setpoints = avg_setpoints[14::15]
     avg_electric = avg_electric[14::15]
+    net_heating = net_heating[14::15]
 
     to_save = df.loc[:, cols_to_save]
     to_save = to_save[14::15]
 
     to_save["Average Electric Power"] = pd.Series(avg_electric, index=to_save.index)
+    to_save["Water Heating"] = pd.Series(net_heating, index=to_save.index)
     to_save["Draw Data"] = pd.Series(draw_data, index=to_save.index)
     to_save["Setpoint"] = pd.Series(avg_setpoints, index=to_save.index)
 
@@ -172,7 +176,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
 
     to_save = to_save[:-1]
 
-    to_save.to_csv(f'output_site_{site_number}.csv', mode='a', header=False, index=False)
+    to_save.to_csv(f'output_site_{site_number}_ewh.csv', mode='a', header=False, index=False)
 
 #plt.show()
 print("Simulation Copmleted")
