@@ -52,6 +52,7 @@ def transform_floating_node(float_node, all_resistors):
     return new_resistors
 
 
+# TODO: update with energy flow state information
 class RCModel(StateSpaceModel):
     """
     Discrete Time State Space RC Model
@@ -77,6 +78,7 @@ class RCModel(StateSpaceModel):
      - Capacitors: J / K
      - Temperature: degrees C
      - Heat: W
+     - Energy flows: kWh
     """
 
     name = "Generic RC"
@@ -261,6 +263,11 @@ class RCModel(StateSpaceModel):
                 B_c[row, i1] = 1 / res
             i2 = internal_nodes.index(node_to)
             A_c[row, i2] = -1 / res
+
+            # convert units from J to kWh
+            A_c[row, :] *= 1 / 1000 / 3600
+            B_c[row, :] *= 1 / 1000 / 3600
+
             row += 1
 
         return A_c, B_c
