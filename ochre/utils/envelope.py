@@ -24,18 +24,23 @@ CARDINAL_DIRECTIONS = {
 
 # mapping boundaries to component loads
 COMPONENT_LOAD_MAP = {
-    "Attic": ["Roof", "Attic Floor"],
-    "Foundation": ["Floor", "Raised Floor", "Foundation Ceiling"],
-    "Walls": ["Exterior Wall", "Door", "Garage Attached Wall", "Garage Interior Ceiling"],
-    "Windows": ["Window"],
-    "Internal Mass": [
-        "Interior Wall",
-        "Indoor Furniture",
-        "Adjacent Wall",
-        "Adjacent Ceiling",
-        "Adjacent Floor",
-    ],
+    "Roof": "Roof",
+    "Attic Floor": "Roof",
+    "Floor": "Floor",
+    "Raised Floor": "Floor",
+    "Foundation Ceiling": "Floor",
+    "Exterior Wall": "Wall",
+    "Door": "Wall",
+    "Garage Attached Wall": "Wall",
+    "Garage Interior Ceiling": "Wall",
+    "Window": "Window",
+    "Interior Wall": "Internal Mass",
+    "Indoor Furniture": "Internal Mass",
+    "Adjacent Wall": "Internal Mass",
+    "Adjacent Ceiling": "Internal Mass",
+    "Adjacent Floor": "Internal Mass",
 }
+COMPONENT_LOAD_CATEGORIES = set(COMPONENT_LOAD_MAP.values())
 
 
 def get_boundary_tilt(name):

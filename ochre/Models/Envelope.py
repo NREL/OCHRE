@@ -27,6 +27,7 @@ class BoundarySurface:
     ):
         self.boundary = boundary
         self.boundary_name = boundary.name
+        self.component_load_name = utils.COMPONENT_LOAD_MAP.get(self.boundary_name)
         self.zone_label = zone_label
         self.zone_name = utils.ZONES.get(zone_label, utils.EXT_ZONES.get(zone_label))
         self.is_exterior = self.zone_label == "EXT"
@@ -37,7 +38,7 @@ class BoundarySurface:
         self.h_idx = None  # Index of envelope inputs for surface heat gain
         self.window_view_factor = 0  # for solar radiation from windows, indoor zone only
 
-        # TODO: add these to envelope input update, equipment sensible gain update
+        # heat gains variables
         self.radiation_to_zone = 0  # for reporting zone radiation per surface for component loads
         self.internal_gain = 0  # for equipment sensible heat to surface, e.g. HPWH
 
@@ -664,9 +665,11 @@ class Envelope(RCModel):
 
         # add energy flow states for component loads
         if kwargs.get("verbosity", 3) >= 5:
-            energy_flow_states = [
-                (s.node, self.indoor_zone.label) for s in self.indoor_zone.surfaces
-            ]
+            energy_flow_states = []
+            self.component_load_names = {}
+            for s in self.indoor_zone.surfaces:
+                energy_flow_states.append((s.node, self.indoor_zone.label))
+                self.component_load_names
         else:
             energy_flow_states = None
 
@@ -1182,28 +1185,18 @@ class Envelope(RCModel):
             raise OCHREException(f"Unknown zone name {zone_name}.")
 
     def add_component_loads(self):
-        # TODO
-        # add conduction components, compare to a model with constant temperature across all states
-        # constant_state = np.ones(self.nx) * self.indoor_zone.temperature
+        cl_results = {f"{bd} Heat Gain - Indoor (W)": 0 for bd in utils.COMPONENT_LOAD_CATEGORIES}
+        kwh_to_w = 1000 * 3600 / self.time_res.total_seconds()  # convert kWh/time step to W
+        for surface in self.indoor_zone.surfaces:
+            # get conduction and radiation from each boundary surface
+            energy_flow_name = f"H_{surface.node}_{self.indoor_zone.label}"
+            gain = self.get_value(energy_flow_name) * kwh_to_w
+            gain += surface.radiation_to_zone
 
-        # m_i_inv.dot(y_values - c_i.dot(self.A.dot(self.states - constant_state)
-        # same for outdoor temp, ground temp
-        # assign a component (one for each boundary next to a conditioned space) to each state/temperature
-        # will need to assign ratios for multiple components for outdoor/ground temps
-        # maybe use total resistance of a boundary for the ratios, ignore capacitance
+            # add to results
+            cl_results[f"{surface.component_load_name} Heat Gain - Indoor (W)"] += gain
 
-        # add internal radiation components
-        # maybe convert zone radiation to dictionary, keys are surfaces
-
-        # add external radiation and solar components (to window only)
-        # dictionary for zone radiation
-
-        # add infiltration and ventilation components
-        # take directly from outputs
-
-        # add internal gains
-        # take directly from outputs
-        return {}
+        return cl_results
 
     def generate_results(self):
         # Note: most results are included in Dwelling/HVAC. Only inputs and states are saved to self.results
@@ -1254,18 +1247,9 @@ class Envelope(RCModel):
                 window_gain = windows[0].ext_surface.transmitted_gain
                 results["Window Transmitted Solar Gain (W)"] = window_gain
 
-            # TODO: add other component loads
+            # add other component loads
             if not self.reduced:
                 results.update(self.add_component_loads())
-                # add heat injections from boundaries into zones (pos=heat injected to zone)
-                # outdoor_zone = self.ext_zones['Outdoor']
-                # zone_surfaces = [(outdoor_zone, bd.ext_surface) for bd in self.ext_boundaries]
-                # zone_surfaces += [(zone, s) for zone in self.zones.values() for s in zone.surfaces]
-                # for zone, surface in zone_surfaces:
-                #     if not surface.node or surface.t_boundary is None:
-                #         continue
-                #     convection = (surface.t_boundary - zone.temperature) / surface.res_total
-                #     results[f'Convection from {surface.boundary_name} to {zone.name} (W)'] = convection
 
         if self.verbosity >= 8:
             results["Occupancy (Persons)"] = self.current_schedule.get("Occupancy (Persons)", 0)
