@@ -527,7 +527,7 @@ multiple OCHRE simulations:
     df = Analysis.combine_time_series_column("Total Electric Power (kW)", results_files)
 
     # aggregate time series data across all simulations
-    df = Analysis.combine_time_series_files(results_files, agg_type="House")
+    df = Analysis.combine_time_series_files(results_files, aggregate=True)
 
 For a more complete example to compile data across multiple OCHRE simulations,
 see the ``compile_results`` function in `run_multiple.py
