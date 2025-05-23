@@ -16,8 +16,8 @@ max_setpoint = 60
 min_setpoint = 49
 
 run_range = True #runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 172 #172 #220
-site_number = 10441 #90159#10292#'10441'
+simulation_days = 1 #172 #220
+site_number = 'null' #90159#10292#'10441'
 
 flow_data = f'net_flow_{site_number}.csv'
 
@@ -44,6 +44,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
         "Tank Height (m)": 1.22,
         "UA (W/K)": 2.17,
         "HPWH COP (-)": 4.5,
+        "water_nodes": 12
     }
 
     # Create water draw schedule
@@ -140,8 +141,8 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
 
     cols_to_save = [
         "Hot Water Outlet Temperature (C)",
-        "T_WH1",
-        "T_WH2"
+        "T_WH3",
+        "T_WH10"
     ]
 
 
@@ -163,10 +164,10 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     net_heating = net_heating[14::15]
 
     to_save = df.loc[:, cols_to_save]
+    to_save["Water Heating Mode"] = df["Water Heating Mode"]
     to_save = to_save[14::15]
 
     to_save["Average Electric Power"] = pd.Series(avg_electric, index=to_save.index)
-    to_save["Water Heating"] = pd.Series(net_heating, index=to_save.index)
     to_save["Draw Data"] = pd.Series(draw_data, index=to_save.index)
     to_save["Setpoint"] = pd.Series(avg_setpoints, index=to_save.index)
 

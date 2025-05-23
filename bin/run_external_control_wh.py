@@ -16,8 +16,9 @@ max_setpoint = 60
 min_setpoint = 49
 
 run_range = True #runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 172 #172 #220
-site_number = 10441#10292#'10441'
+simulation_days = 220 #172 #220
+
+site_number = '90023'#10292#'10441'
 
 flow_data = f'net_flow_{site_number}.csv'
 
@@ -126,6 +127,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
         # Run with controls
         _ = hpwh.update(control_signal=control_signal)
 
+    
     df = hpwh.finalize()
 
     cols_to_plot = [
@@ -141,7 +143,9 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     cols_to_save = [
         "Hot Water Outlet Temperature (C)",
         "T_WH3",
-        "T_WH10"
+        "T_WH7",
+        "T_WH10",
+        "T_AMB"
     ]
 
 
@@ -156,11 +160,13 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     # For the DataFrame, select columns and calculate the rolling average for each column
     to_save = df[cols_to_save].rolling(window=15).mean()
 
+
     draw_data = avg_withdraw_rate[14::15]
     avg_setpoints = avg_setpoints[14::15]
     avg_electric = avg_electric[14::15]
 
     to_save = df.loc[:, cols_to_save]
+    to_save["Water Heating Mode"] = df["Water Heating Mode"]
     to_save = to_save[14::15]
 
     to_save["Average Electric Power"] = pd.Series(avg_electric, index=to_save.index)
