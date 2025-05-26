@@ -5,10 +5,13 @@ import pandas as pd
 from ochre.utils import OCHREException, load_csv
 from ochre.Equipment import EventBasedLoad, ScheduledLoad
 
-# For EVI-Pro assumptions, see Section 1.2 and 1.3:
-# https://afdc.energy.gov/evi-pro-lite/load-profile/assumptions
-EV_FUEL_ECONOMY = 1 / 325 * 1000  # miles per kWh, used to calculate capacity, for sedans
+# See Table 4. Fuel economy based on MY2020 BEV sedan
+# https://docs.nrel.gov/docs/fy23osti/85654.pdf
+EV_FUEL_ECONOMY = 1 / 0.32  # in miles per kWh, used to calculate capacity
 EV_EFFICIENCY = 0.9  # unitless, charging efficiency
+
+# (old) For EVI-Pro assumptions, see Section 1.2 and 1.3:
+# https://afdc.energy.gov/evi-pro-lite/load-profile/assumptions
 EV_MAX_POWER = {  # max AC charging power, by vehicle number (PHEV20, PHEV50, BEV100, BEV250)
     "Level0": [1.4, 1.4, 1.4, 1.4],  # For testing only
     "Level1": [1.4, 1.4, 1.4, 1.4],
@@ -41,18 +44,24 @@ class ElectricVehicle(EventBasedLoad):
         capacity=None,
         range=None,
         max_power=None,
+        fuel_economy=None,
         equipment_event_file=None,
         **kwargs,
     ):
+        # get EV fuel economy
+        if fuel_economy is not None:
+            fuel_economy = EV_FUEL_ECONOMY
+        self.fuel_economy = fuel_economy  # in miles per kWh
+
         # get EV battery capacity and range
         if capacity is None and range is None:
             raise OCHREException("Must specify capacity or range for {}".format(self.name))
         elif capacity is not None:
             self.capacity = capacity  # in kWh
-            range = self.capacity * EV_FUEL_ECONOMY  # in mi
+            range = self.capacity * fuel_economy  # in mi
         else:
             # determine capacity using range
-            self.capacity = range / EV_FUEL_ECONOMY  # in kWh
+            self.capacity = range / fuel_economy  # in kWh
 
         # get charging level and set option for part load setpoints
         charging_level = charging_level.replace(" ", "")

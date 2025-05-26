@@ -15,13 +15,6 @@ ZONES = {
 EXT_ZONES = {'EXT': 'Outdoor',
              'GND': 'Ground'}
 
-CARDINAL_DIRECTIONS = {
-    0: 'North',
-    90: 'East',
-    180: 'South',
-    270: 'West',
-}
-
 
 def get_boundary_tilt(name):
     # get boundary tilt based on boundary name (0-90 degrees)
@@ -132,7 +125,7 @@ def calculate_solar_irradiance(weather, weather_timezone, location, boundaries, 
 
         areas = bd['Area (m^2)']
         tilt = bd.get('Tilt (deg)', get_boundary_tilt(bd_name))
-        default_azimuth = [0] if tilt == 0 else list(CARDINAL_DIRECTIONS.keys())
+        default_azimuth = [0] if tilt == 0 else [0, 90, 180, 270]
         azimuths = bd.get('Azimuth (deg)', default_azimuth)
         window_data = bd if bd_name == 'Window' else None
         if len(areas) != len(azimuths):
@@ -148,8 +141,7 @@ def calculate_solar_irradiance(weather, weather_timezone, location, boundaries, 
             # add detailed irradiance data
             for az in azimuths:
                 irr = calculate_plane_irradiance(weather, tilt, az, window_data, separate=True)
-                orientation = CARDINAL_DIRECTIONS[az] if az in CARDINAL_DIRECTIONS else f'{az} deg'
-                irr.columns = [f'{bd_name} Irradiance - {orientation}, {col} (W/m^2)' for col in irr.columns]
+                irr.columns = [f'{bd_name} Irradiance - {az} deg, {col} (W/m^2)' for col in irr.columns]
                 irradiance_data.append(irr)
 
     if house_args.get('verbosity', 1) >= 8:
