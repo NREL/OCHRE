@@ -22,7 +22,7 @@ class Generator(Equipment):
 
     def __init__(
         self,
-        capacity=6,
+        capacity,
         capacity_min=None,
         ramp_rate=None,
         efficiency=0.98,

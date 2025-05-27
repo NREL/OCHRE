@@ -1259,6 +1259,26 @@ def parse_battery(battery, n_beds, has_garage):
         "Zone": zone,
     }
 
+def parse_generator(generator):
+    # check fuel type
+    fuel = generator.get("FuelType")
+    if fuel not in ["natural gas", None]:
+        raise print(f"WARNING: Converting generator fuel type {fuel} to natural gas.")
+
+    # get efficiency
+    fuel_in = generator["AnnualConsumptionkBtu"] * 3.412  # convert kBtu to kWh
+    power_out = generator["AnnualOutputkWh"]
+    efficiency = power_out / fuel_in
+
+    return {
+        "capacity": 6,  # default size, no parameters for this in OS-HPXML
+        "efficiency": efficiency,
+    }
+
+def parse_solar_thermal(solar_thermal):
+    raise NotImplementedError("Solar thermal systems are not supported in OCHRE yet.")
+
+
 def parse_clothes_washer(clothes_washer, n_bedrooms):
     # From ResStock, using ERI Version >= '2019A'
     rated_annual_kwh = clothes_washer.get('RatedAnnualkWh', 400.0)
@@ -1682,8 +1702,14 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
         equipment["Battery"] = parse_battery(battery, n_beds, has_garage)
 
     # Add generator
+    generator = systems.get("extension", {}).get("Generators", {}).get("Generator")
+    if generator is not None:
+        equipment["Gas Generator"] = parse_generator(generator)
 
     # Add solar thermal
+    solar_thermal = systems.get("SolarThermal", {}).get("SolarThermalSystem")
+    if solar_thermal is not None:
+        equipment["Solar Thermal"] = parse_solar_thermal(solar_thermal)
 
     # Add appliances
     appliances = hpxml.get('Appliances', {})
