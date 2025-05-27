@@ -11,7 +11,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 import rainflow
 
-from ochre.utils import OCHREException
+from ochre.utils import OCHREException, load_csv
 from ochre.utils.units import convert, degC_to_K
 from ochre.Models import OneNodeRCModel
 from ochre.Equipment import Generator
@@ -49,10 +49,22 @@ class Battery(Generator):
 
     def __init__(
         self,
+        capacity_kwh,
+        efficiency_charge=0.98,
+        efficiency_inverter=1,
+        discharge_pct=0,
+        soc_init=0.5,
+        soc_max=0.95,
+        soc_min=0.15,
         enable_degradation=True,
-        efficiency_type="advanced",
-        charge_solar_only=False,
+        initial_voltage=50.4,
+        v_cell=3.6,
+        ah_cell=70,
+        r_cell=0.002,
         enable_thermal_model=None,
+        thermal_r=0.5,
+        thermal_c=90000,
+        charge_solar_only=False,
         **kwargs,
     ):
         if enable_thermal_model is None:
@@ -66,47 +78,38 @@ class Battery(Generator):
 
         # Create Generator model
         self.degradation_states = None
-        super().__init__(efficiency_type=efficiency_type, optional_inputs=optional_inputs, **kwargs)
+        super().__init__(optional_inputs=optional_inputs, **kwargs)
 
         # Battery electrical parameters
         # Note: Parameter values taken from SAM Li-NMC defaults, version 2020.2.29
-        self.capacity_rated = self.parameters["capacity_kwh"]  # in kWh, does not change
+        self.capacity_rated = capacity_kwh  # in kWh, does not change
         self.capacity_kwh = self.capacity_rated  # in kWh, instantaneous capacity
-        self.soc = self.parameters["soc_init"]  # Initial State of Charge
+        self.soc = soc_init  # Initial State of Charge
         self.next_soc = self.soc
         # TODO: get recommended min/max SOC from SAM
-        self.soc_max = self.parameters["soc_max"]
-        self.soc_min = self.parameters["soc_min"]
+        self.soc_max = soc_max
+        self.soc_min = soc_min
         self.discharge_rate = convert(
-            self.parameters["discharge_pct"], "percent/day", "unitless/hour"
+            discharge_pct, "percent/day", "unitless/hour"
         )  # Self-discharge rate (1/hour)
-        self.efficiency_inverter = self.parameters[
-            "efficiency_inverter"
-        ]  # Inverter efficiency, unitless
+        self.efficiency_inverter = efficiency_inverter  # Inverter efficiency, unitless
         self.time_res_hours = self.time_res.total_seconds() / 3600
 
         # Pack efficiency depends on pack internal resistance
+        self.efficiency_charge = efficiency_charge
         self.efficiency_internal = 1  # varies with power output, unitless
         if self.efficiency_type == "advanced":
             # voltage and resistance depends on # of cells in parallel/series
-            capacity_cell = (
-                self.parameters["ah_cell"] * self.parameters["v_cell"] / 1000
-            )  # in kWh per cell
+            capacity_cell = ah_cell * v_cell / 1000  # in kWh per cell
             n_cells_tot = self.capacity_kwh / capacity_cell  # not necessarily an integer
 
             # usually 14 cells in series to achieve typical 50.6V pack voltage
             # TODO: update with data from https://github.com/NREL/PyChargeModel/blob/main/ElectricVehicles.py
-            n_series_by_voltage = (
-                self.parameters.get("initial_voltage", 50.4) / self.parameters["v_cell"]
-            )
-            self.n_series = self.parameters.get(
-                "n_series", n_series_by_voltage
-            )  # Number of cells in series
+            n_series_by_voltage = initial_voltage / v_cell
+            self.n_series = n_series_by_voltage  # Number of cells in series
             n_parallel = n_cells_tot / self.n_series
 
-            self.r_internal = (
-                self.parameters["r_cell"] * self.n_series / n_parallel
-            )  # internal resistance, in ohms
+            self.r_internal = r_cell * self.n_series / n_parallel  # internal resistance, in ohms
         else:
             self.n_series = None
             self.r_internal = None
@@ -114,9 +117,7 @@ class Battery(Generator):
         # Create thermal model if zone is specified
         self.t_idx = 0  # index for battery temperature (based on states)
         if enable_thermal_model:
-            self.thermal_model = BatteryThermalModel(
-                self.parameters["thermal_r"], self.parameters["thermal_c"], **kwargs
-            )
+            self.thermal_model = BatteryThermalModel(thermal_r, thermal_c, **kwargs)
             self.sub_simulators.append(self.thermal_model)
             assert len(self.thermal_model.states) == 1
 
@@ -139,9 +140,7 @@ class Battery(Generator):
 
         # Curves for degradation and efficiency using internal resistance
         # TODO: update with data from https://github.com/NREL/PyChargeModel/blob/main/ElectricVehicles.py
-        df_curves = self.initialize_parameters(
-            "degradation_curves.csv", name_col="SOC", value_col=None
-        )
+        df_curves = load_csv("degradation_curves.csv", self.end_use, index_col="SOC")
         self.voc_curve = interp1d(
             df_curves.index,
             df_curves["V_oc"],
@@ -327,7 +326,7 @@ class Battery(Generator):
             if electric_kw < 0:
                 self.efficiency_internal = self.efficiency_rated
             else:
-                self.efficiency_internal = self.parameters.get("efficiency_charge", 1)
+                self.efficiency_internal = self.efficiency_charge
         else:
             self.efficiency_internal = super().calculate_efficiency(electric_kw, is_output_power)
 
@@ -508,5 +507,7 @@ class Battery(Generator):
             f"{self.end_use} EBM Efficiency (-)": self.calculate_efficiency(max_charge),
             f"{self.end_use} EBM Baseline Power (kW)": self.discharge_rate * self.capacity_kwh,
             f"{self.end_use} EBM Max Discharge Power (kW)": max_discharge,
-            f"{self.end_use} EBM Discharge Efficiency (-)": self.calculate_efficiency(max_discharge),
+            f"{self.end_use} EBM Discharge Efficiency (-)": self.calculate_efficiency(
+                max_discharge
+            ),
         }
