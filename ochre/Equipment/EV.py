@@ -49,7 +49,7 @@ class ElectricVehicle(EventBasedLoad):
         **kwargs,
     ):
         # get EV fuel economy
-        if fuel_economy is not None:
+        if fuel_economy is None:
             fuel_economy = EV_FUEL_ECONOMY
         self.fuel_economy = fuel_economy  # in miles per kWh
 
