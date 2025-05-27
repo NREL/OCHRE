@@ -50,7 +50,7 @@ class Battery(Generator):
     def __init__(
         self,
         capacity_kwh,
-        efficiency_charge=0.98,
+        efficiency_charge=1,
         efficiency_inverter=1,
         discharge_pct=0,
         soc_init=0.5,

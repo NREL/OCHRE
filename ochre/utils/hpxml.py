@@ -1227,7 +1227,7 @@ def parse_pv(pv, inverter, n_beds):
         "inverter_efficiency": inverter_efficiency,
     }
 
-def parse_battery(battery, n_beds):
+def parse_battery(battery, n_beds, has_garage):
     # get energy and power capacity
     # note: using nominal capacity, not usable capacity
     nominal_capacity = battery.get("NominalCapacity", {})
@@ -1248,12 +1248,15 @@ def parse_battery(battery, n_beds):
         capacity_kwh *= n_beds / n_beds_served
         capacity *= n_beds / n_beds_served
 
-    # get location, 
+    # get location
+    default_zone = "Garage" if has_garage else "Outdoor"
+    zone = parse_zone_name(battery.get("Location", default_zone))
 
     return {
         "capacity": capacity,
         "capacity_kwh": capacity_kwh,
         "efficiency": battery.get("RoundTripEfficiency", 0.925),
+        "Zone": zone,
     }
 
 def parse_clothes_washer(clothes_washer, n_bedrooms):
@@ -1640,16 +1643,17 @@ def parse_vent_fan(vent_fan):
 
 
 def parse_hpxml_equipment(hpxml, occupancy, construction):
-    # Add HVAC equipment
     equipment = {}
-    hvac_all = hpxml['Systems'].get('HVAC', {})
+    systems = hpxml.get("Systems", {})
+    # Add HVAC equipment
+    hvac_all = systems.get("HVAC", {})
     for hvac_type in ['Heating', 'Cooling']:
         hvac = parse_hvac(hvac_type, hvac_all)
         if hvac is not None:
             equipment[f'HVAC {hvac_type}'] = hvac
 
     # Add water heater
-    water = hpxml['Systems'].get('WaterHeating', {})
+    water = systems.get('WaterHeating', {})
     water_heater = water.get('WaterHeatingSystem')
     if water_heater is not None:
         # Add water heater parameters
@@ -1657,24 +1661,25 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
         equipment['Water Heating'] = wh
 
     # Add EV/EVSE
-    ev = hpxml["Systems"].get("Vehicles", {}).get("Vehicle")
-    evse = hpxml["Systems"].get("ElectricVehicleChargersQ", {}).get("ElectricVehicleCharger")
+    ev = systems.get("Vehicles", {}).get("Vehicle")
+    evse = systems.get("ElectricVehicleChargersQ", {}).get("ElectricVehicleCharger")
     if ev is not None and evse is not None:
         equipment['Electric Vehicle'] = parse_ev(ev, evse)
     elif ev is not None or evse is not None:
         print('WARNING: Electric Vehicle or Electric Vehicle Charger is missing, skipping EV equipment.')
 
     # Add PV
-    pv = hpxml["Systems"].get("Photovoltaics", {}).get("PVSystem")
-    inverter = hpxml["Systems"].get("Photovoltaics", {}).get("Inverter")
+    pv = systems.get("Photovoltaics", {}).get("PVSystem")
+    inverter = systems.get("Photovoltaics", {}).get("Inverter")
     n_beds = construction['Number of Bedrooms (-)']
     if pv is not None:
         equipment["PV"] = parse_pv(pv, inverter, n_beds)
 
     # Add battery
-    battery = hpxml["Systems"].get("Batteries", {}).get("Battery")
+    battery = systems.get("Batteries", {}).get("Battery")
     if battery is not None:
-        equipment["Battery"] = parse_battery(battery, n_beds)
+        has_garage = construction['Garage Floor Area (m^2)'] > 0
+        equipment["Battery"] = parse_battery(battery, n_beds, has_garage)
 
     # Add generator
 
@@ -1769,7 +1774,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
         equipment['Ceiling Fan'] = parse_mel(ceiling_fan, 'CeilingFan')
 
     # Add Ventilation Fan
-    vent_fans = hpxml['Systems'].get('MechanicalVentilation', {}).get('VentilationFans', {})
+    vent_fans = systems.get('MechanicalVentilation', {}).get('VentilationFans', {})
     vent_fans = {key: val for key, val in vent_fans.items()
                  if val.get('UsedForWholeBuildingVentilation', False) or val.get('UsedForSeasonalCoolingLoadReduction', False)}
     if vent_fans:
