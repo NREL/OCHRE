@@ -1,11 +1,17 @@
+import functools
+import multiprocessing
 import os
 import pandas as pd
 import plotly.graph_objects as go
+import datetime
+import plotly.colors as pc
+import re
 from plotly.subplots import make_subplots
 from scipy.interpolate import griddata
-import re
 import time
 import numpy as np
+import colorsys
+from concurrent.futures import ThreadPoolExecutor
 
 
 L_TO_GAL_RATIO = 0.264172
@@ -34,68 +40,263 @@ def find_matching_columns(df, patterns):
     
     return column_groups
 
-def plot_draw_event_summary(draw_outputs):
+def adjust_lightness(color, factor):
     """
-    Plot a grouped bar chart showing the overall totals for each file.
-    Total water delivered (gallons) and total heat delivered (kWh) are compared side by side,
-    with a horizontal line showing the max possible hot water volume as a reference.
+    Adjust the lightness of a color.
+    
+    Args:
+        color: The color to adjust (hex string)
+        factor: Factor to adjust lightness by (0-1)
+    
+    Returns:
+        Adjusted color as hex string
     """
-    files = list(draw_outputs.keys())
-    total_volumes = [draw_outputs[file]['total_water_volume_gal'] for file in files]
-    total_energy = [draw_outputs[file]['total_energy_used_kwh'] for file in files]
-    # Assume max_possible_hot_water is a single constant value (same for all files)
-    max_volume = list(draw_outputs.values())[0]['max_possible_hot_water']
+    # Convert hex to RGB
+    color = color.lstrip('#')
+    r, g, b = int(color[0:2], 16) / 255, int(color[2:4], 16) / 255, int(color[4:6], 16) / 255
+    
+    # Convert RGB to HSL
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    
+    # Adjust lightness
+    l = max(min(l * factor, 1.0), 0.0)
+    
+    # Convert back to RGB
+    r, g, b = colorsys.hls_to_rgb(h, l, s)
+    
+    # Convert back to hex
+    return f'#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}'
 
-    # Create the grouped bar chart
-    fig = go.Figure(data=[
-        go.Bar(
-            name='Water Volume (gal)', 
-            x=files, 
-            y=total_volumes,
-            text=[f"{vol:.2f}" for vol in total_volumes],
-            textposition='auto'
-        ),
-        go.Bar(
-            name='Energy Used (kWh)', 
-            x=files, 
-            y=total_energy,
-            text=[f"{energy:.3f}" for energy in total_energy],
-            textposition='auto'
-        )
-    ])
+# Regex definitions
+SETPOINT_RE = re.compile(r"setpoint-(\d+)F", re.IGNORECASE)
+TANK_RE     = re.compile(r"(\d+)gal", re.IGNORECASE)
+TYPE_RE     = re.compile(r"(Electric|Heat[Pp]ump)")
+# SHIFT_RE    = re.compile(r"(cp_h-T_data_shifted_\d+F)", re.IGNORECASE)  # currently unused
 
-    # Add a horizontal line at the max_volume value
-    fig.add_shape(
-        type="line",
-        x0=-0.5,  # starting slightly before the first bar
-        x1=len(files)-0.5,  # ending slightly after the last bar
-        y0=max_volume,
-        y1=max_volume,
-        line=dict(color="Red", dash="dash")
-    )
+def plot_draw_event_summary(draw_outputs, plot_energy=False):
+    """
+    Plot grouped bars by tank_size & setpoint, with Electric and HeatPump as separate bars.
+    Colors encode tank_size, saturation encodes setpoint.
+    Includes manufacturer reference value lines for comparison.
+    
+    Parameters:
+    -----------
+    draw_outputs : dict
+        Dictionary containing the draw output data
+    plot_energy : bool, default=False
+        If True, plots energy used (kWh) instead of water volume (gal)
+    """
+    # 1) Parse filenames into metadata
+    meta = {}
+    for fname, data in draw_outputs.items():
+        # Extract type
+        ttype_match = TYPE_RE.search(fname)
+        ttype = ttype_match.group(1) if ttype_match else 'Unknown'
+        if ttype.lower() == "heatpump":
+            ttype = "HeatPump"  # Normalize capitalization
+            
+        # Extract setpoint
+        sp_match = SETPOINT_RE.search(fname)
+        sp = int(sp_match.group(1)) if sp_match else 0
+        
+        # Extract tank size
+        ts_match = TANK_RE.search(fname)
+        ts = int(ts_match.group(1)) if ts_match else 0
+        
+        if 'pcm' in fname:
+            pcm: bool = True
+        else:
+            pcm: bool = False
+        
+        meta[fname] = {
+            'pcm': pcm,
+            'type': ttype,
+            'setpoint': sp,
+            'tank_size': ts,
+            'volume': data['total_water_volume_gal'],
+            'energy_delivered': data['total_heat_delivered_kWh'],
+            'energy_used': data['total_energy_used_kwh']
+        }
+    
+    # Group by tank size, setpoint, and heater type
+    grouped_data = {}
+    for fname, info in meta.items():
+        key = (info['tank_size'], info['setpoint'])
+        if key not in grouped_data:
+            grouped_data[key] = {}
+        grouped_data[key][f"{info['type']} - {info['pcm']}"] = {
+            'volume': info['volume'],
+            'energy_delivered': info['energy_delivered'],
+            'energy_used': info['energy_used'],
+            'pcm': info['pcm']
+        }
+    
+    # Sort keys by tank size then setpoint
+    sorted_keys = sorted(grouped_data.keys())
+    
+    # 3) Build color scales per tank size
+    tank_sizes = sorted({ts for ts, _ in sorted_keys})
+    base_colors = pc.qualitative.Plotly
+    hue_map = {ts: base_colors[i % len(base_colors)] for i, ts in enumerate(tank_sizes)}
+    
+    # Determine setpoint ranges per tank size
+    sp_by_ts = {}
+    for ts in tank_sizes:
+        sps = sorted({sp for t, sp in sorted_keys if t == ts})
+        sp_by_ts[ts] = (min(sps), max(sps))
+    
+    def color_for(ts, sp):
+        base = hue_map.get(ts)
+        lo, hi = sp_by_ts.get(ts, (sp, sp))
+        sat = 0.3 + 0.7 * ((sp - lo) / (hi - lo) if hi > lo else 1)
+        return adjust_lightness(base, 1 - sat)
+    
+        
+    def color_for_mixed(ts, sp):
+    # Neon base colors - shifted towards brighter, more vibrant hues
+        base = hue_map.get(ts)
+        lo, hi = sp_by_ts.get(ts, (sp, sp))
+        
+        # Increased saturation baseline to make colors more vivid
+        sat = 0.3 + 0.7 * ((sp - lo) / (hi - lo) if hi > lo else 1)
+        
+        # Boost lightness to make colors appear more neon-like
+        return adjust_lightness(base, 1.2 - 0.6 * sat)
+    
+    # Create figure
+    fig = go.Figure()
+    
+    # Create x-axis labels
+    x_labels = [f"{ts} gal\n{sp}°F" for ts, sp in sorted_keys]
+    
+    # Prepare data for plotting
+    electric_volume = []
+    electric_energy = []
+    heatpump_volume = []
+    heatpump_energy = []
+    electric_pcm_volume = []
+    electric_pcm_energy = []
+    heatpump_pcm_volume = []
+    heatpump_pcm_energy = []
+    colors = [color_for(ts, sp) for ts, sp in sorted_keys]
+    colors_mixed = [color_for_mixed(ts, sp) for ts, sp in sorted_keys]
+    
+    # Extract values for each heater type
+    for key in sorted_keys:
+        data = grouped_data[key]
+        
+        # Electric values
+        if "Electric - False" in data:
+            electric_volume.append(data["Electric - False"]["volume"])
+            electric_energy.append(data["Electric - False"]["energy_delivered"])
+        else:
+            electric_volume.append(0)
+            electric_energy.append(0)
+            
+        # HeatPump values
+        if "HeatPump - False" in data:
+            heatpump_volume.append(data["HeatPump - False"]["volume"])
+            heatpump_energy.append(data["HeatPump - False"]["energy_delivered"])
+        else:
+            heatpump_volume.append(0)
+            heatpump_energy.append(0)
+            
+        if "Electric - True" in data:
+            electric_pcm_volume.append(data["Electric - True"]["volume"])
+            electric_pcm_energy.append(data["Electric - True"]["energy_delivered"])
+        else:
+            electric_pcm_volume.append(0)
+            electric_pcm_energy.append(0)
+            
+        if "HeatPump - True" in data:
+            heatpump_pcm_volume.append(data["HeatPump - True"]["volume"])
+            heatpump_pcm_energy.append(data["HeatPump - True"]["energy_delivered"])  
+        else:
+            heatpump_pcm_volume.append(0)
+            heatpump_pcm_energy.append(0)
+    
+    # Determine which data to plot based on the plot_energy flag
+    if plot_energy:
+        # Energy data
+        electric_data = electric_energy
+        heatpump_data = heatpump_energy
+        electric_pcm_data = electric_pcm_energy
+        heatpump_pcm_data = heatpump_pcm_energy
+        y_axis_title = 'Energy Delivered (kWh)'
+        value_prefix = 'Energy'
+        formatting = lambda x: f"{x:.3f}"
+    else:
+        # Volume data (default)
+        electric_data = electric_volume
+        heatpump_data = heatpump_volume
+        electric_pcm_data = electric_pcm_volume
+        heatpump_pcm_data = heatpump_pcm_volume
+        y_axis_title = 'Delivered Water Volume (gal)'
+        value_prefix = 'Water'
+        formatting = lambda x: f"{x:.2f}"
+    
+    # Add Electric data bars (solid fill)
+    fig.add_trace(go.Bar(
+        name=f'Electric - {value_prefix} Only',
+        x=x_labels,
+        y=electric_data,
+        marker=dict(color=colors, pattern=dict(shape='')),
+        text=[formatting(val) for val in electric_data],
+        textposition='auto',
+        offsetgroup=0
+    ))
+    
+    # Add HeatPump data bars (hatched)
+    fig.add_trace(go.Bar(
+        name=f'HeatPump - {value_prefix} Only',
+        x=x_labels,
+        y=heatpump_data,
+        marker=dict(color=colors, pattern=dict(shape='/')),
+        text=[formatting(val) for val in heatpump_data],
+        textposition='auto',
+        offsetgroup=1
+    ))
+    
+    # Add Electric PCM data bars
+    fig.add_trace(go.Bar(
+        name=f'Electric - Internal PCM',
+        x=x_labels,
+        y=electric_pcm_data,
+        marker=dict(color='rgba(0,0,0,0)', line=dict(color='black', width=1)),
+        text=[formatting(val) for val in electric_pcm_data],
+        textposition='auto',
+        offsetgroup=2
+    ))
 
-    # Optionally add an annotation for the max_volume line
-    fig.add_annotation(
-        x=len(files)-1,
-        y=max_volume,
-        xref="x",
-        yref="y",
-        text=f"Max Volume ({max_volume:.2f} gal)",
-        showarrow=True,
-        arrowhead=7,
-        ax=0,
-        ay=-40
-    )
-
-    # Update layout with titles and grouped bar mode
+    # Add HeatPump PCM data bars
+    fig.add_trace(go.Bar(
+        name=f'Heatpump - Internal PCM',
+        x=x_labels,
+        y=heatpump_pcm_data,
+        marker=dict(color='rgba(0,0,0,0)', line=dict(color='black', width=1), pattern=dict(shape='/')),
+        text=[formatting(val) for val in heatpump_pcm_data],
+        textposition='auto',
+        offsetgroup=3
+    ))
+    
+    # Update layout to display bars side by side
     fig.update_layout(
-        barmode='group',
-        title='Total Hot Water Delivered Summary by File',
-        xaxis_title='File',
-        yaxis_title='Value'
+        title=f'125 °F mixing valve 110 °F Cut off Temp FHR Summary by Tank Size & Setpoint ({y_axis_title})', 
+        xaxis_title='Tank Size & Setpoint',
+        yaxis_title=y_axis_title,
+        barmode='group',  # This ensures the bars are displayed side by side
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="center",
+            x=0.5
+        )
     )
-    fig.show()
-
+    
+    fig.show() 
+    
+    
 def plot_draw_events(draw_outputs):
     """
     For each file, create a separate grouped bar chart for the individual draw events.
@@ -367,13 +568,23 @@ def plot_comparison(dfs, draw_outputs):
 def c_to_f(c):
     return c * 9/5 + 32
 
-def calculate_hot_water_delivered(dfs):
+def process_single_df(file_key, df, first_hour_test=False):
     """
-    Calculate the total hot water delivered (W) and gallons for each file,
-    capturing individual draw events with their time ranges and metrics.
+    Process a single dataframe to calculate hot water delivered metrics.
+    This is a worker function for parallel processing.
     
-    A draw event is defined as any continuous period where water is being drawn (water_draw > 0).
-    However, water volume and heat energy are only added when the outlet temperature is >= water_temp_cutoff.
+    Parameters:
+    -----------
+    file_key : str
+        Key/identifier for the dataframe
+    df : DataFrame
+        Single dataframe with time series data
+    first_hour_test : bool
+        Flag for applying first hour test logic
+        
+    Returns:
+    --------
+    tuple: (file_key, output_dict) with metrics for this dataframe
     """
     water_draw_col = "Hot Water Delivered (L/min)"
     water_output_W_col = "Hot Water Delivered (W)"
@@ -381,102 +592,185 @@ def calculate_hot_water_delivered(dfs):
     energy_used = "Water Heating Delivered (W)"
     
     water_temp_cutoff = 43.3333  # 110 F, 15 deg delta from 125 F for UEF test
-    # water_temp_cutoff = 40.5556  # 105 
+    L_TO_GAL_RATIO = 0.264172  # Liters to gallons conversion ratio
     
-    output = {}
+    # Create a copy of the dataframe to avoid modifying the original
+    df_copy = df.copy()
     
-    for file, df in dfs.items():
-        # Create a copy of the dataframe to avoid modifying the original
-        df_copy = df.copy()
-        
-        # Initialize variables to track water draw events and totals
-        max_water_volume_L = df_copy[water_draw_col].sum()  # This is maximum possible, regardless of temp
-        total_water_volume_L = 0
-        total_heat_delivered_J = 0
-        is_draw_active = False
-        
-        # To track individual draw events
-        draw_events = []
-        current_event = None
-        
-        # Calculate time delta using the "Time" index
-        if not pd.api.types.is_numeric_dtype(df_copy.index):
-            if pd.api.types.is_datetime64_any_dtype(df_copy.index):
-                df_copy['time_delta'] = df_copy.index.to_series().diff().dt.total_seconds()
-            else:
-                df_copy['time_delta'] = pd.to_numeric(df_copy.index.to_series().diff(), errors='coerce')
+    # Initialize variables to track water draw events and totals
+    max_water_volume_L = 180  # This is maximum possible, regardless of temp
+    total_water_volume_L = 0
+    total_heat_delivered_J = 0
+    is_draw_active = False
+    
+    # To track individual draw events
+    draw_events = []
+    current_event = None
+    
+    # Calculate time delta using the "Time" index
+    if not pd.api.types.is_numeric_dtype(df_copy.index):
+        if pd.api.types.is_datetime64_any_dtype(df_copy.index):
+            df_copy['time_delta'] = df_copy.index.to_series().diff().dt.total_seconds()
         else:
-            df_copy['time_delta'] = df_copy.index.to_series().diff()
+            df_copy['time_delta'] = pd.to_numeric(df_copy.index.to_series().diff(), errors='coerce')
+    else:
+        df_copy['time_delta'] = df_copy.index.to_series().diff()
+    
+    df_copy.fillna({'time_delta': 0}, inplace=True)
+    
+    for i, row in df_copy.iterrows():
+        water_draw = row[water_draw_col]
+        outlet_temp = row[water_outlet_temp]
+        heat_output = row[water_output_W_col]
+        time_delta = row['time_delta']
+        current_time = i  # "Time" index value
         
-        df_copy.fillna({'time_delta': 0}, inplace=True)
-        
-        for i, row in df_copy.iterrows():
-            water_draw = row[water_draw_col]
-            outlet_temp = row[water_outlet_temp]
-            heat_output = row[water_output_W_col]
-            time_delta = row['time_delta']
-            current_time = i  # "Time" index value
+        if water_draw > 0:
+            # Start a new event if one is not active
+            if not is_draw_active:
+                is_draw_active = True
+                current_event = {
+                    'start_time': current_time,
+                    'end_time': None,
+                    'water_volume_L': 0,  # Only accumulate if outlet_temp >= cutoff
+                    'heat_delivered_J': 0,
+                    'max_temp': outlet_temp,
+                    'min_temp': outlet_temp,
+                    'max_flow_rate': water_draw,
+                    'temp_readings': [] if first_hour_test else None,  # For tracking temperature samples
+                }
+            # Update event regardless of temperature
+            current_event['end_time'] = current_time
+            current_event['max_flow_rate'] = max(current_event['max_flow_rate'], water_draw)
+            current_event['max_temp'] = max(current_event['max_temp'], outlet_temp)
+            current_event['min_temp'] = min(current_event['min_temp'], outlet_temp)
             
-            if water_draw > 0:
-                # Start a new event if one is not active
-                if not is_draw_active:
-                    is_draw_active = True
-                    current_event = {
-                        'start_time': current_time,
-                        'end_time': None,
-                        'water_volume_L': 0,  # Only accumulate if outlet_temp >= cutoff
-                        'heat_delivered_J': 0,
-                        'max_temp': outlet_temp,
-                        'min_temp': outlet_temp,
-                        'max_flow_rate': water_draw
-                    }
-                # Update event regardless of temperature
-                current_event['end_time'] = current_time
-                current_event['max_flow_rate'] = max(current_event['max_flow_rate'], water_draw)
-                current_event['max_temp'] = max(current_event['max_temp'], outlet_temp)
-                current_event['min_temp'] = min(current_event['min_temp'], outlet_temp)
+            # Track all temperature readings if first_hour_test is enabled
+            if first_hour_test:
+                current_event['temp_readings'].append(outlet_temp)
+            
+            # Only accumulate water and heat if the outlet temperature is high enough.
+            if outlet_temp >= water_temp_cutoff:
+                water_volume = 3 / L_TO_GAL_RATIO / 120  # (L/min * s) gives liters
+                heat_energy = heat_output / 120    # (W * s) gives Joules
+                total_water_volume_L += water_volume
+                total_heat_delivered_J += heat_energy
                 
-                # Only accumulate water and heat if the outlet temperature is high enough.
-                if outlet_temp >= water_temp_cutoff:
-                    water_volume = water_draw * time_delta  # (L/min * s) gives liters (if time_delta is in minutes, adjust accordingly)
-                    heat_energy = heat_output * time_delta    # (W * s) gives Joules
-                    total_water_volume_L += water_volume
-                    total_heat_delivered_J += heat_energy
-                    
-                    current_event['water_volume_L'] += water_volume
-                    current_event['heat_delivered_J'] += heat_energy
-                    
-            elif is_draw_active:
-                # Water draw dropped to 0: close the active event if it has any hot water delivered.
-                if current_event and current_event['water_volume_L'] > 0:
-                    current_event['water_volume_gal'] = current_event['water_volume_L'] * L_TO_GAL_RATIO
-                    current_event['heat_delivered_kWh'] = current_event['heat_delivered_J'] * 2.77778e-7
-                    draw_events.append(current_event)
-                is_draw_active = False
-                current_event = None
+                current_event['water_volume_L'] += water_volume
+                current_event['heat_delivered_J'] += heat_energy
+                
+        elif is_draw_active:
+            # Water draw dropped to 0: close the active event if it has any hot water delivered.
+            if current_event and current_event['water_volume_L'] > 0:
+                current_event['water_volume_gal'] = current_event['water_volume_L'] * L_TO_GAL_RATIO
+                current_event['heat_delivered_kWh'] = current_event['heat_delivered_J'] * 2.77778e-7
+                
+                # Calculate average temperature if first_hour_test is enabled
+                if first_hour_test and current_event['temp_readings']:
+                    current_event['avg_temp'] = sum(current_event['temp_readings']) / len(current_event['temp_readings'])
+                
+                draw_events.append(current_event)
+            is_draw_active = False
+            current_event = None
+    
+    # If the last draw event is still active, close it out.
+    if is_draw_active and current_event and current_event['water_volume_L'] > 0:
+        current_event['water_volume_gal'] = current_event['water_volume_L'] * L_TO_GAL_RATIO
+        current_event['heat_delivered_kWh'] = current_event['heat_delivered_J'] * 2.77778e-7
         
-        # If the last draw event is still active, close it out.
-        if is_draw_active and current_event and current_event['water_volume_L'] > 0:
-            current_event['water_volume_gal'] = current_event['water_volume_L'] * L_TO_GAL_RATIO
-            current_event['heat_delivered_kWh'] = current_event['heat_delivered_J'] * 2.77778e-7
-            draw_events.append(current_event)
+        # Calculate average temperature if first_hour_test is enabled
+        if first_hour_test and current_event['temp_readings']:
+            current_event['avg_temp'] = sum(current_event['temp_readings']) / len(current_event['temp_readings'])
+            
+        draw_events.append(current_event)
+    
+    total_water_volume_gal = total_water_volume_L * L_TO_GAL_RATIO
+    max_water_volume_gal = max_water_volume_L * L_TO_GAL_RATIO
+    total_heat_delivered_kWh = total_heat_delivered_J * 2.77778e-7
+    total_energy_used_kwh = sum(df_copy[energy_used]) / 60 / 1000
+    
+    # Special calculation for first hour test
+    if first_hour_test and len(draw_events) >= 2:
+        # For the final draw calculation
+        final_draw = draw_events[-1]
+        second_to_final_draw = draw_events[-2]
         
-        total_water_volume_gal = total_water_volume_L * L_TO_GAL_RATIO
-        max_water_volume_gal = max_water_volume_L * L_TO_GAL_RATIO
-        total_heat_delivered_kWh = total_heat_delivered_J * 2.77778e-7
-        total_energy_used_kwh = sum(df[energy_used]) / 60 / 1000
+        # Check if final draw meets the criteria (at least 30 seconds and above cutoff temp)
+        duration_seconds = (final_draw['end_time'] - final_draw['start_time']).total_seconds() \
+            if isinstance(final_draw['end_time'], pd.Timestamp) \
+            else final_draw['end_time'] - final_draw['start_time']
         
-        output[file] = {
-            'total_water_volume_L': total_water_volume_L,
-            'total_water_volume_gal': total_water_volume_gal,
-            'total_energy_used_kwh': total_energy_used_kwh,
-            'total_heat_delivered_J': total_heat_delivered_J,
-            'total_heat_delivered_kWh': total_heat_delivered_kWh,
-            'max_possible_hot_water': max_water_volume_gal,
-            'draw_events': draw_events,
-            'num_draw_events': len(draw_events)
-        }
-    return output  
+        if duration_seconds >= 30 and final_draw['max_temp'] >= water_temp_cutoff:
+            # Calculate adjustment using the formula
+            adjustment_factor = ((final_draw['avg_temp'] - second_to_final_draw['min_temp']) / 
+                                 (second_to_final_draw['avg_temp'] - second_to_final_draw['min_temp'])
+                                 if second_to_final_draw['avg_temp'] > second_to_final_draw['min_temp'] else 0)
+            
+            # Calculate the adjusted total volume
+            # adjusted_volume_gal = (total_water_volume_gal - final_draw['water_volume_gal']) + \
+            #                       (final_draw['water_volume_gal'] * adjustment_factor)
+            
+            adjusted_volume_gal = total_water_volume_gal
+            
+            # Update the total volume
+            total_water_volume_gal = adjusted_volume_gal
+            total_water_volume_L = total_water_volume_gal / L_TO_GAL_RATIO
+    
+    result = {
+        'total_water_volume_L': total_water_volume_L,
+        'total_water_volume_gal': total_water_volume_gal,
+        'total_energy_used_kwh': total_energy_used_kwh,
+        'total_heat_delivered_J': total_heat_delivered_J,
+        'total_heat_delivered_kWh': total_heat_delivered_kWh,
+        'max_possible_hot_water': max_water_volume_gal,
+        'draw_events': draw_events,
+        'num_draw_events': len(draw_events)
+    }
+    
+    return (file_key, result)
+
+
+def parallel_calculate_hot_water_delivered(dfs, first_hour_test=False, num_processes=None):
+    """
+    Parallel version of calculate_hot_water_delivered that processes multiple dataframes
+    concurrently using multiprocessing.
+    
+    Parameters:
+    -----------
+    dfs : dict
+        Dictionary of dataframes with time series data
+    first_hour_test : bool, optional
+        When True, applies special logic for the first hour test
+    num_processes : int, optional
+        Number of processes to use. Defaults to CPU count
+        
+    Returns:
+    --------
+    output : dict
+        Dictionary with calculation results for each file
+    """
+    # Default to number of CPUs if not specified
+    if num_processes is None:
+        num_processes = multiprocessing.cpu_count()
+    
+    # Create a pool of workers
+    pool = multiprocessing.Pool(processes=min(num_processes, len(dfs)))
+    
+    # Create a partial function with fixed first_hour_test parameter
+    process_func = functools.partial(process_single_df, first_hour_test=first_hour_test)
+    
+    # Process each dataframe in parallel
+    results = pool.starmap(process_func, dfs.items())
+    
+    # Close the pool and wait for all processes to complete
+    pool.close()
+    pool.join()
+    
+    # Combine results into a dictionary
+    output = dict(results)
+    
+    return output
+
 
 # Predefined lookup arrays for water properties at 1 atm.
 _TEMPS = np.array([0, 4, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], dtype=float)
@@ -526,19 +820,36 @@ def calculate_net_water_temp(df):
 
     return average_end_temp - average_start_temp
 
+COLOR_PALETTE = [
+    "#377eb8",  # 1 - Blue
+    "#e41a1c",  # 2 - Red
+    "#4daf4a",  # 3 - Green
+    "#984ea3",  # 4 - Purple
+    "#ff7f00",  # 5 - Orange
+    "#a65628",  # 6 - Brown
+    "#f781bf",  # 7 - Pink
+    "#999999",  # 8 - Grey
+    "#dede00",  # 9 - Yellow
+    "#17becf",  # 10 - Cyan
+    "#bcbd22",  # 11 - Olive
+    "#1f78b4",  # 12 - Deep Blue
+]
+
+def get_column_index(col):
+    """Extract index from column name like 'T_WH_3' or 'T_PCM_7'."""
+    match = re.search(r'(\d+)$', col)
+    if match:
+        return int(match.group(1)) - 1  # Make it 0-based
+    return 0  # Fallback if no number is found
+
 def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
-    """Create separate temperature plots for each pattern group in each file,
-    with upper and lower heating element overlays on the water temperature curves."""
+    """Create temperature plots with static color palette for trace indices."""
     all_figs = []
-    figure_metadata = []  # List to store metadata separately
-    water_temp_cutoff = 43.3333  # 110 F 15 deg delta from 125 F for UEF test
-    # water_temp_cutoff = 40.5556  # 105 F test
+    figure_metadata = []
+    water_temp_cutoff = 43.3333  # 110 F
 
     for i, (file, df) in enumerate(dfs.items()):
-        # Get UEF value for this file
         uef = uef_values[i]
-
-        # Find matching columns for this file
         column_groups = find_matching_columns(df, patterns)
 
         # Extract additional parameters for title
@@ -548,32 +859,26 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
         if pcm_mass_col not in df.columns:
             pcm_mass = 0.0
         else:
-            pcm_mass = df[pcm_mass_col].iloc[-1] # in kg
-            
+            pcm_mass = df[pcm_mass_col].iloc[-1]
         matched_h_cols = next((col for col in df.columns if pcm_h_col_pattern.fullmatch(col)), None) 
         match_sa_col = next((col for col in df.columns if pcm_sa_col_pattern.fullmatch(col)), None) 
-        
-        if matched_h_cols is not None:
-            pcm_h = df[matched_h_cols].iloc[-1]
-
-        if match_sa_col is not None:
-            pcm_sa = df[match_sa_col].iloc[-1]
+        pcm_h = df[matched_h_cols].iloc[-1] if matched_h_cols is not None else 0.0
+        pcm_sa = df[match_sa_col].iloc[-1] if match_sa_col is not None else 0.0
 
         water_volume_col = "Water Volume (L)"
+        L_TO_GAL_RATIO = 0.264172
         if water_volume_col not in df.columns:
-            water_volume_gal = 45.0
+            water_volume_gal = 50 * .9
         else:
             water_volume_gal = df[water_volume_col].iloc[-1] * L_TO_GAL_RATIO
 
-        # Create a plot for each pattern that has matching columns
+        # Create a plot for each pattern
         for pattern, columns in column_groups.items():
-            if not columns:  # Skip if no matching columns found
+            if not columns:
                 continue
-
-            # Create a new figure
             fig = go.Figure()
 
-            # Determine the overall temperature range across all columns for this pattern
+            # Determine the temperature range
             temp_min = float('inf')
             temp_max = float('-inf')
             for col in columns:
@@ -582,25 +887,28 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
             temp_range = temp_max - temp_min
             temp_padding = temp_range * 0.1
 
-            # Add temperature traces for each matching column
+            # Add temperature traces with static color assignment
             for col in columns:
+                col_idx = get_column_index(col)
+                color = COLOR_PALETTE[col_idx % len(COLOR_PALETTE)]
                 fig.add_trace(
                     go.Scatter(
                         x=df['Time'],
                         y=df[col],
                         mode='lines',
-                        name=col
+                        name=col,
+                        line=dict(color=color)
                     )
                 )
 
-            # Add heating element overlays if the "Water Heating Mode" column is present
+            # [Rest of your overlay/annotation code here, unchanged]
             if 'Water Heating Mode' in df.columns:
                 upper_regions = []
                 lower_regions = []
+                heat_pump_regions = []
                 mode_data = df['Water Heating Mode']
                 time_data = df['Time']
 
-                # Identify regions when the upper element is on
                 in_upper_segment = False
                 for j in range(len(mode_data)):
                     mode_str = str(mode_data.iloc[j])
@@ -618,8 +926,6 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
                     start_time = time_data.iloc[upper_segment_start]
                     end_time = time_data.iloc[upper_segment_end]
                     upper_regions.append((start_time, end_time))
-
-                # Identify regions when the lower element is on
                 in_lower_segment = False
                 for j in range(len(mode_data)):
                     mode_str = str(mode_data.iloc[j])
@@ -637,8 +943,25 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
                     start_time = time_data.iloc[lower_segment_start]
                     end_time = time_data.iloc[lower_segment_end]
                     lower_regions.append((start_time, end_time))
+                in_heat_pump_segment = False
+                for j in range(len(mode_data)):
+                    mode_str = str(mode_data.iloc[j])
+                    if 'Heat Pump On' in mode_str and not in_heat_pump_segment:
+                        heat_pump_segment_start = j
+                        in_heat_pump_segment = True
+                    elif 'Heat Pump On' not in mode_str and in_heat_pump_segment:
+                        heat_pump_segment_end = j
+                        in_heat_pump_segment = False
+                        start_time = time_data.iloc[heat_pump_segment_start]
+                        end_time = time_data.iloc[heat_pump_segment_end]
+                        heat_pump_regions.append((start_time, end_time))
+                if in_heat_pump_segment:
+                    heat_pump_segment_end = len(mode_data) - 1
+                    start_time = time_data.iloc[heat_pump_segment_start]
+                    end_time = time_data.iloc[heat_pump_segment_end]
+                    heat_pump_regions.append((start_time, end_time))
 
-                # Add blue overlay for upper element on regions
+                # Add overlays
                 for j, (start_time, end_time) in enumerate(upper_regions):
                     fig.add_trace(
                         go.Scatter(
@@ -647,7 +970,7 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
                                temp_max + temp_padding, temp_max + temp_padding,
                                temp_min - temp_padding],
                             fill="toself",
-                            fillcolor="rgba(255, 0, 0, 0.3)",
+                            fillcolor="rgba(255, 0, 0, 0.15)",
                             line=dict(width=0),
                             mode="none",
                             name="Upper Element On" if j == 0 else "",
@@ -656,7 +979,6 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
                             hoverinfo="skip"
                         )
                     )
-                # Add red overlay for lower element on regions
                 for j, (start_time, end_time) in enumerate(lower_regions):
                     fig.add_trace(
                         go.Scatter(
@@ -665,7 +987,7 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
                                temp_max + temp_padding, temp_max + temp_padding,
                                temp_min - temp_padding],
                             fill="toself",
-                            fillcolor="rgba(0, 0, 255, 0.3)",
+                            fillcolor="rgba(0, 0, 255, 0.15)",
                             line=dict(width=0),
                             mode="none",
                             name="Lower Element On" if j == 0 else "",
@@ -674,42 +996,808 @@ def create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM']):
                             hoverinfo="skip"
                         )
                     )
+                for j, (start_time, end_time) in enumerate(heat_pump_regions):
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[start_time, end_time, end_time, start_time, start_time],
+                            y=[temp_min - temp_padding, temp_min - temp_padding,
+                               temp_max + temp_padding, temp_max + temp_padding,
+                               temp_min - temp_padding],
+                            fill="toself",
+                            fillcolor="rgba(0, 255, 0, 0.15)",
+                            line=dict(width=0),
+                            mode="none",
+                            name="Heat Pump On" if j == 0 else "",
+                            showlegend=True if j == 0 else False,
+                            legendgroup="heat_pump",
+                            hoverinfo="skip"
+                        )
+                    )
 
-
-            # Add hot water cutoff line
-            fig.add_trace(
-                go.Scatter(
-                    x=df['Time'], y=[water_temp_cutoff for _ in df['Time']],  # invisible point 
-                    mode='lines',
-                    line=dict(color='red', width=1),
-                    name=f'Hot Water Cutoff Temp ({c_to_f(water_temp_cutoff)}°F)',
-                    showlegend=True
-                )
-            )
-            # Update the layout with UEF and other file-specific info in the title
             fig.update_layout(
                 title=f'{pattern} Temperatures - {file}<br>'
                       f'UEF: {uef:.3f} | PCM h: {pcm_h:.2f} W/m^2K | PCM SA Ratio: {pcm_sa:.2f} | PCM Mass: {pcm_mass:.3f} kg | '
                       f'Water Volume: {water_volume_gal:.1f} gal',
                 xaxis_title='Time',
-                yaxis_title='Temperature',
+                yaxis_title='Temperature (°C)',
                 height=600,
                 showlegend=True
             )
             fig.update_yaxes(range=[temp_min - temp_padding, temp_max + temp_padding])
 
-            # Store metadata for later reference
+            # pick your index window
+            # start_idx = 1200
+            # end_idx   = 1280
+            # draw_end_idx = 1230
+            # t0 = df['Time'].iloc[start_idx]
+            # t1 = df['Time'].iloc[end_idx]
+            # t_draw_end = df['Time'].iloc[draw_end_idx]
+            # fig.update_xaxes(range=[t0, t1])
+
+            fig.add_shape(
+                type="line",
+                xref="paper", x0=0, x1=1,
+                yref="y",     y0=water_temp_cutoff, y1=water_temp_cutoff,
+                line=dict(color="red", width=1, dash="dash")
+            )
+            fig.add_annotation(
+                xref="paper", x=1, 
+                y=water_temp_cutoff,
+                xanchor="right", yanchor="bottom",
+                text="110 °F Cutoff Temp",
+                showarrow=False
+            )
+
             figure_metadata.append({
                 'pattern': pattern,
                 'file': file,
                 'type': 'temperature_pattern'
             })
-            
-
 
             all_figs.append(fig)
 
     return all_figs, figure_metadata
+
+def create_energy_output_plots(dfs, uef_values):
+    """Create energy output plots showing instantaneous power and cumulative energy over time."""
+    all_figs = []
+    figure_metadata = []
+    
+    # Constants for energy calculation
+    DENSITY = 1000  # kg/m³
+    CP = 4184  # J/kg·K
+    INLET_TEMP_COL = 'Hot Water Mains Temperature (C)'
+    OUTLET_TEMP_COL = 'Hot Water Outlet Temperature (C)'
+    OUTLET_VOLUME_COL = 'Hot Water Delivered (L/min)'
+    MAX_OUTLET_TEMP = 51.67  # 125°F in Celsius
+    MIN_FLOW_RATE = 11.356  # 3 gpm in L/min (3 * 3.78541)
+
+    for i, (file, df) in enumerate(dfs.items()):
+        uef = uef_values[i]
+
+        # Extract additional parameters for title
+        pcm_mass_col = "PCM Mass (kg)"
+        pcm_h_col_pattern = re.compile(r"Water Tank PCM\d+ h \(W/m\^2K\)")
+        pcm_sa_col_pattern = re.compile(r"Water Tank PCM\d+ sa_ratio") 
+        if pcm_mass_col not in df.columns:
+            pcm_mass = 0.0
+        else:
+            pcm_mass = df[pcm_mass_col].iloc[-1]
+        matched_h_cols = next((col for col in df.columns if pcm_h_col_pattern.fullmatch(col)), None) 
+        match_sa_col = next((col for col in df.columns if pcm_sa_col_pattern.fullmatch(col)), None) 
+        pcm_h = df[matched_h_cols].iloc[-1] if matched_h_cols is not None else 0.0
+        pcm_sa = df[match_sa_col].iloc[-1] if match_sa_col is not None else 0.0
+
+        water_volume_col = "Water Volume (L)"
+        L_TO_GAL_RATIO = 0.264172
+        if water_volume_col not in df.columns:
+            water_volume_gal = 50 * .9
+        else:
+            water_volume_gal = df[water_volume_col].iloc[-1] * L_TO_GAL_RATIO
+
+        # Calculate energy output
+        instantaneous_power_kw = None
+        cumulative_energy_kwh = None
+        total_energy_kwh = 0.0
+        
+        if INLET_TEMP_COL in df.columns and OUTLET_TEMP_COL in df.columns and OUTLET_VOLUME_COL in df.columns:
+            try:
+                # Convert to numeric, handling any string values
+                inlet_temp = pd.to_numeric(df[INLET_TEMP_COL], errors='coerce')
+                outlet_temp = pd.to_numeric(df[OUTLET_TEMP_COL], errors='coerce')
+                flow_rate = pd.to_numeric(df[OUTLET_VOLUME_COL], errors='coerce')
+                # time_values = pd.to_numeric(df['TimeStamp'], errors='coerce')
+                time_values = pd(df['Time'])
+                
+                # Drop any rows with NaN values
+                valid_mask = ~(inlet_temp.isna() | outlet_temp.isna() | flow_rate.isna() | time_values.isna())
+                if valid_mask.sum() > 1:  # Need at least 2 valid points
+                    inlet_temp = inlet_temp[valid_mask]
+                    outlet_temp = outlet_temp[valid_mask]
+                    flow_rate = flow_rate[valid_mask]
+                    time_values = time_values[valid_mask].reset_index(drop=True)
+                    
+                    # Get effective outlet temperature (min of 125°F and actual outlet temp)
+                    effective_outlet_temp = outlet_temp.clip(upper=MAX_OUTLET_TEMP)
+                    
+                    # Get effective flow rate (max of 3 gpm and actual flow rate)
+                    effective_flow_rate = flow_rate.clip(lower=MIN_FLOW_RATE)
+                    
+                    # Calculate delta T
+                    delta_t = effective_outlet_temp - inlet_temp
+                    
+                    # Only calculate power when there's actually hot water being delivered (delta_t > 0)
+                    delta_t = delta_t.clip(lower=0)
+                    
+                    # Calculate instantaneous power (W) = density * cp * flow_rate * delta_t
+                    # Convert L/min to L/s by dividing by 60
+                    # Convert L to m³ by dividing by 1000
+                    flow_rate_m3_s = effective_flow_rate / (60 * 1000)
+                    instantaneous_power = DENSITY * CP * flow_rate_m3_s * delta_t
+                    instantaneous_power_kw = instantaneous_power / 1000  # Convert W to kW
+                    
+                    # Calculate time step - using 0.5 seconds as fixed timestep
+                    time_step_seconds = 0.5
+                    
+                    # Calculate cumulative energy in kWh
+                    energy_increment_kwh = (instantaneous_power_kw * time_step_seconds) / 3600  # Convert to kWh
+                    cumulative_energy_kwh = energy_increment_kwh.cumsum()
+                    total_energy_kwh = cumulative_energy_kwh.iloc[-1]
+                    
+            except Exception as e:
+                print(f"Error calculating energy for {file}: {e}")
+                total_energy_kwh = 0.0
+
+        # Create the energy plot
+        fig = go.Figure()
+        
+        if instantaneous_power_kw is not None and cumulative_energy_kwh is not None:
+            # Add instantaneous power trace
+            fig.add_trace(
+                go.Scatter(
+                    x=time_values,
+                    y=instantaneous_power_kw,
+                    mode='lines',
+                    name='Instantaneous Power (kW)',
+                    line=dict(color='blue'),
+                    yaxis='y'
+                )
+            )
+            
+            # Add cumulative energy trace on secondary y-axis
+            fig.add_trace(
+                go.Scatter(
+                    x=time_values,
+                    y=cumulative_energy_kwh,
+                    mode='lines',
+                    name='Cumulative Energy (kWh)',
+                    line=dict(color='red'),
+                    yaxis='y2'
+                )
+            )
+        else:
+            # Add empty traces if no data available
+            fig.add_trace(
+                go.Scatter(
+                    x=[],
+                    y=[],
+                    mode='lines',
+                    name='No Energy Data Available',
+                    line=dict(color='gray')
+                )
+            )
+
+        # Add heating mode overlays if available
+        if 'Water Heating Mode' in df.columns and instantaneous_power_kw is not None:
+            # Get y-axis ranges for overlays
+            power_min = instantaneous_power_kw.min() if len(instantaneous_power_kw) > 0 else 0
+            power_max = instantaneous_power_kw.max() if len(instantaneous_power_kw) > 0 else 1
+            power_range = power_max - power_min
+            power_padding = power_range * 0.1
+            
+            upper_regions = []
+            lower_regions = []
+            heat_pump_regions = []
+            mode_data = df['Water Heating Mode']
+            time_data = df['Time']
+
+            # Extract heating mode regions (same logic as before)
+            in_upper_segment = False
+            for j in range(len(mode_data)):
+                mode_str = str(mode_data.iloc[j])
+                if 'Upper On' in mode_str and not in_upper_segment:
+                    upper_segment_start = j
+                    in_upper_segment = True
+                elif 'Upper On' not in mode_str and in_upper_segment:
+                    upper_segment_end = j
+                    in_upper_segment = False
+                    start_time = time_data.iloc[upper_segment_start]
+                    end_time = time_data.iloc[upper_segment_end]
+                    upper_regions.append((start_time, end_time))
+            if in_upper_segment:
+                upper_segment_end = len(mode_data) - 1
+                start_time = time_data.iloc[upper_segment_start]
+                end_time = time_data.iloc[upper_segment_end]
+                upper_regions.append((start_time, end_time))
+                
+            in_lower_segment = False
+            for j in range(len(mode_data)):
+                mode_str = str(mode_data.iloc[j])
+                if 'Lower On' in mode_str and not in_lower_segment:
+                    lower_segment_start = j
+                    in_lower_segment = True
+                elif 'Lower On' not in mode_str and in_lower_segment:
+                    lower_segment_end = j
+                    in_lower_segment = False
+                    start_time = time_data.iloc[lower_segment_start]
+                    end_time = time_data.iloc[lower_segment_end]
+                    lower_regions.append((start_time, end_time))
+            if in_lower_segment:
+                lower_segment_end = len(mode_data) - 1
+                start_time = time_data.iloc[lower_segment_start]
+                end_time = time_data.iloc[lower_segment_end]
+                lower_regions.append((start_time, end_time))
+                
+            in_heat_pump_segment = False
+            for j in range(len(mode_data)):
+                mode_str = str(mode_data.iloc[j])
+                if 'Heat Pump On' in mode_str and not in_heat_pump_segment:
+                    heat_pump_segment_start = j
+                    in_heat_pump_segment = True
+                elif 'Heat Pump On' not in mode_str and in_heat_pump_segment:
+                    heat_pump_segment_end = j
+                    in_heat_pump_segment = False
+                    start_time = time_data.iloc[heat_pump_segment_start]
+                    end_time = time_data.iloc[heat_pump_segment_end]
+                    heat_pump_regions.append((start_time, end_time))
+            if in_heat_pump_segment:
+                heat_pump_segment_end = len(mode_data) - 1
+                start_time = time_data.iloc[heat_pump_segment_start]
+                end_time = time_data.iloc[heat_pump_segment_end]
+                heat_pump_regions.append((start_time, end_time))
+
+            # Add overlays
+            for j, (start_time, end_time) in enumerate(upper_regions):
+                fig.add_trace(
+                    go.Scatter(
+                        x=[start_time, end_time, end_time, start_time, start_time],
+                        y=[power_min - power_padding, power_min - power_padding,
+                           power_max + power_padding, power_max + power_padding,
+                           power_min - power_padding],
+                        fill="toself",
+                        fillcolor="rgba(255, 0, 0, 0.15)",
+                        line=dict(width=0),
+                        mode="none",
+                        name="Upper Element On" if j == 0 else "",
+                        showlegend=True if j == 0 else False,
+                        legendgroup="upper_elements",
+                        hoverinfo="skip",
+                        yaxis='y'
+                    )
+                )
+            for j, (start_time, end_time) in enumerate(lower_regions):
+                fig.add_trace(
+                    go.Scatter(
+                        x=[start_time, end_time, end_time, start_time, start_time],
+                        y=[power_min - power_padding, power_min - power_padding,
+                           power_max + power_padding, power_max + power_padding,
+                           power_min - power_padding],
+                        fill="toself",
+                        fillcolor="rgba(0, 0, 255, 0.15)",
+                        line=dict(width=0),
+                        mode="none",
+                        name="Lower Element On" if j == 0 else "",
+                        showlegend=True if j == 0 else False,
+                        legendgroup="lower_elements",
+                        hoverinfo="skip",
+                        yaxis='y'
+                    )
+                )
+            for j, (start_time, end_time) in enumerate(heat_pump_regions):
+                fig.add_trace(
+                    go.Scatter(
+                        x=[start_time, end_time, end_time, start_time, start_time],
+                        y=[power_min - power_padding, power_min - power_padding,
+                           power_max + power_padding, power_max + power_padding,
+                           power_min - power_padding],
+                        fill="toself",
+                        fillcolor="rgba(0, 255, 0, 0.15)",
+                        line=dict(width=0),
+                        mode="none",
+                        name="Heat Pump On" if j == 0 else "",
+                        showlegend=True if j == 0 else False,
+                        legendgroup="heat_pump",
+                        hoverinfo="skip",
+                        yaxis='y'
+                    )
+                )
+
+        # Create secondary y-axis for cumulative energy
+        fig.update_layout(
+            title=f'Energy Output - {file}<br>'
+                  f'UEF: {uef:.3f} | PCM h: {pcm_h:.2f} W/m^2K | PCM SA Ratio: {pcm_sa:.2f} | PCM Mass: {pcm_mass:.3f} kg | '
+                  f'Water Volume: {water_volume_gal:.1f} gal | Total Energy: {total_energy_kwh:.2f} kWh',
+            xaxis_title='Time',
+            yaxis=dict(
+                title='Instantaneous Power (kW)',
+                side='left'
+            ),
+            yaxis2=dict(
+                title='Cumulative Energy (kWh)',
+                side='right',
+                overlaying='y'
+            ),
+            height=600,
+            showlegend=True
+        )
+
+        figure_metadata.append({
+            'file': file,
+            'type': 'energy_output',
+            'total_energy_kwh': total_energy_kwh
+        })
+
+        all_figs.append(fig)
+
+    return all_figs, figure_metadata
+
+def create_water_flow_temperature_plots(dfs, uef_values, outlet_gpm=3):
+    """Create water flow and temperature mixing plots with power state shading."""
+    all_figs = []
+    figure_metadata = []
+    water_temp_cutoff = 43.3333  # 110 F
+    GAL_TO_L = 3.78541  # gallons to liters conversion
+    outlet_lpm = outlet_gpm * GAL_TO_L  # Convert GPM to L/min
+
+    for i, (file, df) in enumerate(dfs.items()):
+        uef = uef_values[i]
+        
+        # Check if required columns exist
+        required_columns = [
+            'Hot Water Delivered (L/min)',
+            'Hot Water Outlet Temperature (C)',
+            'Hot Water Mains Temperature (C)'
+        ]
+        
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            print(f"Skipping {file}: Missing columns {missing_columns}")
+            continue
+
+        # Extract additional parameters for title
+        pcm_mass_col = "PCM Mass (kg)"
+        pcm_h_col_pattern = re.compile(r"Water Tank PCM\d+ h \(W/m\^2K\)")
+        pcm_sa_col_pattern = re.compile(r"Water Tank PCM\d+ sa_ratio") 
+        if pcm_mass_col not in df.columns:
+            pcm_mass = 0.0
+        else:
+            pcm_mass = df[pcm_mass_col].iloc[-1]
+        matched_h_cols = next((col for col in df.columns if pcm_h_col_pattern.fullmatch(col)), None) 
+        match_sa_col = next((col for col in df.columns if pcm_sa_col_pattern.fullmatch(col)), None) 
+        pcm_h = df[matched_h_cols].iloc[-1] if matched_h_cols is not None else 0.0
+        pcm_sa = df[match_sa_col].iloc[-1] if match_sa_col is not None else 0.0
+
+        water_volume_col = "Water Volume (L)"
+        L_TO_GAL_RATIO = 0.264172
+        if water_volume_col not in df.columns:
+            water_volume_gal = 50 * .9
+        else:
+            water_volume_gal = df[water_volume_col].iloc[-1] * L_TO_GAL_RATIO
+
+        # Calculate derived values
+        df_calc = df.copy()
+        
+        # Filter for times when hot water is being delivered
+        hot_water_mask = df_calc['Hot Water Delivered (L/min)'] > 0
+        
+        # Calculate cold water flow rate (mains water flow)
+        # Calculate cold water flow rate (mains water flow)
+        # Only when there's hot water flow, otherwise cold water flow should be 0
+        df_calc['Cold Water Flow (L/min)'] = 0.0
+        df_calc.loc[hot_water_mask, 'Cold Water Flow (L/min)'] = (
+            outlet_lpm - df_calc.loc[hot_water_mask, 'Hot Water Delivered (L/min)']
+        )
+        
+        # Calculate mixed temperature using energy balance
+        # T_mixed = (m_hot * T_hot + m_cold * T_cold) / (m_hot + m_cold)
+        # Where mass flow rates are proportional to volumetric flow rates (assuming constant density)
+        hot_flow = df_calc['Hot Water Delivered (L/min)']
+        cold_flow = df_calc['Cold Water Flow (L/min)']
+        hot_temp = df_calc['Hot Water Outlet Temperature (C)']
+        cold_temp = df_calc['Hot Water Mains Temperature (C)']
+        
+        # Only calculate mixed temperature when there's hot water flow
+        df_calc['Mixed Temperature (C)'] = 0.0
+        valid_flow_mask = (hot_flow > 0) & (cold_flow >= 0)
+        df_calc.loc[valid_flow_mask, 'Mixed Temperature (C)'] = (
+            (hot_flow[valid_flow_mask] * hot_temp[valid_flow_mask] + 
+             cold_flow[valid_flow_mask] * cold_temp[valid_flow_mask]) / 
+            (hot_flow[valid_flow_mask] + cold_flow[valid_flow_mask])
+        )
+
+        # Create the plot
+        fig = go.Figure()
+
+        # Define colors for different traces
+        colors = {
+            'outlet_flow': '#1f77b4',      # Blue
+            'hot_delivered': '#ff7f0e',    # Orange
+            'hot_temp': '#d62728',         # Red
+            'mains_temp': '#2ca02c',       # Green
+            'cold_flow': '#9467bd',        # Purple
+            'mixed_temp': '#8c564b'        # Brown
+        }
+
+        # Only plot outlet flow rate when hot water is being delivered
+        outlet_flow_data = pd.Series(0.0, index=df_calc.index)
+        outlet_flow_data[hot_water_mask] = outlet_lpm
+        
+        # Add flow rate traces
+        fig.add_trace(
+            go.Scatter(
+                x=df_calc['Time'],
+                y=outlet_flow_data,
+                mode='lines',
+                name=f'Outlet Flow Rate ({outlet_gpm} GPM)',
+                line=dict(color=colors['outlet_flow'], width=2),
+                yaxis='y2'
+            )
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=df_calc['Time'],
+                y=df_calc['Hot Water Delivered (L/min)'],
+                mode='lines',
+                name='Hot Water Delivered (L/min)',
+                line=dict(color=colors['hot_delivered'], width=2),
+                yaxis='y2'
+            )
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=df_calc['Time'],
+                y=df_calc['Cold Water Flow (L/min)'],
+                mode='lines',
+                name='Cold Water Flow (L/min)',
+                line=dict(color=colors['cold_flow'], width=2),
+                yaxis='y2'
+            )
+        )
+
+        # Add temperature traces
+        fig.add_trace(
+            go.Scatter(
+                x=df_calc['Time'],
+                y=df_calc['Hot Water Outlet Temperature (C)'],
+                mode='lines',
+                name='Hot Water Outlet Temperature (°C)',
+                line=dict(color=colors['hot_temp'], width=2)
+            )
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=df_calc['Time'],
+                y=df_calc['Hot Water Mains Temperature (C)'],
+                mode='lines',
+                name='Water Mains Temperature (°C)',
+                line=dict(color=colors['mains_temp'], width=2)
+            )
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=df_calc['Time'],
+                y=df_calc['Mixed Temperature (C)'],
+                mode='lines',
+                name='Mixed Output Temperature (°C)',
+                line=dict(color=colors['mixed_temp'], width=2)
+            )
+        )
+
+        # Determine temperature and flow ranges for shading
+        temp_cols = ['Hot Water Outlet Temperature (C)', 'Hot Water Mains Temperature (C)', 'Mixed Temperature (C)']
+        temp_data = df_calc[temp_cols].values.flatten()
+        temp_data = temp_data[~pd.isna(temp_data)]
+        temp_min = temp_data.min()
+        temp_max = temp_data.max()
+        temp_range = temp_max - temp_min
+        temp_padding = temp_range * 0.1
+
+        flow_cols = ['Hot Water Delivered (L/min)', 'Cold Water Flow (L/min)']
+        flow_data = df_calc[flow_cols].values.flatten()
+        flow_data = flow_data[~pd.isna(flow_data)]
+        flow_max = max(flow_data.max(), outlet_lpm)
+        flow_min = 0
+        flow_padding = flow_max * 0.1
+
+        # Add power state shading (same as original function)
+        if 'Water Heating Mode' in df.columns:
+            upper_regions = []
+            lower_regions = []
+            heat_pump_regions = []
+            mode_data = df['Water Heating Mode']
+            time_data = df['Time']
+
+            # Extract upper element regions
+            in_upper_segment = False
+            for j in range(len(mode_data)):
+                mode_str = str(mode_data.iloc[j])
+                if 'Upper On' in mode_str and not in_upper_segment:
+                    upper_segment_start = j
+                    in_upper_segment = True
+                elif 'Upper On' not in mode_str and in_upper_segment:
+                    upper_segment_end = j
+                    in_upper_segment = False
+                    start_time = time_data.iloc[upper_segment_start]
+                    end_time = time_data.iloc[upper_segment_end]
+                    upper_regions.append((start_time, end_time))
+            if in_upper_segment:
+                upper_segment_end = len(mode_data) - 1
+                start_time = time_data.iloc[upper_segment_start]
+                end_time = time_data.iloc[upper_segment_end]
+                upper_regions.append((start_time, end_time))
+
+            # Extract lower element regions
+            in_lower_segment = False
+            for j in range(len(mode_data)):
+                mode_str = str(mode_data.iloc[j])
+                if 'Lower On' in mode_str and not in_lower_segment:
+                    lower_segment_start = j
+                    in_lower_segment = True
+                elif 'Lower On' not in mode_str and in_lower_segment:
+                    lower_segment_end = j
+                    in_lower_segment = False
+                    start_time = time_data.iloc[lower_segment_start]
+                    end_time = time_data.iloc[lower_segment_end]
+                    lower_regions.append((start_time, end_time))
+            if in_lower_segment:
+                lower_segment_end = len(mode_data) - 1
+                start_time = time_data.iloc[lower_segment_start]
+                end_time = time_data.iloc[lower_segment_end]
+                lower_regions.append((start_time, end_time))
+
+            # Extract heat pump regions
+            in_heat_pump_segment = False
+            for j in range(len(mode_data)):
+                mode_str = str(mode_data.iloc[j])
+                if 'Heat Pump On' in mode_str and not in_heat_pump_segment:
+                    heat_pump_segment_start = j
+                    in_heat_pump_segment = True
+                elif 'Heat Pump On' not in mode_str and in_heat_pump_segment:
+                    heat_pump_segment_end = j
+                    in_heat_pump_segment = False
+                    start_time = time_data.iloc[heat_pump_segment_start]
+                    end_time = time_data.iloc[heat_pump_segment_end]
+                    heat_pump_regions.append((start_time, end_time))
+            if in_heat_pump_segment:
+                heat_pump_segment_end = len(mode_data) - 1
+                start_time = time_data.iloc[heat_pump_segment_start]
+                end_time = time_data.iloc[heat_pump_segment_end]
+                heat_pump_regions.append((start_time, end_time))
+
+            # Add overlays for power states
+            for j, (start_time, end_time) in enumerate(upper_regions):
+                fig.add_trace(
+                    go.Scatter(
+                        x=[start_time, end_time, end_time, start_time, start_time],
+                        y=[temp_min - temp_padding, temp_min - temp_padding,
+                           temp_max + temp_padding, temp_max + temp_padding,
+                           temp_min - temp_padding],
+                        fill="toself",
+                        fillcolor="rgba(255, 0, 0, 0.15)",
+                        line=dict(width=0),
+                        mode="none",
+                        name="Upper Element On" if j == 0 else "",
+                        showlegend=True if j == 0 else False,
+                        legendgroup="upper_elements",
+                        hoverinfo="skip"
+                    )
+                )
+            for j, (start_time, end_time) in enumerate(lower_regions):
+                fig.add_trace(
+                    go.Scatter(
+                        x=[start_time, end_time, end_time, start_time, start_time],
+                        y=[temp_min - temp_padding, temp_min - temp_padding,
+                           temp_max + temp_padding, temp_max + temp_padding,
+                           temp_min - temp_padding],
+                        fill="toself",
+                        fillcolor="rgba(0, 0, 255, 0.15)",
+                        line=dict(width=0),
+                        mode="none",
+                        name="Lower Element On" if j == 0 else "",
+                        showlegend=True if j == 0 else False,
+                        legendgroup="lower_elements",
+                        hoverinfo="skip"
+                    )
+                )
+            for j, (start_time, end_time) in enumerate(heat_pump_regions):
+                fig.add_trace(
+                    go.Scatter(
+                        x=[start_time, end_time, end_time, start_time, start_time],
+                        y=[temp_min - temp_padding, temp_min - temp_padding,
+                           temp_max + temp_padding, temp_max + temp_padding,
+                           temp_min - temp_padding],
+                        fill="toself",
+                        fillcolor="rgba(0, 255, 0, 0.15)",
+                        line=dict(width=0),
+                        mode="none",
+                        name="Heat Pump On" if j == 0 else "",
+                        showlegend=True if j == 0 else False,
+                        legendgroup="heat_pump",
+                        hoverinfo="skip"
+                    )
+                )
+
+        # Update layout with dual y-axes
+        fig.update_layout(
+            title=f'Water Flow and Temperature Analysis - {file}<br>'
+                  f'UEF: {uef:.3f} | PCM h: {pcm_h:.2f} W/m^2K | PCM SA Ratio: {pcm_sa:.2f} | PCM Mass: {pcm_mass:.3f} kg | '
+                  f'Water Volume: {water_volume_gal:.1f} gal | Outlet: {outlet_gpm} GPM',
+            xaxis_title='Time',
+            yaxis=dict(
+                title='Temperature (°C)',
+                side='left',
+                range=[temp_min - temp_padding, temp_max + temp_padding]
+            ),
+            yaxis2=dict(
+                title='Flow Rate (L/min)',
+                side='right',
+                overlaying='y',
+                range=[flow_min - flow_padding, flow_max + flow_padding]
+            ),
+            height=600,
+            showlegend=True
+        )
+
+        # Add 110°F cutoff line
+        fig.add_shape(
+            type="line",
+            xref="paper", x0=0, x1=1,
+            yref="y", y0=water_temp_cutoff, y1=water_temp_cutoff,
+            line=dict(color="red", width=1, dash="dash")
+        )
+        fig.add_annotation(
+            xref="paper", x=1, 
+            y=water_temp_cutoff,
+            xanchor="right", yanchor="bottom",
+            text="110 °F Cutoff Temp",
+            showarrow=False
+        )
+
+        figure_metadata.append({
+            'pattern': 'water_flow_temperature',
+            'file': file,
+            'type': 'water_flow_analysis',
+            'outlet_gpm': outlet_gpm
+        })
+
+        all_figs.append(fig)
+
+    return all_figs, figure_metadata
+
+def create_heat_exchanger_plot_outlet_temp(dfs):
+    """Create a simplified plot focusing only on outlet temperature
+    with improved cutoff temperature visualization."""
+    
+    
+    water_temp_cutoff = 43.3333  # 110 F 15 deg delta from 125 F for UEF test
+    
+    # Create a figure with a single plot
+    fig = go.Figure()
+    
+    # Colors to differentiate between files
+    colors = ['blue', 'red', 'green', 'purple', 'orange', 'cyan', 'magenta', 'yellow']
+    
+    # For tracking min/max values to set axis ranges
+    temp_min, temp_max = float('inf'), float('-inf')
+    
+    # Process datasets and add traces
+    for i, (file, df) in enumerate(dfs.items()):
+        color = colors[i % len(colors)]
+        legendgroup = f"group_{file}"  # Create a unique legend group for this file
+        
+        # Add Outlet Temperature trace
+        if 'Hot Water Outlet Temperature (C)' in df.columns:
+            temp_data = df['Hot Water Outlet Temperature (C)']
+            temp_min = min(temp_min, temp_data.min())
+            temp_max = max(temp_max, temp_data.max() * 1.1)
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Time'],
+                    y=temp_data,
+                    mode='lines',
+                    name=f"{file}",
+                    line=dict(color=color),
+                    legendgroup=legendgroup
+                )
+            )
+    
+    # Calculate the adjusted range for temperature axis
+    temp_range = temp_max - temp_min
+    temp_padding = temp_range * 0.1  # 10% padding
+    
+    # Set specified x-axis window
+    # Note: This should be adjusted based on your actual data
+    start_idx = 1200
+    end_idx = 1280
+    draw_end_idx = 1230
+    
+    # Apply to each dataset (assuming they have enough points)
+    for file, df in dfs.items():
+        if len(df) > end_idx:
+            # Look up the actual Time values at those positions
+            t0 = df['Time'].iloc[start_idx]
+            t1 = df['Time'].iloc[end_idx]
+            t_draw_end = df['Time'].iloc[draw_end_idx]
+            
+            # Clamp the x-axis to that slice
+            fig.update_xaxes(range=[t0, t1])
+            
+            # Add vertical marker for draw end
+            # fig.add_shape(
+            #     type="line",
+            #     x0=t_draw_end, x1=t_draw_end,
+            #     y0=temp_min - temp_padding, y1=temp_max + temp_padding,
+            #     line=dict(color="black", dash="dash"),
+            #     xref="x", yref="y"
+            # )
+            
+            # fig.add_annotation(
+            #     x=t_draw_end,
+            #     y=temp_max + temp_padding,
+            #     text="2 GPM Draw End",
+            #     showarrow=False,
+            #     yshift=10,
+            #     xanchor="left"
+            # )
+            
+            # Add horizontal line for cutoff temperature
+            fig.add_shape(
+                type="line",
+                xref="paper", x0=0, x1=1,  # span full width
+                yref="y", y0=water_temp_cutoff, y1=water_temp_cutoff,
+                line=dict(color="red", width=1, dash="dash")
+            )
+            
+            # Label the cutoff temperature
+            fig.add_annotation(
+                xref="paper", x=1,
+                y=water_temp_cutoff,
+                xanchor="right", yanchor="bottom",
+                text="110 °F Cutoff Temp",
+                showarrow=False
+            )
+            
+            # Only need to do this once
+            break
+    
+    # Update layout and axes titles
+    fig.update_layout(
+        height=700,
+        showlegend=True,
+        title_text="PCM Heat Transfer Rate Performance Analysis",
+    )
+    
+    # Update y-axis title and range
+    fig.update_yaxes(
+        title_text="Outlet Temperature (°C)",
+        range=[temp_min - temp_padding, temp_max + temp_padding],
+    )
+    
+    # Update x-axis label
+    fig.update_xaxes(title_text="Time")
+    
+    return fig
+
+# Helper function (assumed to be defined elsewhere in the original code)
+def c_to_f(celsius):
+    """Convert Celsius to Fahrenheit"""
+    return celsius * 9/5 + 32
+
 
 def create_capacitance_plots(dfs, uef_values):
     """Create separate capacitance plots for each file,
@@ -928,13 +2016,18 @@ def calculate_single_uef(df):
     
     water_volume_col = "Water Volume (L)"
     if water_volume_col not in df.columns:
-        Q_cons_total = Q_cons - PCM_net_heat_loss          # make sure in W*min                            
-        UEF = Q_load / Q_cons_total
+        
+        Q_cons_total = Q_cons - PCM_net_heat_loss           # make sure in W*min
+        # water_net_energy = calculate_net_water_energy(102.2, df['Hot Water Average Temperature (C)'].iloc[-1], water_net_temp_delta) / 60                            
+        # UEF = Q_load / Q_cons_total
+        UEF = Q_load / Q_cons
     else:
         water_volume = df[water_volume_col].iloc[-1]
         water_net_energy = calculate_net_water_energy(water_volume, df['Hot Water Average Temperature (C)'].iloc[-1], water_net_temp_delta) / 60 # make sure in W*min
         Q_cons_total = Q_cons - PCM_net_heat_loss - water_net_energy          # make sure in W*min                            
-        UEF = Q_load / Q_cons_total
+        # UEF = Q_load / Q_cons_total
+        UEF = Q_load / Q_cons
+        
     
     return UEF
 
@@ -958,8 +2051,6 @@ def calculate_net_PCM_enthalpy(df):
     
     if pcm_column not in df.columns:
         return 0
-    
-    # Sum the PCM enthalpy columns row-wise.
 
     net_PCM_enthalpy = df[pcm_column].iloc[-1] - df[pcm_column].iloc[0]
     
@@ -1029,9 +2120,9 @@ def create_heat_exchanger_plots(dfs):
     """Create plots with dual y-axes for temperature and power data,
     with the power y-axis scaled larger and grouped power > 0 overlays for each dataset.
     The third subplot displays heating element status overlays alongside temperature data."""
-    
-    water_temp_cutoff = 40.5556  # 110 F 15 deg delta from 125 F for UEF test
-    
+    water_temp_cutoff = 43.3333  # 110 F 15 deg delta from 125 F for UEF test
+    # water_temp_cutoff = 40.5556  # 105
+        
     # Create a figure with 3 subplot rows and 1 column
     fig = make_subplots(
         rows=3, 
@@ -1501,32 +2592,221 @@ RED = "\033[91m"
 
 graphing_results_folder = "../OCHRE_output/results/"
 
+
+def plot_worker(args):
+    df, uef = args
+    temp_plots, _ = create_temperature_plots({None: df}, uef_values=[uef], patterns=['T_WH', 'T_PCM'])
+    return temp_plots
+
+def process_dataset(file_key, df, uef_value, patterns=['T_WH', 'T_PCM']):
+    """Process a single dataset and return the temperature plots"""
+    # This assumes create_temperature_plots returns plots for a single dataframe
+    df = {df[0]: df[1]}
+    plots, _ = create_temperature_plots(df, uef_values=[uef_value], patterns=patterns)
+    return plots
+
+def process_energy_dataset(file_key, df, uef_value, patterns=['T_WH', 'T_PCM']):
+    """Process a single dataset and return the temperature plots"""
+    # This assumes create_temperature_plots returns plots for a single dataframe
+    df = {df[0]: df[1]}
+    plots, _ = create_energy_output_plots(df, uef_values=[uef_value])
+    return plots
+
+def parallel_create_temperature_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM'], num_processes=None):
+    """
+    Create temperature plots in parallel using multiprocessing
+    
+    Args:
+        dfs: Dictionary of dataframes (key: file_name, value: dataframe)
+        uef_values: Dictionary of UEF values corresponding to each dataframe key
+        patterns: List of temperature patterns to plot
+        num_processes: Number of processes to use (defaults to CPU count)
+        
+    Returns:
+        all_plots: List of all plots from all dataframes
+    """
+    # if set(dfs.keys()) != set(uef_values.keys()):
+    
+    # Default to number of CPUs if not specified
+    if num_processes is None:
+        num_processes = multiprocessing.cpu_count()
+    
+    # Create a pool of workers
+    pool = multiprocessing.Pool(processes=min(num_processes, len(dfs)))
+    
+    # Create a partial function with fixed patterns argument
+    process_func = functools.partial(process_dataset, patterns=patterns)
+    
+    # Create task arguments - one tuple for each file
+    # zip uef with a tuple of the file_key and df
+    tasks = [(file_key, df, uef_value) for file_key, df, uef_value in zip(dfs.keys(), dfs.items(), uef_values)]
+    
+    # Process each dataframe and UEF value pair in parallel
+    results = pool.starmap(process_func, tasks)
+    
+    # Close the pool and wait for all processes to complete
+    pool.close()
+    pool.join()
+    
+    # Flatten the list of lists into a single list of plots
+    all_plots = [plot for sublist in results for plot in sublist]
+    
+    return all_plots
+
+
+def parallel_create_energy_output_plots(dfs, uef_values, patterns=['T_WH', 'T_PCM'], num_processes=None):
+    """
+    Create temperature plots in parallel using multiprocessing
+    
+    Args:
+        dfs: Dictionary of dataframes (key: file_name, value: dataframe)
+        uef_values: Dictionary of UEF values corresponding to each dataframe key
+        patterns: List of temperature patterns to plot
+        num_processes: Number of processes to use (defaults to CPU count)
+        
+    Returns:
+        all_plots: List of all plots from all dataframes
+    """
+    # if set(dfs.keys()) != set(uef_values.keys()):
+    
+    # Default to number of CPUs if not specified
+    if num_processes is None:
+        num_processes = multiprocessing.cpu_count()
+    
+    # Create a pool of workers
+    pool = multiprocessing.Pool(processes=min(num_processes, len(dfs)))
+    
+    # Create a partial function with fixed patterns argument
+    process_func = functools.partial(process_energy_dataset, patterns=patterns)
+    
+    # Create task arguments - one tuple for each file
+    # zip uef with a tuple of the file_key and df
+    tasks = [(file_key, df, uef_value) for file_key, df, uef_value in zip(dfs.keys(), dfs.items(), uef_values)]
+    
+    # Process each dataframe and UEF value pair in parallel
+    results = pool.starmap(process_func, tasks)
+    
+    # Close the pool and wait for all processes to complete
+    pool.close()
+    pool.join()
+    
+    # Flatten the list of lists into a single list of plots
+    all_plots = [plot for sublist in results for plot in sublist]
+    
+    return all_plots
+
+
+
+def display_plot(plot, delay=0):
+    """
+    Display a single plot.
+    
+    Args:
+        plot: The plot object to display
+        delay: Optional delay in seconds before showing the plot
+    """
+    if delay > 0:
+        time.sleep(delay)
+    plot.show()
+    return True
+
+
+def parallel_display_plots(plots, stagger_delay=0, num_processes=None):
+    """
+    Display multiple plots in parallel using multiprocessing
+    
+    Args:
+        plots: List of plot objects to display
+        stagger_delay: Delay between plot displays in seconds (0 for simultaneous)
+        num_processes: Number of processes to use (defaults to CPU count)
+        
+    Returns:
+        True if all plots were displayed successfully
+    """
+    if not plots:
+        return True
+    
+    # Default to number of CPUs if not specified
+    if num_processes is None:
+        num_processes = multiprocessing.cpu_count()
+    
+    # Create a pool of workers
+    pool = multiprocessing.Pool(processes=min(num_processes, len(plots)))
+    
+    # Calculate delays if staggering is requested
+    if stagger_delay > 0:
+        delays = [i * stagger_delay for i in range(len(plots))]
+    else:
+        delays = [0] * len(plots)
+    
+    # Create a partial function for displaying plots
+    display_func = display_plot
+    
+    # Display plots in parallel
+    results = pool.starmap(display_func, zip(plots, delays))
+    
+    # Close the pool and wait for all processes to complete
+    pool.close()
+    pool.join()
+    
+    return all(results)
+
+
 # Example usage:
 if __name__ == "__main__":
     # Load data
     _start_time = time.perf_counter()
     _start_time_plot_results = time.perf_counter()
     print(os.getcwd())
-    dfs  = load_data(results_folder=graphing_results_folder)
-    uef = calculate_uef(dfs)
-    plot = create_heat_exchanger_plots(dfs)
-    enthalpy_plot = plot_pcm_enthalpies(np.loadtxt(os.path.join(os.path.dirname(__file__), "..", "ochre", "Models", "cp_h-T_data_shifted_120F.csv"), delimiter=",", skiprows=1))
-    capacitance_plots, _ = create_capacitance_plots(dfs, uef)
-    enthalpy_plot.show()
-    temp_plots,_= create_temperature_plots(dfs, uef_values=uef, patterns=['T_WH', 'T_PCM'])
-    plot.show()
-    for temp_plot in temp_plots:
-        temp_plot.show()
-    for capacitance_plot in capacitance_plots:
-        capacitance_plot.show()
     
+    dfs  = load_data(results_folder=graphing_results_folder)
+    print(f"Data loading time: {time.perf_counter() - _start_time:.2f} seconds")
+    
+    _uef_time = time.perf_counter()
+    uef = calculate_uef(dfs)
+    print(f"UEF calculation time: {time.perf_counter() - _uef_time:.2f} seconds")
+
+    # _pool_time = time.perf_counter()
+    # all_plots = parallel_create_temperature_plots(dfs, uef_values=uef, patterns=['T_WH', 'T_PCM'])
+    # print(f"Temp chart processing pool time: {time.perf_counter() - _pool_time:.2f} seconds")
+    
+    # # # Display all plots
+    # _plot_time = time.perf_counter()
+    # parallel_display_plots(all_plots, stagger_delay=0.1)  # 0.1 second delay between plots
+    # print(f"Temp chart display pool time: {time.perf_counter() - _plot_time:.2f} seconds")
+    
+    _plot_time = time.perf_counter()
+    all_plots = parallel_create_energy_output_plots(dfs, uef_values=uef, patterns=['T_WH', 'T_PCM'])
+    print(f"Energy output processing pool time: {time.perf_counter() - _plot_time:.2f} seconds")
+    
+    _plot_time = time.perf_counter()
+    parallel_display_plots(all_plots, stagger_delay=0.1)  # 0.1 second delay between plots
+    print(f"Energy output display pool time: {time.perf_counter() - _plot_time:.2f} seconds")
+
+    # Create water flow and temperature plots
+    # _pool_time = time.perf_counter()
+    # figures, figure_metadata = create_water_flow_temperature_plots(dfs, uef_values=uef, outlet_gpm=3)
+    # print(f"Water flow and temperature processing pool time: {time.perf_counter() - _pool_time:.2f} seconds")
+    # for fig in figures:
+    #     fig.show()
+
     # Draw data summary
-    output = calculate_hot_water_delivered(dfs)
+    _hot_water_delivered_pool_time = time.perf_counter()
+    output = parallel_calculate_hot_water_delivered(dfs, first_hour_test=True)
+    print(f"Hot water delivered pool time: {time.perf_counter() - _hot_water_delivered_pool_time:.2f} seconds")
+    
+    _hot_water_plot_time = time.perf_counter()
     plot_draw_event_summary(output)
+    print(f"Hot water plot time: {time.perf_counter() - _hot_water_plot_time:.2f} seconds")
+    
+    # _hot_water_plot_time = time.perf_counter()
+    # plot_draw_event_summary(output, plot_energy=True)
+    # print(f"Hot water plot time: {time.perf_counter() - _hot_water_plot_time:.2f} seconds")
+    
     plot_draw_events(output)
     # plot_comparison(dfs, output)
     
-    print(f"{BOLD}{GREEN}Plots created in {time.perf_counter() - _start_time_plot_results:.2f} seconds{RESET}")
+    print(f"{BOLD}{GREEN}All Plots created in {time.perf_counter() - _start_time_plot_results:.2f} seconds{RESET}")
     
     _end_time = time.perf_counter()
     total_time = _end_time - _start_time

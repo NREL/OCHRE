@@ -193,9 +193,9 @@ class TankWithMultiPCM(StratifiedWaterModel):
     Defaults to a 15 node tank with 12 water nodes and 3 PCM node.
     """
 
-    name = "Water Tank with Multi PCM"
+    name = "Water Tank with Internal Multi PCM"
 
-    def __init__(self, pcm_properties: dict=DEFAULT_PCM_PROPERTIES, pcm_node_vol_fractions: dict[int:float]={4:0.5, 5:0.5, 6:0.5}, **kwargs):
+    def __init__(self, pcm_properties: dict, pcm_node_vol_fractions: dict[int:float]={4:0.5, 5:0.5, 6:0.5}, **kwargs):
         
         # PCM node data
         self.pcm_node_vol_fractions = pcm_node_vol_fractions  # node number, from the top
@@ -207,9 +207,15 @@ class TankWithMultiPCM(StratifiedWaterModel):
         self.pcm_heat_to_water_rc_network = None
         self.enthalpy_pcm = None
         self.pcm_properties = pcm_properties
-        self.pcm_properties['enthalpy_lut'] = np.loadtxt(os.path.join(os.path.dirname(__file__), "cp_h-T_data_shifted_120F.csv"), delimiter=",", skiprows=1)
+        
+        pcm_file = self.pcm_properties.get('enthalpy_lut') or 'cp_h-T_data_52_6C.csv'
+        full_path = os.path.join(os.path.dirname(__file__), pcm_file)
+        self.pcm_properties['enthalpy_lut'] = np.loadtxt(full_path, delimiter=",", skiprows=1)
+        self.pcm_properties['enthalpy_lut_file'] = pcm_file
+
         
         super().__init__(**kwargs)
+        # self.n_nodes = len(self.output_names)
 
         # Bounds check for pcm_vol_fraction for stability
         # for node, vol_fraction in self.pcm_node_vol_fractions.items():
@@ -261,7 +267,7 @@ class TankWithMultiPCM(StratifiedWaterModel):
         # backout radius from volume and height
         
         self.tank_height = 4 * 0.3048 # in m
-        start_temp = kwargs.get('Start Temperature (C)', 51.666666666666686)
+        start_temp = kwargs.get('Setpoint Temperature (C)', 51.66666666666667)
         self.volume_m3 = self.volume / 1e3 # convert liters to m3
         self.tank_radius = math.sqrt(self.volume_m3 / (math.pi * self.tank_height))
         effective_area_ratio = 0.8
@@ -495,7 +501,7 @@ class TankWithMultiPCM(StratifiedWaterModel):
         q_pcm = enthalpy_next_state - enthalpy_state
         self.pcm_heat_to_water_rc_network = -q_pcm / self.time_res.total_seconds()
         self.enthalpy_pcm = enthalpy_next_state
-        
+        self.delta_enthalpy_pcm = enthalpy_next_state - enthalpy_state
         
 
         # Update the PCM temperature using interpolation from enthalpy to temperature.
@@ -541,6 +547,7 @@ class TankWithMultiPCM(StratifiedWaterModel):
                 results[f"Water Tank PCM{self.t_pcm_wh_idx[i]+1} sa_ratio"] = self.pcm_node_properties[self.t_pcm_wh_idx[i]+1]['sa_ratio']
                 
             results['Total PCM Enthalpy (J)'] = self.enthalpy_pcm.sum()
+            results['Delta Total PCM Enthalpy (J)'] = self.delta_enthalpy_pcm.sum()
             results['Total PCM Heat Injected (W)'] = self.pcm_heat_to_water_rc_network.sum()
             results['PCM Mass (kg)'] = self.pcm_mass * 1e-3
             results['Water Volume (L)'] = self.volume

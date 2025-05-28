@@ -72,9 +72,9 @@ class StratifiedWaterModel(RCModel):
         self.outlet_temp = 0  # temperature of outlet water, in C
 
         # mixed temperature (i.e. target temperature) setpoint for fixtures - Sink/Shower/Bath (SSB)
-        self.tempered_draw_temp = kwargs.get('Mixed Delivery Temperature (C)', convert(105, 'degF', 'degC'))
+        self.tempered_draw_temp = kwargs.get('Mixed Delivery Temperature (C)', convert(125, 'degF', 'degC'))
         # Removing target temperature for clothes washers
-        # self.washer_draw_temp = kwargs.get('Clothes Washer Delivery Temperature (C)', convert(92.5, 'degF', 'degC'))
+        # self.washer_draw_temp = kwargs.get('Clothes Washer Delivery Temperature (C)', convert(125, 'degF', 'degC'))
 
     def load_rc_data(self, **kwargs):
         # Get properties from input file
@@ -108,6 +108,8 @@ class StratifiedWaterModel(RCModel):
         # Resistance between nodes
         if self.n_nodes > 1:
             rc_params.update({'R_WH{}_WH{}'.format(i + 1, i + 2): r_int for i in range(self.n_nodes - 1)})
+            # rc_params.update({'R_WH{}_WH{}'.format(i + 1, i + 2): 1e-6 for i in range(self.n_nodes - 1)})
+            # todo update conductivity to 0 and 200k for testing
 
         return rc_params
 #
