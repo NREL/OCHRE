@@ -16,9 +16,9 @@ max_setpoint = 60
 min_setpoint = 49
 
 run_range = True #runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 220 #172 #220
+simulation_days = 1 #172 #220
 
-site_number = '90023'#10292#'10441'
+site_number = 'null'#10292#'10441'
 
 flow_data = f'net_flow_{site_number}.csv'
 

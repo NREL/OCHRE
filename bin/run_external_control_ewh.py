@@ -16,8 +16,8 @@ max_setpoint = 60
 min_setpoint = 49
 
 run_range = True #runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 1 #172 #220
-site_number = 'null' #90159#10292#'10441'
+simulation_days = 172 #172 #220
+site_number = 90159 #90159#10292#'10441'
 
 flow_data = f'net_flow_{site_number}.csv'
 
@@ -142,7 +142,8 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     cols_to_save = [
         "Hot Water Outlet Temperature (C)",
         "T_WH3",
-        "T_WH10"
+        "T_WH10",
+        "T_WH12"
     ]
 
 
