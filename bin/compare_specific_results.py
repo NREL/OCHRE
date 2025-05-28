@@ -2766,22 +2766,22 @@ if __name__ == "__main__":
     uef = calculate_uef(dfs)
     print(f"UEF calculation time: {time.perf_counter() - _uef_time:.2f} seconds")
 
-    # _pool_time = time.perf_counter()
-    # all_plots = parallel_create_temperature_plots(dfs, uef_values=uef, patterns=['T_WH', 'T_PCM'])
-    # print(f"Temp chart processing pool time: {time.perf_counter() - _pool_time:.2f} seconds")
+    _pool_time = time.perf_counter()
+    all_plots = parallel_create_temperature_plots(dfs, uef_values=uef, patterns=['T_WH', 'T_PCM'])
+    print(f"Temp chart processing pool time: {time.perf_counter() - _pool_time:.2f} seconds")
     
-    # # # Display all plots
-    # _plot_time = time.perf_counter()
-    # parallel_display_plots(all_plots, stagger_delay=0.1)  # 0.1 second delay between plots
-    # print(f"Temp chart display pool time: {time.perf_counter() - _plot_time:.2f} seconds")
-    
-    _plot_time = time.perf_counter()
-    all_plots = parallel_create_energy_output_plots(dfs, uef_values=uef, patterns=['T_WH', 'T_PCM'])
-    print(f"Energy output processing pool time: {time.perf_counter() - _plot_time:.2f} seconds")
-    
+    # # Display all plots
     _plot_time = time.perf_counter()
     parallel_display_plots(all_plots, stagger_delay=0.1)  # 0.1 second delay between plots
-    print(f"Energy output display pool time: {time.perf_counter() - _plot_time:.2f} seconds")
+    print(f"Temp chart display pool time: {time.perf_counter() - _plot_time:.2f} seconds")
+    
+    # _plot_time = time.perf_counter()
+    # all_plots = parallel_create_energy_output_plots(dfs, uef_values=uef, patterns=['T_WH', 'T_PCM'])
+    # print(f"Energy output processing pool time: {time.perf_counter() - _plot_time:.2f} seconds")
+    
+    # _plot_time = time.perf_counter()
+    # parallel_display_plots(all_plots, stagger_delay=0.1)  # 0.1 second delay between plots
+    # print(f"Energy output display pool time: {time.perf_counter() - _plot_time:.2f} seconds")
 
     # Create water flow and temperature plots
     # _pool_time = time.perf_counter()

@@ -75,7 +75,7 @@ pcm_file_names = [
 pcm_file_names = ['cp_h-T_data_shifted_120F.csv']
 # pcm_file_names = ['cp_h-T_data_52_6C.csv']s
 
-setpoint_temps_f = [125, 130, 135, 140]
+setpoint_temps_f = [140]
 # setpoint_temps_f = [125, 140]
 setpoint_temps_c = [
     (setpoint_temp - 32) * (5 / 9) for setpoint_temp in setpoint_temps_f
@@ -151,7 +151,7 @@ default_args = {
     "save_results": None,  # if True, must specify output_path # None Merges the simulator results into 1 file
     "output_path": '../OCHRE_output/OCHRE_results/results/',
     "name": "ZDefault_ElectricResistanceWaterHeater",
-    # "schedule_input_file": load_profile,
+    "schedule_input_file": load_profile,
 }
 
 def import_water_heating_schedule(schedule_file):
@@ -566,7 +566,10 @@ def run_water_heater_electric(default_args, setpoint_temp, tank_volume):
         schedule = create_water_schedule(setpoint_default=setpoint_temp, withdraw_rate_gpm=0, no_heating_during_draw=False)
     else:
         hot_water_schedule = import_water_heating_schedule(default_args.get('schedule_input_file'))
-        schedule = create_water_schedule(withdraw_rate_lpm=hot_water_schedule, setpoint_default=setpoint_temp, no_heating_during_draw=False, times=pd.date_range(dt.datetime(2018, 1, 1, 0, 0), dt.datetime(2018, 1, 1, 0, 0) + dt.timedelta(days=1)+ dt.timedelta(minutes=1), freq=dt.timedelta(minutes=1), inclusive="left"))
+        times = pd.date_range(dt.datetime(2018, 1, 1, 0, 0), dt.datetime(2018, 1, 1, 0, 0) + dt.timedelta(minutes=len(hot_water_schedule)), freq=dt.timedelta(minutes=1), inclusive="left")
+        schedule = create_water_schedule(withdraw_rate_lpm=hot_water_schedule, setpoint_default=setpoint_temp, no_heating_during_draw=False, times=times)
+        
+
 
     hot_water_temp = convert(110, 'degF', 'degC') 
     equipment_args = {
@@ -581,14 +584,17 @@ def run_water_heater_electric(default_args, setpoint_temp, tank_volume):
         "Capacity (W)": 4500,
         "water_nodes": 12,
         **default_args,
-        "time_res": dt.timedelta(seconds=0.5),
+        "time_res": dt.timedelta(minutes=1),
     }
 
     # Initialize equipment
     wh = ElectricResistanceWaterHeater(schedule=schedule, **equipment_args,)
 
     # # Simulate equipment
-    hot_water_output_gallons, wh = simulate_first_hour_test(wh, enable_first_hour_test=True, disable_heating_during_draw=False, first_hour_duration=60, draw_rate_gpm=3, allow_setpoint_start=False, hot_water_temp_f=110, setpoint_temp_f=140)
+    if default_args.get('schedule_input_file', None) is None:
+        hot_water_output_gallons, wh = simulate_first_hour_test(wh, enable_first_hour_test=True, disable_heating_during_draw=False, first_hour_duration=60, draw_rate_gpm=3, allow_setpoint_start=False, hot_water_temp_f=110, setpoint_temp_f=140)
+    else:
+        wh.simulate()
         
     df = wh.finalize()
 
@@ -617,7 +623,7 @@ def run_water_heater_heatpump(default_args, setpoint_temp, tank_volume):
         "UA (W/K)": 1e-9,
         "HPWH COP (-)": 4.5,
         **default_args,
-        "time_res": dt.timedelta(seconds=0.5),
+        "time_res": dt.timedelta(minutes=1),
         # "hp_only_mode": True
     }
 
@@ -625,14 +631,18 @@ def run_water_heater_heatpump(default_args, setpoint_temp, tank_volume):
         schedule = create_water_schedule(setpoint_default=setpoint_temp, withdraw_rate_gpm=0, no_heating_during_draw=False)
     else:
         hot_water_schedule = import_water_heating_schedule(default_args.get('schedule_input_file'))
-        schedule = create_water_schedule(withdraw_rate_lpm=hot_water_schedule, setpoint_default=setpoint_temp, no_heating_during_draw=True, times=pd.date_range(dt.datetime(2018, 1, 1, 0, 0), dt.datetime(2018, 1, 1, 0, 0) + dt.timedelta(days=1)+ dt.timedelta(minutes=1), freq=dt.timedelta(minutes=1), inclusive="left"))
+        times = pd.date_range(dt.datetime(2018, 1, 1, 0, 0), dt.datetime(2018, 1, 1, 0, 0) + dt.timedelta(minutes=len(hot_water_schedule)), freq=dt.timedelta(minutes=1), inclusive="left")
+        schedule = create_water_schedule(withdraw_rate_lpm=hot_water_schedule, setpoint_default=setpoint_temp, no_heating_during_draw=False, times=times)
         
 
     deadband_default = schedule['Water Heating Deadband (C)'].iloc[0]
     # Initialize equipment
     hpwh = HeatPumpWaterHeater(schedule=schedule, **equipment_args)
 
-    hot_water_output_gallons, hpwh = simulate_first_hour_test(hpwh, enable_first_hour_test=True, disable_heating_during_draw=False, first_hour_duration=60, draw_rate_gpm=3, allow_setpoint_start=False, hot_water_temp_f=110, setpoint_temp_f=140)
+    if default_args.get('schedule_input_file', None) is None:
+        hot_water_output_gallons, hpwh = simulate_first_hour_test(hpwh, enable_first_hour_test=True, disable_heating_during_draw=False, first_hour_duration=60, draw_rate_gpm=3, allow_setpoint_start=False, hot_water_temp_f=110, setpoint_temp_f=140)
+    else:
+        hpwh.simulate()
 
     df = hpwh.finalize()
     
@@ -690,7 +700,7 @@ def run_water_heater_process(
     """
     Function wrapper to execute run_water_heater in a separate process and measure:
     - Queue wait time (time from submission to actual start)
-    - Active simulation processing time
+    - Active simulation processing
     - Total time (waiting + processing)
     """
     actual_start_time = time.perf_counter()
