@@ -16,6 +16,27 @@ EXT_ZONES = {'EXT': 'Outdoor',
              'GND': 'Ground'}
 
 
+# mapping boundaries to component loads
+COMPONENT_LOAD_MAP = {
+    "Roof": "Roof",
+    "Attic Floor": "Roof",
+    "Floor": "Floor",
+    "Raised Floor": "Floor",
+    "Foundation Ceiling": "Floor",
+    "Exterior Wall": "Wall",
+    "Door": "Wall",
+    "Garage Attached Wall": "Wall",
+    "Garage Interior Ceiling": "Wall",
+    "Window": "Window",
+    "Interior Wall": "Internal Mass",
+    "Indoor Furniture": "Internal Mass",
+    "Adjacent Wall": "Internal Mass",
+    "Adjacent Ceiling": "Internal Mass",
+    "Adjacent Floor": "Internal Mass",
+}
+COMPONENT_LOAD_CATEGORIES = set(COMPONENT_LOAD_MAP.values())
+
+
 def get_boundary_tilt(name):
     # get boundary tilt based on boundary name (0-90 degrees)
     if any([x in name for x in ['Floor', 'Ceiling']]):
@@ -240,10 +261,8 @@ def get_boundary_rc_values(all_bd_properties, raise_error=False, **house_args):
             raise OCHREException(f'Cannot find boundary properties for {bd_name} with type: {bd_type}')
 
         # Create RC parameters
-        label = bd_properties['Boundary Label']
-        for i, (_, row) in enumerate(df.iterrows()):
-            bd_properties[f'R_{label}{i + 1}'] = row['Resistance (m^2-K/W)']
-            bd_properties[f'C_{label}{i + 1}'] = row['Capacitance (kJ/m^2-K)']
+        bd_properties["Resistances"] = df["Resistance (m^2-K/W)"].to_list()
+        bd_properties["Capacitances"] = df["Capacitance (kJ/m^2-K)"].to_list()
 
         # update boundary properties with generic properties and with defaults
         all_bd_properties[bd_name] = {**generic_args, **bd_data, **bd_properties}

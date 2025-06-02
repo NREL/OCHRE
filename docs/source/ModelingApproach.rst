@@ -346,7 +346,7 @@ heat gain coefficients, are included in the input files. These loads can
 be electric or natural gas loads. Schedule-based loads include:
 
 -  Appliances (clothes washer, clothes dryer, dishwasher, refrigerator,
-   cooking range)
+   freezer, cooking range)
 
 -  Lighting (indoor, exterior, garage, basement)
 
