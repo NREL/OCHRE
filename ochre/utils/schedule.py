@@ -1,13 +1,8 @@
-import math
 import os
 import numpy as np
 import pandas as pd
 import datetime as dt
-import collections.abc
-from pvlib.tests.iotools.test_solrad import columns
-import xmltodict
 # import re
-import numba  # required for array-based psychrolib
 import psychrolib
 import pytz
 import pvlib
@@ -68,6 +63,8 @@ SCHEDULE_NAMES = {
         "water_heater_operating_mode": None,
         "Vacancy": None,
         "Power Outage": None,
+        "No Space Heating": None,
+        "No Space Cooling": None,
     },
 }
 

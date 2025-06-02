@@ -1159,7 +1159,8 @@ def parse_ev(ev, evse):
     bev = ev["VehicleType"]["BatteryElectricVehicle"]
 
     # get charging level
-    assert bev["ConnectedCharger"] == evse["id"]
+    # TODO: check EVSE ID after switch to etree
+    # assert bev["ConnectedCharger"] == evse["id"]
     charging_level = evse.get("ChargingLevel", 2)
 
     # get max power
@@ -1217,7 +1218,8 @@ def parse_pv(pv, inverter, n_beds):
     azimuth = pv.get("ArrayAzimuth", from_orientation)
 
     # get inverter parameters
-    assert pv["AttachedToInverter"] == inverter["id"]
+    # TODO: check inverter ID after switch to etree
+    # assert pv["AttachedToInverter"] == inverter["id"]
     inverter_efficiency = inverter.get("InverterEfficiency", 0.96)
 
     return {

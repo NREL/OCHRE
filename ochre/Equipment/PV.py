@@ -25,7 +25,7 @@ def run_sam(
     :param weather: Pandas DataFrame of time series weather data in OCHRE schedule format
     :param location: dict of location data including timezone, elevation, latitude, and longitude
     :param inv_capacity: inverter capacity, in kW, defaults to `capacity`
-    :param inv_efficiency: inverter efficiency, in %, uses PVWatts default (96%)
+    :param inv_efficiency: inverter efficiency, unitless, uses PVWatts as default (0.96)
     :return: a Pandas Series of the PV AC power, using the same index as `weather`
     """
     if capacity is None:
@@ -59,7 +59,7 @@ def run_sam(
     if inv_capacity is not None:
         system_model.value('dc_ac_ratio', capacity / inv_capacity)
     if inv_efficiency is not None:
-        system_model.value('inv_eff', inv_efficiency)
+        system_model.value('inv_eff', inv_efficiency * 100)
     system_model.SolarResource.assign({'solar_resource_data': solar_resource_data})
 
     # run the modules in the correct order
