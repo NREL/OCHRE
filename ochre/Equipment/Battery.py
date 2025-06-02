@@ -37,7 +37,6 @@ class Battery(Generator):
     is_gas = False
     optional_inputs = Generator.optional_inputs + [
         "pv_power",
-        "Battery Electric Power (kW)",
         "Battery SOC (-)",
         "Battery Min SOC (-)",
         "Battery Max SOC (-)",

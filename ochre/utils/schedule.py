@@ -42,6 +42,8 @@ SCHEDULE_NAMES = {
         "ceiling_fan": "Ceiling Fan",
         # 'vent_fan': 'Ventilation Fan',  # not included in schedule
         # 'basement_mels': 'Basement MELs',  # not modeled
+        "battery": "Battery",
+        "electric_vehicle": "EV",
     },
     "Water": {
         "hot_water_fixtures": "Water Heating",
@@ -54,13 +56,14 @@ SCHEDULE_NAMES = {
         "water_heater_setpoint": "Water Heating",
     },
     "Ignore": {
-        "extra_refrigerator": None,
-        "clothes_dryer_exhaust": None,
         "lighting_exterior_holiday": None,
+        "extra_refrigerator": None,
         "plug_loads_vehicle": None,
-        "battery": None,
-        "vacancy": None,
+        "hot_water_recirculation_pump": None,
+        "general_water_use": None,
+        "hvac_maximum_power_ratio": None,
         "water_heater_operating_mode": None,
+        "vacancy": None,
         "Vacancy": None,
         "Power Outage": None,
         "No Space Heating": None,
@@ -265,8 +268,10 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
     return df, location
 
 
-def create_simple_schedule(weekday_fractions, weekend_fractions=None, month_multipliers=None, **kwargs):
+def create_simple_schedule(weekday_fractions=None, weekend_fractions=None, month_multipliers=None, **kwargs):
     # converts weekday/weekend/month fractions into time series schedule
+    if weekday_fractions is None:
+        weekday_fractions = [0] * 24
     if weekend_fractions is None:
         weekend_fractions = weekday_fractions
     if month_multipliers is None:
@@ -295,11 +300,13 @@ def convert_schedule_column(s_hpxml, ochre_name, properties, category='Power'):
             annual_mean = properties['Annual Electric Energy (kWh)'] / 8760
             schedule_mean = s_hpxml.mean()
             max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
+        elif ochre_name == "Battery":
+            max_value = properties["capacity"]  # in kW
         else:
             max_value = None
         if max_value is not None:
             out = s_hpxml * max_value
-            out.name = f'{ochre_name} (kW)'
+            out.name = f'{ochre_name} Electric Power (kW)'
         else:
             out = None
 
@@ -316,11 +323,11 @@ def convert_schedule_column(s_hpxml, ochre_name, properties, category='Power'):
             pass
         elif out is None:
             out = s_hpxml * max_value
-            out.name = f'{ochre_name} (therms/hour)'
+            out.name = f"{ochre_name} Gas Power (therms/hour)"
         else:
             # combine 2 series into data frame
             s_gas = s_hpxml * max_value
-            s_gas.name = f'{ochre_name} (therms/hour)'
+            s_gas.name = f'{ochre_name} Gas Power (therms/hour)'
             out = pd.concat([out, s_gas], axis=1)
 
         if out is None:
@@ -397,7 +404,7 @@ def import_occupancy_schedule(
                               '"Weekday/Weekend Setpoints (C)" or "Setpoint Temperature (C)".')
 
         # Add occupancy/power/water draw simple schedules
-        elif hpxml_name not in df_norm:
+        elif hpxml_name not in df_norm and ochre_name in df_default.index:
             if ochre_dict.get('weekday_fractions') is None:
                 # add data from simple schedule defaults file
                 data = df_default.loc[ochre_name].to_dict()

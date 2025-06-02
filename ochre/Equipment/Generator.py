@@ -67,6 +67,28 @@ class Generator(Equipment):
         self.import_limit = import_limit
         self.export_limit = export_limit
 
+    def initialize_schedule(self, optional_inputs=None, **kwargs):
+        # Get power and gas columns from time-series schedule, if they exist (copied from ScheduledLoad)
+        schedule_cols = {
+            f"{self.name} Electric Power (kW)": "Power (kW)",
+            f"{self.name} Gas Power (therms/hour)": "Gas (therms/hour)",
+        }
+        if optional_inputs is None:
+            optional_inputs = self.optional_inputs + list(schedule_cols.keys())
+        else:
+            optional_inputs += list(schedule_cols.keys())
+
+        ts_schedule = super().initialize_schedule(optional_inputs=optional_inputs, **kwargs)
+        # ts_schedule = ts_schedule.rename(columns=schedule_cols)
+
+        # set schedule columns to zero if month multiplier exists and is zero (for ceiling fans)
+        multipliers = kwargs.get("month_multipliers", [])
+        zero_months = [i for i, m in enumerate(multipliers) if m == 0]
+        if zero_months:
+            ts_schedule.loc[ts_schedule.index.month.isin(zero_months), :] = 0
+
+        return ts_schedule
+    
     def update_external_control(self, control_signal):
         # Options for external control signals:
         # - P Setpoint: Directly sets power setpoint, in kW

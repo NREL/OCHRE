@@ -110,8 +110,8 @@ class EventBasedLoad(Equipment):
     def initialize_schedule(self, event_schedule=None, **kwargs):
         # Get power and gas columns from time-series schedule, if they exist (copied from ScheduledLoad)
         schedule_cols = {
-            f"{self.name} (kW)": "Power (kW)",
-            f"{self.name} (therms/hour)": "Gas (therms/hour)",
+            f"{self.name} Electric Power (kW)": "Power (kW)",
+            f"{self.name} Gas Power (therms/hour)": "Gas (therms/hour)",
         }
         optional_inputs = list(schedule_cols.keys())
         ts_schedule = super().initialize_schedule(optional_inputs=optional_inputs, **kwargs)

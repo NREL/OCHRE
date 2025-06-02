@@ -141,11 +141,11 @@ class PV(ScheduledLoad):
             self.reset_time()
 
     def initialize_schedule(self, schedule=None, location=None, **kwargs):
-        if schedule is None or self.name + ' (kW)' not in schedule:
+        if schedule is None or f"{self.name} Electric Power (kW)" not in schedule:
             self.print('Running SAM')
             schedule = run_sam(self.capacity, self.tilt, self.azimuth, schedule, location,
                                self.inverter_capacity, self.inverter_efficiency)
-            schedule = schedule.to_frame(self.name + ' (kW)')
+            schedule = schedule.to_frame(f"{self.name} Electric Power (kW)")
 
         return super().initialize_schedule(schedule, **kwargs)
 
