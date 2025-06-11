@@ -10,15 +10,15 @@ from ochre import HeatPumpWaterHeater
 
 
 # Define equipment and simulation parameters
-setpoint_default = 51  # in C
+setpoint_default = 60  # in C #alternate b/w 60 and 49
 deadband_default = 5.56  # in C
 max_setpoint = 60
 min_setpoint = 49
+water_nodes = 12
+run_range = False #runs simulation for a variety of setpoints specified in setpoint_range
+simulation_days = 10#220 #172 #220
 
-run_range = True #runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 1 #172 #220
-
-site_number = 'null'#10292#'10441'
+site_number = 'null' #90023 #10292#'10441'
 
 flow_data = f'net_flow_{site_number}.csv'
 
@@ -45,6 +45,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
         "Tank Height (m)": 1.22,
         "UA (W/K)": 2.17,
         "HPWH COP (-)": 4.5,
+        "water_nodes": water_nodes
     }
 
     # Create water draw schedule
@@ -142,10 +143,13 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
 
     cols_to_save = [
         "Hot Water Outlet Temperature (C)",
+        #"T_WH1",
+        #"T_WH2"
         "T_WH3",
-        "T_WH7",
+        #"T_WH7",
         "T_WH10",
-        "T_AMB"
+        "T_WH12"
+        #"T_AMB"
     ]
 
 
@@ -179,8 +183,11 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
 
     to_save = to_save[:-1]
 
-    to_save.to_csv(f'output_site_{site_number}.csv', mode='a', header=False, index=False)
+    if run_range == True:
+         to_save.to_csv(f'output_site_{site_number}_{water_nodes}.csv', mode='a', header=False, index=False)
+    else:
+        to_save.to_csv(f'output_site_{site_number}_{setpoint_default}_{water_nodes}.csv', mode='a', header=True, index=False)
 
 #plt.show()
 
-print("Simulation Copmleted")
+print("Simulation Copmleted: ", f'output_site_{site_number}_{setpoint_default}_{water_nodes}.csv')
