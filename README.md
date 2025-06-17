@@ -46,8 +46,7 @@ import os
 import datetime as dt
 from ochre import Dwelling
 from ochre.utils import default_input_path # for using sample files
-house = Dwelling(
-    simulation_name, 
+dwelling = Dwelling(
     start_time=dt.datetime(2018, 1, 1, 0, 0),
     time_res=dt.timedelta(minutes=10),       
     duration=dt.timedelta(days=3),
