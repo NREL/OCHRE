@@ -74,6 +74,8 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     # Initialize equipment
     hpwh = HeatPumpWaterHeater(schedule=schedule, **equipment_args)
 
+    hpwh.model.states[:] = np.array([20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20]) #manually set starting temperature
+
     # Simulate
     data = pd.DataFrame()
     data = {'draw_data' :[], 'setpoint' :[]}
