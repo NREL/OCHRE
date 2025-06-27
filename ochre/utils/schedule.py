@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import datetime as dt
 import collections.abc
+from pvlib.tests.iotools.test_solrad import columns
 import xmltodict
 # import re
 import numba  # required for array-based psychrolib
@@ -26,6 +27,7 @@ SCHEDULE_NAMES = {
         "clothes_dryer": "Clothes Dryer",
         "dishwasher": "Dishwasher",
         "refrigerator": "Refrigerator",
+        "freezer": "Freezer",
         "cooking_range": "Cooking Range",
         "lighting_interior": "Indoor Lighting",
         "lighting_exterior": "Exterior Lighting",
@@ -58,7 +60,6 @@ SCHEDULE_NAMES = {
     },
     "Ignore": {
         "extra_refrigerator": None,
-        "freezer": None,
         "clothes_dryer_exhaust": None,
         "lighting_exterior_holiday": None,
         "plug_loads_vehicle": None,
@@ -345,8 +346,14 @@ def convert_schedule_column(s_hpxml, ochre_name, properties, category='Power'):
     return out
 
 
-def import_occupancy_schedule(occupancy, equipment, start_time, hpxml_schedule_file=None,
-                              simple_schedule_file='Simple Schedule Parameters.csv', **kwargs):
+def import_occupancy_schedule(
+    occupancy,
+    equipment,
+    start_time,
+    hpxml_schedule_file=None,
+    default_schedule_file="Default Schedule Parameters.csv",
+    **kwargs,
+):
     # Import HPXML schedule file. Note that initial values are normalized to max_value=1
     # FUTURE: for sub-annual schedules, create annual schedule and then shorten to simulation time
     if hpxml_schedule_file is not None:
@@ -361,7 +368,11 @@ def import_occupancy_schedule(occupancy, equipment, start_time, hpxml_schedule_f
         df_norm['lighting_basement'] = df_norm['lighting_interior']
 
     # Load simple schedule parameters file
-    df_simple = load_csv(simple_schedule_file, index_col='Name')
+    # taken from:
+    # https://github.com/NREL/OpenStudio-HPXML/blob/master/HPXMLtoOpenStudio/resources/data/default_schedules.csv
+    df_default = load_csv(default_schedule_file)
+    df_default = df_default.loc[df_default["OCHRE Name"].notna()]
+    df_default = df_default.pivot(index="OCHRE Name", columns="OCHRE Element", values="Values")
 
     # Add normalized simple schedules from HPXML to df_norm
     schedules_to_merge = []
@@ -392,7 +403,7 @@ def import_occupancy_schedule(occupancy, equipment, start_time, hpxml_schedule_f
         elif hpxml_name not in df_norm:
             if ochre_dict.get('weekday_fractions') is None:
                 # add data from simple schedule defaults file
-                data = df_simple.loc[ochre_name].to_dict()
+                data = df_default.loc[ochre_name].to_dict()
                 ochre_dict.update({key: eval(val) for key, val in data.items() if isinstance(val, str)})
             s_hpxml = create_simple_schedule(**ochre_dict)
             s_hpxml.name = hpxml_name
