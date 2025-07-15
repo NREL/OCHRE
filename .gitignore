@@ -41,3 +41,5 @@ ochre/defaults/Input Files/net_flow_90023.csv
 bin/run_pcm_wh.py
 bin/output_site_90159.csv
 *.csv
+output_site_large.csv
+notebook/user_tutorial.ipynb

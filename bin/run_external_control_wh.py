@@ -10,15 +10,16 @@ from ochre import HeatPumpWaterHeater
 
 
 # Define equipment and simulation parameters
-setpoint_default = 60  # in C #alternate b/w 60 and 49
+setpoint_default = 54  # in C #alternate b/w 60 and 49
 deadband_default = 5.56  # in C
 max_setpoint = 60
 min_setpoint = 49
 water_nodes = 12
-run_range = False #runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 10#220 #172 #220
 
-site_number = 'null' #90023 #10292#'10441'
+run_range = False #runs simulation for a variety of setpoints specified in setpoint_range
+simulation_days = 220 #172 #220
+
+site_number = '90023' #90023 #10292#'10441'
 
 flow_data = f'net_flow_{site_number}.csv'
 
@@ -39,12 +40,13 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
         "duration": dt.timedelta(days=simulation_days),
         "verbosity": 9,  # required to get setpoint and deadband in results
         "save_results": False,  # if True, must specify output_path
-        # "output_path": os.getcwd(),        # Equipment parameters
+        #"output_path": os.getcwd(),        # Equipment parameters
         "Setpoint Temperature (C)": setpoint_default,
         "Tank Volume (L)": 250,
         "Tank Height (m)": 1.22,
         "UA (W/K)": 2.17,
         "HPWH COP (-)": 4.5,
+        "save_matrices":False,
         "water_nodes": water_nodes
     }
 
@@ -74,10 +76,11 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     # Initialize equipment
     hpwh = HeatPumpWaterHeater(schedule=schedule, **equipment_args)
 
-    hpwh.model.states[:] = np.array([20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20]) #manually set starting temperature
+    #hpwh.model.states[:] = np.array([20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20]) #manually set starting temperature
 
     # Simulate
     data = pd.DataFrame()
+
     data = {'draw_data' :[], 'setpoint' :[]}
     control_signal = {}
     setpoints = []
@@ -93,7 +96,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
 
         #replace with random perturbations
        
-        '''if t.hour in [7, 16]:
+        if t.hour in [7, 16]:
             # CTA-2045 Basic Load Add command
             control_signal = {"Deadband": deadband_default - 2.78}
         elif t.hour in [8, 17]:
@@ -125,7 +128,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
             }
         else:
             control_signal = {}
-        '''
+        
         setpoints.append(setpoint)
         # Run with controls
         _ = hpwh.update(control_signal=control_signal)
@@ -146,12 +149,14 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     cols_to_save = [
         "Hot Water Outlet Temperature (C)",
         #"T_WH1",
-        #"T_WH2"
+        #"T_WH2",
         "T_WH3",
         #"T_WH7",
         "T_WH10",
-        "T_WH12"
-        #"T_AMB"
+        "T_WH12",
+        "T_AMB",
+        #"H_WH1",
+        #"H_WH2"
     ]
 
 
@@ -160,7 +165,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     # Calculate the rolling average for 'setpoints' with window size 15
     avg_setpoints = np.convolve(setpoints, np.ones(15)/15, 'same')
 
-    avg_electric = np.convolve(df['Water Heating Electric Power (kW)'], np.ones(15)/15, 'same')
+    avg_electric = np.convolve(df['Water Heating Electric Power (kW)'], np.ones(15), 'same')
 
 
     # For the DataFrame, select columns and calculate the rolling average for each column
@@ -175,7 +180,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     to_save["Water Heating Mode"] = df["Water Heating Mode"]
     to_save = to_save[14::15]
 
-    to_save["Average Electric Power"] = pd.Series(avg_electric, index=to_save.index)
+    to_save["Water Heating Electric Power"] = pd.Series(avg_electric, index=to_save.index)
     to_save["Draw Data"] = pd.Series(draw_data, index=to_save.index)
     to_save["Setpoint"] = pd.Series(avg_setpoints, index=to_save.index)
 
