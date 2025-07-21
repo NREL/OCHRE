@@ -10,7 +10,7 @@ from ochre import HeatPumpWaterHeater
 
 
 # Define equipment and simulation parameters
-setpoint_default = 54  # in C #alternate b/w 60 and 49
+setpoint_default = 51  # in C #alternate b/w 60 and 49
 deadband_default = 5.56  # in C
 max_setpoint = 60
 min_setpoint = 49

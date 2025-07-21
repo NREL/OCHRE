@@ -144,7 +144,7 @@ def bisection_control(temp_n1, temp_n2, setpoint_initial, draw): #performs 5 bis
             if setpoint > max_temp:
                 setpoint = max_temp
         else:
-            setpoint = setpoint/2
+            setpoint = setpoint - (setpoint - min_temp)/2
             if setpoint < min_temp:
                 setpoint = min_temp
     return setpoint
