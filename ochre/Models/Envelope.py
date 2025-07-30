@@ -364,8 +364,8 @@ class Zone:
 
         # calculate sensible heat gains
         sensible_gain = sensible_flow * density * cp_air * delta_t * 1000  # in W
-        if h_limit is not None and ((sensible_gain < 0) ^ (sensible_gain > h_limit)):
-            # clip sensible gain based on heat gain limit, only in 1 direction
+        if h_limit is not None and abs(sensible_gain) > abs(h_limit):
+            # clip sensible gain based on heat gain limit
             sensible_gain = h_limit
 
         # TODO: add heavy ball convergence to fix high wind issues for attics
