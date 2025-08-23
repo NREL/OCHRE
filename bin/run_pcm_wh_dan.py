@@ -36,6 +36,8 @@ pcm_vol_fractions = [
     0.9999999999999725,
 ]
 
+pcm_vol_fractions = [0.5]
+
 
 # UEF draw profiles
 # LowUseUEF = 'LowUseL.csv'
