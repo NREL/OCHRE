@@ -1282,13 +1282,10 @@ class Envelope(RCModel):
                     )
                     results[f"Occupancy Heat Gain - {name} (W)"] = occupant_gain
                 else:
-                    occupant_gain = 0
-
-                if occupant_gain + zone.internal_sens_gain > 0:
-                    # occupancy + non-HVAC equipment only
-                    results[f"Internal Heat Gain - {name} (W)"] = (
-                        occupant_gain + zone.internal_sens_gain
-                    )
+                    if zone.internal_sens_gain > 0:
+                        # occupancy=0 for non-Indoor zones
+                        # Only includes non-HVAC equipment
+                        results[f"Internal Heat Gain - {name} (W)"] = zone.internal_sens_gain
 
                 # add radiation gain from windows and internal radiation, in W
                 if self.run_internal_rad:
