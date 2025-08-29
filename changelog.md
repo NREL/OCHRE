@@ -1,6 +1,9 @@
 ## OCHRE Changelog
 
 ### Updates from PRs
+- Added component load outputs [#19](https://github.com/NREL/OCHRE/issues/19)
+- Added freezers and updated defaults to align with ResStock 2024
+  [#167](https://github.com/NREL/OCHRE/issues/167)
 - Added startup capacity degredation for ASHP/MSHP/AC
   [#179](https://github.com/NREL/OCHRE/issues/179)
 - Fixed bug in EV equivalent battery model (EBM) results
