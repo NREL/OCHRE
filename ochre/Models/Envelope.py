@@ -661,7 +661,12 @@ class Envelope(RCModel):
             zone.create_surfaces(self.boundaries)
 
         # collect RC information
-        capacitances, resistances = self.load_rc_data(**kwargs)
+        if "capacitances" not in kwargs:
+            assert "resistances" not in kwargs
+            capacitances, resistances = self.load_rc_data(**kwargs)
+        else:
+            capacitances = kwargs.pop("capacitances")
+            resistances = kwargs.pop("resistances")
 
         # add energy flow states for component loads
         if kwargs.get("verbosity", 3) >= 5:
