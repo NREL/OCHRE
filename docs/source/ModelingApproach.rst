@@ -97,8 +97,8 @@ included in the building.
   An RC network for a dwelling envelope. Each rectangle represents an RC
   network as shown in Figure 1.
 
-OCHRE includes the capability to model multifamily buildings using a unit by
-unit-based approach. Each unit is modeled as a separate dwelling unit with
+OCHRE includes the capability to model multifamily buildings using a
+unit-by-unit approach. Each unit is modeled as a separate dwelling unit with
 adiabatic surfaces separating different units. OCHRE does not currently
 support modeling a whole multifamily building with multiple units
 simultaneously or the modeling of central space and water heating systems.
@@ -346,7 +346,7 @@ heat gain coefficients, are included in the input files. These loads can
 be electric or natural gas loads. Schedule-based loads include:
 
 -  Appliances (clothes washer, clothes dryer, dishwasher, refrigerator,
-   cooking range)
+   freezer, cooking range)
 
 -  Lighting (indoor, exterior, garage, basement)
 

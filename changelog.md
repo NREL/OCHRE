@@ -1,7 +1,11 @@
 ## OCHRE Changelog
 
 ### Updates from PRs
-- Add SEER1 24.0/ HSPF1 13.0 max tech variable speed ASHP from ResStock
+- Added component load outputs [#19](https://github.com/NREL/OCHRE/issues/19)
+- Added freezers and updated defaults to align with ResStock 2024
+  [#167](https://github.com/NREL/OCHRE/issues/167)
+- Added SEER1 24.0/ HSPF1 13.0 max tech variable speed ASHP from ResStock
+  [#187](https://github.com/NREL/OCHRE/issues/187)
 - Added startup capacity degredation for ASHP/MSHP/AC
   [#179](https://github.com/NREL/OCHRE/issues/179)
 - Fixed bug in EV equivalent battery model (EBM) results
