@@ -543,22 +543,32 @@ def load_schedule(properties, schedule=None, time_zone=None, **house_args):
     df_weather = resample_and_reindex(df_weather, **house_args)  # loses weather timezone info
     df_occupancy = resample_and_reindex(df_occupancy, **house_args)
 
+    if schedule:
+        df_modify = pd.DataFrame(schedule)
+        
+        # Identify columns that are valid for weather and occupancy separately
+        valid_cols_weather = [col for col in df_modify.columns if col in df_weather.columns]
+        valid_cols_occupancy = [col for col in df_modify.columns if col in df_occupancy.columns]
+        
+        # Create separate dataframes for weather and occupancy schedules
+        df_weather_modify = df_modify[valid_cols_weather] if valid_cols_weather else pd.DataFrame()
+        df_occupancy_modify = df_modify[valid_cols_occupancy] if valid_cols_occupancy else pd.DataFrame()
+
+        # Resample and reindex each modified dataframe
+        if not df_weather_modify.empty:
+            df_weather_modify = resample_and_reindex(df_weather_modify, **house_args)
+            df_weather.update(df_weather_modify)
+        
+        if not df_occupancy_modify.empty:
+            df_occupancy_modify = resample_and_reindex(df_occupancy_modify, **house_args)
+            df_occupancy.update(df_occupancy_modify)
+
     # add solar calculations to weather (more accurate if done after resampling)
     df_weather = calculate_solar_irradiance(df_weather, weather_tz, location, properties['boundaries'], **house_args)
 
     # combine weather and main schedule
     schedule_init = pd.concat([df_weather, df_occupancy], axis=1)
-
-    # modify OCHRE schedule from house_args
-    if schedule:
-        df_modify = pd.DataFrame(schedule)
-        bad_cols = [col for col in df_modify.columns if col not in schedule_init.columns]
-        if bad_cols:
-            print('WARNING: Skipping schedule columns not in OCHRE schedule:', bad_cols)
-            df_modify = df_modify.drop(columns=bad_cols)
-
-        df_modify = resample_and_reindex(df_modify, **house_args)
-        schedule_init.update(df_modify)
+    
     schedule = schedule_init
 
     # check if cooling-heating setpoint difference is large enough, if not throw a warning and fix
