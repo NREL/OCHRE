@@ -4,6 +4,7 @@ from ochre.Models import RCModel, ModelException
 from ochre.utils import convert
 
 # Water Constants
+# TODO: add any constants from flow_mixing_example.py here
 water_density = 1000  # kg/m^3
 water_density_liters = 1  # kg/L
 water_cp = 4.183  # kJ/kg-K
@@ -44,7 +45,7 @@ class StratifiedWaterModel(RCModel):
         'Zone Temperature (C)',
     ]
 
-    def __init__(self, water_nodes=12, water_vol_fractions=None, **kwargs):
+    def __init__(self, water_nodes=12, water_vol_fractions=None, include_flow_mixing=False, **kwargs):
         if water_vol_fractions is None:
             self.n_nodes = water_nodes
             self.vol_fractions = np.ones(self.n_nodes) / self.n_nodes
@@ -61,6 +62,12 @@ class StratifiedWaterModel(RCModel):
         assert self.t_amb_idx == 0  # should always be first
         self.t_1_idx = self.state_names.index('T_WH1')
         self.h_1_idx = self.input_names.index('H_WH1')
+        
+        if include_flow_mixing:
+            # TODO: may need to modify based on what parameters are needed
+            self.flow_mixing_params = self.calculate_flow_mixing_params(**kwargs)
+        else:
+            self.flow_mixing_params = None
 
         # key variables for results
         self.draw_total = 0  # in L
@@ -124,6 +131,11 @@ class StratifiedWaterModel(RCModel):
 
         # Return states as a dictionary
         return {name: t_init for name in state_names}
+
+    @staticmethod
+    def calculate_flow_mixing_params(**kwargs):
+        # TODO: copy initialization code from flow_mixing_example.py here
+        pass
 
     def update_water_draw(self):
         heats_to_model = np.zeros(self.nx)
@@ -213,6 +225,13 @@ class StratifiedWaterModel(RCModel):
         # convert heat transfer from J to W
         self.h_delivered = q_delivered / t_s
         heats_to_model += q_nodes / t_s
+
+        if self.flow_mixing_params is not None:
+            # TODO: update heats_to_model using code from
+            # flow_mixing_example.py:calculate_heat_transfers
+            # - can use self.states for the tank temperatures
+            # - can use self.draw_total for the flow rate
+            pass
 
         # calculate unmet loads, fixtures only, in W
         self.h_unmet_load = max(draw_tempered / 60 * water_c * (self.tempered_draw_temp - self.outlet_temp), 0)  # in W
