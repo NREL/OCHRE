@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import datetime as dt
-# import re
+import numba  # required for array-based psychrolib
 import psychrolib
 import pytz
 import pvlib

@@ -502,8 +502,8 @@ class Zone:
 
         # calculate sensible heat gains
         sensible_gain = sensible_flow * density * cp_air * delta_t * 1000  # in W
-        if h_limit is not None and ((sensible_gain < 0) ^ (sensible_gain > h_limit)):
-            # clip sensible gain based on heat gain limit, only in 1 direction
+        if h_limit is not None and abs(sensible_gain) > abs(h_limit):
+            # clip sensible gain based on heat gain limit
             sensible_gain = h_limit
 
         # TODO: add heavy ball convergence to fix high wind issues for attics
@@ -661,7 +661,12 @@ class Envelope(RCModel):
             zone.create_surfaces(self.boundaries)
 
         # collect RC information
-        capacitances, resistances = self.load_rc_data(**kwargs)
+        if "capacitances" not in kwargs:
+            assert "resistances" not in kwargs
+            capacitances, resistances = self.load_rc_data(**kwargs)
+        else:
+            capacitances = kwargs.pop("capacitances")
+            resistances = kwargs.pop("resistances")
 
         # add energy flow states for component loads
         if kwargs.get("verbosity", 3) >= 5:
@@ -1277,13 +1282,10 @@ class Envelope(RCModel):
                     )
                     results[f"Occupancy Heat Gain - {name} (W)"] = occupant_gain
                 else:
-                    occupant_gain = 0
-
-                if occupant_gain + zone.internal_sens_gain > 0:
-                    # occupancy + non-HVAC equipment only
-                    results[f"Internal Heat Gain - {name} (W)"] = (
-                        occupant_gain + zone.internal_sens_gain
-                    )
+                    if zone.internal_sens_gain > 0:
+                        # occupancy=0 for non-Indoor zones
+                        # Only includes non-HVAC equipment
+                        results[f"Internal Heat Gain - {name} (W)"] = zone.internal_sens_gain
 
                 # add radiation gain from windows and internal radiation, in W
                 if self.run_internal_rad:
