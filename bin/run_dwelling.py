@@ -105,7 +105,7 @@ dwelling_args = {
         # "PV": {
         #     "capacity": 5,
         #     "tilt": 20,
-        #     "azimuth": 0,
+        #     "azimuth": 180,
         # },
         # "Battery": {
         #     "capacity_kwh": 6,

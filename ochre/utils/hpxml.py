@@ -38,6 +38,17 @@ MEL_NAMES = {
     'lighting': 'Gas Lighting',
 }
 
+ORIENTATIONS = {
+    "north": 0,
+    "northeast": 45,
+    "east": 90,
+    "southeast": 135,
+    "south": 180,
+    "southwest": 225,
+    "west": 270,
+    "northwest": 315,
+}
+
 # FUTURE: update roughness by material
 # ROUGHNESS_BY_FINISH_TYPE = {
 #     'asphalt or fiberglass shingles': 1.67,
@@ -133,7 +144,10 @@ def parse_hpxml_surface(bd_name, bd_data):
     }
 
     # Add azimuth if it exists
-    azimuth = bd_data.get('Azimuth')
+    # TODO: create 4 azimuths for exterior boundaries with no azimuth (see
+    # HPXML docs)
+    from_orientation = ORIENTATIONS.get(bd_data.get('Orientation'))
+    azimuth = bd_data.get("Azimuth", from_orientation)
     if azimuth is not None:
         out['Azimuth (deg)'] = azimuth
 
@@ -1138,6 +1152,134 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
 
     return wh
 
+def parse_ev(ev, evse):
+    # see Vehicles and Electric Vehicle Chargers:
+    # https://openstudio-hpxml.readthedocs.io/en/latest/workflow_inputs.html#hpxml-vehicles
+    assert "BatteryElectricVehicle" in ev["VehicleType"]
+    bev = ev["VehicleType"]["BatteryElectricVehicle"]
+
+    # get charging level
+    # TODO: check EVSE ID after switch to etree
+    # assert bev["ConnectedCharger"] == evse["id"]
+    charging_level = evse.get("ChargingLevel", 2)
+
+    # get max power
+    default = 1.6 if charging_level == 1 else 5.69  # in kW
+    max_power = evse.get("ChargingPower", default)
+
+    # get capacity
+    # note: using nominal capacity, not usable capacity
+    nominal_capacity = bev.get("Battery").get("NominalCapacity", {})
+    capacity = nominal_capacity.get("Value")
+    voltage = bev.get("Battery").get("NominalVoltage")
+    if capacity is None:
+        capacity = 63  # in kWh
+    elif nominal_capacity["Units"] == "Ah" and voltage is not None:
+        capacity = capacity * voltage / 1000  # convert Ah to kWh
+
+    # get annual consumption to handle normalized schedule
+    # note: HPXML fuel economy default is only used here, other defaults used
+    # in EV file
+    fuel_economy = ev.get("FuelEconomyCombined", {}).get("Value")
+    units = ev.get("FuelEconomyCombined", {}).get("Units")
+    if fuel_economy is not None and units == "kWh/mile":
+        fuel_economy = 1 / fuel_economy  # convert to miles/kWh
+    elif fuel_economy is not None and units == "mpge":
+        fuel_economy = fuel_economy / 33.7  # convert mpge to miles/kWh
+    elif fuel_economy is None:
+        fuel_economy = 1 / 0.22  # default to 0.22 miles/kWh
+    default = ev["HoursDrivenPerWeek"] * 1227.5 if "HoursDrivenPerWeek" in ev else 10900
+    miles = ev.get("MilesDrivenPerYear", default)
+    annual_energy = miles / fuel_economy  # in kWh/year
+
+    return {
+        "Annual Electric Energy (kWh)": annual_energy,
+        "vehicle_type": "BEV",
+        "charging_level": f"Level {charging_level}",
+        "capacity": capacity,
+        "max_power": max_power,
+        **add_simple_schedule_params(bev.get("extension", {})),
+    }
+
+
+def parse_pv(pv, inverter, n_beds):
+    # note: assumes standard module, standard losses, fixed tracking on roof
+    # get capacity
+    capacity = pv["MaxPowerOutput"] / 1000  # in kW
+    if pv["IsSharedSystem"]:
+        # adjust capacity based on number of bedrooms for shared PV systems
+        n_beds_served = pv.get("extension", {}).get("NumberofBedroomsServed")
+        if n_beds_served is None:
+            raise OCHREException("Number of bedrooms served by shared PV system is required.")
+        capacity *= n_beds / n_beds_served
+
+    # get azimuth
+    from_orientation = ORIENTATIONS.get(pv.get("ArrayOrientation"))
+    azimuth = pv.get("ArrayAzimuth", from_orientation)
+
+    # get inverter parameters
+    # TODO: check inverter ID after switch to etree
+    # assert pv["AttachedToInverter"] == inverter["id"]
+    inverter_efficiency = inverter.get("InverterEfficiency", 0.96)
+
+    return {
+        "capacity": capacity,
+        "tilt": pv["ArrayTilt"],
+        "azimuth": azimuth,
+        "inverter_efficiency": inverter_efficiency,
+    }
+
+def parse_battery(battery, n_beds, has_garage):
+    # get energy and power capacity
+    # note: using nominal capacity, not usable capacity
+    nominal_capacity = battery.get("NominalCapacity", {})
+    capacity_kwh = nominal_capacity.get("Value")
+    voltage = battery.get("NominalVoltage")
+    if capacity_kwh is None:
+        capacity_kwh = battery.get("RatedPowerOutput", 5000) / 1000 / 0.5
+    elif nominal_capacity["Units"] == "Ah" and voltage is not None:
+        capacity_kwh = capacity_kwh * voltage / 1000  # convert Ah to kWh
+    capacity = battery.get("RatedPowerOutput", capacity_kwh * 1000 * 0.5) / 1000
+
+    # adjust capacity for shared systems
+    if battery["IsSharedSystem"]:
+        # adjust capacity based on number of bedrooms for shared battery systems
+        n_beds_served = battery.get("extension", {}).get("NumberofBedroomsServed")
+        if n_beds_served is None:
+            raise OCHREException("Number of bedrooms served by shared battery system is required.")
+        capacity_kwh *= n_beds / n_beds_served
+        capacity *= n_beds / n_beds_served
+
+    # get location
+    default_zone = "Garage" if has_garage else "Outdoor"
+    zone = parse_zone_name(battery.get("Location", default_zone))
+
+    return {
+        "capacity": capacity,
+        "capacity_kwh": capacity_kwh,
+        "efficiency": battery.get("RoundTripEfficiency", 0.925),
+        "Zone": zone,
+    }
+
+def parse_generator(generator):
+    # check fuel type
+    fuel = generator.get("FuelType")
+    if fuel not in ["natural gas", None]:
+        raise print(f"WARNING: Converting generator fuel type {fuel} to natural gas.")
+
+    # get efficiency
+    fuel_in = generator["AnnualConsumptionkBtu"] * 3.412  # convert kBtu to kWh
+    power_out = generator["AnnualOutputkWh"]
+    efficiency = power_out / fuel_in
+
+    return {
+        "capacity": 6,  # default size, no parameters for this in OS-HPXML
+        "efficiency": efficiency,
+    }
+
+def parse_solar_thermal(solar_thermal):
+    raise NotImplementedError("Solar thermal systems are not supported in OCHRE yet.")
+
 
 def parse_clothes_washer(clothes_washer, n_bedrooms):
     # From ResStock, using ERI Version >= '2019A'
@@ -1477,7 +1619,7 @@ def parse_mels(mel_dict, is_gas=False):
     return mels
 
 
-def parse_ev(ev):
+def parse_ev_mel(ev):
     # create EV equipment from MEL info
     print('Creating EV equipment with a Level 2 charger from HPXML ')
     ev_load = ev['Annual Electric Energy (kWh)']
@@ -1538,44 +1680,76 @@ def parse_vent_fan(vent_fan):
 
 
 def parse_hpxml_equipment(hpxml, occupancy, construction):
-    # Add HVAC equipment
     equipment = {}
-    hvac_all = hpxml['Systems'].get('HVAC', {})
+    systems = hpxml.get("Systems", {})
+    # Add HVAC equipment
+    hvac_all = systems.get("HVAC", {})
     for hvac_type in ['Heating', 'Cooling']:
         hvac = parse_hvac(hvac_type, hvac_all)
         if hvac is not None:
             equipment[f'HVAC {hvac_type}'] = hvac
 
     # Add water heater
-    water = hpxml['Systems'].get('WaterHeating', {})
+    water = systems.get('WaterHeating', {})
     water_heater = water.get('WaterHeatingSystem')
     if water_heater is not None:
         # Add water heater parameters
         wh = parse_water_heater(water_heater, water, construction)
         equipment['Water Heating'] = wh
 
+    # Add EV/EVSE
+    ev = systems.get("Vehicles", {}).get("Vehicle")
+    evse = systems.get("ElectricVehicleChargersQ", {}).get("ElectricVehicleCharger")
+    if ev is not None and evse is not None:
+        equipment['Electric Vehicle'] = parse_ev(ev, evse)
+    elif ev is not None or evse is not None:
+        print('WARNING: Electric Vehicle or Electric Vehicle Charger is missing, skipping EV equipment.')
+
+    # Add PV
+    pv = systems.get("Photovoltaics", {}).get("PVSystem")
+    inverter = systems.get("Photovoltaics", {}).get("Inverter")
+    n_beds = construction['Number of Bedrooms (-)']
+    if pv is not None:
+        equipment["PV"] = parse_pv(pv, inverter, n_beds)
+
+    # Add battery
+    battery = systems.get("Batteries", {}).get("Battery")
+    if battery is not None:
+        has_garage = construction['Garage Floor Area (m^2)'] > 0
+        equipment["Battery"] = parse_battery(battery, n_beds, has_garage)
+
+    # Add generator
+    generator = systems.get("extension", {}).get("Generators", {}).get("Generator")
+    if generator is not None:
+        equipment["Gas Generator"] = parse_generator(generator)
+
+    # Add solar thermal
+    solar_thermal = systems.get("SolarThermal", {}).get("SolarThermalSystem")
+    if solar_thermal is not None:
+        equipment["Solar Thermal"] = parse_solar_thermal(solar_thermal)
+
     # Add appliances
     appliances = hpxml.get('Appliances', {})
-    n_bedrooms = construction['Number of Bedrooms, Adjusted (-)']
+    n_beds_adj = construction['Number of Bedrooms, Adjusted (-)']
     # appliances = {re.sub(r"(\w)([A-Z])", r"\1 \2", name): val for name, val in appliances.items()}
     if 'ClothesWasher' in appliances:
         equipment['Clothes Washer'] = parse_clothes_washer(appliances['ClothesWasher'],
-                                                           n_bedrooms)
+                                                           n_beds_adj)
     if 'ClothesDryer' in appliances:
         equipment['Clothes Dryer'] = parse_clothes_dryer(appliances['ClothesDryer'],
                                                          appliances['ClothesWasher'],
-                                                         n_bedrooms)
+                                                         n_beds_adj)
     if 'Dishwasher' in appliances:
-        equipment['Dishwasher'] = parse_dishwasher(appliances['Dishwasher'], n_bedrooms)
+        equipment['Dishwasher'] = parse_dishwasher(appliances['Dishwasher'], n_beds_adj)
     if 'Refrigerator' in appliances:
-        equipment['Refrigerator'] = parse_refrigerator(appliances['Refrigerator'], n_bedrooms)
+        equipment['Refrigerator'] = parse_refrigerator(appliances['Refrigerator'], n_beds_adj)
     if 'Freezer' in appliances:
-        equipment["Freezer"] = parse_freezer(appliances["Freezer"], n_bedrooms)
+        equipment["Freezer"] = parse_freezer(appliances["Freezer"], n_beds_adj)
     # TODO: add dehumidifier
     if 'CookingRange' in appliances:
         equipment['Cooking Range'] = parse_cooking_range(appliances['CookingRange'],
                                                          appliances.get('Oven', {}),
-                                                         n_bedrooms)
+                                                         n_beds_adj)
 
     # Add lighting
     lighting = hpxml.get('Lighting', {})
@@ -1618,8 +1792,10 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     # Add MELs: TV, other MELs, well pump, EV
     mels = parse_mels(mel_dict)
     if 'Electric Vehicle' in mels:
+        if 'Electric Vehicle' in equipment:
+            print('WARNING: Overwriting existing Electric Vehicle equipment with MEL information.')
         ev = mels.pop('Electric Vehicle')
-        equipment['Electric Vehicle'] = parse_ev(ev)
+        equipment['Electric Vehicle'] = parse_ev_mel(ev)
     equipment.update(mels)
 
     # Add MGLs: Grill, Fireplace, and Lighting
@@ -1635,7 +1811,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     ceiling_fan = lighting.get('CeilingFan')
     if ceiling_fan:
         # From ResStock (ANSI 301-2019), flow rate = 3000 cfm, operation time = 10.5 hours per day
-        n_fans = ceiling_fan.get('Count', n_bedrooms + 1)
+        n_fans = ceiling_fan.get('Count', n_beds_adj + 1)
         efficiency = ceiling_fan.get('Airflow', {}).get('Efficiency', 3000 / 42.6)  # in cfm/W
         fan_annual_kwh = n_fans * 3000 / efficiency * 10.5 * 365.0 / 1000  # in kWh/year (assumes 10.5 hr/day)
         ceiling_fan['Load'] = {'Units': 'kWh/year',
@@ -1643,7 +1819,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
         equipment['Ceiling Fan'] = parse_mel(ceiling_fan, 'CeilingFan')
 
     # Add Ventilation Fan
-    vent_fans = hpxml['Systems'].get('MechanicalVentilation', {}).get('VentilationFans', {})
+    vent_fans = systems.get('MechanicalVentilation', {}).get('VentilationFans', {})
     vent_fans = {key: val for key, val in vent_fans.items()
                  if val.get('UsedForWholeBuildingVentilation', False) or val.get('UsedForSeasonalCoolingLoadReduction', False)}
     if vent_fans:

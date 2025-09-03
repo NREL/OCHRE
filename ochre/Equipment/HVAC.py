@@ -728,7 +728,7 @@ class DynamicHVAC(HVAC):
         speed_type = SPEED_TYPES[self.n_speeds]
 
         biquadratic_file = kwargs.get('biquadratic_file', f'Biquadratic {self.name}.csv')
-        biquad_params = self.initialize_parameters(biquadratic_file, value_col=None, **kwargs)
+        biquad_params = load_csv(biquadratic_file, self.end_use, index_col="Name")
         biquad_params = biquad_params.loc[:, [col for col in biquad_params if speed_type == col.split('_')[0]]]
         if len(biquad_params.columns) != self.n_speeds:
             raise OCHREException(f'Number of speeds ({self.n_speeds}) does not match number of biquadratic '

@@ -21,11 +21,11 @@ def run_sam(
 
     :param capacity: PV system capacity, in kW
     :param tilt: PV array tilt angle, in degrees (0 = horizontal)
-    :param azimuth: PV array azimuth angle, in degrees (0=south, west-of-south=positive)
+    :param azimuth: PV array azimuth angle, in degrees (0=north, 90=east, 180=south, 270=west)
     :param weather: Pandas DataFrame of time series weather data in OCHRE schedule format
     :param location: dict of location data including timezone, elevation, latitude, and longitude
     :param inv_capacity: inverter capacity, in kW, defaults to `capacity`
-    :param inv_efficiency: inverter efficiency, in %, uses PVWatts default (96%)
+    :param inv_efficiency: inverter efficiency, unitless, uses PVWatts as default (0.96)
     :return: a Pandas Series of the PV AC power, using the same index as `weather`
     """
     if capacity is None:
@@ -55,11 +55,11 @@ def run_sam(
     # update system parameters
     system_model.value('system_capacity', capacity)
     system_model.value('tilt', tilt)
-    system_model.value('azimuth', (azimuth + 180) % 360)  # SAM convention is south=180
+    system_model.value('azimuth', azimuth)
     if inv_capacity is not None:
         system_model.value('dc_ac_ratio', capacity / inv_capacity)
     if inv_efficiency is not None:
-        system_model.value('inv_eff', inv_efficiency)
+        system_model.value('inv_eff', inv_efficiency * 100)
     system_model.SolarResource.assign({'solar_resource_data': solar_resource_data})
 
     # run the modules in the correct order
@@ -104,16 +104,16 @@ class PV(ScheduledLoad):
                 raise OCHREException('Must specify PV tilt and azimuth, or provide an envelope_model with a roof.')
             roofs = [bd.ext_surface for bd in envelope_model.boundaries if 'Roof' in bd.name]
             if roofs:
-                # Use roof closest to south with preference to west (0-45 degrees)
+                # Use roof closest to south with preference to west (180-225 degrees)
                 roof_data = pd.DataFrame([[bd.tilt, az] for bd in roofs for az in bd.azimuths], columns=['Tilt', 'Az'])
-                best_idx = (roof_data['Az'] - 185).abs().idxmax()
+                best_idx = (roof_data['Az'] - 185).abs().idxmin()
                 self.tilt = roof_data.loc[best_idx, 'Tilt']
                 self.azimuth = roof_data.loc[best_idx, 'Az']
             else:
                 # TODO: convert to self.warn. Need to initialize Simulator first.
                 print('No roofs in envelope model. Defaulting PV tilt to latitude and azimuth to south.')
                 self.tilt = kwargs["location"]["latitude"]
-                self.azimuth = 0
+                self.azimuth = 180
 
         # Inverter constraints
         self.inverter_capacity = inverter_capacity or self.capacity  # in kVA, AC
@@ -141,11 +141,11 @@ class PV(ScheduledLoad):
             self.reset_time()
 
     def initialize_schedule(self, schedule=None, location=None, **kwargs):
-        if schedule is None or self.name + ' (kW)' not in schedule:
+        if schedule is None or f"{self.name} Electric Power (kW)" not in schedule:
             self.print('Running SAM')
             schedule = run_sam(self.capacity, self.tilt, self.azimuth, schedule, location,
                                self.inverter_capacity, self.inverter_efficiency)
-            schedule = schedule.to_frame(self.name + ' (kW)')
+            schedule = schedule.to_frame(f"{self.name} Electric Power (kW)")
 
         return super().initialize_schedule(schedule, **kwargs)
 

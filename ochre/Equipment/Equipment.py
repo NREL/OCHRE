@@ -32,7 +32,6 @@ class Equipment(Simulator):
         Optional features for equipment include:
          - A control algorithm to use for external control (update_external_control)
          - A ZIP model for voltage-dependent real and reactive power
-         - A parameters file to get loaded as self.parameters
         Equipment can use data from:
          - The dwelling schedule (or from a player file)
          - Any other information from the dwelling (passed through house_args)
@@ -56,7 +55,6 @@ class Equipment(Simulator):
         super().__init__(**kwargs)
 
         # General parameters
-        self.parameters = self.initialize_parameters(**kwargs)
         self.results_name = self.end_use if self.end_use not in ["Lighting", "Other"] else self.name
         self.save_ebm_results = save_ebm_results
 
@@ -101,23 +99,6 @@ class Equipment(Simulator):
         # fraction of time per mode, should sum to 1
         self.duty_cycle_by_mode = {mode: 0 for mode in self.modes}
         self.duty_cycle_by_mode["Off"] = 1
-
-    def initialize_parameters(
-        self, parameter_file=None, name_col="Name", value_col="Value", **kwargs
-    ):
-        if parameter_file is None:
-            return {}
-
-        # assumes a parameters file with columns for name and value
-        df = load_csv(parameter_file, sub_folder=self.end_use, index_col=name_col)
-        if value_col is None:
-            return df
-        else:
-            parameters = df[value_col].to_dict()
-
-            # update parameters from kwargs (overrides the parameters file values)
-            parameters.update({key: val for key, val in kwargs.items() if key in parameters})
-            return parameters
 
     def update_duty_cycles(self, *duty_cycles):
         duty_cycles = list(duty_cycles)

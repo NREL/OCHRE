@@ -271,7 +271,7 @@ def run_pv_voltvar():
         # Equipment parameters
         "capacity": 5,
         "tilt": 20,
-        "azimuth": 0,
+        "azimuth": 180,
         "schedule": weather,
         "location": location,
     }
