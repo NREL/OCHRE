@@ -151,7 +151,7 @@ def bisection_control(temp_n1, temp_n2, setpoint_initial, draw): #performs 5 bis
 
 
 #run 12 node model
-
+import copy 
 # Define equipment and simulation parameters
 setpoint_default = 51  # in C #alternate b/w 60 and 49
 deadband_default = 5.56  # in C
@@ -161,7 +161,7 @@ min_setpoint = 49
 
 water_nodes = 12
 run_range = False #runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 220#220 #172 #220
+simulation_days = 44#220 #172 #220
 time_interval = 15 # adjust setpoint every 15 minutes?
 
 site_number = '90023' #90023 #10292#'10441'
@@ -171,7 +171,12 @@ flow_data = f'net_flow_{site_number}.csv'
 #start_date = dt.datetime(2013, 1, 17, 0, 1) #10441
 start_date = dt.datetime(2013, 1, 1, 0, 1) #10292, 90023
 #start_date = dt.datetime(2013, 1, 23, 0, 1) #90159
-setpoint_range = [setpoint_default]
+
+withdraw_rate = np.loadtxt(f'ochre\\defaults\\Input Files\\{flow_data}')
+train_end = int(len(withdraw_rate)*0.8) #gets end of training interval
+
+setpoint_range = np.arange(49, 60)
+setpoint_range = [49]
 
 if run_range == True:
     setpoint_range = np.arange(min_setpoint, max_setpoint, 0.5)
@@ -204,9 +209,8 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     water_draw_magnitude = 12  # L/min
     #withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=len(times))
     withdraw_rate = np.loadtxt(f'ochre\defaults\\Input Files\\{flow_data}')
-    withdraw_rate = withdraw_rate[:len(times)]
-    current_draws = np.loadtxt(f'ochre\defaults\\Input Files\\{flow_data}')
-    current_draws = current_draws[:len(times)]
+    withdraw_rate = withdraw_rate[train_end:train_end + len(times)] #stagger by 2 weeks
+    current_draws = copy.deepcopy(withdraw_rate)
     schedule = pd.DataFrame(
         {
             "Water Heating (L/min)": withdraw_rate,
@@ -272,18 +276,24 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     ]
 
 
-      # For the DataFrame, select columns and calculate the rolling average for each column
-    to_save = df[cols_to_save].rolling(window=15).mean()
-    # Calculate the rolling average for 'setpoints' with window size 15
     avg_setpoints = np.convolve(setpoints, np.ones(15)/15, 'same')
     avg_setpoints = avg_setpoints[14::15]
-    avg_electric = np.convolve(df['Water Heating Electric Power (kW)'], np.ones(15), 'same')
-    avg_electric = avg_electric[14::15]
+
+    df['Energy (kWh)'] = df['Water Heating Electric Power (kW)']/60 # energy per minute
+    kwh_energy = df['Energy (kWh)'].resample('15T').sum()  # sum up 15 mins = total kWh per interval
+
+
+    # For the DataFrame, select columns and calculate the rolling average for each column
+    to_save = df[cols_to_save].rolling(window=15).mean()
+
+    #electric_energy_kwh = electric_energy_kwh[14::15]
+
+    to_save = df.loc[:, cols_to_save]
+    to_save["Water Heating Mode"] = df["Water Heating Mode"]
     to_save = to_save[14::15]
-    to_save["Setpoint"] = pd.Series(avg_setpoints, index=to_save.index)
-    to_save["Average Electric Power"] = pd.Series(avg_electric, index=to_save.index) 
 
-
+    to_save["Water Heating Electric Power"] = pd.Series(kwh_energy, index=to_save.index)
+   
 
     to_save = to_save[:-1] 
     to_save.to_csv(f'output_site_{site_number}_bisectioncontrol_{water_nodes}.csv', header=True, index=False)

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from ochre import Dwelling
-from ochre.utils import default_input_path  # for using sample files
+#from ochre.utils import default_input_path  # for using sample files
 from ochre import HeatPumpWaterHeater
 
 
@@ -16,8 +16,8 @@ max_setpoint = 60
 min_setpoint = 49
 water_nodes = 12
 
-run_range = False #runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 220 #172 #220
+run_range = True #runs simulation for a variety of setpoints specified in setpoint_range
+simulation_days = 1 #172 #220
 
 site_number = '90023' #90023 #10292#'10441'
 
@@ -29,7 +29,7 @@ start_date = dt.datetime(2013, 1, 17, 0, 1) #10441
 setpoint_range = [setpoint_default]
 
 if run_range == True:
-    setpoint_range = np.arange(min_setpoint, max_setpoint, 0.5)
+    setpoint_range = np.arange(min_setpoint, max_setpoint+0.5, 0.5)
 
 for s in setpoint_range: #run simulation for every setpoint in valid range
     setpoint_default = s
@@ -60,7 +60,8 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     water_draw_magnitude = 12  # L/min
     #withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=len(times))
     withdraw_rate = np.loadtxt(f'ochre\defaults\\Input Files\\{flow_data}')
-    withdraw_rate = withdraw_rate[:len(times)]
+    train_end = int(len(withdraw_rate)* 0.8) #259393
+    withdraw_rate = withdraw_rate[train_end:train_end + len(times)]
     schedule = pd.DataFrame(
         {
             "Water Heating (L/min)": withdraw_rate,
@@ -128,7 +129,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
             }
         else:
             control_signal = {}
-        
+    
         setpoints.append(setpoint)
         # Run with controls
         _ = hpwh.update(control_signal=control_signal)
@@ -165,7 +166,9 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     # Calculate the rolling average for 'setpoints' with window size 15
     avg_setpoints = np.convolve(setpoints, np.ones(15)/15, 'same')
 
-    avg_electric = np.convolve(df['Water Heating Electric Power (kW)'], np.ones(15), 'same')
+    # Ensure datetime index at 1-minute frequency
+    kwh = df['Water Heating Electric Power (kW)']/60  # energy per minute
+    kwh_energy = kwh.resample('15T').sum() # sum up 15 mins = total kWh per interval
 
 
     # For the DataFrame, select columns and calculate the rolling average for each column
@@ -174,15 +177,16 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
 
     draw_data = avg_withdraw_rate[14::15]
     avg_setpoints = avg_setpoints[14::15]
-    avg_electric = avg_electric[14::15]
+    #electric_energy_kwh = electric_energy_kwh[14::15]
 
     to_save = df.loc[:, cols_to_save]
     to_save["Water Heating Mode"] = df["Water Heating Mode"]
     to_save = to_save[14::15]
 
-    to_save["Water Heating Electric Power"] = pd.Series(avg_electric, index=to_save.index)
+    to_save["Water Heating Electric Power"] = pd.Series(kwh_energy, index=to_save.index)
     to_save["Draw Data"] = pd.Series(draw_data, index=to_save.index)
     to_save["Setpoint"] = pd.Series(avg_setpoints, index=to_save.index)
+
 
     import matplotlib.pyplot as plt 
 
@@ -191,7 +195,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     to_save = to_save[:-1]
 
     if run_range == True:
-         to_save.to_csv(f'output_site_{site_number}_{water_nodes}.csv', mode='a', header=False, index=False)
+         to_save.to_csv(f'output_site_{site_number}_{setpoint_default}_control_{water_nodes}.csv', header=True, index=False)
     else:
         to_save.to_csv(f'output_site_{site_number}_{setpoint_default}_{water_nodes}.csv', mode='a', header=True, index=False)
 
