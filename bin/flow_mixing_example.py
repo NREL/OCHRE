@@ -1,4 +1,5 @@
 import numpy as np
+from ochre.utils import convert
 
 # Code to implement flow-rate mixing for water heaters
 # based on model from https://www.mdpi.com/1996-1073/14/9/2611
@@ -6,18 +7,30 @@ import numpy as np
 # constants (come from water tank model)
 tank_volume = None
 tank_nodes = None
+tank_height = 1.22  # FIXME: should be ['Tank Height (m)']
 vol_fractions = np.ones(tank_nodes) / tank_nodes  # uniform volume fractions
 water_density_liters = 1  # kg/L
 water_cp = 4.183  # kJ/kg-K
 water_c = water_cp * water_density_liters * 1000  # heat capacity with useful units: J/K-L
 
-
-def calculate_a_b():
+#Dip tube parameters
+dip_tube_diffuser = "Nonperforated" # "Nonperforated", "Helical", "Slit-perforated"
+dip_tube_od = 0.05  # m, outer diameter of the dip tube
+dip_tube_id = 0.04  # m, inner diameter of the dip tube
+dip_tube_th = 0.002  # m, thickness of the blocked section of the dip tube
+dip_tube_h = #FIXME: should be 0.95 * convert(tank_height, 'ft', 'm')
+def calculate_a_b(): #a and b from https://www.sciencedirect.com/science/article/abs/pii/S0735193320303663
     # Calculate a and b from paper
     pass
 
-def calculate_heat_transfers(flow_rate, tank_temps: np.ndarray):
+def calculate_heat_transfers(flow_rate, tank_temps: np.ndarray,dip_tube_diffuser,dip_tube_od,dip_tube_id,dip_tube_th):
     # Calculate Reynolds number (Re) and Richardson number (Ri)
+    if dip_tube_diffuser == "Nonperforated":
+        d_hydraulic = dip_tube_od
+    elif dip_tube_diffuser == "Helical":
+        d_hydraulic = 4*((np.pi * dip_tube_od ** 2 ) / (4 - dip_tube_th * dip_tube_od)) / (np.pi * dip_tube_od - 2 * dip_tube_th + 2 * dip_tube_od)
+    elif dip_tube_diffuser == "Slit-perforated":
+        d_hydraulic = 4 * ((np.pi * dip_tube_id ** 2 / 4)-3*(dip_tube_od - dip_tube_id) * dip_tube_th) / (np.pi * dip_tube_od)
 
     # Calculate Courant number (is this necessary?)
 
