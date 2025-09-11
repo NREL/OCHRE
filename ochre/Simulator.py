@@ -19,7 +19,7 @@ class Simulator:
         if name is not None:
             self.name = name
         self.main_sim_name = main_sim_name
-        self.main_simulator = self.main_sim_name is None
+        self.main_simulator = self.main_sim_name is None 
         self.sub_simulators = []  # list of simulators included within self (e.g., Equipment in a Dwelling)
 
         # Timing parameters
