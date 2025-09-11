@@ -1,7 +1,7 @@
 import numpy as np
 
 from ochre.Models import RCModel, ModelException
-from ochre.utils import convert
+from ochre.utils import convert, OCHREException
 
 # Water Constants
 # TODO: add any constants from flow_mixing_example.py here
@@ -10,6 +10,14 @@ water_density_liters = 1  # kg/L
 water_cp = 4.183  # kJ/kg-K
 water_conductivity = 0.6406  # W/m-K
 water_c = water_cp * water_density_liters * 1000  # heat capacity with useful units: J/K-L
+water_dynamic_viscosity = 0.0005568  # kg/(m-s), at 49 C
+water_kinematic_viscosity = water_dynamic_viscosity / (water_density_liters * 1000)  # m^2/s
+g = 9.81  # m/s^2, gravitational constant
+water_beta = 0.000298  # 1/C, thermal expansion coefficient at 49 C
+water_c = water_cp * water_density_liters * 1000  # heat capacity with useful units: J/K-L
+
+#Mixing algorithm: either 'inversion' or 'edf', EnergyPlus uses inversion mixing
+mixing_algorithm = 'inversion'
 
 
 class StratifiedWaterModel(RCModel):
@@ -83,29 +91,28 @@ class StratifiedWaterModel(RCModel):
         # Removing target temperature for clothes washers
         # self.washer_draw_temp = kwargs.get('Clothes Washer Delivery Temperature (C)', convert(92.5, 'degF', 'degC'))
 
-        #Mixing algorithm: either 'inversion' or 'edf', EnergyPlus uses inversion mixing
-        self.mixing_algorithm = 'inversion'
+        
 
     def load_rc_data(self, **kwargs):
         # Get properties from input file
         h = kwargs['Tank Height (m)']  # in m
-        top_area = self.volume / h / 1000  # in m^2
-        r = (top_area / np.pi) ** 0.5
+        self.top_area = self.volume / h / 1000  # in m^2
+        r = (self.top_area / np.pi) ** 0.5
 
         if 'Heat Transfer Coefficient (W/m^2/K)' in kwargs:
             u = kwargs['Heat Transfer Coefficient (W/m^2/K)']
         elif 'UA (W/K)' in kwargs:
             ua = kwargs['UA (W/K)']
-            total_area = 2 * top_area + 2 * np.pi * r * h
+            total_area = 2 * self.top_area + 2 * np.pi * r * h
             u = ua / total_area
         else:
             raise ModelException('Missing heat transfer coefficient (UA) for {}'.format(self.name))
 
         # calculate general RC parameters for whole tank
         c_water_tot = self.volume * water_c  # Heat capacity of water (J/K)
-        r_int = (h / self.n_nodes) / water_conductivity / top_area  # R between nodes (K/W)
+        r_int = (h / self.n_nodes) / water_conductivity / self.top_area  # R between nodes (K/W)
         r_side_tot = 1 / u / (2 * np.pi * r * h)  # R from side of tank (K/W)
-        r_top = 1 / u / top_area  # R from top/bottom of tank (K/W)
+        r_top = 1 / u / self.top_area  # R from top/bottom of tank (K/W)
 
         # Capacitance per node
         rc_params = {'C_WH' + str(i + 1): c_water_tot * frac for i, frac in enumerate(self.vol_fractions)}
@@ -178,8 +185,8 @@ class StratifiedWaterModel(RCModel):
         #         self.draw_total += draw_cw * vol_ratio
 
         t_s = self.time_res.total_seconds()
-        draw_liters = self.draw_total * t_s / 60  # in liters
-        draw_fraction = draw_liters / self.volume  # unitless
+        self.draw_liters = self.draw_total * t_s / 60  # in liters
+        draw_fraction = self.draw_liters / self.volume  # unitless
 
         if self.n_nodes == 2 and draw_fraction < self.vol_fractions[1]:
             # Use empirical factor for determining water flow by node
@@ -188,7 +195,7 @@ class StratifiedWaterModel(RCModel):
                 # outlet temp is volume-weighted average of lower and upper temps
                 self.outlet_temp = (self.states[0] * self.vol_fractions[0] +
                                     self.states[1] * (draw_fraction - self.vol_fractions[0])) / draw_fraction
-            q_delivered = draw_liters * water_c * (self.outlet_temp - self.mains_temp)  # in J
+            q_delivered = self.draw_liters * water_c * (self.outlet_temp - self.mains_temp)  # in J
 
             # q_to_mains_upper = self.state_capacitances[0] * (self.x[0] - self.mains_temp)
             q_to_mains_lower = self.capacitances[1] * (self.states[1] - self.mains_temp)
@@ -201,9 +208,9 @@ class StratifiedWaterModel(RCModel):
         else:
             if draw_fraction < min(self.vol_fractions):
                 # water draw is smaller than all node volumes
-                q_delivered = draw_liters * water_c * (self.outlet_temp - self.mains_temp)  # in J
+                q_delivered = self.draw_liters * water_c * (self.outlet_temp - self.mains_temp)  # in J
                 # all volume transfers are from the node directly below
-                q_nodes = draw_liters * water_c * np.diff(self.states, append=self.mains_temp)  # in J
+                q_nodes = self.draw_liters * water_c * np.diff(self.states, append=self.mains_temp)  # in J
             else:
                 # calculate volume transfers to/from each node, including q_delivered
                 vols_pre = np.append(self.vol_fractions, draw_fraction).cumsum()
@@ -213,7 +220,7 @@ class StratifiedWaterModel(RCModel):
                 # update outlet temp as a weighted average of temps, by volume
                 vols_delivered = np.diff(vols_pre.clip(max=draw_fraction), prepend=0)
                 self.outlet_temp = np.dot(temps, vols_delivered) / draw_fraction
-                q_delivered = draw_liters * water_c * (self.outlet_temp - self.mains_temp)  # in J
+                q_delivered = self.draw_liters * water_c * (self.outlet_temp - self.mains_temp)  # in J
 
                 # calculate heat in/out of each node (in J)
                 q_nodes = []
@@ -300,48 +307,47 @@ class StratifiedWaterModel(RCModel):
     def run_edf_mixing_rule(self, **kwargs):# Code to implement flow-rate mixing for water heaters
         # based on model from https://www.mdpi.com/1996-1073/14/9/2611
 
-        
         #JEFFGO
         tank_volume = convert(self.volume, 'L', 'm^3')
         tank_height = kwargs['Tank Height (m)']  # in m
-
-        # constants 
-        water_density_liters = 1  # kg/L
-        water_dynamic_viscosity = 0.0005568  # kg/(m-s), at 49 C
-        water_kinematic_viscosity = water_dynamic_viscosity / (water_density_liters * 1000)  # m^2/s
-        water_cp = 4.183  # kJ/kg-K
-        g = 9.81  # m/s^2, gravitational constant
-        water_beta = 0.000298  # 1/C, thermal expansion coefficient at 49 C
-        water_c = water_cp * water_density_liters * 1000  # heat capacity with useful units: J/K-L
 
         #Dip tube parameters
         dip_tube_diffuser = "Nonperforated" # "Nonperforated", "Helical", "Slit-perforated"
         dip_tube_od = 0.05  # m, outer diameter of the dip tube
         dip_tube_id = 0.04  # m, inner diameter of the dip tube
         dip_tube_th = 0.002  # m, thickness of the blocked section of the dip tube
-        dip_tube_h = 0.95 * tank_height #Assumed
-  
+        dip_tube_depth = 0.95 #Assumed, fraction of tank height (non-dimensional)
+
         init_temps = self.next_states.copy()
 
+        flow_rate = self.draw_total / self.top_area # m/s flow rate through the tank neglecting dip tube area
+
         # Calculate Reynolds number (Re) and Richardson number (Ri)
+        #a and b from https://www.sciencedirect.com/science/article/abs/pii/S0735193320303663
         if dip_tube_diffuser == "Nonperforated":
             d_hydraulic = dip_tube_od
+            A = 2700
+            B = 0.258
         elif dip_tube_diffuser == "Helical":
             d_hydraulic = 4 * ((np.pi * dip_tube_od ** 2) / (4 - dip_tube_th * dip_tube_od)) / (np.pi * dip_tube_od - 2 * dip_tube_th + 2 * dip_tube_od)
+            A = 3250
+            B = 0.33
         elif dip_tube_diffuser == "Slit-perforated":
             d_hydraulic = 4 * ((np.pi * dip_tube_id ** 2 / 4) - 3 * (dip_tube_od - dip_tube_id) * dip_tube_th) / (np.pi * dip_tube_od)
-
+            #A = 5000000 * np.exp(-8.1 * dip_tube_depth) Fig 3 in https://www.sciencedirect.com/science/article/abs/pii/S0735193320303663
+            A = 4500
+            B = 0.3315
         Re = (water_density_liters * 1000) * flow_rate * d_hydraulic / water_dynamic_viscosity  # dimensionless
         Gr = g * water_beta * abs(self.mains_temp - init_temps[-1]) * d_hydraulic ** 3 / water_kinematic_viscosity ** 2  # dimensionless
         Ri = Gr / Re ** 2  # dimensionless
-        water_density_liters
-
-        #Calculate eddy diffusivity factor
-        #a and b from https://www.sciencedirect.com/science/article/abs/pii/S0735193320303663
-
-        # Calculate Courant number (is this necessary?)
-
         
+        if Ri < 5:
+            self.warn(f"Warning: Richardson number is very low ({Ri}). Mixing may be inaccurate with EDF model.")
+
+
+        # Calculate Courant numbers
+
+        C = self.draw_total * self.time_res.total_seconds() / self.vol_fractions #Courant number, non-dimensional
 
         # get temperature differences
         delta_t = tank_temps[1:] - tank_temps[:-1]
@@ -350,7 +356,7 @@ class StratifiedWaterModel(RCModel):
         t_change = None
 
         # Calculate change in heat per node based on flow rate mixing
-        h_change = t_change * vol_fractions * tank_volume * water_c  # in J
+        h_change = t_change * self.vol_fractions * tank_volume * water_c  # in J
         return h_change
 
     def update_model(self, control_signal=None):
@@ -374,10 +380,10 @@ class StratifiedWaterModel(RCModel):
 
         # If any temperatures are inverted, run inversion mixing algorithm
         delta_t = 0.1 if self.high_res else 0.01
-        if self.mixing_algorithm == 'inversion':
+        if mixing_algorithm == 'inversion':
             if any(np.diff(self.next_states) > delta_t):
                 self.run_inversion_mixing_rule()
-        elif self.mixing_algorithm == 'edf':
+        elif mixing_algorithm == 'edf':
             self.run_edf_mixing_rule()
         else:
             raise ModelException(f'Unknown mixing algorithm: {self.mixing_algorithm}')
