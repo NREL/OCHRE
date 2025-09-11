@@ -78,8 +78,7 @@ class PV(ScheduledLoad):
     If using SAM, the PV capacity must be specified. Tilt and azimuth can be specified, but will default to the
     angle of the most southern facing roof.
 
-    If not using SAM, an external schedule must be specified as a DataFrame (via `schedule`) or as a file (as
-    `equipment_schedule_file`)
+    If not using SAM, an external schedule must be specified as a DataFrame (via `schedule`).
     """
     name = 'PV'
     end_use = 'PV'
@@ -130,25 +129,25 @@ class PV(ScheduledLoad):
 
         self.q_set_point = 0  # in kW, positive = consuming power
         if self.capacity is None:
-            self.capacity = -self.schedule[self.electric_name].min()
+            self.capacity = -self.schedule["Power (kW)"].min()
         if self.inverter_capacity is None:
             self.inverter_capacity = self.capacity
 
         # check that schedule is negative
-        if self.schedule[self.electric_name].mean() > 0:
+        if self.schedule["Power (kW)"].mean() > 0:
             self.warn('Schedule should be negative (i.e. generating power).',
                       'Reversing schedule so that PV power is negative/generating')
             self.schedule = self.schedule * -1
             self.reset_time()
 
-    def initialize_schedule(self, schedule=None, equipment_schedule_file=None, location=None, **kwargs):
-        if (schedule is None or self.name + ' (kW)' not in schedule) and equipment_schedule_file is None:
+    def initialize_schedule(self, schedule=None, location=None, **kwargs):
+        if schedule is None or self.name + ' (kW)' not in schedule:
             self.print('Running SAM')
             schedule = run_sam(self.capacity, self.tilt, self.azimuth, schedule, location,
                                self.inverter_capacity, self.inverter_efficiency)
             schedule = schedule.to_frame(self.name + ' (kW)')
 
-        return super().initialize_schedule(schedule, equipment_schedule_file, **kwargs)
+        return super().initialize_schedule(schedule, **kwargs)
 
     def update_external_control(self, control_signal):
         # External PV control options:

@@ -4,6 +4,7 @@ import pandas as pd
 from ochre.utils import OCHREException, convert, nested_update, import_hpxml
 from ochre.utils.units import pitch2deg
 import ochre.utils.envelope as utils_envelope
+import ochre.utils.equipment as utils_equipment
 
 # List of variables and functions for loading and parsing HPXML files
 
@@ -710,9 +711,9 @@ def parse_hpxml_envelope(hpxml, occupancy, **house_args):
     house_type = construction['House Type']
     n_occupants = occupancy['Number of Occupants (-)']
     if house_type in ['single-family detached', 'manufactured home']:
-        n_bedrooms_adj = max(-0.68 + 1.09 * n_occupants, 0)
-    elif house_type in ['single-family attached', 'apartment unit']:
         n_bedrooms_adj = max(-1.47 + 1.69 * n_occupants, 0)
+    elif house_type in ['single-family attached', 'apartment unit']:
+        n_bedrooms_adj = max(-0.68 + 1.09 * n_occupants, 0)
     else:
         raise OCHREException(f'Unknown house type: {house_type}')
     construction['Number of Bedrooms, Adjusted (-)'] = n_bedrooms_adj
@@ -766,12 +767,12 @@ def parse_hvac(hvac_type, hvac_all):
     space_fraction = hvac.get(f'Fraction{hvac_type[:-3]}LoadServed', 1.0)
     efficiency = hvac[f'Annual{hvac_type}Efficiency']
     if efficiency['Units'] in ['Percent', 'AFUE']:
-        eir = 1 / efficiency['Value']
+        cop = efficiency['Value']
         if efficiency['Units'] == 'Percent':
             # for reporting only
             efficiency['Value'] *= 100
     elif efficiency['Units'] in ['EER', 'SEER', 'HSPF']:
-        eir = 1 / convert(efficiency['Value'], 'Btu/hour', 'W')
+        cop = convert(efficiency["Value"], "Btu/hour", "W")
     else:
         raise OCHREException(f'Unknown inputs for HVAC {hvac_type} efficiency: {efficiency}')
     efficiency_string = f"{efficiency['Value']} {efficiency['Units']}"
@@ -786,9 +787,9 @@ def parse_hvac(hvac_type, hvac_all):
         number_of_speeds = 4  # MSHP always variable speed
     elif hvac.get('CompressorType') in speed_options:
         number_of_speeds = speed_options[hvac.get('CompressorType')]
-    elif convert(1 / eir, 'W', 'Btu/hour') <= 15:
+    elif convert(cop, "W", "Btu/hour") <= 15:
         number_of_speeds = 1  # Single-speed for SEER <= 15
-    elif convert(1 / eir, 'W', 'Btu/hour') <= 21:
+    elif convert(cop, "W", "Btu/hour") <= 21:
         number_of_speeds = 2  # Two-speed for 15 < SEER <= 21
     else:
         number_of_speeds = 4  # Variable speed for SEER > 21
@@ -821,13 +822,18 @@ def parse_hvac(hvac_type, hvac_all):
         'Equipment Name': name,
         'Fuel': fuel.capitalize(),
         'Capacity (W)': capacity,
-        'EIR (-)': eir,
+        'EIR (-)': 1 / cop,
         'Rated Efficiency': efficiency_string,
         'SHR (-)': shr,
         'Conditioned Space Fraction (-)': space_fraction,
         'Number of Speeds (-)': number_of_speeds,
         'Rated Auxiliary Power (W)': aux_power,
     }
+
+    # Add startup capacity degradation factor for AC and heat pumps
+    if has_heat_pump or not is_heater:
+        c_d = utils_equipment.calc_c_d(is_heater, name, cop, number_of_speeds)
+        out['Startup Capacity Degradation (-)'] = c_d
 
     # Get HVAC setpoints, optional
     controls = hvac_all['HVACControl']
@@ -879,23 +885,33 @@ def parse_hvac(hvac_type, hvac_all):
             out['HeatingDetailedPerformance'] = heating_performance
 
     if has_heat_pump and hvac_type == 'Heating':
-        backup_capacity = heat_pump.get('BackupHeatingCapacity', 0)
         backup_fuel = heat_pump.get('BackupSystemFuel')
-
-        if backup_capacity and backup_fuel == 'electricity':
-            # assumes efficiency units are in Percent or AFUE
-            out.update({
-                'Supplemental Heater EIR (-)': 1 / heat_pump.get('BackupAnnualHeatingEfficiency', {}).get('Value'),
-                'Supplemental Heater Capacity (W)': convert(backup_capacity, 'Btu/hour', 'W'),
-                'Supplemental Heater Cut-in Temperature (C)':
-                    convert(heat_pump.get('BackupHeatingSwitchoverTemperature'), 'degF', 'degC'),
-            })
-        else:
-            if backup_capacity:
-                print(f'WARNING: Using electric backup heater for ASHP instead of {backup_fuel} equipment')
-            out.update({
-                'Supplemental Heater Capacity (W)': backup_capacity,
-            })
+        backup_capacity = heat_pump.get('BackupHeatingCapacity', 0)
+        backup_capacity = convert(backup_capacity, "Btu/hour", "W")
+        # assumes efficiency units are in Percent or AFUE (0-1)
+        backup_cop = heat_pump.get("BackupAnnualHeatingEfficiency", {}).get("Value")
+        hp_lockout_temp = heat_pump.get(
+            "CompressorLockoutTemperature",
+            heat_pump.get("BackupHeatingSwitchoverTemperature", 0),
+        )
+        hp_lockout_temp = convert(hp_lockout_temp, "degF", "degC")
+        er_lockout_temp = heat_pump.get(
+            "BackupHeatingLockoutTemperature",
+            heat_pump.get("BackupHeatingSwitchoverTemperature", 40),
+        )
+        er_lockout_temp = convert(er_lockout_temp, "degF", "degC")
+        if backup_capacity:
+            if backup_fuel != 'electricity':
+                print(f'WARNING: Using electric resistance backup for ASHP instead of {backup_fuel} backup')
+            
+            out.update(
+                {
+                    "Backup EIR (-)": 1 / backup_cop,
+                    "Backup Capacity (W)": backup_capacity,
+                    "Heat Pump Lockout Temperature (C)": hp_lockout_temp,
+                    "Backup Lockout Temperature (C)": er_lockout_temp,
+                }
+            )
 
     # Get duct info for calculating DSE
     distribution = hvac_all.get('HVACDistribution', {})
@@ -1373,51 +1389,66 @@ def parse_dishwasher(dishwasher, n_bedrooms):
     }
 
 
-def parse_refrigerator(refrigerator, n_bedrooms):
-    # TODO: Only taking first refrigerator for now
-    if isinstance(refrigerator, list):
-        assert len(refrigerator) == 2
-        print("WARNING: Combining 2 refrigerators into 1 piece of equipment, ignoring 2nd fridge heat gains")
-        main_fridge = [r for r in refrigerator if r.get('PrimaryIndicator', True)][0]
-        extra_fridge = [r for r in refrigerator if r.get('PrimaryIndicator', True)][0]
-    else:
-        main_fridge = refrigerator
-        extra_fridge = {}
+def parse_refrigerator(refrigerators, n_bedrooms):
+    # Get all refrigerator inputs from HPXML (may have more than one)
+    if not isinstance(refrigerators, list):
+        refrigerators = [refrigerators]
 
-    # Get main refrigerator inputs from HPXML
-    extension = main_fridge.get('extension', {})
-    multiplier = extension.get('UsageMultiplier', 1)
-    if 'AdjustedAnnualkWh' in extension:
-        main_annual_kwh = extension['AdjustedAnnualkWh'] * multiplier
-    elif 'RatedAnnualkWh' in main_fridge:
-        main_annual_kwh = main_fridge['RatedAnnualkWh'] * multiplier
-    else:
-        main_annual_kwh = (637.0 + 18.0 * n_bedrooms) * multiplier
+    extension_1 = refrigerators[0].get('extension', {})
+    if len(refrigerators) >= 2:
+        print(f"Note: Combining {len(refrigerators)} refrigerators into 1 piece of equipment.")
+        assert all([r.get("extension", {}) == extension_1 for r in refrigerators])
 
-    # Get extra refrigerator inputs from HPXML
-    extension2 = extra_fridge.get('extension', {})
-    multiplier2 = extension2.get('UsageMultiplier', 1)
-    if 'AdjustedAnnualkWh' in extension2:
-        second_annual_kwh = extension2['AdjustedAnnualkWh'] * multiplier2
-    elif 'RatedAnnualkWh' in extra_fridge:
-        second_annual_kwh = extra_fridge['RatedAnnualkWh'] * multiplier2
-    else:
-        second_annual_kwh = 0
+    annual_kwh = 0
+    annual_kwh_conditioned = 0
+    for r in refrigerators:
+        is_primary = r.get("PrimaryIndicator", True)
+        extension = r.get('extension', {})
+        multiplier = extension.get('UsageMultiplier', 1)
+        if 'AdjustedAnnualkWh' in extension:
+            r_energy = extension["AdjustedAnnualkWh"] * multiplier
+        elif 'RatedAnnualkWh' in r:
+            r_energy = r["RatedAnnualkWh"] * multiplier
+        elif is_primary:
+            r_energy = (637.0 + 18.0 * n_bedrooms) * multiplier
+        else:
+            r_energy = 0
 
-    out = {
-        'Annual Electric Energy (kWh)': main_annual_kwh + second_annual_kwh,
-        'Convective Gain Fraction (-)': (main_annual_kwh + second_annual_kwh) / main_annual_kwh,
-        'Radiative Gain Fraction (-)': 0,
-        'Latent Gain Fraction (-)': 0,
+        annual_kwh += r_energy
+
+        default = "Indoor" if is_primary else None
+        if parse_zone_name(r.get('Location', default)) == "Indoor":
+            annual_kwh_conditioned += r_energy
+
+    return {
+        "Annual Electric Energy (kWh)": annual_kwh,
+        "Convective Gain Fraction (-)": annual_kwh_conditioned / annual_kwh,
+        "Radiative Gain Fraction (-)": 0,
+        "Latent Gain Fraction (-)": 0,
+        **add_simple_schedule_params(extension_1),
     }
 
-    if 'WeekdayScheduleFractions' in extension2:
-        assert extension['WeekdayScheduleFractions'] == extension2['WeekdayScheduleFractions']
-        assert extension['MonthlyScheduleMultipliers'] == extension2['MonthlyScheduleMultipliers']
 
-    out.update(add_simple_schedule_params(extension))
+def parse_freezer(freezer, n_bedrooms):
+    # Get freezer inputs from HPXML
+    extension = freezer.get('extension', {})
+    multiplier = extension.get('UsageMultiplier', 1)
+    if 'RatedAnnualkWh' in freezer:
+        annual_kwh = freezer["RatedAnnualkWh"] * multiplier
+    else:
+        annual_kwh = 319.8 * multiplier
 
-    return out
+    # TODO: get freezer location. For now, ignore heat gains
+    # if parse_zone_name(freezer.get('Location')) == "Indoor":
+    gain_frac = 0
+
+    return {
+        "Annual Electric Energy (kWh)": annual_kwh,
+        "Convective Gain Fraction (-)": gain_frac,
+        "Radiative Gain Fraction (-)": 0,
+        "Latent Gain Fraction (-)": 0,
+        **add_simple_schedule_params(extension),
+    }
 
 
 def parse_cooking_range(range_dict, oven_dict, n_bedrooms):
@@ -1577,7 +1608,7 @@ def parse_ev(ev):
     return {
         'vehicle_type': 'BEV',
         'charging_level': 'Level 2',
-        'mileage': 100 if ev_load < 1500 else 250  # Splits the two EV size options from ResStock
+        'range': 100 if ev_load < 1500 else 250  # Splits the two EV size options from ResStock
     }
 
 
@@ -1662,7 +1693,9 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
         equipment['Dishwasher'] = parse_dishwasher(appliances['Dishwasher'], n_bedrooms)
     if 'Refrigerator' in appliances:
         equipment['Refrigerator'] = parse_refrigerator(appliances['Refrigerator'], n_bedrooms)
-    # TODO: add freezer and dehumidifier
+    if 'Freezer' in appliances:
+        equipment["Freezer"] = parse_freezer(appliances["Freezer"], n_bedrooms)
+    # TODO: add dehumidifier
     if 'CookingRange' in appliances:
         equipment['Cooking Range'] = parse_cooking_range(appliances['CookingRange'],
                                                          appliances.get('Oven', {}),

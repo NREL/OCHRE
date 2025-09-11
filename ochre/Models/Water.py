@@ -54,7 +54,9 @@ class StratifiedWaterModel(RCModel):
 
         self.volume = kwargs['Tank Volume (L)']  # in L
 
-        super().__init__(external_nodes=['AMB'], **kwargs)
+        capacitances, resistances = self.load_rc_data(**kwargs)
+
+        super().__init__(capacitances, resistances, external_nodes=["AMB"], **kwargs)
         self.next_states = self.states  # for holding state info for next time step
 
         self.t_amb_idx = self.input_names.index('T_AMB')
@@ -98,18 +100,20 @@ class StratifiedWaterModel(RCModel):
         r_top = 1 / u / top_area  # R from top/bottom of tank (K/W)
 
         # Capacitance per node
-        rc_params = {'C_WH' + str(i + 1): c_water_tot * frac for i, frac in enumerate(self.vol_fractions)}
+        capacitances = {f'WH{i + 1}': c_water_tot * frac for i, frac in enumerate(self.vol_fractions)}
 
         # Resistance to exterior from side, top, and bottom
-        rc_params.update({'R_WH{}_AMB'.format(i + 1): r_side_tot / frac for i, frac in enumerate(self.vol_fractions)})
-        rc_params['R_WH1_AMB'] = self.par(rc_params['R_WH1_AMB'], r_top)
-        rc_params['R_WH{}_AMB'.format(self.n_nodes)] = self.par(rc_params['R_WH{}_AMB'.format(self.n_nodes)], r_top)
+        resistances = {(f'WH{i + 1}', 'AMB'): r_side_tot / frac for i, frac in enumerate(self.vol_fractions)}
+        resistances[("WH1", "AMB")] = self.par(resistances[("WH1", "AMB")], r_top)
+        resistances[(f"WH{self.n_nodes}", "AMB")] = self.par(
+            resistances[(f"WH{self.n_nodes}", "AMB")], r_top
+        )
 
         # Resistance between nodes
         if self.n_nodes > 1:
-            rc_params.update({'R_WH{}_WH{}'.format(i + 1, i + 2): r_int for i in range(self.n_nodes - 1)})
+            resistances.update({(f'WH{i + 1}', f'WH{i + 2}'): r_int for i in range(self.n_nodes - 1)})
 
-        return rc_params
+        return capacitances, resistances
 
     @staticmethod
     def initialize_state(state_names, input_names, A_c, B_c, **kwargs):
@@ -317,11 +321,12 @@ class StratifiedWaterModel(RCModel):
         results = super().generate_results()
 
         if self.verbosity >= 3:
-            results['Hot Water Delivered (L/min)'] = self.draw_total
-            results['Hot Water Outlet Temperature (C)'] = self.outlet_temp
-            results['Hot Water Delivered (W)'] = self.h_delivered
             results['Hot Water Unmet Demand (kW)'] = self.h_unmet_load / 1000
-        if self.verbosity >= 6:
+            results['Hot Water Outlet Temperature (C)'] = self.outlet_temp
+        if self.verbosity >= 4:
+            results['Hot Water Delivered (L/min)'] = self.draw_total
+            results['Hot Water Delivered (W)'] = self.h_delivered
+        if self.verbosity >= 7:
             results['Hot Water Heat Injected (W)'] = self.h_injections
             results['Hot Water Heat Loss (W)'] = self.h_loss
             results['Hot Water Average Temperature (C)'] = self.states.dot(self.vol_fractions)
@@ -362,8 +367,7 @@ class IdealWaterModel(OneNodeWaterModel):
     def load_rc_data(self, **kwargs):
         # ignore RC parameters from the properties file
         self.volume = 1000
-        return {'R_WH1_AMB': 1e6,
-                'C_WH1': self.volume * water_c}
+        return {"WH1": self.volume * water_c}, {('WH1', 'AMB'): 1e6}
 
     @staticmethod
     def initialize_state(state_names, input_names, A_c, B_c, **kwargs):

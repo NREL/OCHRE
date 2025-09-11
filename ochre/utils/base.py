@@ -2,6 +2,7 @@ import os
 import re
 import json
 from _ctypes import PyObj_FromPtr
+import datetime as dt
 import pandas as pd
 import collections
 import xmltodict
@@ -156,22 +157,18 @@ class MyEncoder(json.JSONEncoder):
             yield encoded
 
 
-# Not used
-# def get_all_items(d):
-#     for key, value in d.items():
-#         yield key, value
-#         if isinstance(value, dict):
-#             yield from get_all_items(value)
-
-
 def save_json(data, file_name):
     # saves json file but writes long lists to a single line
     # see: https://stackoverflow.com/questions/42710879/write-two-dimensional-list-to-json-file
     def parse_object(obj):
+        if isinstance(obj, pd.DataFrame):
+            obj = obj.astype(str).to_dict("list") if obj.size < 100 else "<DataFrame>"
         if isinstance(obj, dict):
             return {key: parse_object(val) for key, val in obj.items()}
         elif isinstance(obj, (list, tuple)) and len(obj) > 4:
             return NoIndent(obj)
+        elif isinstance(obj, (dt.datetime, dt.timedelta, type)):
+            return str(obj)
         else:
             return obj
 

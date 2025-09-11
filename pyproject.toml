@@ -7,27 +7,29 @@ name = "ochre-nrel"
 dynamic = ["version"]
 dependencies = [
     "numpy ~= 1.26",
-    "pandas >=1.4, < 3.0",
-    "scipy ~= 1.11",
-    "matplotlib ~= 3.9",
-    "pint ~= 0.23",
-    "pvlib ~= 0.10.4",
-    "nrel-pysam ~= 5.1",
+    "pandas >=1.4, <3.0",
+    "scipy ~= 1.15",
+    "matplotlib ~= 3.10",
+    "pint >= 0.23, <1.0",
+    "pvlib >= 0.10, <1.0",
+    "nrel-pysam >= 5.1, <7.0",
     "psychrolib ~= 2.5",
-    "numba ~= 0.59",  # required for psychrolib
-    "xmltodict ~= 0.13.0",
-    "pyarrow ~= 15.0",
+    "numba ~= 0.61",  # required for psychrolib
+    "xmltodict >= 0.13, <1.0",
+    "pyarrow >= 15.0",
     "fastparquet >= 2024.0",
     "rainflow ~= 3.2",
-    "pytz >= 2024.0",
+    "pytz ~= 2024.1",
     "python-dateutil ~= 2.9",
+    "click ~= 8.1",
+    "boto3 ~= 1.36",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.9, <3.13"
 authors = [
   { name="Jeff Maguire", email="Jeff.Maguire@nrel.gov" },
   { name="Michael Blonsky", email="Michael.Blonsky@nrel.gov" },
 ]
-description = "A residential energy modeling tool designed to model flexible loads and DERs"
+description = "An energy modeling tool designed to model residential end-use loads and DERs"
 readme = "README.md"
 keywords = [
     "building energy modeling",
@@ -46,9 +48,15 @@ classifiers = [
 [project.urls]
 Homepage = "https://www.nrel.gov/grid/ochre.html"
 Documentation = "https://ochre-nrel.readthedocs.io/en/latest/"
+Tutorial = "https://colab.research.google.com/github/NREL/OCHRE/blob/main/notebook/user_tutorial.ipynb"
 Repository = "https://github.com/NREL/OCHRE.git"
 Issues = "https://github.com/NREL/OCHRE/issues"
 Changelog = "https://github.com/NREL/OCHRE/blob/main/changelog.md"
+
+[project.scripts]
+ochre = "ochre:cli"
+ochre-gui-basic = "ochre:gui_basic"
+ochre-gui-detailed = "ochre:gui_detailed"
 
 [tool.hatch.version]
 path = "ochre/__init__.py"

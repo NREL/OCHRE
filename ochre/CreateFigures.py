@@ -40,12 +40,6 @@ zone_data = [('Temperature - {} (C)'.format(zone), zone + ' Temp', color) for zo
 ls_list = ['-', '--', ':', '-.']
 
 
-def valid_file(s):
-    # removes special characters like ",:$#*" from file names
-    valid_chars = "-_.() {}{}".format(string.ascii_letters, string.digits)
-    return ''.join(c for c in s if c in valid_chars)
-
-
 # **** Time-based figures ****
 def plot_daily_profile(df_raw, column, plot_average=True, plot_singles=True, plot_min=True, plot_max=True,
                        plot_sd=False, **kwargs):
@@ -117,6 +111,9 @@ def plot_power_stack(df, add_gas=False, **kwargs):
     power_cols = {key: color for key, color in all_power_colors.items() if key +
                   ' Electric Power (kW)' in df.columns and df[key + ' Electric Power (kW)'].sum() != 0}
     df_power = df.loc[:, [key + ' Electric Power (kW)' for key in power_cols]]
+    if df_power.empty:
+        print("No power data to plot")
+        return
     ax1.stackplot(df_power.index, df_power.clip(lower=0).values.T,
                   colors=power_cols.values(), labels=power_cols.keys())
     ax1.stackplot(df_power.index, df_power.clip(upper=0).loc[:, ::-1].values.T,
@@ -383,7 +380,12 @@ def plot_envelope(dfs_to_plot, **kwargs):
         ('Forced Ventilation Heat Gain - Indoor (W)', 'Forced Ventilation', 'lightgreen'),
         ('Natural Ventilation Heat Gain - Indoor (W)', 'Natural Ventilation', 'darkgreen'),
         ('Infiltration Heat Gain - Indoor (W)', 'Infiltration', 'm'),
-        ('Internal Heat Gain - Indoor (W)', 'Internal Gains', 'c'),
+        ('Roof Heat Gain - Indoor (W)', 'Roofs', 'c'),
+        ('Floor Heat Gain - Indoor (W)', 'Floors', 'purple'),
+        ('Wall Heat Gain - Indoor (W)', 'Walls', 'darkblue'),
+        ('Window Heat Gain - Indoor (W)', 'Window Conduction', 'orange'),
+        ('Window Transmitted Solar Gain (W)', 'Window Solar', 'yellow'),
+        ('Internal Heat Gain - Indoor (W)', 'Internal Gains', 'grey'),
         ('HVAC Heating Duct Losses (W)', 'Ducts (Heating)', 'r'),
         ('HVAC Cooling Duct Losses (W)', 'Ducts (Cooling)', 'b'),
         # ('HVAC Heating Delivered (W)', 'Heating Delivered', 'r', False),

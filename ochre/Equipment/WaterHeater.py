@@ -186,7 +186,7 @@ class WaterHeater(Equipment):
         
         # get other controls from schedule - deadband and max power
         if "Water Heating Deadband (C)" in self.current_schedule:
-            self.temp_deadband = self.current_schedule["Water Heating Deadband (C)"]
+            self.deadband_temp = self.current_schedule["Water Heating Deadband (C)"]
         if "Water Heating Max Power (kW)" in self.current_schedule:
             self.max_power = self.current_schedule["Water Heating Max Power (kW)"]
 
@@ -294,12 +294,11 @@ class WaterHeater(Equipment):
     def generate_results(self):
         results = super().generate_results()
 
-        # Note: using end use, not equipment name, for all results
-        if self.verbosity >= 3:
-            results[f'{self.end_use} Delivered (W)'] = self.delivered_heat
-        if self.verbosity >= 6:
+        if self.verbosity >= 4:
             cop = self.delivered_heat / (self.electric_kw * 1000) if self.electric_kw > 0 else 0
+            results[f'{self.end_use} Delivered (W)'] = self.delivered_heat
             results[f'{self.end_use} COP (-)'] = cop
+        if self.verbosity >= 7:
             results[f'{self.end_use} Total Sensible Heat Gain (W)'] = self.sensible_gain
             results[f'{self.end_use} Deadband Upper Limit (C)'] = self.setpoint_temp
             results[f'{self.end_use} Deadband Lower Limit (C)'] = self.setpoint_temp - self.deadband_temp
@@ -635,7 +634,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
 
     def generate_results(self):
         results = super().generate_results()
-        if self.verbosity >= 6:
+        if self.verbosity >= 7:
             if self.use_ideal_capacity:
                 hp_on_frac = self.duty_cycle_by_mode['Heat Pump On']
             else:
