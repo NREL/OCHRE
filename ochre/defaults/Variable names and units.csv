@@ -1,5 +1,5 @@
 Category,OCHRE Name,OCHRE Units,OS-HPXML Name,OS-HPXML Units,Eplus Detailed Name,Eplus Detailed Units,Verbosity,Include in Docs,Category Priority,Description,Notes
-Dwelling,Total Electric Power (kW),kW,Fuel Use: Electricity: Total,kW,Electricity:Facility [J](Hourly),J/hour,1,TRUE,1,Total dwelling real electric power,
+Dwelling,Total Electric Power (kW),kW,Fuel Use: Electricity: Net,kW,Electricity:Facility [J](Hourly),J/hour,1,TRUE,1,Total dwelling real electric power,
 Dwelling,Total Electric Energy (kWh),kWh,,,,,6,TRUE,1,Total dwelling real electric energy for 1 time step,
 Dwelling,Total Gas Power (therms/hour),therms/hour,Fuel Use: Natural Gas: Total,kBtu/hour,,,1,TRUE,1,Total dwelling gas power,
 Dwelling,Total Gas Energy (therms),therms,,,,,6,TRUE,1,Total dwelling gas energy consumption for 1 time step,

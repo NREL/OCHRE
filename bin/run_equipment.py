@@ -98,7 +98,7 @@ def run_pv_with_sam():
         # Equipment parameters
         "capacity": 5,
         "tilt": 20,
-        "azimuth": 0,
+        "azimuth": 180,
         "schedule": weather,
         "location": location,
         **default_args,
@@ -351,8 +351,8 @@ def run_scheduled_load(name):
     df = device.simulate()
 
     print(df.head())
-    df.plot()
-    CreateFigures.plt.show()
+    # df.plot()
+    # CreateFigures.plt.show()
 
 
 def run_event_based_load(name):
@@ -414,4 +414,4 @@ if __name__ == "__main__":
     # run_event_based_load("Clothes Dryer")
     # run_event_based_load("Cooking Range")
     # run_event_based_load("Clothes Washer")
-    # run_equipment_from_house_model()
+    # run_equipment_from_house_model("Water Heating")

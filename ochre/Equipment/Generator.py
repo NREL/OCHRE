@@ -7,7 +7,7 @@ Created on Thu May 23 13:28:35 2019
 
 from scipy.interpolate import interp1d
 
-from ochre.utils import OCHREException
+from ochre.utils import OCHREException, load_csv
 from ochre.utils.units import kwh_to_therms
 from ochre.Equipment import Equipment
 
@@ -22,13 +22,19 @@ class Generator(Equipment):
 
     def __init__(
         self,
-        self_consumption_mode=False,
-        parameter_file="default_parameters.csv",
+        capacity,
+        capacity_min=None,
+        ramp_rate=None,
+        efficiency=0.98,
         efficiency_type="constant",
+        efficiency_chp=0,
         efficiency_file="efficiency_curve.csv",
+        self_consumption_mode=False,
+        import_limit=0,
+        export_limit=0,
         **kwargs,
     ):
-        super().__init__(parameter_file=parameter_file, **kwargs)
+        super().__init__(**kwargs)
 
         # power parameters
         self.power_setpoint = 0  # setpoint from controller, AC side (after losses), in kW
@@ -37,32 +43,52 @@ class Generator(Equipment):
         # self.power_chp = 0  # usable output heat for combined heat and power (CHP) uses, in kW
 
         # Electrical parameters
-        self.capacity = self.parameters['capacity']  # in kW
+        self.capacity = capacity  # in kW
         # minimum generating power for self-consumption
-        self.capacity_min = self.parameters.get('capacity_min')  # in kW
+        self.capacity_min = capacity_min  # in kW
         # max output power ramp rate, generation only
-        self.ramp_rate = self.parameters.get('ramp_rate')  # in kW/min
+        self.ramp_rate = ramp_rate  # in kW/min
 
         # Efficiency parameters
         self.efficiency = None  # variable efficiency, unitless
-        self.efficiency_rated = self.parameters["efficiency"]  # unitless
+        self.efficiency_rated = efficiency  # unitless
         # CHP efficiency, for generation only
-        self.efficiency_chp = self.parameters.get("efficiency_chp", 0)  
+        self.efficiency_chp = efficiency_chp  # unitless, 0 for no CHP
         self.efficiency_type = efficiency_type  # formula for calculating efficiency
         if self.efficiency_type == "curve":
             # Load efficiency curve
-            df = self.initialize_parameters(
-                efficiency_file, name_col="Capacity Ratio", value_col=None
-            )
+            df = load_csv(efficiency_file, self.end_use, index_col="Capacity Ratio")
             self.efficiency_curve = interp1d(df.index, df["Efficiency Ratio"])
         else:
             self.efficiency_curve = None
 
         # Control parameters
         self.self_consumption_mode = self_consumption_mode
-        self.import_limit = self.parameters.get("import_limit", 0)
-        self.export_limit = self.parameters.get("export_limit", 0)
+        self.import_limit = import_limit
+        self.export_limit = export_limit
 
+    def initialize_schedule(self, optional_inputs=None, **kwargs):
+        # Get power and gas columns from time-series schedule, if they exist (copied from ScheduledLoad)
+        schedule_cols = {
+            f"{self.name} Electric Power (kW)": "Power (kW)",
+            f"{self.name} Gas Power (therms/hour)": "Gas (therms/hour)",
+        }
+        if optional_inputs is None:
+            optional_inputs = self.optional_inputs + list(schedule_cols.keys())
+        else:
+            optional_inputs += list(schedule_cols.keys())
+
+        ts_schedule = super().initialize_schedule(optional_inputs=optional_inputs, **kwargs)
+        # ts_schedule = ts_schedule.rename(columns=schedule_cols)
+
+        # set schedule columns to zero if month multiplier exists and is zero (for ceiling fans)
+        multipliers = kwargs.get("month_multipliers", [])
+        zero_months = [i for i, m in enumerate(multipliers) if m == 0]
+        if zero_months:
+            ts_schedule.loc[ts_schedule.index.month.isin(zero_months), :] = 0
+
+        return ts_schedule
+    
     def update_external_control(self, control_signal):
         # Options for external control signals:
         # - P Setpoint: Directly sets power setpoint, in kW

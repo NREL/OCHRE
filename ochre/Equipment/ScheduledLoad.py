@@ -26,8 +26,8 @@ class ScheduledLoad(Equipment):
     def initialize_schedule(self, schedule=None, **kwargs):
         # Get power and gas columns from schedule, if they exist
         schedule_cols = {
-            f"{self.name} (kW)": "Power (kW)",
-            f"{self.name} (therms/hour)": "Gas (therms/hour)",
+            f"{self.name} Electric Power (kW)": "Power (kW)",
+            f"{self.name} Gas Power (therms/hour)": "Gas (therms/hour)",
         }
         optional_inputs = list(schedule_cols.keys())
 
