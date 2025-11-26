@@ -1,6 +1,7 @@
 ## OCHRE Changelog
 
 ### Updates from PRs
+- Ignore schedules for broken equipment in 2025 ResStock SDR [#197](https://github.com/NREL/OCHRE/issues/197)
 - Added component load outputs [#19](https://github.com/NREL/OCHRE/issues/19)
 - Added freezers and updated defaults to align with ResStock 2024
   [#167](https://github.com/NREL/OCHRE/issues/167)
