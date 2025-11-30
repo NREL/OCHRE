@@ -280,9 +280,11 @@ def run_hvac():
     }, index=times)
 
     envelope_args = {
-        "rc_params": {
-            "R_EXT_LIV": 1e-3,  # in K/W. 1 kW of HVAC for each degree C of temperature difference
-            "C_LIV": 4e6,  # in J/K. time constant = RC (seconds) ~= 1 hour
+        "capacitances": {
+            "LIV": 4e6,  # in J/K. time constant = RC (seconds) ~= 1 hour
+        },
+        "resistances": {
+            ("EXT", "LIV"): 1e-3,  # in K/W. 1 kW of HVAC for each degree C of temperature difference
         },
         "initial_temp_setpoint": 22,
         "schedule": schedule,

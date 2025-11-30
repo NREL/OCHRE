@@ -178,6 +178,7 @@ class HVAC(Equipment):
         self.ext_ignore_thermostat = kwargs.get('ext_ignore_thermostat', False)
         #self.setpoint_ramp_rate = kwargs.get('setpoint_ramp_rate')  # max setpoint ramp rate, in C/min
         self.temp_indoor_prev = self.temp_setpoint
+        self.mode_prev = 'Off' #assumed initial value, updated later in results
         self.ext_capacity = None  # Option to set capacity directly, ideal capacity only
         self.ext_capacity_frac = 1  # Option to limit max capacity, ideal capacity only
 
@@ -360,7 +361,7 @@ class HVAC(Equipment):
             return 'Off'
         else:
             return None
-
+        
     def solve_ideal_capacity(self):
         # Update capacity using ideal algorithm - maintains setpoint exactly
         x_desired = self.temp_setpoint
@@ -557,6 +558,9 @@ class HVAC(Equipment):
         # update previous indoor temperature
         self.temp_indoor_prev = self.zone.temperature
 
+        #update previous mode
+        self.mode_prev = self.mode
+
         return current_results
 
     def make_equivalent_battery_model(self):
@@ -673,7 +677,6 @@ class DynamicHVAC(HVAC):
     def __init__(self, control_type='Time', **kwargs):
         # Get number of speeds
         self.n_speeds = kwargs.get('Number of Speeds (-)', 1)
-
         # 2-speed control type and timing variables
         self.control_type = control_type  # 'Time', 'Time2', or 'Setpoint'
         self.disable_speeds = np.zeros(self.n_speeds, dtype=bool)  # if True, disable that speed
@@ -681,6 +684,10 @@ class DynamicHVAC(HVAC):
         min_time_in_low = kwargs.get('Minimum Low Time (minutes)', 5)
         min_time_in_high = kwargs.get('Minimum High Time (minutes)', 5)
         self.min_time_in_speed = [dt.timedelta(minutes=min_time_in_low), dt.timedelta(minutes=min_time_in_high)]
+
+        # startup capacity degradation parameters
+        self.startup_cap_mult = 1.0  # multiplier, unitless
+        self.c_d = kwargs.get("Startup Capacity Degradation (-)", 0.0)  # degradation factor, unitless
 
         # Load biquadratic parameters from file - only keep those with the correct speed type
         if not kwargs.get('Disable HVAC Biquadratics', False):
@@ -874,6 +881,27 @@ class DynamicHVAC(HVAC):
 
         return rated * t_ratio * ff_ratio / plf_ratio
 
+    def calc_startup_capacity_degredation(self):
+        if self.c_d == 0.0:
+            return 1.0
+        else:
+            t_full = 20.0 * self.c_d + 0.4  ## time to full capacity, in minutes
+            time_full_cap = dt.timedelta(minutes=t_full)
+            if "HP" in self.mode:
+                if (
+                    "HP" not in self.mode_prev
+                ):  # from off, ER on, etc. to using a HP with capacity degradation
+                    self.time_from_start = 0.5 * self.time_res
+                if self.time_from_start > time_full_cap:
+                    return 1.0
+                else:
+                    exp_term = -3.79936 * (self.time_from_start / time_full_cap)
+                    capacity_mult = max(0, min(1.0, -1.025 * np.exp(exp_term) + 1.025))
+                    self.time_from_start += self.time_res
+                    return capacity_mult
+            else:
+                return 1.0
+
     def update_capacity(self):
         # update max capacity using highest enabled speed
         max_speed = np.nonzero(~ self.disable_speeds)[0][-1] + 1
@@ -906,7 +934,11 @@ class DynamicHVAC(HVAC):
             return capacity
         else:
             # Update capacity using biquadratic model. speed_idx should already be set
-            return self.calculate_biquadratic_param(param='cap', speed_idx=self.speed_idx)
+            capacity = self.calculate_biquadratic_param(param='cap', speed_idx=self.speed_idx)
+            #update capacity for any startup degredation
+            self.startup_cap_mult = self.calc_startup_capacity_degredation()
+            capacity *= self.startup_cap_mult
+            return capacity
 
     def update_eir(self):
         # Update eir and eir_max using biquadratic model
@@ -914,10 +946,12 @@ class DynamicHVAC(HVAC):
         self.eir_max = self.calculate_biquadratic_param(param='eir', speed_idx=max_speed)
 
         if isinstance(self.speed_idx, int):
-            return self.calculate_biquadratic_param(param='eir', speed_idx=self.speed_idx)
+            eir = self.calculate_biquadratic_param(param='eir', speed_idx=self.speed_idx) * (1/self.startup_cap_mult)
+            return eir
         elif self.speed_idx < 1:
             # capacity is below lowest rated capacity, run at lowest speed with part load ratio
-            return self.calculate_biquadratic_param(param='eir', speed_idx=1, part_load_ratio=self.speed_idx)
+            eir = self.calculate_biquadratic_param(param='eir', speed_idx=1, part_load_ratio=self.speed_idx) * (1/self.startup_cap_mult)
+            return eir
         else:
             # interpolate between the 2 closest speeds to get EIR
             speed_low = int(self.speed_idx // 1)
@@ -928,6 +962,7 @@ class DynamicHVAC(HVAC):
                 eir = eir_low * (1 - frac_high) + eir_high * frac_high
             else:
                 eir = eir_low
+            eir *= (1/self.startup_cap_mult) #account for any startup losses
             return eir
 
 
@@ -1040,7 +1075,6 @@ class HeatPumpHeater(DynamicHVAC, Heater):
         else:
             self.defrost_power_mult = 0
             self.power_defrost = 0
-
         return capacity
 
     def update_eir(self):
@@ -1190,6 +1224,7 @@ class ASHPHeater(HeatPumpHeater):
                 return 'HP On'
             else:
                 return 'Off'
+        self.hp_on_prev = hp_on
 
     def run_er_thermostat_control(
             self,

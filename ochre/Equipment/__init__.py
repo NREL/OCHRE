@@ -86,6 +86,7 @@ EQUIPMENT_BY_NAME = {
     "Clothes Dryer": EventBasedLoad,
     "Dishwasher": EventBasedLoad,
     "Refrigerator": ScheduledLoad,
+    "Freezer": ScheduledLoad,
     "Cooking Range": EventBasedLoad,
     "MELs": ScheduledLoad,
     # 'Basement MELs',  # not modeled

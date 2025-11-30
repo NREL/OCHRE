@@ -97,8 +97,8 @@ included in the building.
   An RC network for a dwelling envelope. Each rectangle represents an RC
   network as shown in Figure 1.
 
-OCHRE includes the capability to model multifamily buildings using a unit by
-unit-based approach. Each unit is modeled as a separate dwelling unit with
+OCHRE includes the capability to model multifamily buildings using a
+unit-by-unit approach. Each unit is modeled as a separate dwelling unit with
 adiabatic surfaces separating different units. OCHRE does not currently
 support modeling a whole multifamily building with multiple units
 simultaneously or the modeling of central space and water heating systems.
@@ -192,6 +192,9 @@ pump heating model includes a few unique features:
    threshold.
 -  A reverse cycle defrost algorithm that reduces heat pump efficiency and
    capacity at low temperatures.
+-  Startup capacity degredation, where it takes several minutes to reach the
+   nominal capacity depending on the coefficient of degredation of the heat
+   pump.
 
 All HVAC equipment can be externally controlled by updating the thermostat
 setpoints and deadband or by direct load control (i.e., shut-off). Specific
@@ -343,7 +346,7 @@ heat gain coefficients, are included in the input files. These loads can
 be electric or natural gas loads. Schedule-based loads include:
 
 -  Appliances (clothes washer, clothes dryer, dishwasher, refrigerator,
-   cooking range)
+   freezer, cooking range)
 
 -  Lighting (indoor, exterior, garage, basement)
 

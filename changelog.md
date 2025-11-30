@@ -1,5 +1,21 @@
 ## OCHRE Changelog
 
+### OCHRE v0.9.2
+- Restrict pint version to avoid colab issues [#196](https://github.com/NREL/OCHRE/issues/196)
+- Ignore schedules for broken equipment in 2025 ResStock SDR [#197](https://github.com/NREL/OCHRE/issues/197)
+- Added component load outputs [#19](https://github.com/NREL/OCHRE/issues/19)
+- Added freezers and updated defaults to align with ResStock 2024
+  [#167](https://github.com/NREL/OCHRE/issues/167)
+- Added SEER1 24.0/ HSPF1 13.0 max tech variable speed ASHP from ResStock
+  [#187](https://github.com/NREL/OCHRE/issues/187)
+- Added startup capacity degredation for ASHP/MSHP/AC
+  [#179](https://github.com/NREL/OCHRE/issues/179)
+- Fixed bug in EV equivalent battery model (EBM) results
+- Fixed bug for infiltration for unvented crawlspaces
+  [#191](https://github.com/NREL/OCHRE/issues/191)
+- Updated `Analysis.combine_time_series_files` to aggregate across dwellings
+  only
+
 ### OCHRE v0.9.1
 
 - Updated and relaxed dependencies

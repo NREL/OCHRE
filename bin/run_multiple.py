@@ -60,7 +60,7 @@ def compile_results(main_path, n_max=None):
     df.to_csv(os.path.join(output_path, "all_ochre_total_powers.csv"))
 
     # aggregate time series data across all simulations
-    df = Analysis.combine_time_series_files(results_files, agg_type="House")
+    df = Analysis.combine_time_series_files(results_files, aggregate=True)
     df.to_csv(os.path.join(output_path, "all_ochre_results.csv"))
 
     print("Saved OCHRE results to:", output_path)
