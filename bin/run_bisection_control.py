@@ -8,6 +8,25 @@ import numpy as np
 from ochre import Dwelling
 from ochre.utils import default_input_path  # for using sample files
 from ochre import HeatPumpWaterHeater
+#run 12 node model
+import copy 
+# Define equipment and simulation parameters
+bisection_temp = 49
+setpoint_default = 51  # in C #alternate b/w 60 and 49
+deadband_default = 5.56  # in C #play around with this
+
+max_setpoint = 60
+min_setpoint = 49 #minimum setpoint - 40.6, 44.5, and 49
+
+water_nodes = 12
+run_range = False #runs simulation for a variety of setpoints specified in setpoint_range
+simulation_days = 45#220 #172 #220
+time_interval = 15 # adjust setpoint every 15 minutes?
+
+site_number = '11531' #90023 #10292#'10441'
+capacity = 151 #40 g
+two_weeks = 20160
+flow_data = f'net_flow_{site_number}.csv'
 
 
 
@@ -139,7 +158,7 @@ def bisection_control(temp_n1, temp_n2, setpoint_initial, draw): #performs 5 bis
         draw = np.append(draw, [0] * 135) 
     for iteration in range(5):
         t_out = predict_two_node(temp_n1, temp_n2, setpoint, draw).values #returns outlet temperature
-        if (t_out < 49).any():
+        if (t_out < bisection_temp).any():
             setpoint = setpoint + (max_temp - setpoint)/2
             if setpoint > max_temp:
                 setpoint = max_temp
@@ -150,23 +169,7 @@ def bisection_control(temp_n1, temp_n2, setpoint_initial, draw): #performs 5 bis
     return setpoint
 
 
-#run 12 node model
-import copy 
-# Define equipment and simulation parameters
-setpoint_default = 51  # in C #alternate b/w 60 and 49
-deadband_default = 5.56  # in C
 
-max_setpoint = 60
-min_setpoint = 49
-
-water_nodes = 12
-run_range = False #runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 44#220 #172 #220
-time_interval = 15 # adjust setpoint every 15 minutes?
-
-site_number = '90023' #90023 #10292#'10441'
-
-flow_data = f'net_flow_{site_number}.csv'
 
 #start_date = dt.datetime(2013, 1, 17, 0, 1) #10441
 start_date = dt.datetime(2013, 1, 1, 0, 1) #10292, 90023
@@ -192,7 +195,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
         "save_results": False,  # if True, must specify output_path
         # "output_path": os.getcwd(),        # Equipment parameters
         "Setpoint Temperature (C)": setpoint_default,
-        "Tank Volume (L)": 250,
+        "Tank Volume (L)": capacity,
         "Tank Height (m)": 1.22,
         "UA (W/K)": 2.17,
         "HPWH COP (-)": 4.5,
@@ -209,7 +212,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     water_draw_magnitude = 12  # L/min
     #withdraw_rate = np.random.choice([0, water_draw_magnitude], p=[0.99, 0.01], size=len(times))
     withdraw_rate = np.loadtxt(f'ochre\defaults\\Input Files\\{flow_data}')
-    withdraw_rate = withdraw_rate[train_end:train_end + len(times)] #stagger by 2 weeks
+    withdraw_rate = withdraw_rate[two_weeks: two_weeks +  len(times)] #stagger by 2 weeks
     current_draws = copy.deepcopy(withdraw_rate)
     schedule = pd.DataFrame(
         {
@@ -226,7 +229,7 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     # Initialize equipment
     hpwh = HeatPumpWaterHeater(schedule=schedule, **equipment_args)
 
-    # Simulate
+    # Simulate 
     data = pd.DataFrame()
     data = {'draw_data' :[], 'setpoint' :[]}
     control_signal = {}
@@ -268,10 +271,10 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
         "Hot Water Outlet Temperature (C)",
         #"T_WH1",
         #"T_WH2"
-        "T_WH3",
+        #"T_WH3",
         #"T_WH7",
-        "T_WH10",
-        "T_WH12"
+        #"T_WH10",
+        #"T_WH12"
         #"T_AMB"
     ]
 
@@ -293,8 +296,9 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     to_save = to_save[14::15]
 
     to_save["Water Heating Electric Power"] = pd.Series(kwh_energy, index=to_save.index)
+    to_save["Setpoings"] = avg_setpoints
    
 
     to_save = to_save[:-1] 
-    to_save.to_csv(f'output_site_{site_number}_bisectioncontrol_{water_nodes}.csv', header=True, index=False)
+    to_save.to_csv(f'output_site_{site_number}_bisectioncontrol_ud_{bisection_temp}_{water_nodes}_perfect.csv', header=True, index=False)
 

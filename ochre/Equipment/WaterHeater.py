@@ -414,7 +414,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         super().__init__(water_nodes=water_nodes, **kwargs)
 
         # Control parameters
-        self.hp_only_mode = hp_only_mode
+        self.hp_only_mode = True#hp_only_mode
         self.er_only_mode = False  # True when ambient temp is very hot or cold, forces HP off
         hp_on_time = kwargs.get('HPWH Minimum On Time (min)', 10)
         hp_off_time = kwargs.get('HPWH Minimum Off Time (min)', 0)

@@ -13,7 +13,45 @@ from ochre import HeatPumpWaterHeater
 site_number = '90023' #90023 #10292#'10441'
 
 flow_data = f'net_flow_{site_number}.csv'
-nth_percentile = 50
+nth_percentile = 99
+
+
+bisection_temp = 49#Temperature we check to change setpoint
+
+
+
+#get ninety-ninth percentile
+raw_data = pd.read_csv("bin\90023_raw.csv")
+raw_data["readTime"] = pd.to_datetime(raw_data["readTime"])
+raw_data = raw_data[raw_data["readTime"] > pd.Timestamp("2013-01-01")]
+
+# Convert flow to liters
+raw_data["Flow"] = raw_data["Flow"] * 3.78541
+
+interval = int(len(raw_data)*0.8)
+train = raw_data[0:interval] 
+train["isWeekend"] = train["readTime"].dt.weekday >= 5 #separate out df by weekends
+
+#compute 99th percentile
+train = train[["Flow", "hour", "isWeekend"]]
+percentile = train.groupby(['hour', 'isWeekend'])['Flow'].quantile(nth_percentile*0.01).reset_index()
+
+
+train_end = interval
+#run 12 node model for 99th percentile
+horizon = 2
+# Define equipment and simulation parameters
+setpoint_default = 51  # in C #alternate b/w 60 and 49
+deadband_default = 5.56  # in C
+
+max_setpoint = 60
+min_setpoint = 49 #minimum setpoint - 40.6, 44.5, and 49
+
+water_nodes = 12
+run_range = False #runs simulation for a variety of setpoints specified in setpoint_range
+simulation_days = 44#200#220 #172 #220 #remove two weeks
+time_interval = 15 # adjust setpoint every 15 minutes?
+avg_interval = 14 * 1440 #14 days = 
 
 #2 node simulation
 def predict_two_node(temp_n1, temp_n2, setpoint, draw):
@@ -141,7 +179,7 @@ def bisection_control(temp_n1, temp_n2, setpoint_initial, draw): #performs 5 bis
         draw = np.append(draw, [0] * 135) 
     for iteration in range(5):
         t_out = predict_two_node(temp_n1, temp_n2, setpoint, draw).values #returns outlet temperature
-        if (t_out < 49).any():
+        if (t_out < bisection_temp).any():
             setpoint = setpoint + (max_temp - setpoint)/2
             if setpoint > max_temp:
                 setpoint = max_temp
@@ -152,21 +190,6 @@ def bisection_control(temp_n1, temp_n2, setpoint_initial, draw): #performs 5 bis
     return setpoint
 
 
-#get ninety-ninth percentile
-raw_data = pd.read_csv("bin\90023_raw.csv")
-raw_data["readTime"] = pd.to_datetime(raw_data["readTime"])
-raw_data = raw_data[raw_data["readTime"] > pd.Timestamp("2013-01-01")]
-
-# Convert flow to liters
-raw_data["Flow"] = raw_data["Flow"] * 3.78541
-
-interval = int(len(raw_data)*0.8)
-train = raw_data[0:interval] 
-train["isWeekend"] = train["readTime"].dt.weekday >= 5 #separate out df by weekends
-
-#compute 99th percentile
-train = train[["Flow", "hour", "isWeekend"]]
-percentile = train.groupby(['hour', 'isWeekend'])['Flow'].quantile(nth_percentile*0.01).reset_index()
 
 def get_nth_flow(timeStamp, horizon=2, percentiles = percentile):
     #Given a timeStamp, compute predicted flow data for horizon
@@ -196,22 +219,6 @@ def get_nth_flow(timeStamp, horizon=2, percentiles = percentile):
     return predicted_flow
 
 
-
-train_end = interval
-#run 12 node model for 99th percentile
-horizon = 2
-# Define equipment and simulation parameters
-setpoint_default = 51  # in C #alternate b/w 60 and 49
-deadband_default = 5.56  # in C
-
-max_setpoint = 60
-min_setpoint = 49
-
-water_nodes = 12
-run_range = False #runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 44#200#220 #172 #220 #remove two weeks
-time_interval = 15 # adjust setpoint every 15 minutes?
-avg_interval = 14 * 1440 #14 days = 
 
 
 
@@ -335,8 +342,8 @@ for s in setpoint_range: #run simulation for every setpoint in valid range
     to_save = to_save[14::15]
 
     to_save["Water Heating Electric Power"] = pd.Series(kwh_energy, index=to_save.index)
-   
+    to_save["Setpoints"] = avg_setpoints
 
 
     to_save = to_save[:-1] 
-    to_save.to_csv(f'output_site_{site_number}_bisectioncontrol_{water_nodes}_{nth_percentile}_percentile.csv', header=True, index=False)
+    to_save.to_csv(f'output_site_{site_number}_bisectioncontrol_ud_{bisection_temp}_{water_nodes}_{nth_percentile}_percentile.csv', header=True, index=False)
