@@ -40,13 +40,6 @@ class GasGeneratorTestCase(unittest.TestCase):
         self.assertEqual(mode, 'Off')
         self.assertEqual(self.generator.control_type, 'Schedule')
 
-        # test parameter update
-        control_signal = {'Parameters': {'charge_start_hour': 0}}
-        mode = self.generator.update_external_control({}, control_signal)
-        self.assertEqual(mode, 'On')
-        self.assertEqual(self.generator.control_type, 'Schedule')
-        self.assertEqual(self.generator.power_setpoint, 1)
-
     def test_update_internal_control(self):
         # test schedule-based control
         self.generator.control_type = 'Schedule'

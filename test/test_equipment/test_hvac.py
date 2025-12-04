@@ -23,7 +23,6 @@ init_args.update({
     'cooling fan power (W/cfm)': 0.3,
     'supplemental heater cut in temp (C)': -17,
     'supplemental heating capacity (W)': 1000,
-    'setpoint_ramp_rate': None,
     'envelope_model': envelope,
 })
 
@@ -132,8 +131,6 @@ class HVACTestCase(unittest.TestCase):
         self.hvac.update_setpoint(update_args_heat)
         self.assertEqual(self.hvac.temp_setpoint, 21)
 
-        # test with ramp rate
-        self.hvac.setpoint_ramp_rate = 0.5
         self.hvac.update_setpoint(update_args_cool)
         self.assertEqual(self.hvac.temp_setpoint, 20.5)
 

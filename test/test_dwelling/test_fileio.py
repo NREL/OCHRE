@@ -87,8 +87,8 @@ class TimeSeriesFileTestCase(unittest.TestCase):
             'weekday cooling setpoint': [76] * 12 + [78] * 12,
             'weekend cooling setpoint': [75] * 12 + [77] * 12,
         })
-        schedule_input_file = os.path.join(default_input_path, 'Input Files', 'occupant_schedule_test.csv')
-        result = FileIO.import_occupancy_schedule(schedule_input_file, **properties)
+        hpxml_schedule_file = os.path.join(default_input_path, 'Input Files', 'occupant_schedule_test.csv')
+        result = FileIO.import_occupancy_schedule(hpxml_schedule_file, **properties)
         self.assertIsInstance(result.index, pd.DatetimeIndex)
         self.assertTupleEqual(result.shape, (31 * 24 * 12, 21))
         self.assertTrue(all([col in SCHEDULE_COLUMNS for col in result.columns]))
@@ -235,7 +235,7 @@ class TimeSeriesFileTestCase(unittest.TestCase):
         properties = FileIO.import_properties_from_beopt(hpxml_file)
 
         # Testing absolute and relative paths
-        schedule_input_file = 'test_case_schedule.properties'
+        hpxml_schedule_file = 'test_case_schedule.properties'
         # weather_file = os.path.join(default_input_path, 'Weather', 'CA_RIVERSIDE_MUNI_722869_12.epw')
         weather_file = os.path.join(default_input_path, 'Weather', 'CO_FORT-COLLINS-LOVELAND-AP_724769S_18.epw')
         water_draw_file = 'DHW_2bed_unit0_1min.csv'
@@ -243,7 +243,7 @@ class TimeSeriesFileTestCase(unittest.TestCase):
         # Test with water draw file
         args = resample_args2.copy()
         args.update(properties)
-        result = FileIO.import_schedule(None, schedule_input_file, water_draw_file, weather_file=weather_file, **args)
+        result = FileIO.import_schedule(None, hpxml_schedule_file, water_draw_file, weather_file=weather_file, **args)
         self.assertEqual(len(result), 3 * 1440)
         self.assertEqual(result.index[1], dt.datetime(2019, 12, 29, 0, 1))
         cols_to_check = ['ambient_pressure', 'solar_RF', 'GHI (W/m^2)', 'Horizontal Irradiance - poa_global (W/m^2)',
@@ -254,7 +254,7 @@ class TimeSeriesFileTestCase(unittest.TestCase):
         # Test with initialization time
         args = resample_args1.copy()
         args.update(properties)
-        result = FileIO.import_schedule(None, schedule_input_file, weather_file=weather_file, **args)
+        result = FileIO.import_schedule(None, hpxml_schedule_file, weather_file=weather_file, **args)
         self.assertEqual(len(result), 31 * 1440 // 5)
         self.assertEqual(result.index[1], dt.datetime(2019, 1, 1, 0, 5))
 

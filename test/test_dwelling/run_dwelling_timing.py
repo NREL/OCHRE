@@ -1,7 +1,8 @@
 import cProfile, pstats
 from guppy import hpy
 
-from bin.run_dwelling import *
+from ochre import Dwelling
+from bin.run_dwelling import dwelling_args
 
 # h = hpy()
 # print(h.heap().size // 1024 // 1024)  # in MB
