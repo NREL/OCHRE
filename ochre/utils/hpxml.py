@@ -1064,17 +1064,17 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
                         ' Double check water heater inputs.')
 
     wh = {
-        "Equipment Name": water_heater_type,
-        "Fuel": water_heater["FuelType"].capitalize(),
-        "Zone": parse_zone_name(water_heater["Location"]),
-        "Setpoint Temperature (C)": t_set,
-        "Tempering Valve Setpoint (C)": t_set,
+        'Equipment Name': water_heater_type,
+        'Fuel': water_heater['FuelType'].capitalize(),
+        'Zone': parse_zone_name(water_heater['Location']),
+        'Setpoint Temperature (C)': t_set,
+        'Tempering Valve Setpoint (C)': t_set,
         # 'Heat Transfer Coefficient (W/m^2/K)': u,
-        "UA (W/K)": convert(ua, "Btu/hour/degR", "W/K"),
-        "Efficiency (-)": eta_c,
-        "Energy Factor (-)": energy_factor,
-        "Tank Volume (L)": volume,
-        "Tank Height (m)": height,
+        'UA (W/K)': convert(ua, 'Btu/hour/degR', 'W/K'),
+        'Efficiency (-)': eta_c,
+        'Energy Factor (-)': energy_factor,
+        'Tank Volume (L)': volume,
+        'Tank Height (m)': height,
     }
     if heating_capacity is not None:
         wh['Capacity (W)'] = convert(heating_capacity, 'Btu/hour', 'W')
@@ -1088,17 +1088,16 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
         # FIXME: temporary flag for designating 120V HPWHs in panels branch of ResStock
         if uniform_energy_factor == 4.9:
             wh.update({
-                "Low Power HPWH": True,
-                "HPWH COP (-)": 4.2,
-                "HPWH Capacity (W)": 1499.4,
-                "Setpoint Temperature (C)": convert(140, "degF", "degC"),
-                "Tempering Valve Setpoint (C)": convert(125, "degF", "degC"),
-                "hp_only_mode": True,
+                'Low Power HPWH': True,
+                'HPWH COP (-)': 4.2,
+                'HPWH Capacity (W)': 1499.4,
+                'Setpoint Temperature (C)': convert(140, 'degF', 'degC'),
+                'Tempering Valve Setpoint (C)': convert(125, 'degF', 'degC'),
+                'hp_only_mode': True,
             })
         else:
             # Based on simulation of the UEF test procedure at varying COPs
-            wh["HPWH COP (-)"] = 1.174536058 * uniform_energy_factor
-
+            wh['HPWH COP (-)'] = 1.174536058 * uniform_energy_factor
     if water_heater_type == 'instantaneous water heater' and wh['Fuel'] != 'Electricity':
         on_time_frac = [0.0269, 0.0333, 0.0397, 0.0462, 0.0529][n_beds - 1]
         wh['Parasitic Power (W)'] = 5 + 60 * on_time_frac
