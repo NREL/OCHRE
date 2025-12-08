@@ -18,6 +18,7 @@ from ochre.utils.schedule import import_weather
 # signals, including:
 #  - Run Dwelling/HVAC with modified schedule
 #  - Run Dwelling/HVAC with dynamic control
+#  - Run Dwelling/HVAC using external HVAC model
 #  - Run HPWH with CTA-2045 control
 #  - Run EV with no TOU peak charging
 #  - Run EV with perfectly managed charging
@@ -102,6 +103,55 @@ def run_hvac_dynamic_control():
         ambient_temp = house_status["Temperature - Outdoor (C)"]
 
     df, _, _ = dwelling.finalize()
+
+    cols_to_plot = [
+        "HVAC Heating Setpoint (C)",
+        "Temperature - Indoor (C)",
+        "Temperature - Outdoor (C)",
+        "Unmet HVAC Load (C)",
+        "HVAC Heating Electric Power (kW)",
+    ]
+    df.loc[:, cols_to_plot].plot()
+    CreateFigures.plt.show()
+
+def run_exteral_hvac_model():
+    #Example of an external HVAC model, intended to be used with some other HVAC model in an external python script.
+
+    # Update verbosity to get FULL results
+    if dwelling_args.get("verbosity", 0) < 9:
+        dwelling_args["verbosity"] = 9
+
+    # Initialize
+    dwelling = Dwelling(**dwelling_args)
+
+    # Get HVAC heater
+    heater = dwelling.get_equipment_by_end_use("HVAC Heating")
+    heater.use_ideal_capacity = True
+    #OPTIONAL: external capacity of HVAC
+    #capacity = heater.capacity  # Get original capacity
+    
+    ambient_temps = dwelling.envelope.schedule["Ambient Dry Bulb (C)"]
+    ambient_w = dwelling.envelope.schedule["Ambient Humidity Ratio (-)"]
+
+    heater.ext_ignore_thermostat = True  #Set to true to ignore thermostat setpoint and deadband
+    ext_capacity = 0.0 #Disable backup element for this example
+    heater.er_ext_capacity = ext_capacity #Disable backup ER if you're purely controlling HP
+    heater.capacity_min = -heater.capacity_ideal #Allow for reverse cycle defrost up to full capacity
+    heater.use_ideal_capacity = True  # Set to ideal HVAC model, so OCHRE solves for required capacity
+    load = heater.capacity_ideal #The actual capacity to meet the load 100%
+    for t in dwelling.sim_times:
+        # Change capacity based on hour of day
+        capacity_fixed = 20 * t.hour #W
+        heater.ext_capacity = capacity_fixed  #An arbitrary example, run at fixed 20W
+        control_signal = {'HVAC Heating': {'Capacity': capacity_fixed, 'Backup Capacity': ext_capacity}, 'HVAC Cooling': {'Capacity': ext_capacity}} #An arbitrary example, run at 20W
+        #heater.ext_capacity = load * 0.25   #An arbitrary example, run at 25% of max capacity
+
+        # Run with controls
+        house_status = dwelling.update(control_signal=control_signal)
+    #house_status = dwelling.update(heater.ext_capacity=capacity_fixed)
+    
+    # Simulate
+    df, _, _ = dwelling.simulate()
 
     cols_to_plot = [
         "HVAC Heating Setpoint (C)",
@@ -353,13 +403,16 @@ if __name__ == "__main__":
     # run_hvac_modify_schedule()
 
     # Run HVAC with dynamic control
-    # run_hvac_dynamic_control()
+    #run_hvac_dynamic_control()
+
+    # Run HVAC using external HVAC model
+    run_exteral_hvac_model()
 
     # # Run HPWH with CTA-2045 control
     # run_hpwh_cta_2045()
 
     # # Run EV with no TOU peak charging
-    run_ev_tou()
+    #run_ev_tou()
 
     # # Run EV with perfectly managed charging
     # run_ev_perfect()

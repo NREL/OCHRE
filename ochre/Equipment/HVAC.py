@@ -258,6 +258,20 @@ class HVAC(Equipment):
             else:
                 self.ext_capacity = capacity
 
+                capacity = control_signal.get('Capacity')
+        
+        backup_capacity = control_signal.get('Backup Capacity')
+        if backup_capacity is not None:
+            if not self.use_ideal_capacity:
+                raise IOError(
+                    f"Cannot set {self.name} Capacity. "
+                    'Set `use_ideal_capacity` to True or control "Duty Cycle".'
+                )
+            if f"{self.end_use} Capacity (W)" in self.current_schedule:
+                self.current_schedule[f"{self.end_use} Capacity (W)"] = capacity
+            else:
+                self.ext_er_capacity = backup_capacity
+
         # If load fraction = 0, force off
         load_fraction = control_signal.get("Load Fraction", 1)
         if load_fraction == 0:
@@ -395,7 +409,7 @@ class HVAC(Equipment):
             # Enforce min and max capacity limits
             if capacity < self.capacity_min:
                 # If capacity < capacity_min (or capacity is negative), force off
-                capacity = 0
+                capacity = 0 #FIXME: what do we do to allow for reverse cycle defrost? Can we say x% of capacity_max?
             elif capacity > self.capacity_max * self.ext_capacity_frac:
                 # Clip at maximum capacity, considering max capacity fraction
                 # Note: if ideal capacity is out of bounds, setpoint won't be met
@@ -553,7 +567,7 @@ class HVAC(Equipment):
         current_results = super().update_results()
 
         # Reset external capacity
-        self.ext_capacity = None
+        #self.ext_capacity = None
 
         # update previous indoor temperature
         self.temp_indoor_prev = self.zone.temperature
@@ -765,6 +779,7 @@ class DynamicHVAC(HVAC):
         # - Disable Speed X: if True, disables speed X (for 2 speed control, X=1 or 2)
         #   - Note: Can be used for ideal equipment (reduces max capacity) or dynamic equipment
         #   - Note: Disable Speeds will not reset back to original value
+        # - Fixed capacity: set capacity directly to what's set externally, ideal capacity only
         for idx in range(self.n_speeds):
             self.disable_speeds[idx] = bool(control_signal.get(f'Disable Speed {idx + 1}'))
 
@@ -914,7 +929,10 @@ class DynamicHVAC(HVAC):
             assert (np.diff(capacities) > 0).all()
 
             # determine ideal capacity
-            capacity = super().update_capacity()
+            if self.ext_capacity is not None:
+                capacity = self.ext_capacity
+            else:
+                capacity = super().update_capacity()
 
             # set speed_idx based on capacity
             if capacity <= capacities[1]:
@@ -1051,7 +1069,7 @@ class HeatPumpHeater(DynamicHVAC, Heater):
         # Based on EnergyPlus Engineering Reference, Defrost Operation, for on demand, reverse cycle defrost
         # see https://bigladdersoftware.com/epx/docs/8-9/engineering-reference/variable-refrigerant-flow-heat-pumps.html#defrost-operation-201605050925
         self.defrost = t_ext_db < 4.4445
-        if self.defrost:
+        if self.defrost and (self.ext_capacity is not None): #TODO: we should at least throw a warning here that we're ignoring defrost
             # Calculate reduced capacity
             T_coil_out = 0.82 * t_ext_db - 8.589
             # omega_ext = psychrolib.GetHumRatioFromRelHum(t_ext_db, rh_ext, pres_ext)
@@ -1064,7 +1082,7 @@ class HeatPumpHeater(DynamicHVAC, Heater):
 
             # Update actual capacity and max allowable capacity
             self.capacity_max = self.capacity_max * defrost_capacity_mult - q_defrost
-            if self.use_ideal_capacity:
+            if self.use_ideal_capacity and self.ext_capacity is not None:
                 capacity = min(capacity, self.capacity_max * self.ext_capacity_frac)
             else:
                 capacity = capacity * defrost_capacity_mult - q_defrost
@@ -1075,6 +1093,9 @@ class HeatPumpHeater(DynamicHVAC, Heater):
         else:
             self.defrost_power_mult = 0
             self.power_defrost = 0
+        
+        if self.ext_capacity is not None:
+            capacity = self.ext_capacity
         return capacity
 
     def update_eir(self):
