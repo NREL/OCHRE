@@ -64,6 +64,8 @@ SCHEDULE_NAMES = {
         "water_heater_operating_mode": None,
         "Vacancy": None,
         "Power Outage": None,
+        "No Space Heating": None,
+        "No Space Cooling": None,
     },
 }
 
