@@ -1,5 +1,8 @@
 ## OCHRE Changelog
 
+### OCHRE v0.9.3
+- Allow 120V (aka low power) heat pump water heaters
+
 ### OCHRE v0.9.2
 - Restrict pint version to avoid colab issues [#196](https://github.com/NREL/OCHRE/issues/196)
 - Ignore schedules for broken equipment in 2025 ResStock SDR [#197](https://github.com/NREL/OCHRE/issues/197)
