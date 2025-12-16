@@ -16,25 +16,26 @@ deadband_default = 5.56  # in C
 max_setpoint = 60
 min_setpoint = 49
 water_nodes = 12
-capacity = 227#(L) #151 (40)/189(50)/227(60)/303 (80)
+capacity = 189#(L) #151 (40)/189(50)/227(60)/303 (80)
 two_weeks = 20160
 
 run_range = False#runs simulation for a variety of setpoints specified in setpoint_range
 simulation_days = 100 #172 #220
-#sites = [90069, 90023, 90034, 90159, 22096, 13438, 11531]
 # all 60 G AO Smith water Heaters
-sites = [90069, 90023, 90034, 90159, 22096, 13438, 11531, 23744,
-11289,
-13265,
-23666,
-90028,
-90050,
-90135,
-10441,
-90015,
-90030
-]
-#site_number = '11531' #90023 #10292#'10441'
+
+# sites = [90069, 90023, 90034, 90159, 22096, 13438, 11531, 23744,
+# 11289,
+# 13265,
+# 23666,
+# 90028,
+# 90050,
+# 90135,
+# 10441,
+# 90015,
+# 90030
+# ] # 60 G sites
+#sites = [21578, 22897, 90023, 90130, 99094, 90051, 90069, 90131, 90034] #80g
+sites = [ 99148, 99162, 99103, 99092, 99084] #50g
 for site_number in sites: 
     flow_data = f'net_flow_{site_number}.csv'
 

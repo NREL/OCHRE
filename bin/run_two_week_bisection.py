@@ -10,17 +10,7 @@ from ochre.utils import default_input_path  # for using sample files
 from ochre import HeatPumpWaterHeater
 
 #Two week rolling average
-sites = [23744,
-11289,
-13265,
-23666,
-90028,
-90050,
-90135,
-10441,
-90015,
-90030
-]
+sites = [ 99148, 99162, 99103, 99092, 99084] #80 G
 for site_number in sites:
 #site_number = '11531' #90023 #10292#'10441'
     tank_volume = 151 #40g
