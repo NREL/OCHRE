@@ -186,7 +186,7 @@ class WaterHeater(Equipment):
         
         # get other controls from schedule - deadband and max power
         if "Water Heating Deadband (C)" in self.current_schedule:
-            self.temp_deadband = self.current_schedule["Water Heating Deadband (C)"]
+            self.deadband_temp = self.current_schedule["Water Heating Deadband (C)"]
         if "Water Heating Max Power (kW)" in self.current_schedule:
             self.max_power = self.current_schedule["Water Heating Max Power (kW)"]
 
@@ -294,12 +294,11 @@ class WaterHeater(Equipment):
     def generate_results(self):
         results = super().generate_results()
 
-        # Note: using end use, not equipment name, for all results
-        if self.verbosity >= 3:
-            results[f'{self.end_use} Delivered (W)'] = self.delivered_heat
-        if self.verbosity >= 6:
+        if self.verbosity >= 4:
             cop = self.delivered_heat / (self.electric_kw * 1000) if self.electric_kw > 0 else 0
+            results[f'{self.end_use} Delivered (W)'] = self.delivered_heat
             results[f'{self.end_use} COP (-)'] = cop
+        if self.verbosity >= 7:
             results[f'{self.end_use} Total Sensible Heat Gain (W)'] = self.sensible_gain
             results[f'{self.end_use} Deadband Upper Limit (C)'] = self.setpoint_temp
             results[f'{self.end_use} Deadband Lower Limit (C)'] = self.setpoint_temp - self.deadband_temp
@@ -424,6 +423,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         self.deadband_temp = kwargs.get('Deadband Temperature (C)', 8.17)  # different default than ERWH
 
         # Nominal COP based on simulation of the UEF test procedure at varying COPs
+        self.low_power_hpwh = kwargs.get('Low Power HPWH', False)
         self.cop_nominal = kwargs['HPWH COP (-)']
         self.hp_cop = self.cop_nominal
         if self.cop_nominal < 2:
@@ -441,8 +441,13 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
 
         # Dynamic capacity coefficients
         # curve format: [1, t_in_wet, t_in_wet ** 2, t_lower, t_lower ** 2, t_lower * t_in_wet]
-        self.hp_capacity_coeff = np.array([0.563, 0.0437, 0.000039, 0.0055, -0.000148, -0.000145])
-        self.cop_coeff = np.array([1.1332, 0.063, -0.0000979, -0.00972, -0.0000214, -0.000686])
+        if self.low_power_hpwh:
+            self.hp_capacity_coeff = np.array([0.813, 0.0160, 0.000537, 0.0020319, -0.0000860, -0.0000686])
+            self.cop_coeff = np.array([1.1332, 0.063, -0.0000979, -0.00972, -0.0000214, -0.000686])
+
+        else:
+            self.hp_capacity_coeff = np.array([0.563, 0.0437, 0.000039, 0.0055, -0.000148, -0.000145])
+            self.cop_coeff = np.array([1.0132, .0436, 0.0000117, -0.01113, 0.00003688, -0.000498])
 
         # Sensible and latent heat parameters
         self.shr_nominal = kwargs.get('HPWH SHR (-)', 0.88)  # unitless
@@ -562,7 +567,13 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
     def update_internal_control(self):
         # operate as ERWH when ambient temperatures are out of bounds
         t_amb = self.current_schedule['Zone Temperature (C)']
-        if t_amb < 7.222 or t_amb > 43.333:
+        if self.low_power_hpwh:
+            t_low = 2.778
+            t_high = 62.778
+        else:
+            t_low = 7.222
+            t_high = 43.333
+        if t_amb < t_low or t_amb > t_high:
             self.er_only_mode = True
         else:
             self.er_only_mode = False
@@ -635,7 +646,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
 
     def generate_results(self):
         results = super().generate_results()
-        if self.verbosity >= 6:
+        if self.verbosity >= 7:
             if self.use_ideal_capacity:
                 hp_on_frac = self.duty_cycle_by_mode['Heat Pump On']
             else:

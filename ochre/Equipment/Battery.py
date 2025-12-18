@@ -24,7 +24,7 @@ class BatteryThermalModel(OneNodeRCModel):
 
     def generate_results(self):
         results = super().generate_results()
-        if self.verbosity >= 6:
+        if self.verbosity >= 7:
             results[f"{self.name} (C)"] = self.states[0]
 
         return results
@@ -51,6 +51,7 @@ class Battery(Generator):
         self,
         enable_degradation=True,
         efficiency_type="advanced",
+        charge_solar_only=False,
         enable_thermal_model=None,
         **kwargs,
     ):
@@ -155,7 +156,7 @@ class Battery(Generator):
         )
 
         # Control parameters
-        self.charge_solar_only = kwargs.get("Charge from Solar Only", False)
+        self.charge_solar_only = charge_solar_only
         # self.soc_setpoint = None  # not used
         self.soc_min_ctrl = self.soc_min
         self.soc_max_ctrl = self.soc_max
@@ -475,14 +476,14 @@ class Battery(Generator):
         results = super().generate_results()
         if self.verbosity >= 3:
             results[f"{self.end_use} SOC (-)"] = self.soc
-        if self.verbosity >= 6:
+        if self.verbosity >= 7:
             results[f"{self.end_use} Energy to Discharge (kWh)"] = self.get_kwh_remaining()
-        if self.verbosity >= 9 and self.degradation_states is not None:
-            results[f"{self.end_use} Nominal Capacity (kWh)"] = self.capacity_kwh_nominal
-            results[f"{self.end_use} Actual Capacity (kWh)"] = self.capacity_kwh
-            results[f"{self.end_use} Degradation State Q1"] = self.degradation_states[0]
-            results[f"{self.end_use} Degradation State Q2"] = self.degradation_states[1]
-            results[f"{self.end_use} Degradation State Q3"] = self.degradation_states[2]
+            if self.degradation_states is not None:
+                results[f"{self.end_use} Nominal Capacity (kWh)"] = self.capacity_kwh_nominal
+                results[f"{self.end_use} Actual Capacity (kWh)"] = self.capacity_kwh
+                results[f"{self.end_use} Degradation State Q1"] = self.degradation_states[0]
+                results[f"{self.end_use} Degradation State Q2"] = self.degradation_states[1]
+                results[f"{self.end_use} Degradation State Q3"] = self.degradation_states[2]
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())
 
