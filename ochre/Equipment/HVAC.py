@@ -1,6 +1,8 @@
 import datetime as dt
 import numpy as np
 import psychrolib
+import re
+import pandas as pd
 
 from ochre.utils import OCHREException, convert, load_csv
 from ochre.utils.units import kwh_to_therms
@@ -700,9 +702,16 @@ class DynamicHVAC(HVAC):
             rated_efficiency = kwargs.get('Rated Efficiency', '(Unknown Efficiency)')
             multispeed_file = kwargs.get('multispeed_file', 'HVAC Multispeed Parameters.csv')
             df_speed = load_csv(multispeed_file)
-            speed_params = df_speed.loc[(df_speed['HVAC Name'] == self.name) & 
-                                        (df_speed['HVAC Efficiency'] == rated_efficiency) &
+            # Convert string to efficiency numbers, find the closest match
+            numeric_pattern = r"([-+]?(?:\d*\.?\d+))"
+            rated_efficiency_float = float(re.search(numeric_pattern, rated_efficiency).group())
+            df_speed['Temp_Efficiency_Float'] = pd.to_numeric(
+                df_speed['HVAC Efficiency'].str.extract(numeric_pattern)[0])
+            speed_params_subset = df_speed.loc[(df_speed['HVAC Name'] == self.name) & 
                                         (df_speed['Number of Speeds'] == self.n_speeds)]
+            closest_match_index = (speed_params_subset['Temp_Efficiency_Float'] - rated_efficiency_float).abs().idxmin()
+            df_speed = df_speed.drop(columns=['Temp_Efficiency_Float'])
+            speed_params = df_speed.loc[[closest_match_index]]
             if not len(speed_params):
                 raise OCHREException(f'Cannot find multispeed parameters for {self.n_speeds}-speed {rated_efficiency} {self.name}')
             assert len(speed_params) == 1
