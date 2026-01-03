@@ -938,57 +938,32 @@ def parse_hvac(hvac_type, hvac_all):
     def calc_eer2_from_eer(eer):
         return eer * 0.95  # split and packaged system assumption from OS-HPXML
 
-    def get_detailed_performance_data(cooling_or_heating_detailed_performance_data):
+    def get_detailed_performance_data(detailed_performance_data):
         performance = {}
-        for n in range(len(cooling_or_heating_detailed_performance_data)):
-            if (
-                cooling_or_heating_detailed_performance_data[n]["Efficiency"]["Units"]
-                != "COP"
-            ):
+        for n in range(len(detailed_performance_data)):
+            if detailed_performance_data[n]["Efficiency"]["Units"] != "COP":
                 raise OCHREException(
                     "Detailed Performance Data efficiency units are not COP."
                 )  # not sure format of this
             if (
-                cooling_or_heating_detailed_performance_data[n]["OutdoorTemperature"]
+                detailed_performance_data[n]["OutdoorTemperature"]
             ) not in performance.keys():
                 performance[
-                    cooling_or_heating_detailed_performance_data[n][
-                        "OutdoorTemperature"
-                    ]
+                    round(float(detailed_performance_data[n]["OutdoorTemperature"]), 1)
                 ] = {}
 
             performance[
-                round(
-                    float(
-                        cooling_or_heating_detailed_performance_data[n][
-                            "OutdoorTemperature"
-                        ],
-                        1,
-                    )
-                )
+                round(float(detailed_performance_data[n]["OutdoorTemperature"]), 1)
             ][
-                f"{cooling_or_heating_detailed_performance_data[n]['CapacityDescription']}_capacity"
+                f"{detailed_performance_data[n]['CapacityDescription']}_capacity"
             ] = round(
-                cooling_or_heating_detailed_performance_data[n]["Capacity"], 2
+                float(detailed_performance_data[n]["Capacity"]), 2
             )
+
             performance[
-                round(
-                    float(
-                        cooling_or_heating_detailed_performance_data[n][
-                            "OutdoorTemperature"
-                        ],
-                        1,
-                    )
-                )
-            ][
-                f"{cooling_or_heating_detailed_performance_data[n]['CapacityDescription']}_COP"
-            ] = round(
-                {
-                    cooling_or_heating_detailed_performance_data[n]["Efficiency"][
-                        "Value"
-                    ]
-                },
-                2,
+                round(float(detailed_performance_data[n]["OutdoorTemperature"]), 1)
+            ][f"{detailed_performance_data[n]['CapacityDescription']}_COP"] = round(
+                float(detailed_performance_data[n]["Efficiency"]["Value"]), 2
             )
         return performance
 
