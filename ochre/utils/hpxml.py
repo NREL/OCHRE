@@ -945,26 +945,25 @@ def parse_hvac(hvac_type, hvac_all):
                 raise OCHREException(
                     "Detailed Performance Data efficiency units are not COP."
                 )  # not sure format of this
-            if (
-                detailed_performance_data[n]["OutdoorTemperature"]
-            ) not in performance.keys():
-                performance[
-                    round(float(detailed_performance_data[n]["OutdoorTemperature"]), 1)
-                ] = {}
+            out_temp = round(
+                float(detailed_performance_data[n]["OutdoorTemperature"]), 1
+            )
+            if out_temp not in performance.keys():
+                performance[out_temp] = {}
 
-            performance[
-                round(float(detailed_performance_data[n]["OutdoorTemperature"]), 1)
-            ][
+            capacity_w = convert(
+                float(detailed_performance_data[n]["Capacity"]), "Btu/hour", "W"
+            )
+            cop = float(detailed_performance_data[n]["Efficiency"]["Value"])
+
+            performance[out_temp][
                 f"{detailed_performance_data[n]['CapacityDescription']}_capacity"
-            ] = round(
-                float(detailed_performance_data[n]["Capacity"]), 2
-            )
+            ] = round(capacity_w, 2)
 
-            performance[
-                round(float(detailed_performance_data[n]["OutdoorTemperature"]), 1)
-            ][f"{detailed_performance_data[n]['CapacityDescription']}_COP"] = round(
-                float(detailed_performance_data[n]["Efficiency"]["Value"]), 2
-            )
+            performance[out_temp][
+                f"{detailed_performance_data[n]['CapacityDescription']}_COP"
+            ] = round(cop, 2)
+
         return performance
 
     # Calculates COP82min from SEER2 using bi-linear interpolation per RESNET MINERS Addendum 82
@@ -1091,6 +1090,8 @@ def parse_hvac(hvac_type, hvac_all):
             capacity95min = capacity95full * cool_capacity_ratios[0]
             capacity82max = capacity95max / qm95max
             capacity82min = capacity95min / qm95min
+        cooling_performance[82.0] = {}
+        cooling_performance[95.0] = {}
         if capacity82min is not None:
             cooling_performance[82.0]["minimum_capacity"] = round(capacity82min, 2)
             cooling_performance[82.0]["minimum_COP"] = round(cop82min, 2)
@@ -1271,7 +1272,10 @@ def parse_hvac(hvac_type, hvac_all):
                 cooling_detailed_performance_data
             )
             if "nominal_COP" in cooling_performance[95.0].keys():
+                print(1 / cop)
                 cop = cooling_performance[95.0]["nominal_COP"]  # override default COP
+                print(1 / cop)
+                out.update({"EIR (-)": 1 / cop})
             if "nominal_capacity" in cooling_performance[95.0].keys():
                 if (
                     abs(capacity - cooling_performance[95.0]["nominal_capacity"])
@@ -1299,6 +1303,7 @@ def parse_hvac(hvac_type, hvac_all):
             )
             if "nominal_COP" in heating_performance[47.0].keys():
                 cop = heating_performance[47.0]["nominal_COP"]  # override default COP
+                out.update({"EIR (-)": 1 / cop})
             if "nominal_capacity" in heating_performance[47.0].keys():
                 if (
                     abs(capacity - heating_performance[47.0]["nominal_capacity"])
