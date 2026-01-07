@@ -259,18 +259,6 @@ class HVAC(Equipment):
                 self.ext_capacity = capacity
 
                 capacity = control_signal.get('Capacity')
-        
-        backup_capacity = control_signal.get('Backup Capacity')
-        if backup_capacity is not None:
-            if not self.use_ideal_capacity:
-                raise IOError(
-                    f"Cannot set {self.name} Capacity. "
-                    'Set `use_ideal_capacity` to True or control "Duty Cycle".'
-                )
-            if f"{self.end_use} Capacity (W)" in self.current_schedule:
-                self.current_schedule[f"{self.end_use} Capacity (W)"] = capacity
-            else:
-                self.ext_er_capacity = backup_capacity
 
         # If load fraction = 0, force off
         load_fraction = control_signal.get("Load Fraction", 1)

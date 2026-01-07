@@ -126,25 +126,38 @@ def run_exteral_hvac_model():
 
     # Get HVAC heater
     heater = dwelling.get_equipment_by_end_use("HVAC Heating")
-    heater.use_ideal_capacity = True
+    
+    
     #OPTIONAL: external capacity of HVAC
     #capacity = heater.capacity  # Get original capacity
-    
+
+    cooling = dwelling.get_equipment_by_end_use("HVAC Cooling")
+
+
+    heater.duct_dse = 1.0 #FIXME: This removes ducts for now
+    heater.c_d = 0.0  # Remove cycling losses from example, handled by external model
+    cooling.duct_dse = 1.0 #FIXME: This removes ducts for now
+    cooling.c_d = 0.0  # Remove cycling losses from example, handled by external model
+
     ambient_temps = dwelling.envelope.schedule["Ambient Dry Bulb (C)"]
     ambient_w = dwelling.envelope.schedule["Ambient Humidity Ratio (-)"]
 
-    heater.ext_ignore_thermostat = True  #Set to true to ignore thermostat setpoint and deadband
+    
     ext_capacity = 0.0 #Disable backup element for this example
     heater.er_ext_capacity = ext_capacity #Disable backup ER if you're purely controlling HP
     heater.capacity_min = -heater.capacity_ideal #Allow for reverse cycle defrost up to full capacity
-    heater.use_ideal_capacity = True  # Set to ideal HVAC model, so OCHRE solves for required capacity
+
     load = heater.capacity_ideal #The actual capacity to meet the load 100%
+    control_signal = {}
     for t in dwelling.sim_times:
-        # Change capacity based on hour of day
-        capacity_fixed = 20 * t.hour #W
-        heater.ext_capacity = capacity_fixed  #An arbitrary example, run at fixed 20W
-        control_signal = {'HVAC Heating': {'Capacity': capacity_fixed, 'Backup Capacity': ext_capacity}, 'HVAC Cooling': {'Capacity': ext_capacity}} #An arbitrary example, run at 20W
-        #heater.ext_capacity = load * 0.25   #An arbitrary example, run at 25% of max capacity
+        if (t - dwelling.start_time).seconds > 0: #Don't overwrite at t=0
+            heater.use_ideal_capacity = True
+            cooling.use_ideal_capacity = True
+            heater.ext_ignore_thermostat = True  #Set to true to ignore thermostat setpoint and deadband
+            # Change capacity based on hour of day
+            capacity_fixed = 20 # * t.hour #W
+            control_signal = {'HVAC Heating': {'Capacity': capacity_fixed, 'ER Capacity': ext_capacity}, 'HVAC Cooling': {'Capacity': ext_capacity}} #An arbitrary example, run at 20W
+            #heater.ext_capacity = load * 0.25   #An arbitrary example, run at 25% of max capacity
 
         # Run with controls
         house_status = dwelling.update(control_signal=control_signal)
