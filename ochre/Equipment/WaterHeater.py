@@ -424,8 +424,9 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
 
         # Nominal COP based on simulation of the UEF test procedure at varying COPs
         self.low_power_hpwh = kwargs.get('Low Power HPWH', False)
+        dedicated_circuit_hpwh = False #FIXME: parse this in when it gets added to HPXML file
         self.cop_nominal = kwargs['HPWH COP (-)']
-        self.hp_cop = self.cop_nominal
+        
         if self.cop_nominal < 2:
             self.warn("Low Nominal COP:", self.cop_nominal)
 
@@ -435,19 +436,27 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         else:
             hp_power_nominal = kwargs.get('HPWH Power (W)', 500)  # in W
             self.hp_capacity_nominal = hp_power_nominal * self.hp_cop  # in W
-        self.hp_capacity = self.hp_capacity_nominal  # in W
         self.parasitic_power = kwargs.get('HPWH Parasitics (W)', 1)  # Standby power in W
         self.fan_power = kwargs.get('HPWH Fan Power (W)', 35)  # in W
 
         # Dynamic capacity coefficients
         # curve format: [1, t_in_wet, t_in_wet ** 2, t_lower, t_lower ** 2, t_lower * t_in_wet]
         if self.low_power_hpwh:
-            self.hp_capacity_coeff = np.array([0.813, 0.0160, 0.000537, 0.0020319, -0.0000860, -0.0000686])
-            self.cop_coeff = np.array([1.1332, 0.063, -0.0000979, -0.00972, -0.0000214, -0.000686])
+            if dedicated_circuit_hpwh: #FIXME: when parsed in from HPXML, nominal capacity should already be correct and these two lines will be unnecessary
+                self.cop_nominal = 3.6
+                self.hp_capacity_nominal = self.cop_nominal * 442.0 # W
+                self.hp_capacity_coeff = np.array([0.636, 0.0227, 0.000406, -0.000437, 0.0, 0.0])
+                self.cop_coeff = np.array([1.1798, 0.03012, 0.00020632, -0.01935, 0.0001341, 0.0003026])
+            else:
+                self.hp_capacity_coeff = np.array([0.813, 0.0160, 0.000537, 0.0020319, -0.0000860, -0.0000686])
+                self.cop_coeff = np.array([1.1332, 0.063, -0.0000979, -0.00972, -0.0000214, -0.000686])
 
         else:
             self.hp_capacity_coeff = np.array([0.563, 0.0437, 0.000039, 0.0055, -0.000148, -0.000145])
             self.cop_coeff = np.array([1.0132, .0436, 0.0000117, -0.01113, 0.00003688, -0.000498])
+
+        self.hp_cop = self.cop_nominal
+        self.hp_capacity = self.hp_capacity_nominal  # in W
 
         # Sensible and latent heat parameters
         self.shr_nominal = kwargs.get('HPWH SHR (-)', 0.88)  # unitless
