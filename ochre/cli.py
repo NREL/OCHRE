@@ -37,6 +37,7 @@ def create_dwelling(
     time_res=60,
     duration=365,
     initialization_time=1,
+    export_res=None,
 ):
     # Update input file paths
     if not os.path.isabs(hpxml_file):
@@ -59,6 +60,9 @@ def create_dwelling(
         else:
             raise IOError(f"Cannot parse weather input: {weather_file_or_path}")
 
+    # Convert export_res to timedelta if specified
+    export_res_td = dt.timedelta(days=export_res) if export_res is not None else None
+
     # Initialize
     dwelling = Dwelling(
         name=name,
@@ -66,6 +70,7 @@ def create_dwelling(
         time_res=dt.timedelta(minutes=time_res),
         duration=dt.timedelta(days=duration),
         initialization_time=dt.timedelta(days=initialization_time),
+        export_res=export_res_td,
         hpxml_file=hpxml_file,
         hpxml_schedule_file=hpxml_schedule_file,
         output_path=output_path,
@@ -227,6 +232,12 @@ def common_options(f):
         click.option("--time_res", default=60, help="Time resolution, in minutes"),
         click.option("--duration", default=365, help="Simulation duration, in days"),
         click.option("--initialization_time", default=1, help="Initialization duration, in days"),
+        click.option(
+            "--export_res",
+            type=int,
+            help="Export interval in days (exports results periodically to reduce memory). "
+                 "Recommended: 30 days for 1-minute resolution, 60 days for 5-minute resolution",
+        ),
     ]
     return functools.reduce(lambda x, opt: opt(x), options[::-1], f)
 
