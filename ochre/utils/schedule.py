@@ -3,6 +3,9 @@ import os
 import numpy as np
 import pandas as pd
 import datetime as dt
+import collections.abc
+import xmltodict
+# import re
 import numba  # required for array-based psychrolib
 import psychrolib
 import pytz
@@ -23,7 +26,6 @@ SCHEDULE_NAMES = {
         "clothes_dryer": "Clothes Dryer",
         "dishwasher": "Dishwasher",
         "refrigerator": "Refrigerator",
-        "freezer": "Freezer",
         "cooking_range": "Cooking Range",
         "lighting_interior": "Indoor Lighting",
         "lighting_exterior": "Exterior Lighting",
@@ -45,8 +47,7 @@ SCHEDULE_NAMES = {
         # 'basement_mels': 'Basement MELs',  # not modeled
     },
     "Water": {
-        "hot_water_fixtures": "Water Fixtures",
-        # "hot_water_showers": "Showers",  # for unmet loads only
+        "hot_water_fixtures": "Water Heating",
         "hot_water_clothes_washer": "Clothes Washer",
         "hot_water_dishwasher": "Dishwasher",
     },
@@ -57,6 +58,7 @@ SCHEDULE_NAMES = {
     },
     "Ignore": {
         "extra_refrigerator": None,
+        "freezer": None,
         "clothes_dryer_exhaust": None,
         "lighting_exterior_holiday": None,
         "plug_loads_vehicle": None,
@@ -65,8 +67,6 @@ SCHEDULE_NAMES = {
         "water_heater_operating_mode": None,
         "Vacancy": None,
         "Power Outage": None,
-        "No Space Heating": None,
-        "No Space Cooling": None,
     },
 }
 
@@ -164,10 +164,6 @@ def import_weather(weather_file=None, weather_path=None, weather_station=None, w
     elif ext == '.epw':
         offset = dt.timedelta(minutes=30)
         df, location = pvlib.iotools.read_epw(weather_file)
-
-        if len(df) == 8784:
-            # leap year, remove Feb 29 data
-            df = df.loc[~((df.index.month == 2) & (df.index.day == 29)), :]
 
         # Update year and save time zone info
         df = set_annual_index(df, start_year, offset=offset, timezone=df.index.tzinfo)
@@ -288,88 +284,70 @@ def create_simple_schedule(weekday_fractions, weekend_fractions=None, month_mult
     return df['w_fracs'] * df['m_fracs']
 
 
-def convert_power_column(s_hpxml, ochre_name, properties):
-    # try getting from max power or from annual energy, priority goes to max power
-    if 'Max Electric Power (W)' in properties:
-        max_value = properties['Max Electric Power (W)'] / 1000  # W to kW
-    elif 'Annual Electric Energy (kWh)' in properties:
-        annual_mean = properties['Annual Electric Energy (kWh)'] / 8760
+def convert_schedule_column(s_hpxml, ochre_name, properties, category='Power'):
+    if category == 'Power':
+        # try getting from max power or from annual energy, priority goes to max power
+        if 'Max Electric Power (W)' in properties:
+            max_value = properties['Max Electric Power (W)'] / 1000  # W to kW
+        elif 'Annual Electric Energy (kWh)' in properties:
+            annual_mean = properties['Annual Electric Energy (kWh)'] / 8760
+            schedule_mean = s_hpxml.mean()
+            max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
+        else:
+            max_value = None
+        if max_value is not None:
+            out = s_hpxml * max_value
+            out.name = f'{ochre_name} (kW)'
+        else:
+            out = None
+
+        # check for gas (max power and annual energy), and copy schedule
+        if 'Max Gas Power (therms/hour)' in properties:
+            max_value = properties['Max Gas Power (therms/hour)']  # in therms/hour
+        elif 'Annual Gas Energy (therms)' in properties:
+            annual_mean = properties['Annual Gas Energy (therms)'] / 8760  # in therms/hour
+            schedule_mean = s_hpxml.mean()
+            max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
+        else:
+            max_value = None
+        if max_value is None:
+            pass
+        elif out is None:
+            out = s_hpxml * max_value
+            out.name = f'{ochre_name} (therms/hour)'
+        else:
+            # combine 2 series into data frame
+            s_gas = s_hpxml * max_value
+            s_gas.name = f'{ochre_name} (therms/hour)'
+            out = pd.concat([out, s_gas], axis=1)
+
+        if out is None:
+            raise OCHREException(f'Could not determine max value for {s_hpxml.name} schedule ({ochre_name}).')
+
+    elif category == 'Water':
+        if ochre_name == 'Water Heating':
+            # Fixtures include sinks, showers, and baths (SSB), all combined
+            avg_water_draw = properties.get('Fixture Average Water Draw (L/day)', 0)
+            annual_mean = avg_water_draw / 1440  # in L/min
+        else:
+            # For dishwasher and clothes washer, get average draw value from their properties dict
+            annual_mean = properties['Average Water Draw (L/day)'] / 1440  # in L/min
+            schedule_mean = s_hpxml.mean()
         schedule_mean = s_hpxml.mean()
-<<<<<<< HEAD
         #max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
         max_value = 1.0 #Changed to accomodate UEF Draw profile
-=======
-        max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
-    else:
-        max_value = None
-    if max_value is not None:
->>>>>>> origin/dev
         out = s_hpxml * max_value
-        out.name = f'{ochre_name} (kW)'
-    else:
-        out = None
-
-    # check for gas (max power and annual energy), and copy schedule
-    if 'Max Gas Power (therms/hour)' in properties:
-        max_value = properties['Max Gas Power (therms/hour)']  # in therms/hour
-    elif 'Annual Gas Energy (therms)' in properties:
-        annual_mean = properties['Annual Gas Energy (therms)'] / 8760  # in therms/hour
-        schedule_mean = s_hpxml.mean()
-        max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
-    else:
-        max_value = None
-    if max_value is None:
-        pass
-    elif out is None:
-        out = s_hpxml * max_value
-        out.name = f'{ochre_name} (therms/hour)'
-    else:
-        # combine 2 series into data frame
-        s_gas = s_hpxml * max_value
-        s_gas.name = f'{ochre_name} (therms/hour)'
-        out = pd.concat([out, s_gas], axis=1)
-
-    if out is None:
-        raise OCHREException(f'Could not determine max value for {s_hpxml.name} schedule ({ochre_name}).')
+        out.name = f'{ochre_name} (L/min)'
 
     return out
 
 
-def convert_water_column(s_hpxml, ochre_name, equipment):
-    if ochre_name in ["Water Fixtures", "Showers"]:
-        # Fixtures include sinks, showers, and baths (SSB), all combined
-        # Showers are only included for unmet loads calculation
-        equipment_name = "Water Heating"
-    else:
-        equipment_name = ochre_name
-
-    if equipment_name not in equipment:
-        return None
-    
-    properties = equipment[equipment_name]
-    avg_water_draw = properties.get('Average Water Draw (L/day)', 0)
-    annual_mean = avg_water_draw / 1440  # in L/min
-    
-    schedule_mean = s_hpxml.mean()
-    max_value = annual_mean / schedule_mean if schedule_mean != 0 else 0
-    out = s_hpxml * max_value
-    out.name = f'{ochre_name} (L/min)'
-
-    return out
-
-
-def import_occupancy_schedule(
-    occupancy,
-    equipment,
-    start_time,
-    hpxml_schedule_file=None,
-    default_schedule_file="Default Schedule Parameters.csv",
-    **kwargs,
-):
-    # Import HPXML schedule file. Note that initial values are normalized to max_value=1
+def import_occupancy_schedule(occupancy, equipment, start_time, schedule_input_file=None,
+                              simple_schedule_file='Simple Schedule Parameters.csv', **kwargs):
+    # Import stochastic occupancy schedule file. Note that initial values are normalized to max_value=1
     # FUTURE: for sub-annual schedules, create annual schedule and then shorten to simulation time
-    if hpxml_schedule_file is not None:
-        df_norm = load_csv(hpxml_schedule_file, sub_folder='Input Files')
+    if schedule_input_file is not None:
+        df_norm = load_csv(schedule_input_file, sub_folder='Input Files')
     else:
         # create empty, hourly DataFrame
         df_norm = pd.DataFrame(index=range(8760))
@@ -380,11 +358,7 @@ def import_occupancy_schedule(
         df_norm['lighting_basement'] = df_norm['lighting_interior']
 
     # Load simple schedule parameters file
-    # taken from:
-    # https://github.com/NREL/OpenStudio-HPXML/blob/master/HPXMLtoOpenStudio/resources/data/default_schedules.csv
-    df_default = load_csv(default_schedule_file)
-    df_default = df_default.loc[df_default["OCHRE Name"].notna()]
-    df_default = df_default.pivot(index="OCHRE Name", columns="OCHRE Element", values="Values")
+    df_simple = load_csv(simple_schedule_file, index_col='Name')
 
     # Add normalized simple schedules from HPXML to df_norm
     schedules_to_merge = []
@@ -415,7 +389,7 @@ def import_occupancy_schedule(
         elif hpxml_name not in df_norm:
             if ochre_dict.get('weekday_fractions') is None:
                 # add data from simple schedule defaults file
-                data = df_default.loc[ochre_name].to_dict()
+                data = df_simple.loc[ochre_name].to_dict()
                 ochre_dict.update({key: eval(val) for key, val in data.items() if isinstance(val, str)})
             s_hpxml = create_simple_schedule(**ochre_dict)
             s_hpxml.name = hpxml_name
@@ -435,13 +409,11 @@ def import_occupancy_schedule(
             s_ochre = s_hpxml * occupancy['Number of Occupants (-)']
             s_ochre.name = f'{ochre_name} (Persons)'
             schedule_data.append(s_ochre)
-        elif category == "Power":
-            if ochre_name in equipment:
-                schedule_data.append(convert_power_column(s_hpxml, ochre_name, equipment[ochre_name]))
-        elif category == "Water":
-            s_ochre = convert_water_column(s_hpxml, ochre_name, equipment)
-            if s_ochre is not None:
-                schedule_data.append(s_ochre)
+        elif category in ['Power', 'Water']:
+            if ochre_name not in equipment:
+                continue
+            else:
+                schedule_data.append(convert_schedule_column(s_hpxml, ochre_name, equipment[ochre_name], category))
         elif category == 'Setpoint':
             # Already in the correct units
             s_ochre = s_hpxml
@@ -451,7 +423,7 @@ def import_occupancy_schedule(
             # Schedule is not used in OCHRE
             continue
         else:
-            raise OCHREException(f'Unknown column in schedule: {hpxml_name}')
+            raise OCHREException(f'Unknown column in schedule file: {hpxml_name}')
 
     schedule = pd.concat(schedule_data, axis=1)
 
@@ -568,32 +540,22 @@ def load_schedule(properties, schedule=None, time_zone=None, **house_args):
     df_weather = resample_and_reindex(df_weather, **house_args)  # loses weather timezone info
     df_occupancy = resample_and_reindex(df_occupancy, **house_args)
 
-    if schedule:
-        df_modify = pd.DataFrame(schedule)
-        
-        # Identify columns that are valid for weather and occupancy separately
-        valid_cols_weather = [col for col in df_modify.columns if col in df_weather.columns]
-        valid_cols_occupancy = [col for col in df_modify.columns if col in df_occupancy.columns]
-        
-        # Create separate dataframes for weather and occupancy schedules
-        df_weather_modify = df_modify[valid_cols_weather] if valid_cols_weather else pd.DataFrame()
-        df_occupancy_modify = df_modify[valid_cols_occupancy] if valid_cols_occupancy else pd.DataFrame()
-
-        # Resample and reindex each modified dataframe
-        if not df_weather_modify.empty:
-            df_weather_modify = resample_and_reindex(df_weather_modify, **house_args)
-            df_weather.update(df_weather_modify)
-        
-        if not df_occupancy_modify.empty:
-            df_occupancy_modify = resample_and_reindex(df_occupancy_modify, **house_args)
-            df_occupancy.update(df_occupancy_modify)
-
     # add solar calculations to weather (more accurate if done after resampling)
     df_weather = calculate_solar_irradiance(df_weather, weather_tz, location, properties['boundaries'], **house_args)
 
     # combine weather and main schedule
     schedule_init = pd.concat([df_weather, df_occupancy], axis=1)
-    
+
+    # modify OCHRE schedule from house_args
+    if schedule:
+        df_modify = pd.DataFrame(schedule)
+        bad_cols = [col for col in df_modify.columns if col not in schedule_init.columns]
+        if bad_cols:
+            print('WARNING: Skipping schedule columns not in OCHRE schedule:', bad_cols)
+            df_modify = df_modify.drop(columns=bad_cols)
+
+        df_modify = resample_and_reindex(df_modify, **house_args)
+        schedule_init.update(df_modify)
     schedule = schedule_init
 
     # check if cooling-heating setpoint difference is large enough, if not throw a warning and fix
@@ -601,8 +563,8 @@ def load_schedule(properties, schedule=None, time_zone=None, **house_args):
         setpoint_diff = schedule['HVAC Cooling Setpoint (C)'] - schedule['HVAC Heating Setpoint (C)']
         if setpoint_diff.min() < 1:
             # if min(setpoint_diff) < 0:
-            #     raise OCHREException('ERROR: Cooling setpoint is equal or less than heating setpoint in schedule')
-            print('WARNING: Cooling setpoint is within 1C of heating setpoint.'
+            #     raise OCHREException('ERROR: Cooling setpoint is equal or less than heating setpoint in schedule file')
+            print('WARNING: Cooling setpoint is within 1C of heating setpoint in schedule file.'
                   ' Separating setpoints by at least 1C.')
             setpoint_avg = (schedule['HVAC Cooling Setpoint (C)'] + schedule['HVAC Heating Setpoint (C)']) / 2
             schedule['HVAC Cooling Setpoint (C)'] = schedule['HVAC Cooling Setpoint (C)'].clip(lower=setpoint_avg + 0.5)
