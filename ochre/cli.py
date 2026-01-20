@@ -38,6 +38,7 @@ def create_dwelling(
     duration=365,
     initialization_time=1,
     export_res=None,
+    time_zone=None,
 ):
     # Update input file paths
     if not os.path.isabs(hpxml_file):
@@ -75,6 +76,7 @@ def create_dwelling(
         hpxml_schedule_file=hpxml_schedule_file,
         output_path=output_path,
         verbosity=verbosity,
+        time_zone=time_zone,
         **weather_args,
     )
 
