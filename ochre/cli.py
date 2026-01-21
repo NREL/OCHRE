@@ -232,6 +232,7 @@ def common_options(f):
         click.option("--start_month", default=1, help="Simulation start month"),
         click.option("--start_day", default=1, help="Simulation start day"),
         click.option("--time_res", default=60, help="Time resolution, in minutes"),
+        click.option("--time_zone", default=None, help="Time zone for simulation (e.g., 'DST')"),
         click.option("--duration", default=365, help="Simulation duration, in days"),
         click.option("--initialization_time", default=1, help="Initialization duration, in days"),
         click.option(
