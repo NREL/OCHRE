@@ -10,7 +10,7 @@ import datetime as dt
 from ochre.utils import OCHREException
 from ochre.utils.units import convert, kwh_to_therms
 from ochre.Equipment import Equipment
-from ochre.Models import OneNodeWaterModel, TwoNodeWaterModel, StratifiedWaterModel, IdealWaterModel
+from ochre.Models import OneNodeWaterModel, TwoNodeWaterModel, StratifiedWaterModel, IdealWaterModel, TankWithMultiPCM
 
 
 class WaterHeater(Equipment):
@@ -32,6 +32,8 @@ class WaterHeater(Equipment):
                 model_class = OneNodeWaterModel
             elif nodes == 2:
                 model_class = TwoNodeWaterModel
+            # elif kwargs.get('Equipment', {}).get('Water Heating', {}).get('model_class') == TankWithMultiPCM:
+            #     model_class = TankWithMultiPCM
             else:
                 model_class = StratifiedWaterModel
 
@@ -570,13 +572,20 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         return super().update_internal_control()
 
     def add_heat_from_mode(self, mode, heats_to_tank=None, duty_cycle=1):
+        
         heats_to_tank = super().add_heat_from_mode(mode, heats_to_tank, duty_cycle)
+            
         if mode == 'Heat Pump On':
             capacity_hp = self.hp_capacity * duty_cycle  # max heat from HP, in W
-            heats_to_tank += self.hp_nodes * capacity_hp
+            heats_to_tank += self.hp_nodes[:self.model.n_nodes] * capacity_hp
         return heats_to_tank
 
     def update_cop_and_capacity(self, t_wet):
+        if len(self.model.states) > len(self.hp_nodes):
+            diff = len(self.model.states) - len(self.hp_nodes)
+            # extend the hp_nodes vector to include the extra nodes setting them to zero
+            self.hp_nodes = np.append(self.hp_nodes, np.zeros(diff))
+        # print(f"{self.name}: {self.current_time}") 
         t_lower = np.dot(self.hp_nodes, self.model.states)  # use node connected to condenser
         vector = np.array([1, t_wet, t_wet ** 2, t_lower, t_lower ** 2, t_lower * t_wet])
         self.hp_capacity = self.hp_capacity_nominal * np.dot(self.hp_capacity_coeff, vector)
