@@ -42,6 +42,12 @@ EQUIPMENT_NAMES_BY_TYPE = {
     },
 }
 
+AIR_SOURCE_HEAT_RATED_ODB = round(convert(47.0, "degF", "degC"), 1) # Rated outdoor drybulb for air-source systems, heating
+AIR_SOURCE_HEAT_RATED_IDB = round(convert(70.0, "degF", "degC"), 1) # Rated indoor drybulb for air-source systems, heating
+AIR_SOURCE_COOL_RATED_ODB = round(convert(95.0, "degF", "degC"), 1) # Rated outdoor drybulb for air-source systems, cooling
+AIR_SOURCE_COOL_RATED_OWB = round(convert(75.0, "degF", "degC"), 1) # Rated outdoor wetbulb for air-source systems, cooling
+AIR_SOURCE_COOL_RATED_IDB = round(convert(80.0, "degF", "degC"), 1) # Rated indoor drybulb for air-source systems, cooling
+AIR_SOURCE_COOL_RATED_IWB = round(convert(67.0, "degF", "degC"), 1) # Rated indoor wetbulb for air-source systems, cooling
 
 def get_duct_info(ducts, zones, boundaries, construction, location, **kwargs):
     # Get zone type from duct_zone and zone info
@@ -429,37 +435,48 @@ def calculate_duct_dse(hvac, ducts, climate_file='ASHRAE152_climate_data.csv',
     return dse
 
 
-def calc_c_d(is_heater, name, cop, number_of_speeds):
-    # Calculate coefficient of degredation (c_d) of equipment based on equipment type and EER/SEER/HSPF
-    # Should only affect cases with single speed and two speed compressor driven equipment (ASHP/AC)
-    # Capacity losses based on Jon Winkler's thesis and match what's in E+ with "Advanced Research Features for startup losses"
-    # https://drum.lib.umd.edu/bitstream/handle/1903/9493/Winkler_umd_0117E_10504.pdf?sequence=1&isAllowed=y page 200
-
-    if is_heater:
-        hspf = convert(cop, "W", "Btu/hour")
-        if number_of_speeds == 1:
-            if hspf < 7.0:
-                c_d = 0.2
-            else:
-                c_d = 0.11
-        elif number_of_speeds == 2:
-            c_d = 0.11
-        else:
-            c_d = 0.0 # Do no capacity degradation at startup, since this isn't on/off equipment
-    else: #cooling equipment
-        seer = convert(cop, "W", "Btu/hour")
-        if name =='Room AC':
-            c_d = 0.22
-        elif number_of_speeds == 1:
-            if seer < 13.0:
-                c_d = 0.2
-            else:
-                c_d = 0.07
-        elif number_of_speeds == 2:
-            c_d = 0.11
-        else:
-            c_d = 0.0 # Do no capacity degradation at startup, since this isn't on/off equipment
+def calc_c_d(name, number_of_speeds):
+    # Calculate coefficient of degredation (c_d) of equipment based on RESNET HERS Addendum 82
+    if name == 'Room AC':
+        c_d = 0.22
+    elif number_of_speeds in [1, 2]:
+        c_d = 0.08
+    elif number_of_speeds == 4:
+        c_d = 0.4
+    else:
+        c_d = 0.0 # Do no capacity degradation at startup, since this isn't on/off equipment
     return c_d
+
+
+def calc_eer2_from_seer2(seer2, number_of_speeds):
+    # Regressions based on Central ACs & HPs in ENERGY STAR product lists
+    if number_of_speeds == 1:
+        return min(0.73 * seer2 + 1.47, seer2)
+    elif number_of_speeds == 2:
+        return min(0.63 * seer2 + 2.34, seer2)
+    elif number_of_speeds == 4:
+        return min(0.31 * seer2 + 6.45, seer2)
+
+
+def calc_seer2_from_seer(seer, is_ducted):
+    if is_ducted:
+        return seer * 0.95  # ducted, split and packaged system assumption from OS-HPXML
+    else:
+        return seer
+
+
+def calc_eer2_from_eer(eer, is_ducted):
+    if is_ducted:
+        return eer * 0.95  # ducted, split and packaged system assumption from OS-HPXML
+    else:
+        return eer
+
+
+def calc_hspf2_from_hspf(hspf, is_ducted):
+    if is_ducted:
+        return hspf * 0.85  # ducted, split system assumption from OS-HPXML
+    else:
+        return hspf * 0.9
 
 
 # Psychrometric functions for HVAC

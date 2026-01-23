@@ -921,22 +921,26 @@ def parse_hpxml_occupancy(hpxml):
 
 
 def parse_hvac(hvac_type, hvac_all):
-    def calc_eer2_from_seer2(seer2, number_of_speeds):
-        # Regressions based on Central ACs & HPs in ENERGY STAR product lists
-        if number_of_speeds == 1:
-            return min(0.73 * seer2 + 1.47, seer2)
-        elif number_of_speeds == 2:
-            return min(0.63 * seer2 + 2.34, seer2)
-        elif number_of_speeds == 4:
-            return min(0.31 * seer2 + 6.45, seer2)
-        else:
-            raise OCHREException(f"Unkown number of speeds: {number_of_speeds}.")
+    def find_array_neighbor_values(sorted_array, target):
+        index = bisect.bisect_left(sorted_array, target)
+        if index == 0:  # Target is less than or equal to the smallest element
+            idx1, idx2 = 0, 1
+        elif index == len(sorted_array):  # Target is greater than all elements
+            idx1, idx2 = -2, -1
+        else:  # Target is in the middle
+            idx1, idx2 = index - 1, index
+        return sorted_array[idx1], sorted_array[idx2]
 
-    def calc_seer2_from_seer(seer):
-        return seer * 0.95  # split and packaged system assumption from OS-HPXML
+    def interp4(x, y, x1, x2, y1, y2, fx1y1, fx1y2, fx2y1, fx2y2):
+        return (
+            (fx1y1 / float((x2 - x1) * (y2 - y1))) * (x2 - x) * (y2 - y)
+            + (fx2y1 / float((x2 - x1) * (y2 - y1))) * (x - x1) * (y2 - y)
+            + (fx1y2 / float((x2 - x1) * (y2 - y1))) * (x2 - x) * (y - y1)
+            + (fx2y2 / float((x2 - x1) * (y2 - y1))) * (x - x1) * (y - y1)
+        )
 
-    def calc_eer2_from_eer(eer):
-        return eer * 0.95  # split and packaged system assumption from OS-HPXML
+    def interp2(x, x0, x1, f0, f1):
+        return f0 + ((x - x0) / float(x1 - x0)) * (f1 - f0)
 
     def get_detailed_performance_data(detailed_performance_data):
         performance = {}
@@ -945,8 +949,7 @@ def parse_hvac(hvac_type, hvac_all):
                 raise OCHREException(
                     "Detailed Performance Data efficiency units are not COP."
                 )  # not sure format of this
-            out_temp = round(
-                float(detailed_performance_data[n]["OutdoorTemperature"]), 1
+            out_temp = round(convert(float(detailed_performance_data[n]["OutdoorTemperature"]), "degF", "degC"), 1
             )
             if out_temp not in performance.keys():
                 performance[out_temp] = {}
@@ -966,31 +969,252 @@ def parse_hvac(hvac_type, hvac_all):
 
         return performance
 
-    # Calculates COP82min from SEER2 using bi-linear interpolation per RESNET MINERS Addendum 82
-    def set_default_cooling_detailed_performance(
-        number_of_speeds, seer2, eer2, c_d, cop, capacity
+    def set_default_heating_detailed_performance(
+        number_of_speeds, hspf2, qm17full, capacity, lct
     ):
-        def find_array_neighbor_values(sorted_array, target):
-            index = bisect.bisect_left(sorted_array, target)
-            if index == 0:  # Target is less than or equal to the smallest element
-                idx1, idx2 = 0, 1
-            elif index == len(sorted_array):  # Target is greater than all elements
-                idx1, idx2 = -2, -1
-            else:  # Target is in the middle
-                idx1, idx2 = index - 1, index
-            return sorted_array[idx1], sorted_array[idx2]
-
-        def interp4(x, y, x1, x2, y1, y2, fx1y1, fx1y2, fx2y1, fx2y2):
-            return (
-                (fx1y1 / float((x2 - x1) * (y2 - y1))) * (x2 - x) * (y2 - y)
-                + (fx2y1 / float((x2 - x1) * (y2 - y1))) * (x - x1) * (y2 - y)
-                + (fx1y2 / float((x2 - x1) * (y2 - y1))) * (x2 - x) * (y - y1)
-                + (fx2y2 / float((x2 - x1) * (y2 - y1))) * (x - x1) * (y - y1)
+        # Calculates COP47full from HSPF2 using bi-linear interpolation per RESNET MINERS Addendum 82
+        def interpolate_hspf2(
+            hspf2, qm17full, hspf2_array, qm17full_array, cop47full_array
+        ):
+            x1, x2 = find_array_neighbor_values(sorted(hspf2_array), hspf2)
+            y1, y2 = find_array_neighbor_values(
+                sorted(qm17full_array), qm17full
             )
+            x_indexes = [hspf2_array.index(x) for x in [x1, x2]]
+            y_indexes = [qm17full_array.index(x) for x in [y1, y2]]
+            fx1y1 = cop47full_array[x_indexes[0]][y_indexes[0]]
+            fx1y2 = cop47full_array[x_indexes[0]][y_indexes[1]]
+            fx2y1 = cop47full_array[x_indexes[1]][y_indexes[0]]
+            fx2y2 = cop47full_array[x_indexes[1]][y_indexes[1]]
+            return interp4(
+                hspf2, qm17full, x1, x2, y1, y2, fx1y1, fx1y2, fx2y1, fx2y2
+            )
+        
+        heating_performance = {}
+        # Datapoints to be defaulted
+        capacity5min = None
+        cop5min = None
 
-        def interp2(x, x0, x1, f0, f1):
-            return f0 + ((x - x0) / float(x1 - x0)) * (f1 - f0)
+        capacity5full = None
+        cop5full = None
 
+        capacity5max = None
+        cop5max = None
+
+        capacity17min = None
+        cop17min = None
+
+        capacity17full = qm17full * capacity
+        cop17full = None
+
+        capacity17max = None
+        cop17max = None
+
+        capacity47min = None
+        cop47min = None
+
+        capacity47full = capacity
+        cop47full = None
+
+        capacity47max = None
+        cop47max = None
+
+        capacityLCTmin = None
+        copLCTmin = None
+
+        capacityLCTfull = None
+        copLCTfull = None
+
+        capacityLCTmax = None
+        copLCTmax = None
+        if number_of_speeds == 1:
+            eirm17full = 1.356  # (P17full/Q17full)/(P47full/Q47full)
+            hspf2_array = [5.0, 6.5, 8.0, 9.5, 11.0]
+            qm17full_array = [0.5, 0.533, 0.6, 0.7333, 1.0]
+            cop47full_array = [[1.971, 1.963, 1.946, 1.915, 1.904],
+                               [2.844, 2.801, 2.720, 2.589, 2.498],
+                               [3.933, 3.819, 3.622, 3.318, 3.102],
+                               [5.327, 5.085, 4.683, 4.111, 3.718],
+                               [7.178, 6.699, 5.951, 4.975, 4.345]]
+            cop47full = interpolate_hspf2(hspf2, qm17full, hspf2_array, qm17full_array, cop47full_array)
+            # COPs @ 17F
+            cop17full = cop47full / eirm17full
+            # Capacities @ 5F
+            capacity5full = interp2(5.0, 17.0, 47.0, capacity17full, capacity47full)
+            # COPs @ 5F
+            if capacity5full > 0:
+                cop5full = capacity5full / interp2(5.0, 17.0, 47.0, capacity17full / cop17full, capacity47full / cop47full)
+            else:
+                cop5full = interp2(5.0, 17.0, 47.0, cop17full, cop47full) # Arbitrary
+        elif number_of_speeds == 2:
+            eirm17full = 1.356 # (P17full/Q17full)/(P47full/Q47full)
+            qrhmin = 0.712 # Qmin/Qfull
+            eirrhmin = 0.850 # (Pmin/Qmin)/(Pfull/Qfull)
+
+            hspf2_array = [5.0, 6.5, 8.0, 9.5, 11.0]
+            qm17full_array = [0.5, 0.533, 0.6, 0.7333, 1.0]
+            cop47full_array = [[1.794, 1.779, 1.757, 1.720, 1.659],
+                               [2.592, 2.540, 2.456, 2.325, 2.176],
+                               [3.583, 3.464, 3.270, 2.980, 2.703],
+                               [4.852, 4.611, 4.227, 3.691, 3.239],
+                               [6.536, 6.073, 5.371, 4.467, 3.785]]
+            cop47full = interpolate_hspf2(hspf2, qm17full, hspf2_array, qm17full_array, cop47full_array)
+
+            # Capacities @ 47F
+            capacity47min = capacity47full * qrhmin
+
+            # COPs @ 47F
+            cop47min = cop47full / eirrhmin
+
+            # Capacities @ 17F
+            capacity17min = capacity17full * qrhmin
+
+            # COPs @ 17F
+            cop17full = cop47full / eirm17full
+            cop17min = cop17full / eirrhmin
+
+            # Capacities @ 5F
+            if capacity47full > 0:
+                capacity5full = interp2(5.0, 17.0, 47.0, capacity17full, capacity47full)
+                capacity5min = interp2(5.0, 17.0, 47.0, capacity17min, capacity47min)
+
+            # COPs @ 5F
+            if capacity5full > 0:
+                cop5full = capacity5full / interp2(5.0, 17.0, 47.0, capacity17full / cop17full, capacity47full / cop47full)
+            else:
+                cop5full = interp2(5.0, 17.0, 47.0, cop17full, cop47full) # Arbitrary
+            if capacity5min > 0:
+                cop5min = capacity5min / interp2(5.0, 17.0, 47.0, capacity17min / cop17min, capacity47min / cop47min)
+            else:
+                cop5min = interp2(5.0, 17.0, 47.0, cop17min, cop47min) # Arbitrary
+        elif number_of_speeds == 4:
+            qr47full = 0.908 # Q47full/Q47max
+            qr47min = 0.272 # Q47min/Q47max
+            qr17full = 0.817 # Q17full/Q17max
+            qr17min = 0.341 # Q17min/Q17max
+            qm5max = 0.866 # Q5max/Q17max
+            qr5full = 0.988 # Q5full/Q5max
+            qr5min = 0.321 # Q5min/Q5max
+            qmslopeLCTmax = -0.025 # (1.0 - Q5max/QLCTmax)/(5 - LCT)
+            qmslopeLCTmin = -0.024 # (1.0 - Q5min/QLCTmin)/(5 - LCT)
+            eirr47full = 0.939 # (P47full/Q47full)/(P47max/Q47max)
+            eirr47min = 0.730 # (P47min/Q47min)/(P47max/Q47max)
+            eirm17full = 1.351 # (P17full/Q17full)/(P47full/Q47full)
+            eirr17full = 0.902 # (P17full/Q17full)/(P17max/Q17max)
+            eirr17min = 0.798 # (P17min/Q17min)/(P17max/Q17max)
+            eirm5max = 1.164 # (P5max/Q5max)/(P17max/Q17max)
+            eirr5full = 1.000 # (P5full/Q5full)/(P5max/Q5max)
+            eirr5min = 0.866 # (P5min/Q5min)/(P5max/Q5max)
+            eirmslopeLCTmax = 0.012 # (1.0 - (PLCTmax/QLCTmax)/(P5max/Q5max))/(5 - LCT)
+            eirmslopeLCTmin = 0.012 # (1.0 - (PLCTmin/QLCTmin)/(P5min/Q5min))/(5 - LCT)
+
+            hspf2_array = [7.0, 9.25, 11.5, 13.75, 16.0]
+            qm17full_array = [0.5, 0.54, 0.62, 0.78, 1.10]
+            cop47full_array = [[2.762, 2.696, 2.579, 2.467, 2.345],
+                         [4.149, 3.941, 3.627, 3.305, 3.091],
+                         [5.934, 5.490, 4.821, 4.167, 3.834],
+                         [8.392, 7.463, 6.190, 5.054, 4.573],
+                         [11.948, 10.060, 7.779, 5.967, 5.307]]
+            cop47full = interpolate_hspf2(hspf2, qm17full, hspf2_array, qm17full_array, cop47full_array)
+
+            heat_capacity_ratios = [qr47min / qr47full, 1.0, 1.0 / qr47full]
+            # Capacities @ 47F
+            capacity47max = capacity47full * heat_capacity_ratios[-1]
+            capacity47min = capacity47full * heat_capacity_ratios[0]
+
+            # COPs @ 47F
+            cop47max = cop47full * eirr47full
+            cop47min = cop47max / eirr47min
+
+            # Capacities @ 17F
+            capacity17max = capacity17full / qr17full
+            capacity17min = capacity17full * qr17min / qr17full
+
+            # COPs @ 17F
+            cop17full = cop47full / eirm17full
+            cop17max = cop17full * eirr17full
+            cop17min = cop17max / eirr17min
+
+            # Capacities @ 5F
+            capacity5max = capacity17max * qm5max
+            capacity5full = capacity5max * qr5full
+            capacity5min = capacity5full * qr5min / qr5full
+
+            # COPs @ 5F
+            cop5max = cop17max / eirm5max
+            cop5full = cop5max / eirr5full
+            cop5min = cop5max / eirr5min
+
+            # lct already in degree C
+            lct_degF = convert(lct, "degC", "degF")
+            if lct_degF < 5.0:
+                # Capacities @ LCT
+                capacityLCTmax = capacity5max * (1.0 / (1.0 - qmslopeLCTmax * (5.0 - lct_degF)))
+                capacityLCTmin = capacity5min * (1.0 / (1.0 - qmslopeLCTmin * (5.0 - lct_degF)))
+                if capacityLCTmin > 0:
+                    capacityLCTfull = interp2(capacity5full, capacity5min, capacity5max, capacityLCTmin, capacityLCTmax)
+                else:
+                    capacityLCTfull = 0.0
+
+                # COPs @ LCT
+                copLCTmin = cop5min * (1.0 - eirmslopeLCTmin * (5.0 - lct_degF))
+                copLCTmax = cop5max * (1.0 - eirmslopeLCTmax * (5.0 - lct_degF))
+                if capacityLCTfull > 0:
+                    copLCTfull = capacityLCTfull / interp2(capacity5full / cop5full, capacity5min / cop5min, capacity5max / cop5max, capacityLCTmin / copLCTmin, capacityLCTmax / copLCTmax)
+                else:
+                    copLCTfull = interp2(lct_degF, 5.0, 17.0, cop5min, cop17min) # Arbitrary
+
+        temp5 = round(convert(5.0, "degF", "degC"), 1)
+        heating_performance[temp5] = {}
+        temp17 = round(convert(17.0, "degF", "degC"), 1)
+        heating_performance[temp17] = {}
+        temp47 = utils_equipment.AIR_SOURCE_HEAT_RATED_ODB
+        heating_performance[temp47] = {}
+        if (capacityLCTmin is not None) or (capacityLCTfull is not None) or (capacityLCTmax is not None):
+            tempLCT = round(lct,1)
+            heating_performance[tempLCT] = {}
+        if capacityLCTmin is not None:
+            heating_performance[tempLCT]["minimum_capacity"] = round(capacityLCTmin, 2)
+            heating_performance[tempLCT]["minimum_COP"] = round(copLCTmin, 2)
+        if capacityLCTfull is not None:
+            heating_performance[tempLCT]["nominal_capacity"] = round(capacityLCTfull, 2)
+            heating_performance[tempLCT]["nominal_COP"] = round(copLCTfull, 2)
+        if capacityLCTmax is not None:
+            heating_performance[tempLCT]["maximum_capacity"] = round(capacityLCTmax, 2)
+            heating_performance[tempLCT]["maximum_COP"] = round(copLCTmax, 2)
+        if capacity5min is not None:
+            heating_performance[temp5]["minimum_capacity"] = round(capacity5min, 2)
+            heating_performance[temp5]["minimum_COP"] = round(cop5min, 2)
+        if capacity5full is not None:
+            heating_performance[temp5]["nominal_capacity"] = round(capacity5full, 2)
+            heating_performance[temp5]["nominal_COP"] = round(cop5full, 2)
+        if capacity5max is not None:
+            heating_performance[temp5]["maximum_capacity"] = round(capacity5max, 2)
+            heating_performance[temp5]["maximum_COP"] = round(cop5max, 2)
+        if capacity17min is not None:
+            heating_performance[temp17]["minimum_capacity"] = round(capacity17min, 2)
+            heating_performance[temp17]["minimum_COP"] = round(cop17min, 2)
+        if capacity17full is not None:
+            heating_performance[temp17]["nominal_capacity"] = round(capacity17full, 2)
+            heating_performance[temp17]["nominal_COP"] = round(cop17full, 2)
+        if capacity17max is not None:
+            heating_performance[temp17]["maximum_capacity"] = round(capacity17max, 2)
+            heating_performance[temp17]["maximum_COP"] = round(cop17max, 2)
+        if capacity47min is not None:
+            heating_performance[temp47]["minimum_capacity"] = round(capacity47min, 2)
+            heating_performance[temp47]["minimum_COP"] = round(cop47min, 2)
+        if capacity47full is not None:
+            heating_performance[temp47]["nominal_capacity"] = round(capacity47full, 2)
+            heating_performance[temp47]["nominal_COP"] = round(cop47full, 2)
+        if capacity47max is not None:
+            heating_performance[temp47]["maximum_capacity"] = round(capacity47max, 2)
+            heating_performance[temp47]["maximum_COP"] = round(cop47max, 2)
+        return heating_performance
+
+    def set_default_cooling_detailed_performance(
+        number_of_speeds, seer2, eer2, c_d, capacity
+    ):
+        # Calculates COP82min from SEER2 using bi-linear interpolation per RESNET MINERS Addendum 82
         def interpolate_seer2(
             seer2, eer2, seer2_array, seer2_eer2_ratio_array, cop82min_array
         ):
@@ -1024,7 +1248,7 @@ def parse_hvac(hvac_type, hvac_all):
         cop95min = None
 
         capacity95full = capacity
-        cop95full = cop
+        cop95full = convert(eer2, "Btu/hour", "W")
 
         capacity95max = None
         cop95max = None
@@ -1090,26 +1314,28 @@ def parse_hvac(hvac_type, hvac_all):
             capacity95min = capacity95full * cool_capacity_ratios[0]
             capacity82max = capacity95max / qm95max
             capacity82min = capacity95min / qm95min
-        cooling_performance[82.0] = {}
-        cooling_performance[95.0] = {}
+        temp82 = round(convert(82.0, "degF", "degC"), 1)
+        cooling_performance[temp82] = {}
+        temp95 = utils_equipment.AIR_SOURCE_COOL_RATED_ODB
+        cooling_performance[temp95] = {}
         if capacity82min is not None:
-            cooling_performance[82.0]["minimum_capacity"] = round(capacity82min, 2)
-            cooling_performance[82.0]["minimum_COP"] = round(cop82min, 2)
+            cooling_performance[temp82]["minimum_capacity"] = round(capacity82min, 2)
+            cooling_performance[temp82]["minimum_COP"] = round(cop82min, 2)
         if capacity82full is not None:
-            cooling_performance[82.0]["nominal_capacity"] = round(capacity82full, 2)
-            cooling_performance[82.0]["nominal_COP"] = round(cop82full, 2)
+            cooling_performance[temp82]["nominal_capacity"] = round(capacity82full, 2)
+            cooling_performance[temp82]["nominal_COP"] = round(cop82full, 2)
         if capacity82max is not None:
-            cooling_performance[82.0]["maximum_capacity"] = round(capacity82max, 2)
-            cooling_performance[82.0]["maximum_COP"] = round(cop82max, 2)
+            cooling_performance[temp82]["maximum_capacity"] = round(capacity82max, 2)
+            cooling_performance[temp82]["maximum_COP"] = round(cop82max, 2)
         if capacity95min is not None:
-            cooling_performance[95.0]["minimum_capacity"] = round(capacity95min, 2)
-            cooling_performance[95.0]["minimum_COP"] = round(cop95min, 2)
+            cooling_performance[temp95]["minimum_capacity"] = round(capacity95min, 2)
+            cooling_performance[temp95]["minimum_COP"] = round(cop95min, 2)
         if capacity82full is not None:
-            cooling_performance[95.0]["nominal_capacity"] = round(capacity95full, 2)
-            cooling_performance[95.0]["nominal_COP"] = round(cop95full, 2)
+            cooling_performance[temp95]["nominal_capacity"] = round(capacity95full, 2)
+            cooling_performance[temp95]["nominal_COP"] = round(cop95full, 2)
         if capacity82max is not None:
-            cooling_performance[95.0]["maximum_capacity"] = round(capacity95max, 2)
-            cooling_performance[95.0]["maximum_COP"] = round(cop95max, 2)
+            cooling_performance[temp95]["maximum_capacity"] = round(capacity95max, 2)
+            cooling_performance[temp95]["maximum_COP"] = round(cop95max, 2)
         return cooling_performance
 
     # Get HVAC HPXML parameters from HVAC Plant or Heat Pump
@@ -1142,53 +1368,59 @@ def parse_hvac(hvac_type, hvac_all):
         "variable speed": 4,
     }
     if has_heat_pump or hvac_type == "Cooling":
+        # TODO: ERROR checking for unsupported system types.
         if name in [
             "mini-split",
             "air-to-air",
-            "central air conditioner",
-            "ground-to-air",
+            "central air conditioner"
         ]:
             if hvac.get("CompressorType") in speed_options:
                 number_of_speeds = speed_options[hvac.get("CompressorType")]
             else:  # CompressorType is now a required input in OS-HPXML for specific system types
-                raise OCHREException(f"HVAC missing CompressorType input.")
+                raise OCHREException("HVAC missing CompressorType input.")
         else:
             number_of_speeds = 1
 
-    cop = None
-    eer2 = None
-    seer2 = None
+    # Efficiency input and conversion
+    efficiency_map = {}
     efficiency = hvac[f"Annual{hvac_type}Efficiency"]
+    valid_efficiency_units = {"Cooling": ["SEER", "SEER2", "EER", "EER2"],
+                              "Heating": ["Percent", "AFUE", "HSPF", "HSPF2"]}
     for n in range(len(efficiency)):
-        if efficiency["Units"] in ["Percent", "AFUE"]:
-            cop = efficiency["Value"]
-            if efficiency["Units"] == "Percent":
-                # for reporting only
-                efficiency["Value"] *= 100
-        elif efficiency["Units"] in ["EER"]:
-            eer2 = calc_eer2_from_eer(efficiency["Value"])
-            cop = convert(eer2, "Btu/hour", "W")
-        elif efficiency["Units"] in ["EER2"]:
-            eer2 = efficiency["Value"]
-            cop = convert(eer2, "Btu/hour", "W")
-        elif efficiency["Units"] in ["SEER2"]:
-            seer2 = efficiency["Value"]
-            if eer2 is None:  # default based on seer2
-                eer2 = calc_eer2_from_seer2(seer2, number_of_speeds)
-            cop = convert(eer2, "Btu/hour", "W")
-        elif efficiency["Units"] in ["SEER"]:
-            if seer2 is None:
-                seer2 = calc_seer2_from_seer(efficiency["Value"])
-            if eer2 is None:
-                eer2 = calc_eer2_from_seer2(seer2, number_of_speeds)
-            cop = convert(eer2, "Btu/hour", "W")
-        elif efficiency["Units"] in ["HSPF"]:
-            cop = convert(efficiency["Value"], "Btu/hour", "W")  # TODO: Update this
+        # Store all the efficiencies in the map
+        # Separate logic for cooling and heating units
+        if efficiency["Units"] in valid_efficiency_units[hvac_type]:
+            efficiency_map[efficiency["Units"]] = efficiency["Value"]
         else:
             raise OCHREException(
                 f"Unknown inputs for HVAC {hvac_type} efficiency: {efficiency}"
             )
-    efficiency_string = f"{efficiency['Value']} {efficiency['Units']}"
+    
+    is_ducted = bool(hvac_all.get("HVACDistribution", {}).get("DistributionSystemType", {}).get("AirDistribution"))
+    detailed_performance_sys_types = ["air-to-air", "mini-split", "central air conditioner"]
+    if name in detailed_performance_sys_types:
+        # Default efficiencies that are missing from inputs
+        if hvac_type == "Cooling":
+            if "SEER2" not in efficiency_map.keys() and "SEER" in efficiency_map.keys():
+                efficiency_map["SEER2"] = utils_equipment.calc_seer2_from_seer(efficiency_map["SEER"], is_ducted)
+            if "EER2" not in efficiency_map.keys():
+                if "EER" in efficiency_map.keys():
+                    efficiency_map["EER2"] = utils_equipment.calc_eer2_from_eer(efficiency_map["EER"], is_ducted)
+                elif "SEER2" in efficiency_map.keys():
+                    # Default EER2 based on SEER2
+                    efficiency_map["EER2"] = utils_equipment.calc_eer2_from_seer2(efficiency_map["SEER2"], number_of_speeds)
+                else:
+                    raise OCHREException(
+                        f"Missing inputs for HVAC {hvac_type} efficiency, need SEER/SEER2, or EER2/EER2 to be provided."
+                    )
+        elif hvac_type == "Heating":
+            if "HSPF2" not in efficiency_map.keys():
+                if "HSPF" in efficiency_map.keys():
+                    efficiency_map["HSPF2"] = utils_equipment.calc_hspf2_from_hspf(efficiency_map["HSPF"], is_ducted)
+                else:
+                    raise OCHREException(
+                        f"Missing inputs for HVAC {hvac_type} efficiency, need HSPF to be provided."
+                    )
 
     # Get SHR
     is_heater = hvac_type == "Heating"
@@ -1198,6 +1430,19 @@ def parse_hvac(hvac_type, hvac_all):
         shr = hvac.get("CoolingSensibleHeatFraction")
     else:
         shr = hvac.get("SensibleHeatFraction")
+
+    # Capacity retention
+    if is_heater and has_heat_pump:
+        if hvac.get("HeatingCapacity17F"):
+            capacity17f = convert(hvac.get("HeatingCapacity17F"), "Btu/hour", "W")
+        elif hvac.get("extension").get("HeatingCapacityFraction17F"):
+            capacity17f = hvac.get("extension").get("HeatingCapacityFraction17F") * capacity
+        else:  # Default maximum capacity maintenance
+            if number_of_speeds in [1, 2]:
+                qm17full = 0.626  # Per RESNET HERS Addendum 82
+            elif number_of_speeds == 4:
+                qm17full = 0.69  # NEEP database
+            capacity17f = qm17full * capacity
 
     # Get auxiliary power (fans, pumps, etc.) air flow rate
     hvac_ext = hvac.get("extension", {})
@@ -1222,8 +1467,8 @@ def parse_hvac(hvac_type, hvac_all):
         "Equipment Name": name,
         "Fuel": fuel.capitalize(),
         "Capacity (W)": capacity,
-        "EIR (-)": 1 / cop,
-        "Rated Efficiency": efficiency_string,
+        "EIR (-)": None,  # Placeholder
+        "Rated Efficiency": efficiency_map,  # Includes the defaulted SEER2/EER2/HSPF2, etc.
         "SHR (-)": shr,
         "Conditioned Space Fraction (-)": space_fraction,
         "Number of Speeds (-)": number_of_speeds,
@@ -1232,7 +1477,7 @@ def parse_hvac(hvac_type, hvac_all):
 
     # Add startup capacity degradation factor for AC and heat pumps
     if has_heat_pump or not is_heater:
-        c_d = utils_equipment.calc_c_d(is_heater, name, cop, number_of_speeds)
+        c_d = utils_equipment.calc_c_d(name, number_of_speeds)
         out["Startup Capacity Degradation (-)"] = c_d
 
     # Get HVAC setpoints, optional
@@ -1263,60 +1508,7 @@ def parse_hvac(hvac_type, hvac_all):
             }
         )
 
-    if has_heat_pump and hvac_type == "Cooling":  # Other hvac types e.g. central AC?
-        if heat_pump.get("CoolingDetailedPerformanceData") is not None:
-            cooling_detailed_performance_data = heat_pump.get(
-                "CoolingDetailedPerformanceData"
-            )
-            cooling_performance = get_detailed_performance_data(
-                cooling_detailed_performance_data
-            )
-            if "nominal_COP" in cooling_performance[95.0].keys():
-                print(1 / cop)
-                cop = cooling_performance[95.0]["nominal_COP"]  # override default COP
-                print(1 / cop)
-                out.update({"EIR (-)": 1 / cop})
-            if "nominal_capacity" in cooling_performance[95.0].keys():
-                if (
-                    abs(capacity - cooling_performance[95.0]["nominal_capacity"])
-                    > capacity * 0.01
-                ):
-                    raise OCHREException(
-                        "Cooling nominal capacity inputs not consistent. Check CoolingCapacity and CoolingDetailedPerformanceData."
-                    )
-            out["CoolingDetailedPerformance"] = cooling_performance
-        else:
-            out["CoolingDetailedPerformance"] = (
-                set_default_cooling_detailed_performance(
-                    number_of_speeds, seer2, eer2, c_d, cop, capacity
-                )
-            )
-
-    if has_heat_pump and hvac_type == "Heating":  # Other hvac types e.g. central AC?
-        # TODO: else? Right now we'd keep things as is, but we might want to change default to match changes Yueyue made in OS-HPXML
-        if heat_pump.get("HeatingDetailedPerformanceData") is not None:
-            heating_detailed_performance_data = heat_pump.get(
-                "HeatingDetailedPerformanceData"
-            )
-            heating_performance = get_detailed_performance_data(
-                heating_detailed_performance_data
-            )
-            if "nominal_COP" in heating_performance[47.0].keys():
-                cop = heating_performance[47.0]["nominal_COP"]  # override default COP
-                out.update({"EIR (-)": 1 / cop})
-            if "nominal_capacity" in heating_performance[47.0].keys():
-                if (
-                    abs(capacity - heating_performance[47.0]["nominal_capacity"])
-                    > capacity * 0.01
-                ):
-                    raise OCHREException(
-                        "Heating nominal capacity inputs not consistent. Check HeatingCapacity and HeatingDetailedPerformanceData."
-                    )
-            out["HeatingDetailedPerformance"] = heating_performance
-    else:
-        # TODO: Add default heating performance data
-        pass
-
+    lct = None # Heat pump min temperature used for detailed performance data
     if has_heat_pump and hvac_type == "Heating":
         backup_fuel = heat_pump.get("BackupSystemFuel")
         backup_capacity = heat_pump.get("BackupHeatingCapacity", 0)
@@ -1333,6 +1525,7 @@ def parse_hvac(hvac_type, hvac_all):
             heat_pump.get("BackupHeatingSwitchoverTemperature", 40),
         )
         er_lockout_temp = convert(er_lockout_temp, "degF", "degC")
+        lct = er_lockout_temp if er_lockout_temp else hp_lockout_temp
         if backup_capacity:
             if backup_fuel != "electricity":
                 print(
@@ -1348,6 +1541,73 @@ def parse_hvac(hvac_type, hvac_all):
                 }
             )
 
+    if name in detailed_performance_sys_types:
+        if hvac_type == "Cooling":
+            rated_temp = utils_equipment.AIR_SOURCE_COOL_RATED_ODB
+            if heat_pump.get("CoolingDetailedPerformanceData") is not None:
+                cooling_detailed_performance_data = heat_pump.get(
+                    "CoolingDetailedPerformanceData"
+                )
+                out["CoolingDetailedPerformance"] = get_detailed_performance_data(
+                    cooling_detailed_performance_data
+                )
+            else:
+                out["CoolingDetailedPerformance"] = (
+                    set_default_cooling_detailed_performance(
+                        number_of_speeds, efficiency_map["SEER2"], efficiency_map["EER2"], c_d, capacity
+                    )
+                )
+            if "nominal_COP" in out["CoolingDetailedPerformance"][rated_temp].keys():
+                efficiency_map["COP"] = out["CoolingDetailedPerformance"][rated_temp]["nominal_COP"]
+            if "nominal_capacity" in out["CoolingDetailedPerformance"][rated_temp].keys():
+                if (
+                    abs(capacity - out["CoolingDetailedPerformance"][rated_temp]["nominal_capacity"])
+                    > capacity * 0.01
+                ):
+                    raise OCHREException(
+                        "Cooling nominal capacity inputs not consistent. Check CoolingCapacity and CoolingDetailedPerformanceData."
+                    )
+        elif hvac_type == "Heating":
+            if heat_pump.get("HeatingDetailedPerformanceData") is not None:
+                heating_detailed_performance_data = heat_pump.get(
+                    "HeatingDetailedPerformanceData"
+                )
+                out["HeatingDetailedPerformance"] = get_detailed_performance_data(
+                    heating_detailed_performance_data
+                )
+            else:
+                out["HeatingDetailedPerformance"] = (
+                    set_default_heating_detailed_performance(
+                        number_of_speeds, efficiency_map["HSPF2"], capacity17f / capacity, capacity, lct
+                    )
+                )
+
+            rated_temp = utils_equipment.AIR_SOURCE_HEAT_RATED_ODB
+            print(out["HeatingDetailedPerformance"].keys())
+            if "nominal_COP" in out["HeatingDetailedPerformance"][rated_temp].keys():
+                efficiency_map["COP"] = out["HeatingDetailedPerformance"][rated_temp]["nominal_COP"]
+            if "nominal_capacity" in out["HeatingDetailedPerformance"][rated_temp].keys():
+                if (
+                    abs(capacity - out["HeatingDetailedPerformance"][rated_temp]["nominal_capacity"])
+                    > capacity * 0.01
+                ):
+                    raise OCHREException(
+                        "Heating nominal capacity inputs not consistent. Check HeatingCapacity and HeatingDetailedPerformanceData."
+                    )
+    print(efficiency_map)
+
+    if "COP" in efficiency_map.keys():
+        out.update({"EIR (-)": 1 / efficiency_map["COP"]})
+    elif "EER2" in efficiency_map.keys():
+        out.update({"EIR (-)": 1 / convert(efficiency_map["EER2"], "Btu/hour", "W")})
+    elif "Percent" in efficiency_map.keys():
+        out.update({"EIR (-)": 1 / efficiency_map["Percent"]})
+    elif "AFUE" in efficiency_map.keys():
+        out.update({"EIR (-)": 1 / efficiency_map["AFUE"]})
+    else:
+        raise OCHREException(
+            "Efficiency COP not provided or calculated."
+        )
     # Get duct info for calculating DSE
     distribution = hvac_all.get("HVACDistribution", {})
     distribution_type = distribution.get("DistributionSystemType", {})
