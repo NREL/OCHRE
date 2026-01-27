@@ -66,8 +66,15 @@ path = "ochre/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["ochre"]
 
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
+]
+
 [tool.ruff]
 line-length = 120
+target-version = "py311"
 
 [tool.ruff.format]
 quote-style = "double"

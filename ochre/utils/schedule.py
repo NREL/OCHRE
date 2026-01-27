@@ -65,6 +65,7 @@ SCHEDULE_NAMES = {
         "Power Outage": None,
         "No Space Heating": None,
         "No Space Cooling": None,
+        "electric_vehicle": None,
     },
 }
 
