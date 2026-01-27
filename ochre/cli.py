@@ -39,6 +39,7 @@ def create_dwelling(
     initialization_time=1,
     export_res=None,
     time_zone=None,
+    output_format='ochre',
 ):
     # Update input file paths
     if not os.path.isabs(hpxml_file):
@@ -77,6 +78,7 @@ def create_dwelling(
         output_path=output_path,
         verbosity=verbosity,
         time_zone=time_zone,
+        output_format=output_format,
         **weather_args,
     )
 
@@ -240,6 +242,12 @@ def common_options(f):
             type=int,
             help="Export interval in days (exports results periodically to reduce memory). "
                  "Recommended: 30 days for 1-minute resolution, 60 days for 5-minute resolution",
+        ),
+        click.option(
+            "--output_format",
+            default="ochre",
+            type=click.Choice(["ochre", "resstock"]),
+            help="Output format: 'ochre' (default) or 'resstock' (ResStock-compatible CSV)",
         ),
     ]
     return functools.reduce(lambda x, opt: opt(x), options[::-1], f)

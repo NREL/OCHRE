@@ -15,23 +15,10 @@ class Simulator:
     required_inputs = []
     optional_inputs = []
 
-    def __init__(
-        self,
-        start_time,
-        time_res,
-        duration,
-        name=None,
-        main_sim_name=None,
-        seed=None,
-        verbosity=3,
-        save_results=None,
-        save_status=None,
-        output_path=None,
-        output_to_parquet=False,
-        initialization_time=None,
-        export_res=None,
-        **kwargs,
-    ):
+    def __init__(self, start_time, time_res, duration, name=None, main_sim_name=None, seed=None,
+                 verbosity=3, save_results=None, save_status=None, output_path=None, output_to_parquet=False,
+                 initialization_time=None, export_res=None, output_format='ochre', **kwargs):
+        self.output_format = output_format
         if name is not None:
             self.name = name
         self.main_sim_name = main_sim_name

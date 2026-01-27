@@ -11,6 +11,12 @@ from ochre.utils import (
     nested_update,
     update_equipment_properties,
     save_json,
+    load_crosswalk,
+    build_resstock_timeseries,
+    write_resstock_timeseries,
+    update_resstock_annual,
+    accumulate_annual_sums,
+    convert_accumulated_sums_to_annual,
 )
 from ochre.Models import Envelope
 from ochre.Equipment import (
@@ -72,10 +78,34 @@ class Dwelling(Simulator):
                 ochre_schedule_file = os.path.join(self.output_path, self.name + "_schedule" + extn)
             else:
                 ochre_schedule_file = None
+
+            # ResStock output format: set up different file paths and load crosswalk
+            if self.output_format == 'resstock':
+                self.resstock_timeseries_file = os.path.join(self.output_path, 'results_timeseries.csv')
+                self.resstock_annual_file = os.path.join(self.output_path, 'results_annual.csv')
+                self.resstock_crosswalk = load_crosswalk()
+                self.resstock_units_dict = None  # Will be set on first export
+                self._resstock_annual_sums = {}  # Accumulate kWh for annual totals
+                # Remove existing timeseries file (we replace it completely)
+                # Note: results_annual.csv is NOT removed - we append/update to it
+                if os.path.exists(self.resstock_timeseries_file):
+                    self.print("Removing previous results file:", self.resstock_timeseries_file)
+                    os.remove(self.resstock_timeseries_file)
+            else:
+                self.resstock_timeseries_file = None
+                self.resstock_annual_file = None
+                self.resstock_crosswalk = None
+                self.resstock_units_dict = None
+                self._resstock_annual_sums = None
         else:
             self.metrics_file = None
             self.hourly_output_file = None
             ochre_schedule_file = None
+            self.resstock_timeseries_file = None
+            self.resstock_annual_file = None
+            self.resstock_crosswalk = None
+            self.resstock_units_dict = None
+            self._resstock_annual_sums = None
 
         # Load properties from HPXML file
         properties, weather_station = load_hpxml(**house_args)
@@ -323,8 +353,48 @@ class Dwelling(Simulator):
 
         return results
 
+    def export_results(self):
+        """
+        Export results to file. For ResStock format, converts and writes to 
+        results_timeseries.csv instead of ochre.csv.
+        """
+        if self.output_format != 'resstock':
+            return super().export_results()
+
+        # ResStock format: convert and write to results_timeseries.csv
+        df = pd.DataFrame(self.results).set_index('Time') if self.results else None
+        self.results.clear()
+
+        if not self.save_results or df is None or self.resstock_timeseries_file is None:
+            return df
+
+        # Convert to ResStock format
+        resstock_df, units_dict = build_resstock_timeseries(
+            df, self.resstock_crosswalk, self.time_res
+        )
+
+        # Store units dict for later appends (only set on first export)
+        if self.resstock_units_dict is None:
+            self.resstock_units_dict = units_dict
+
+        # Accumulate annual sums (in kWh) for later conversion to MBtu
+        self._resstock_annual_sums = accumulate_annual_sums(
+            df, self.resstock_crosswalk, self.time_res, self._resstock_annual_sums
+        )
+
+        # Write or append to timeseries file
+        append = os.path.exists(self.resstock_timeseries_file)
+        write_resstock_timeseries(resstock_df, self.resstock_units_dict, 
+                                  self.resstock_timeseries_file, append=append)
+
+        return df
+
     def finalize(self, failed=False):
-        # save final results
+        # For ResStock format, we need custom finalization
+        if self.output_format == 'resstock':
+            return self._finalize_resstock(failed)
+        
+        # Standard OCHRE format
         df = super().finalize(failed)
 
         if df is not None:
@@ -355,6 +425,44 @@ class Dwelling(Simulator):
             df_hourly = None
 
         return df, metrics, df_hourly
+
+    def _finalize_resstock(self, failed=False):
+        """
+        Finalize simulation for ResStock output format.
+        Writes final timeseries data and calculates annual totals.
+        """
+        # Export any remaining results
+        df = self.export_results()
+        
+        # Print status and save status file (similar to Simulator.finalize)
+        status = 'failed' if failed else 'complete'
+        if self.main_simulator and self.verbosity >= 3:
+            if self.resstock_timeseries_file and os.path.exists(self.resstock_timeseries_file):
+                results = f'time series results saved to: {self.resstock_timeseries_file}'
+            else:
+                results = 'no results'
+            self.print(f'Simulation {status}, {results}')
+        
+        if self.save_status and self.output_path:
+            status_file = os.path.join(self.output_path, f'{self.name}_{status}')
+            with open(status_file, 'a'):
+                pass
+        
+        # Finalize sub_simulators
+        for sub in self.sub_simulators:
+            sub.finalize(failed=failed)
+        
+        # Calculate and write annual totals
+        if self._resstock_annual_sums and self.resstock_annual_file:
+            annual_totals = convert_accumulated_sums_to_annual(
+                self._resstock_annual_sums, self.resstock_crosswalk
+            )
+            update_resstock_annual(annual_totals, self.resstock_annual_file)
+            self.print("Annual results saved to:", self.resstock_annual_file)
+        
+        # For ResStock mode, we don't compute OCHRE metrics or hourly aggregation
+        # The ResStock format is the final output
+        return df, None, None
 
     def simulate(self, metrics_verbosity=None, **kwargs):
         if metrics_verbosity is not None:
