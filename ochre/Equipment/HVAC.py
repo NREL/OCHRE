@@ -55,7 +55,8 @@ class HVAC(Equipment):
             self.capacity_list = [0] + kwargs['Capacity (W)']  # rated capacities by speed, in W
         else:
             self.capacity_list = [0, kwargs['Capacity (W)']]
-        assert (np.diff(self.capacity_list) > 0).all()
+        # Nominal and max can be the same from NEEP database
+        assert (np.diff(self.capacity_list) >= 0).all()
         self.capacity = self.capacity_list[self.speed_idx]
         self.capacity_ideal = self.capacity  # capacity to maintain setpoint, for ideal equipment, in W
         self.capacity_max = self.capacity_list[-1]  # varies for dynamic equipment, in W
@@ -686,43 +687,56 @@ class DynamicHVAC(HVAC):
         min_time_in_low = kwargs.get('Minimum Low Time (minutes)', 5)
         min_time_in_high = kwargs.get('Minimum High Time (minutes)', 5)
         self.min_time_in_speed = [dt.timedelta(minutes=min_time_in_low), dt.timedelta(minutes=min_time_in_high)]
+        self.detailed_performance_data_htg = kwargs.get('HeatingDetailedPerformance', None)
+        self.detailed_performance_data_clg = kwargs.get('CoolingDetailedPerformance', None)
 
         # startup capacity degradation parameters
         self.startup_cap_mult = 1.0  # multiplier, unitless
         self.c_d = kwargs.get("Startup Capacity Degradation (-)", 0.0)  # degradation factor, unitless
 
-        # Load biquadratic parameters from file - only keep those with the correct speed type
-        if not kwargs.get('Disable HVAC Biquadratics', False):
-            self.biquad_params = self.initialize_biquad_params(**kwargs)
+        if self.detailed_performance_data_htg:
+            # TODO: implement detailed performance curves
+            rated_dp = kwargs['HeatingDetailedPerformance'][utils_equipment.AIR_SOURCE_HEAT_RATED_ODB]
+            kwargs['Capacity (W)'] = [speed_data['capacity'] for speed_data in rated_dp.values()]
+            kwargs['EIR (-)'] = [1 / speed_data['COP'] for speed_data in rated_dp.values()]
+            kwargs['SHR (-)'] = [0.708] * len(kwargs['Capacity (W)'])
+        elif self.detailed_performance_data_clg:
+            rated_dp = kwargs['CoolingDetailedPerformance'][utils_equipment.AIR_SOURCE_COOL_RATED_ODB]
+            kwargs['Capacity (W)'] = [speed_data['capacity'] for speed_data in rated_dp.values()]
+            kwargs['EIR (-)'] = [1 / speed_data['COP'] for speed_data in rated_dp.values()]
+            kwargs['SHR (-)'] = [0.708] * len(kwargs['Capacity (W)'])
         else:
-            self.biquad_params = None
-
-        # Load multispeed parameters from file
-        if self.n_speeds > 1:
-            rated_efficiency = kwargs.get('Rated Efficiency', '(Unknown Efficiency)')
-            multispeed_file = kwargs.get('multispeed_file', 'HVAC Multispeed Parameters.csv')
-            df_speed = load_csv(multispeed_file)
-            # Convert string to efficiency numbers, find the closest match
-            numeric_pattern = r"([-+]?(?:\d*\.?\d+))"
-            rated_efficiency_float = float(re.search(numeric_pattern, rated_efficiency).group())
-            df_speed['Temp_Efficiency_Float'] = pd.to_numeric(
-                df_speed['HVAC Efficiency'].str.extract(numeric_pattern)[0])
-            speed_params_subset = df_speed.loc[(df_speed['HVAC Name'] == self.name) & 
-                                        (df_speed['Number of Speeds'] == self.n_speeds)]
-            closest_match_index = (speed_params_subset['Temp_Efficiency_Float'] - rated_efficiency_float).abs().idxmin()
-            df_speed = df_speed.drop(columns=['Temp_Efficiency_Float'])
-            speed_params = df_speed.loc[[closest_match_index]]
-            if not len(speed_params):
-                raise OCHREException(f'Cannot find multispeed parameters for {self.n_speeds}-speed {rated_efficiency} {self.name}')
-            assert len(speed_params) == 1
-            speed_params = speed_params.iloc[0].to_dict()
-            
-            # update multispeed arguments (capacity ratios, air flow ratio, EIR, SHR)
-            kwargs['Capacity (W)'] = [kwargs['Capacity (W)'] * speed_params[f'Capacity Ratio {i + 1}']
-                                    for i in range(self.n_speeds)]
-            kwargs['EIR (-)'] = [1 / speed_params[f'COP {i + 1}'] for i in range(self.n_speeds)]
-            kwargs['SHR (-)'] = [speed_params[f'SHR {i + 1}'] for i in range(self.n_speeds)]
-            kwargs['SHR (-)'] = [shr if not np.isnan(shr) else 1 for shr in kwargs['SHR (-)']]
+            # Load biquadratic parameters from file - only keep those with the correct speed type
+            if not kwargs.get('Disable HVAC Biquadratics', False):
+                self.biquad_params = self.initialize_biquad_params(**kwargs)
+            else:
+                self.biquad_params = None
+            # Load multispeed parameters from file
+            if self.n_speeds > 1:
+                rated_efficiency = kwargs.get('Rated Efficiency', '(Unknown Efficiency)')
+                multispeed_file = kwargs.get('multispeed_file', 'HVAC Multispeed Parameters.csv')
+                df_speed = load_csv(multispeed_file)
+                # Convert string to efficiency numbers, find the closest match
+                numeric_pattern = r"([-+]?(?:\d*\.?\d+))"
+                rated_efficiency_float = float(re.search(numeric_pattern, rated_efficiency).group())
+                df_speed['Temp_Efficiency_Float'] = pd.to_numeric(
+                    df_speed['HVAC Efficiency'].str.extract(numeric_pattern)[0])
+                speed_params_subset = df_speed.loc[(df_speed['HVAC Name'] == self.name) & 
+                                            (df_speed['Number of Speeds'] == self.n_speeds)]
+                closest_match_index = (speed_params_subset['Temp_Efficiency_Float'] - rated_efficiency_float).abs().idxmin()
+                df_speed = df_speed.drop(columns=['Temp_Efficiency_Float'])
+                speed_params = df_speed.loc[[closest_match_index]]
+                if not len(speed_params):
+                    raise OCHREException(f'Cannot find multispeed parameters for {self.n_speeds}-speed {rated_efficiency} {self.name}')
+                assert len(speed_params) == 1
+                speed_params = speed_params.iloc[0].to_dict()
+                
+                # update multispeed arguments (capacity ratios, air flow ratio, EIR, SHR)
+                kwargs['Capacity (W)'] = [kwargs['Capacity (W)'] * speed_params[f'Capacity Ratio {i + 1}']
+                                        for i in range(self.n_speeds)]
+                kwargs['EIR (-)'] = [1 / speed_params[f'COP {i + 1}'] for i in range(self.n_speeds)]
+                kwargs['SHR (-)'] = [speed_params[f'SHR {i + 1}'] for i in range(self.n_speeds)]
+                kwargs['SHR (-)'] = [shr if not np.isnan(shr) else 1 for shr in kwargs['SHR (-)']]
 
         super().__init__(**kwargs)
 

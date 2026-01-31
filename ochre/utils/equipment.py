@@ -441,7 +441,7 @@ def calc_c_d(name, number_of_speeds):
         c_d = 0.22
     elif number_of_speeds in [1, 2]:
         c_d = 0.08
-    elif number_of_speeds == 4:
+    elif number_of_speeds == 3:
         c_d = 0.4
     else:
         c_d = 0.0 # Do no capacity degradation at startup, since this isn't on/off equipment
@@ -454,7 +454,7 @@ def calc_eer2_from_seer2(seer2, number_of_speeds):
         return min(0.73 * seer2 + 1.47, seer2)
     elif number_of_speeds == 2:
         return min(0.63 * seer2 + 2.34, seer2)
-    elif number_of_speeds == 4:
+    elif number_of_speeds == 3:
         return min(0.31 * seer2 + 6.45, seer2)
 
 

@@ -951,21 +951,20 @@ def parse_hvac(hvac_type, hvac_all):
                 )  # not sure format of this
             out_temp = round(convert(float(detailed_performance_data[n]["OutdoorTemperature"]), "degF", "degC"), 1
             )
+            speed = detailed_performance_data[n]["CapacityDescription"]
             if out_temp not in performance.keys():
                 performance[out_temp] = {}
+            if speed not in performance[out_temp].keys():
+                performance[out_temp][speed] = {}
 
             capacity_w = convert(
                 float(detailed_performance_data[n]["Capacity"]), "Btu/hour", "W"
             )
             cop = float(detailed_performance_data[n]["Efficiency"]["Value"])
 
-            performance[out_temp][
-                f"{detailed_performance_data[n]['CapacityDescription']}_capacity"
-            ] = round(capacity_w, 2)
+            performance[out_temp][speed]['capacity'] = round(capacity_w, 2)
 
-            performance[out_temp][
-                f"{detailed_performance_data[n]['CapacityDescription']}_COP"
-            ] = round(cop, 2)
+            performance[out_temp][speed]['COP'] = round(cop, 2)
 
         return performance
 
@@ -1087,7 +1086,7 @@ def parse_hvac(hvac_type, hvac_all):
                 cop5min = capacity5min / interp2(5.0, 17.0, 47.0, capacity17min / cop17min, capacity47min / cop47min)
             else:
                 cop5min = interp2(5.0, 17.0, 47.0, cop17min, cop47min) # Arbitrary
-        elif number_of_speeds == 4:
+        elif number_of_speeds == 3:
             qr47full = 0.908 # Q47full/Q47max
             qr47min = 0.272 # Q47min/Q47max
             qr17full = 0.817 # Q17full/Q17max
@@ -1174,41 +1173,53 @@ def parse_hvac(hvac_type, hvac_all):
             tempLCT = round(lct,1)
             heating_performance[tempLCT] = {}
         if capacityLCTmin is not None:
-            heating_performance[tempLCT]["minimum_capacity"] = round(capacityLCTmin, 2)
-            heating_performance[tempLCT]["minimum_COP"] = round(copLCTmin, 2)
+            heating_performance[tempLCT]["minimum"] = {}
+            heating_performance[tempLCT]["minimum"]["capacity"] = round(capacityLCTmin, 2)
+            heating_performance[tempLCT]["minimum"]["COP"] = round(copLCTmin, 2)
         if capacityLCTfull is not None:
-            heating_performance[tempLCT]["nominal_capacity"] = round(capacityLCTfull, 2)
-            heating_performance[tempLCT]["nominal_COP"] = round(copLCTfull, 2)
+            heating_performance[tempLCT]["nominal"] = {}
+            heating_performance[tempLCT]["nominal"]["capacity"] = round(capacityLCTfull, 2)
+            heating_performance[tempLCT]["nominal"]["COP"] = round(copLCTfull, 2)
         if capacityLCTmax is not None:
-            heating_performance[tempLCT]["maximum_capacity"] = round(capacityLCTmax, 2)
-            heating_performance[tempLCT]["maximum_COP"] = round(copLCTmax, 2)
+            heating_performance[tempLCT]["maximum"] = {}
+            heating_performance[tempLCT]["maximum"]["capacity"] = round(capacityLCTmax, 2)
+            heating_performance[tempLCT]["maximum"]["COP"] = round(copLCTmax, 2)
         if capacity5min is not None:
-            heating_performance[temp5]["minimum_capacity"] = round(capacity5min, 2)
-            heating_performance[temp5]["minimum_COP"] = round(cop5min, 2)
+            heating_performance[temp5]["minimum"] = {}
+            heating_performance[temp5]["minimum"]["capacity"] = round(capacity5min, 2)
+            heating_performance[temp5]["minimum"]["COP"] = round(cop5min, 2)
         if capacity5full is not None:
-            heating_performance[temp5]["nominal_capacity"] = round(capacity5full, 2)
-            heating_performance[temp5]["nominal_COP"] = round(cop5full, 2)
+            heating_performance[temp5]["nominal"] = {}
+            heating_performance[temp5]["nominal"]["capacity"] = round(capacity5full, 2)
+            heating_performance[temp5]["nominal"]["COP"] = round(cop5full, 2)
         if capacity5max is not None:
-            heating_performance[temp5]["maximum_capacity"] = round(capacity5max, 2)
-            heating_performance[temp5]["maximum_COP"] = round(cop5max, 2)
+            heating_performance[temp5]["maximum"] = {}
+            heating_performance[temp5]["maximum"]["capacity"] = round(capacity5max, 2)
+            heating_performance[temp5]["maximum"]["COP"] = round(cop5max, 2)
         if capacity17min is not None:
-            heating_performance[temp17]["minimum_capacity"] = round(capacity17min, 2)
-            heating_performance[temp17]["minimum_COP"] = round(cop17min, 2)
+            heating_performance[temp17]["minimum"] = {}
+            heating_performance[temp17]["minimum"]["capacity"] = round(capacity17min, 2)
+            heating_performance[temp17]["minimum"]["COP"] = round(cop17min, 2)
         if capacity17full is not None:
-            heating_performance[temp17]["nominal_capacity"] = round(capacity17full, 2)
-            heating_performance[temp17]["nominal_COP"] = round(cop17full, 2)
+            heating_performance[temp17]["nominal"] = {}
+            heating_performance[temp17]["nominal"]["capacity"] = round(capacity17full, 2)
+            heating_performance[temp17]["nominal"]["COP"] = round(cop17full, 2)
         if capacity17max is not None:
-            heating_performance[temp17]["maximum_capacity"] = round(capacity17max, 2)
-            heating_performance[temp17]["maximum_COP"] = round(cop17max, 2)
+            heating_performance[temp17]["maximum"] = {}
+            heating_performance[temp17]["maximum"]["capacity"] = round(capacity17max, 2)
+            heating_performance[temp17]["maximum"]["COP"] = round(cop17max, 2)
         if capacity47min is not None:
-            heating_performance[temp47]["minimum_capacity"] = round(capacity47min, 2)
-            heating_performance[temp47]["minimum_COP"] = round(cop47min, 2)
+            heating_performance[temp47]["minimum"] = {}
+            heating_performance[temp47]["minimum"]["capacity"] = round(capacity47min, 2)
+            heating_performance[temp47]["minimum"]["COP"] = round(cop47min, 2)
         if capacity47full is not None:
-            heating_performance[temp47]["nominal_capacity"] = round(capacity47full, 2)
-            heating_performance[temp47]["nominal_COP"] = round(cop47full, 2)
+            heating_performance[temp47]["nominal"] = {}
+            heating_performance[temp47]["nominal"]["capacity"] = round(capacity47full, 2)
+            heating_performance[temp47]["nominal"]["COP"] = round(cop47full, 2)
         if capacity47max is not None:
-            heating_performance[temp47]["maximum_capacity"] = round(capacity47max, 2)
-            heating_performance[temp47]["maximum_COP"] = round(cop47max, 2)
+            heating_performance[temp47]["maximum"] = {}
+            heating_performance[temp47]["maximum"]["capacity"] = round(capacity47max, 2)
+            heating_performance[temp47]["maximum"]["COP"] = round(cop47max, 2)
         return heating_performance
 
     def set_default_cooling_detailed_performance(
@@ -1282,7 +1293,7 @@ def parse_hvac(hvac_type, hvac_all):
             # 95F min speed
             capacity95min = capacity95full * cool_capacity_ratios[0]
             cop95min = cop82min / eirm95full
-        elif number_of_speeds == 4:
+        elif number_of_speeds == 3:
             qr95full = 0.934  # Q95full/Q95max
             qm95max = 0.940  # Q95max/Q82max
             qm95min = 0.948  # Q95min/Q82min
@@ -1319,24 +1330,42 @@ def parse_hvac(hvac_type, hvac_all):
         temp95 = utils_equipment.AIR_SOURCE_COOL_RATED_ODB
         cooling_performance[temp95] = {}
         if capacity82min is not None:
-            cooling_performance[temp82]["minimum_capacity"] = round(capacity82min, 2)
-            cooling_performance[temp82]["minimum_COP"] = round(cop82min, 2)
+            cooling_performance[temp82]["minimum"] = {}
+            cooling_performance[temp82]["minimum"]["capacity"] = round(capacity82min, 2)
+            cooling_performance[temp82]["minimum"]["COP"] = round(cop82min, 2)
         if capacity82full is not None:
-            cooling_performance[temp82]["nominal_capacity"] = round(capacity82full, 2)
-            cooling_performance[temp82]["nominal_COP"] = round(cop82full, 2)
+            cooling_performance[temp82]["nominal"] = {}
+            cooling_performance[temp82]["nominal"]["capacity"] = round(capacity82full, 2)
+            cooling_performance[temp82]["nominal"]["COP"] = round(cop82full, 2)
         if capacity82max is not None:
-            cooling_performance[temp82]["maximum_capacity"] = round(capacity82max, 2)
-            cooling_performance[temp82]["maximum_COP"] = round(cop82max, 2)
+            cooling_performance[temp82]["maximum"] = {}
+            cooling_performance[temp82]["maximum"]["capacity"] = round(capacity82max, 2)
+            cooling_performance[temp82]["maximum"]["COP"] = round(cop82max, 2)
         if capacity95min is not None:
-            cooling_performance[temp95]["minimum_capacity"] = round(capacity95min, 2)
-            cooling_performance[temp95]["minimum_COP"] = round(cop95min, 2)
+            cooling_performance[temp95]["minimum"] = {}
+            cooling_performance[temp95]["minimum"]["capacity"] = round(capacity95min, 2)
+            cooling_performance[temp95]["minimum"]["COP"] = round(cop95min, 2)
         if capacity82full is not None:
-            cooling_performance[temp95]["nominal_capacity"] = round(capacity95full, 2)
-            cooling_performance[temp95]["nominal_COP"] = round(cop95full, 2)
+            cooling_performance[temp95]["nominal"] = {}
+            cooling_performance[temp95]["nominal"]["capacity"] = round(capacity95full, 2)
+            cooling_performance[temp95]["nominal"]["COP"] = round(cop95full, 2)
         if capacity82max is not None:
-            cooling_performance[temp95]["maximum_capacity"] = round(capacity95max, 2)
-            cooling_performance[temp95]["maximum_COP"] = round(cop95max, 2)
+            cooling_performance[temp95]["maximum"] = {}
+            cooling_performance[temp95]["maximum"]["capacity"] = round(capacity95max, 2)
+            cooling_performance[temp95]["maximum"]["COP"] = round(cop95max, 2)
         return cooling_performance
+
+    def sort_detailed_performance(performance):
+        sorted_performance = {}
+        speed_order = ["minimum", "nominal", "maximum"]
+        for temp in sorted(performance.keys()):
+            # First level sorting on temperature
+            sorted_performance[temp] = performance[temp]
+            # Second level sorting on speed
+            sorted_performance[temp] = {
+                speed: sorted_performance[temp][speed] for speed in speed_order if speed in sorted_performance[temp]
+            }
+        return sorted_performance
 
     # Get HVAC HPXML parameters from HVAC Plant or Heat Pump
     system = hvac_all.get("HVACPlant", {}).get(f"{hvac_type}System")
@@ -1365,7 +1394,7 @@ def parse_hvac(hvac_type, hvac_all):
     speed_options = {
         "single stage": 1,
         "two stage": 2,
-        "variable speed": 4,
+        "variable speed": 3,
     }
     if has_heat_pump or hvac_type == "Cooling":
         # TODO: ERROR checking for unsupported system types.
@@ -1383,10 +1412,12 @@ def parse_hvac(hvac_type, hvac_all):
 
     # Efficiency input and conversion
     efficiency_map = {}
-    efficiency = hvac[f"Annual{hvac_type}Efficiency"]
+    efficiencies = hvac.get(f"Annual{hvac_type}Efficiency", {})
     valid_efficiency_units = {"Cooling": ["SEER", "SEER2", "EER", "EER2"],
                               "Heating": ["Percent", "AFUE", "HSPF", "HSPF2"]}
-    for n in range(len(efficiency)):
+    # handle one or more efficiency elements
+    efficiencies = efficiencies if isinstance(efficiencies, list) else [efficiencies]
+    for efficiency in efficiencies:
         # Store all the efficiencies in the map
         # Separate logic for cooling and heating units
         if efficiency["Units"] in valid_efficiency_units[hvac_type]:
@@ -1440,7 +1471,7 @@ def parse_hvac(hvac_type, hvac_all):
         else:  # Default maximum capacity maintenance
             if number_of_speeds in [1, 2]:
                 qm17full = 0.626  # Per RESNET HERS Addendum 82
-            elif number_of_speeds == 4:
+            elif number_of_speeds == 3:
                 qm17full = 0.69  # NEEP database
             capacity17f = qm17full * capacity
 
@@ -1548,20 +1579,20 @@ def parse_hvac(hvac_type, hvac_all):
                 cooling_detailed_performance_data = heat_pump.get(
                     "CoolingDetailedPerformanceData"
                 )
-                out["CoolingDetailedPerformance"] = get_detailed_performance_data(
+                cooling_detailed_performance_data_dict = get_detailed_performance_data(
                     cooling_detailed_performance_data
                 )
             else:
-                out["CoolingDetailedPerformance"] = (
+                cooling_detailed_performance_data_dict = (
                     set_default_cooling_detailed_performance(
                         number_of_speeds, efficiency_map["SEER2"], efficiency_map["EER2"], c_d, capacity
                     )
                 )
-            if "nominal_COP" in out["CoolingDetailedPerformance"][rated_temp].keys():
-                efficiency_map["COP"] = out["CoolingDetailedPerformance"][rated_temp]["nominal_COP"]
-            if "nominal_capacity" in out["CoolingDetailedPerformance"][rated_temp].keys():
+            out["CoolingDetailedPerformance"] = sort_detailed_performance(cooling_detailed_performance_data_dict)
+            if "nominal" in out["CoolingDetailedPerformance"][rated_temp].keys():
+                efficiency_map["COP"] = out["CoolingDetailedPerformance"][rated_temp]["nominal"]["COP"]
                 if (
-                    abs(capacity - out["CoolingDetailedPerformance"][rated_temp]["nominal_capacity"])
+                    abs(capacity - out["CoolingDetailedPerformance"][rated_temp]["nominal"]["capacity"])
                     > capacity * 0.01
                 ):
                     raise OCHREException(
@@ -1572,23 +1603,22 @@ def parse_hvac(hvac_type, hvac_all):
                 heating_detailed_performance_data = heat_pump.get(
                     "HeatingDetailedPerformanceData"
                 )
-                out["HeatingDetailedPerformance"] = get_detailed_performance_data(
+                heating_detailed_performance_data_dict = get_detailed_performance_data(
                     heating_detailed_performance_data
                 )
             else:
-                out["HeatingDetailedPerformance"] = (
+                heating_detailed_performance_data_dict = (
                     set_default_heating_detailed_performance(
                         number_of_speeds, efficiency_map["HSPF2"], capacity17f / capacity, capacity, lct
                     )
                 )
-
+            out["HeatingDetailedPerformance"] = sort_detailed_performance(heating_detailed_performance_data_dict)
             rated_temp = utils_equipment.AIR_SOURCE_HEAT_RATED_ODB
             print(out["HeatingDetailedPerformance"].keys())
-            if "nominal_COP" in out["HeatingDetailedPerformance"][rated_temp].keys():
-                efficiency_map["COP"] = out["HeatingDetailedPerformance"][rated_temp]["nominal_COP"]
-            if "nominal_capacity" in out["HeatingDetailedPerformance"][rated_temp].keys():
+            if "nominal" in out["HeatingDetailedPerformance"][rated_temp].keys():
+                efficiency_map["COP"] = out["HeatingDetailedPerformance"][rated_temp]["nominal"]["COP"]
                 if (
-                    abs(capacity - out["HeatingDetailedPerformance"][rated_temp]["nominal_capacity"])
+                    abs(capacity - out["HeatingDetailedPerformance"][rated_temp]["nominal"]["capacity"])
                     > capacity * 0.01
                 ):
                     raise OCHREException(
