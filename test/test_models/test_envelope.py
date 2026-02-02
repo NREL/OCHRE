@@ -9,47 +9,50 @@ from ochre.utils import OCHREException
 
 # Common simulation parameters
 sim_params = {
-    'start_time': dt.datetime(2020, 1, 1),
-    'duration': dt.timedelta(hours=24),
-    'time_res': dt.timedelta(minutes=5),
-    'verbosity': 6,
-    'save_results': False,
+    "start_time": dt.datetime(2020, 1, 1),
+    "duration": dt.timedelta(hours=24),
+    "time_res": dt.timedelta(minutes=5),
+    "verbosity": 6,
+    "save_results": False,
 }
 
 
 def create_minimal_schedule(start_time, duration, time_res, ambient_temp=20):
     """Create minimal schedule DataFrame for envelope testing"""
-    times = pd.date_range(start_time, start_time + duration, freq=time_res, inclusive='left')
-    return pd.DataFrame({
-        "Ambient Dry Bulb (C)": ambient_temp,
-        "HVAC Heating Setpoint (C)": 20,
-        "HVAC Cooling Setpoint (C)": 24,
-        "HVAC Heating Deadband (C)": 1,
-        "HVAC Cooling Deadband (C)": 1,
-        "Ambient Humidity Ratio (-)": 0.005,
-    }, index=times)
+    times = pd.date_range(start_time, start_time + duration, freq=time_res, inclusive="left")
+    return pd.DataFrame(
+        {
+            "Ambient Dry Bulb (C)": ambient_temp,
+            "HVAC Heating Setpoint (C)": 20,
+            "HVAC Cooling Setpoint (C)": 24,
+            "HVAC Heating Deadband (C)": 1,
+            "HVAC Cooling Deadband (C)": 1,
+            "Ambient Humidity Ratio (-)": 0.005,
+        },
+        index=times,
+    )
 
 
 def create_minimal_envelope(schedule=None, **kwargs):
     """Create minimal single-zone envelope for testing"""
-    start_time = kwargs.get('start_time', sim_params['start_time'])
-    duration = kwargs.get('duration', sim_params['duration'])
-    time_res = kwargs.get('time_res', sim_params['time_res'])
-    
+    start_time = kwargs.get("start_time", sim_params["start_time"])
+    duration = kwargs.get("duration", sim_params["duration"])
+    time_res = kwargs.get("time_res", sim_params["time_res"])
+
     if schedule is None:
         schedule = create_minimal_schedule(start_time, duration, time_res)
-    
+
     envelope_args = {
-        'capacitances': {"LIV": 4e6},  # ~1 hour time constant
-        'resistances': {("EXT", "LIV"): 1e-3},  # 1kW per degree C
-        'zones': {"Indoor": {"Volume (m^3)": 600}},
-        'ext_zone_labels': ["EXT"],
-        'schedule': schedule,
-        'initial_schedule': schedule.iloc[0].to_dict(),
-        'initial_temp_setpoint': 22,
-        'external_radiation_method': None,
-        'internal_radiation_method': None,
-        'main_sim_name': "",
+        "capacitances": {"LIV": 4e6},  # ~1 hour time constant
+        "resistances": {("EXT", "LIV"): 1e-3},  # 1kW per degree C
+        "zones": {"Indoor": {"Volume (m^3)": 600}},
+        "ext_zone_labels": ["EXT"],
+        "schedule": schedule,
+        "initial_schedule": schedule.iloc[0].to_dict(),
+        "initial_temp_setpoint": 22,
+        "external_radiation_method": None,
+        "internal_radiation_method": None,
+        "main_sim_name": "",
         **sim_params,
         **kwargs,
     }
@@ -71,9 +74,9 @@ class EnvelopeInitTestCase(unittest.TestCase):
         """Test initialization with direct capacitances and resistances"""
         envelope = create_minimal_envelope()
         # Check state and input names are created correctly
-        self.assertIn('T_LIV', envelope.state_names)
-        self.assertIn('T_EXT', envelope.input_names)
-        self.assertIn('H_LIV', envelope.input_names)
+        self.assertIn("T_LIV", envelope.state_names)
+        self.assertIn("T_EXT", envelope.input_names)
+        self.assertIn("H_LIV", envelope.input_names)
 
     def test_init_zones(self):
         """Test zone creation"""
@@ -93,14 +96,10 @@ class EnvelopeInitTestCase(unittest.TestCase):
 
     def test_init_multiple_ext_zones(self):
         """Test with multiple external zones"""
-        schedule = create_minimal_schedule(
-            sim_params['start_time'], 
-            sim_params['duration'], 
-            sim_params['time_res']
-        )
+        schedule = create_minimal_schedule(sim_params["start_time"], sim_params["duration"], sim_params["time_res"])
         # Add ground temperature to schedule
-        schedule['Ground Temperature (C)'] = 15
-        
+        schedule["Ground Temperature (C)"] = 15
+
         envelope = Envelope(
             capacitances={"LIV": 4e6, "FND": 1e6},
             resistances={("EXT", "LIV"): 1e-3, ("GND", "FND"): 2e-3, ("LIV", "FND"): 5e-3},
@@ -182,7 +181,7 @@ class EnvelopeUpdateTestCase(unittest.TestCase):
         self.envelope.update_inputs(schedule_inputs)
         self.envelope.update_model()
         # Verify external temperature was set correctly in inputs_init
-        ext_idx = self.envelope.input_names.index('T_EXT')
+        ext_idx = self.envelope.input_names.index("T_EXT")
         self.assertAlmostEqual(self.envelope.inputs_init[ext_idx], 30)
         # next_states should show temperature increase (states updated in update_results)
         self.assertGreater(self.envelope.next_states[0], initial_temp)
@@ -197,11 +196,11 @@ class EnvelopeUpdateTestCase(unittest.TestCase):
     def test_state_transition(self):
         """Test temperature changes over multiple steps"""
         initial_temp = self.envelope.states[0]
-        
+
         # Run several update cycles with warm ambient
         for _ in range(10):
             self.envelope.update(schedule_inputs={"Ambient Dry Bulb (C)": 30})
-        
+
         final_temp = self.envelope.states[0]
         # Temperature should have increased towards 30C
         self.assertGreater(final_temp, initial_temp)
@@ -238,7 +237,7 @@ class EnvelopeRadiationTestCase(unittest.TestCase):
 
     def test_internal_radiation_linear(self):
         """Test with linear internal radiation"""
-        envelope = create_minimal_envelope(internal_radiation_method='linear')
+        envelope = create_minimal_envelope(internal_radiation_method="linear")
         self.assertFalse(envelope.run_internal_rad)
         self.assertTrue(envelope.linearize_int_radiation)
 
@@ -253,8 +252,8 @@ class EnvelopeSolverTestCase(unittest.TestCase):
         """Test solving for a single input to achieve desired state"""
         current_temp = self.envelope.states[0]
         # Solve for heat input to maintain current temperature
-        h_idx = self.envelope.input_names.index('H_LIV')
-        u_desired = self.envelope.solve_for_input('T_LIV', 'H_LIV', current_temp)
+        h_idx = self.envelope.input_names.index("H_LIV")
+        u_desired = self.envelope.solve_for_input("T_LIV", "H_LIV", current_temp)
         self.assertIsInstance(u_desired, (int, float, np.floating))
 
 
@@ -266,20 +265,20 @@ class EnvelopeResultsTestCase(unittest.TestCase):
         # main_sim_name=None required for Time to be in results
         envelope = create_minimal_envelope(verbosity=3, main_sim_name=None)
         results = envelope.generate_results()
-        self.assertIn('Time', results)
-        self.assertIn('Temperature - Indoor (C)', results)
+        self.assertIn("Time", results)
+        self.assertIn("Temperature - Indoor (C)", results)
 
     def test_generate_results_verbosity_5(self):
         """Test results at verbosity 5"""
         envelope = create_minimal_envelope(verbosity=5)
         results = envelope.generate_results()
-        self.assertIn('Temperature - Indoor (C)', results)
+        self.assertIn("Temperature - Indoor (C)", results)
 
     def test_generate_results_verbosity_6(self):
         """Test results at verbosity 6"""
         envelope = create_minimal_envelope(verbosity=6)
         results = envelope.generate_results()
-        self.assertIn('Temperature - Indoor (C)', results)
+        self.assertIn("Temperature - Indoor (C)", results)
 
 
 class EnvelopeHumidityTestCase(unittest.TestCase):
@@ -287,13 +286,9 @@ class EnvelopeHumidityTestCase(unittest.TestCase):
 
     def test_humidity_enabled(self):
         """Test envelope with humidity model enabled"""
-        schedule = create_minimal_schedule(
-            sim_params['start_time'],
-            sim_params['duration'],
-            sim_params['time_res']
-        )
-        schedule['Ambient Humidity Ratio (-)'] = 0.01
-        
+        schedule = create_minimal_schedule(sim_params["start_time"], sim_params["duration"], sim_params["time_res"])
+        schedule["Ambient Humidity Ratio (-)"] = 0.01
+
         envelope = create_minimal_envelope(
             schedule=schedule,
             enable_humidity=True,
@@ -340,13 +335,9 @@ class EnvelopeSimulationTestCase(unittest.TestCase):
 
     def test_simulate_with_humidity(self):
         """Test simulation with humidity model"""
-        schedule = create_minimal_schedule(
-            sim_params['start_time'],
-            dt.timedelta(hours=1),
-            sim_params['time_res']
-        )
-        schedule['Ambient Humidity Ratio (-)'] = 0.01
-        
+        schedule = create_minimal_schedule(sim_params["start_time"], dt.timedelta(hours=1), sim_params["time_res"])
+        schedule["Ambient Humidity Ratio (-)"] = 0.01
+
         envelope = create_minimal_envelope(
             schedule=schedule,
             duration=dt.timedelta(hours=1),
@@ -381,5 +372,5 @@ class ExteriorZoneTestCase(unittest.TestCase):
         self.assertEqual(ext_zone.label, "EXT")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

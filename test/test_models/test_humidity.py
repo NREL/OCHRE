@@ -5,21 +5,21 @@ from ochre.Models import HumidityModel
 
 # Schedule data for humidity model initialization
 initial_schedule = {
-    'Ambient Dry Bulb (C)': 15,
-    'Ambient Humidity Ratio (-)': 0.007,
-    'Ambient Pressure (kPa)': 101,
+    "Ambient Dry Bulb (C)": 15,
+    "Ambient Humidity Ratio (-)": 0.007,
+    "Ambient Pressure (kPa)": 101,
 }
 
 humidity_init_args = {
-    'time_res': dt.timedelta(minutes=1),
-    't_zone': 20,
-    'volume': 100,
-    'initial_schedule': initial_schedule.copy(),
+    "time_res": dt.timedelta(minutes=1),
+    "t_zone": 20,
+    "volume": 100,
+    "initial_schedule": initial_schedule.copy(),
 }
 
 # update_humidity now only takes t_indoor as argument
 humidity_update_args = {
-    't_indoor': 20,
+    "t_indoor": 20,
 }
 
 
@@ -49,5 +49,5 @@ class HumidityTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.humidity.wet_bulb, 13.4, places=1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

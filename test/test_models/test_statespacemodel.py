@@ -5,15 +5,15 @@ import numpy as np
 from ochre.Models import StateSpaceModel, ModelException
 
 # inputs for SISO test
-x0_1 = {'x1': 5}
-u_defaults1 = {'u1': 0}
+x0_1 = {"x1": 5}
+u_defaults1 = {"u1": 0}
 a1 = -2
 b1 = 1
 
 # inputs for MIMO test (3 states, 4 inputs, 2 outputs)
-x0_2 = {f'x{i + 1}': i + 1 for i in range(3)}
-u_defaults2 = {f'u{i + 1}': val for i, val in enumerate([5, 0, 0, 0])}
-y2 = ['y1', 'y2']
+x0_2 = {f"x{i + 1}": i + 1 for i in range(3)}
+u_defaults2 = {f"u{i + 1}": val for i, val in enumerate([5, 0, 0, 0])}
+y2 = ["y1", "y2"]
 np.random.seed(1)
 a2 = np.random.randn(3, 3) / 10 - np.eye(3) / 2  # for PSD matrix
 b2 = np.random.randn(3, 4)
@@ -21,9 +21,9 @@ c2 = np.random.randn(2, 3)
 
 # Common simulation parameters required by Simulator base class
 sim_params = {
-    'start_time': dt.datetime(2020, 1, 1),
-    'duration': dt.timedelta(hours=1),
-    'verbosity': 0,  # suppress output
+    "start_time": dt.datetime(2020, 1, 1),
+    "duration": dt.timedelta(hours=1),
+    "verbosity": 0,  # suppress output
 }
 
 
@@ -33,8 +33,9 @@ class SSModelTestCase(unittest.TestCase):
     """
 
     def setUp(self):
-        self.model = StateSpaceModel(states=x0_1, inputs=u_defaults1, matrices=(a1, b1),
-                                     time_res=dt.timedelta(seconds=2), **sim_params)
+        self.model = StateSpaceModel(
+            states=x0_1, inputs=u_defaults1, matrices=(a1, b1), time_res=dt.timedelta(seconds=2), **sim_params
+        )
 
     def test_init(self):
         self.assertDictEqual(self.model.get_states(), x0_1)
@@ -60,16 +61,16 @@ class SSModelTestCase(unittest.TestCase):
         # The new API uses control_signal in update_model to set inputs
         # update_inputs is for schedule-based inputs, not arbitrary dict inputs
         # Test that inputs are properly set via control_signal
-        self.model.update_model(control_signal={'u1': 2})
+        self.model.update_model(control_signal={"u1": 2})
         self.assertEqual(self.model.inputs[0], 2)
 
     def test_update(self):
         # test state change
         self.model.update()
-        self.assertLess(self.model.states[0], x0_1['x1'])
+        self.assertLess(self.model.states[0], x0_1["x1"])
 
-        self.model.update(control_signal={'u1': 100})
-        self.assertGreater(self.model.states[0], x0_1['x1'])
+        self.model.update(control_signal={"u1": 100})
+        self.assertGreater(self.model.states[0], x0_1["x1"])
 
         # test steady state
         for _ in range(200):
@@ -77,7 +78,7 @@ class SSModelTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.model.states[0], 0, places=3)
 
         for _ in range(200):
-            self.model.update(control_signal={'u1': 2})
+            self.model.update(control_signal={"u1": 2})
         self.assertAlmostEqual(self.model.states[0], -b1 / a1 * 2, places=3)
 
 
@@ -87,8 +88,14 @@ class LargeRCModelTestCase(unittest.TestCase):
     """
 
     def setUp(self):
-        self.model = StateSpaceModel(states=x0_2, inputs=u_defaults2, outputs=y2, matrices=(a2, b2, c2),
-                                     time_res=dt.timedelta(minutes=1), **sim_params)
+        self.model = StateSpaceModel(
+            states=x0_2,
+            inputs=u_defaults2,
+            outputs=y2,
+            matrices=(a2, b2, c2),
+            time_res=dt.timedelta(minutes=1),
+            **sim_params,
+        )
 
     def test_init(self):
         self.assertDictEqual(self.model.get_states(), x0_2)
@@ -103,27 +110,27 @@ class LargeRCModelTestCase(unittest.TestCase):
         # reduce_model now modifies the model in-place and returns None
         # Save original shapes for comparison
         orig_nx = self.model.nx
-        
+
         # test with reduced states
         self.model.reduce_model(reduced_states=2)
         self.assertEqual(self.model.nx, 2)
         self.assertTupleEqual(self.model.A_c.shape, (2, 2))
         self.assertTupleEqual(self.model.B_c.shape, (2, 4))
         self.assertTupleEqual(self.model.C.shape, (2, 2))
-        
+
         # Reset model for next test
         self.setUp()
-        
+
         # test with reduced_min_accuracy
         self.model.reduce_model(reduced_min_accuracy=0.2)
         self.assertEqual(self.model.nx, 1)
         self.assertTupleEqual(self.model.A_c.shape, (1, 1))
         self.assertTupleEqual(self.model.B_c.shape, (1, 4))
         self.assertTupleEqual(self.model.C.shape, (2, 1))
-        
+
         # Save A for comparison
         A_first = self.model.A_c[0, 0]
-        
+
         # Reset model for next test
         self.setUp()
 
@@ -135,8 +142,8 @@ class LargeRCModelTestCase(unittest.TestCase):
     def test_update(self):
         # test state change
         self.model.update()
-        self.assertLess(self.model.states[0], x0_2['x1'])
-        self.assertLess(self.model.states[1], x0_2['x2'])
+        self.assertLess(self.model.states[0], x0_2["x1"])
+        self.assertLess(self.model.states[1], x0_2["x2"])
 
         # test output - just verify outputs exist and have been computed
         # (update_states parameter no longer exists)
@@ -144,5 +151,5 @@ class LargeRCModelTestCase(unittest.TestCase):
         self.assertNotEqual(outputs[0], 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

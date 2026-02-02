@@ -50,10 +50,7 @@ EQUIPMENT_BY_NAME = {
         ]
     },
     # 'HVAC Cooling'
-    **{
-        equipment.name: equipment
-        for equipment in [Cooler, AirConditioner, ASHPCooler, RoomAC, MinisplitAHSPCooler]
-    },
+    **{equipment.name: equipment for equipment in [Cooler, AirConditioner, ASHPCooler, RoomAC, MinisplitAHSPCooler]},
     # 'Water Heating'
     **{
         equipment.name: equipment

@@ -70,18 +70,14 @@ class ScheduledLoad(Equipment):
             if abs(self.p_set_point) > 20:
                 self.warn(f"High electric power warning: {self.p_set_point} kW.")
                 if abs(self.p_set_point) > 40:
-                    raise OCHREException(
-                        f"{self.name} electric power is too large: {self.p_set_point} kW."
-                    )
+                    raise OCHREException(f"{self.name} electric power is too large: {self.p_set_point} kW.")
 
         if self.is_gas:
             self.gas_set_point = self.current_schedule["Gas (therms/hour)"]
             if abs(self.gas_set_point) > 0.5:
                 self.warn(f"High gas power warning: {self.gas_set_point} therms/hour.")
                 if abs(self.gas_set_point) > 1:
-                    raise OCHREException(
-                        f"{self.name} gas power is too large: {self.gas_set_point} therms/hour."
-                    )
+                    raise OCHREException(f"{self.name} gas power is too large: {self.gas_set_point} therms/hour.")
 
         return "On" if self.p_set_point + self.gas_set_point != 0 else "Off"
 

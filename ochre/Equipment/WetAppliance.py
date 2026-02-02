@@ -4,13 +4,15 @@ Created on Mon Apr 02 13:24:32 2018
 
 @author: kmckenna
 """
+
 import numpy as np
 
 
 # FUTURE: Convert to Equipment, create stochastic inputs based on self.name (CW, DW, CD)
 class WetAppliance(object):
-    def __init__(self, Wet_Appliances_Data, App_Name,
-                 start_time):  # , B_on, T_uppr, T_lowr, L_used, L_uppr, L_lowr, Bin_uppr, Bin_lowr, P_uppr, P_lowr):
+    def __init__(
+        self, Wet_Appliances_Data, App_Name, start_time
+    ):  # , B_on, T_uppr, T_lowr, L_used, L_uppr, L_lowr, Bin_uppr, Bin_lowr, P_uppr, P_lowr):
         r"""
         MC Profile Generator
         Generate load profile for a load that has:
@@ -18,10 +20,11 @@ class WetAppliance(object):
             Specific Demand Profile (e.g. wet appliance)
 
         """
-        self.Set_Profile = Wet_Appliances_Data[App_Name]['PQ_Demand_Profile__2_cols_W_VAr']
+        self.Set_Profile = Wet_Appliances_Data[App_Name]["PQ_Demand_Profile__2_cols_W_VAr"]
         #        self.Switch_On_Prob_Vec=np.kron(np.ones((1,days)),Wet_Appliances_Data[App_Name]['Switch_On_Daily_Probability_Profiles__Probability_Minutes_1440'])
         self.Switch_On_Prob_Vec = Wet_Appliances_Data[App_Name][
-            'Switch_On_Daily_Probability_Profiles__Probability_Minutes_1440']
+            "Switch_On_Daily_Probability_Profiles__Probability_Minutes_1440"
+        ]
         self.Switch_On_Time_Loc = start_time
         self.Binary_Mem = 0
         self.Binary = 0
@@ -32,7 +35,7 @@ class WetAppliance(object):
         #        self.Bin_test=0
         self.Random_num = 0
         self.Schedule_Finish_Count = 0
-        self.Average_Schedule_Delay = Wet_Appliances_Data[App_Name]['Averaged_Scheduled_Delay__Minutes']
+        self.Average_Schedule_Delay = Wet_Appliances_Data[App_Name]["Averaged_Scheduled_Delay__Minutes"]
         self.Over_ride_start = 0
         self.Over_ride_bin = 0
         self.Schedulable = 0
@@ -103,11 +106,12 @@ class WetAppliance(object):
         if self.Schedulable == 0:
             self.Random_num = np.random.random()
             self.Binary = self.Binary_Mem * 1 + (1 - self.Binary_Mem * 1) * (
-                    self.Random_num < self.Switch_On_Prob_Vec[self.Switch_On_Time_Loc,])
+                self.Random_num < self.Switch_On_Prob_Vec[self.Switch_On_Time_Loc,]
+            )
             #        self.Bin_test=(self.Random_num<self.Switch_On_Prob_Vec[0,self.Switch_On_Time_Loc])*1
             self.Binary_Mem = self.Binary
             # print self.Binary
-            if ((self.Binary > 0) & (self.Profile_t < (self.Set_Profile.shape[0] - 1))):
+            if (self.Binary > 0) & (self.Profile_t < (self.Set_Profile.shape[0] - 1)):
                 self.P_kW = self.Set_Profile[self.Profile_t, 0]
                 self.Q_kVAr = self.Set_Profile[self.Profile_t, 1]
                 self.Profile_t += 1
@@ -121,10 +125,12 @@ class WetAppliance(object):
         elif self.Schedulable == 1:
             self.Random_num = np.random.random()
             self.Binary = self.Binary_Mem * 1 + (1 - self.Binary_Mem * 1) * (
-                    self.Random_num < self.Switch_On_Prob_Vec[self.Switch_On_Time_Loc,])
+                self.Random_num < self.Switch_On_Prob_Vec[self.Switch_On_Time_Loc,]
+            )
             if (self.Binary > 0) & (self.Binary_Mem < 1):
                 self.Schedule_Finish_Count = -int(
-                    (self.Average_Schedule_Delay) * np.log(np.random.random()) - self.Set_Profile.shape[0])
+                    (self.Average_Schedule_Delay) * np.log(np.random.random()) - self.Set_Profile.shape[0]
+                )
                 # print (self.Schedule_Finish_Count)
             if (self.Over_ride_start == 1) or (self.Over_ride_bin == 1):
                 self.Over_ride_bin = 1
@@ -132,13 +138,19 @@ class WetAppliance(object):
             #        self.Bin_test=(self.Random_num<self.Switch_On_Prob_Vec[0,self.Switch_On_Time_Loc])*1
             self.Binary_Mem = self.Binary
             # print self.Binary
-            if ((self.Binary > 0) & (self.Profile_t < (self.Set_Profile.shape[0] - 1)) & (
-                    self.Schedule_Finish_Count == 0 or self.Over_ride_bin == 1)):
+            if (
+                (self.Binary > 0)
+                & (self.Profile_t < (self.Set_Profile.shape[0] - 1))
+                & (self.Schedule_Finish_Count == 0 or self.Over_ride_bin == 1)
+            ):
                 self.P_kW = self.Set_Profile[self.Profile_t, 0]
                 self.Q_kVAr = self.Set_Profile[self.Profile_t, 1]
                 self.Profile_t += 1
-            elif ((self.Binary > 0) & (self.Profile_t < (self.Set_Profile.shape[0] - 1)) & (
-                    self.Schedule_Finish_Count > 0 or self.Over_ride_bin == 0)):
+            elif (
+                (self.Binary > 0)
+                & (self.Profile_t < (self.Set_Profile.shape[0] - 1))
+                & (self.Schedule_Finish_Count > 0 or self.Over_ride_bin == 0)
+            ):
                 self.Profile_t = 0
                 self.P_kW = 0
                 self.Q_kVAr = 0
@@ -154,6 +166,6 @@ class WetAppliance(object):
             self.Switch_On_Time_Loc += 1
 
     def MC_SIM_DAY_LOOP(self, vec_day_minute):
-        if (vec_day_minute == 1440):
+        if vec_day_minute == 1440:
             vec_day_minute = 0
-        return (vec_day_minute)
+        return vec_day_minute
