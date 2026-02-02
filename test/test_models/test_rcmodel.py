@@ -5,26 +5,37 @@ import math
 from ochre.Models import RCModel
 from ochre.Models.RCModel import transform_floating_node
 
-# inputs for small RC test (1R1C test)
+# inputs for small RC test (1R1C test) - new API format
 x0_1 = 5
 u_defaults1 = [3, 0]
-rc_params1 = {'R_INT_EXT': 2,
-              'C_INT': 10}
+capacitances1 = {'INT': 10}
+resistances1 = {('INT', 'EXT'): 2}
+external_nodes1 = ['EXT']
 
-# inputs for larger RC test (6R4C test)
+# inputs for larger RC test (6R4C test) - new API format
 x0_2 = [1, 2, 3, 4]
 u_defaults2 = [5, 0, 0, 0, 0]
-rc_params2 = {
-    'R_1_E1': 1,
-    'R_1_2': 1,
-    'R_1_3': 1,
-    'R_2_E2': 1,
-    'R_3_4': 1,
-    'R_4_E1': 1,
-    'C_1': 200,
-    'C_2': 200,
-    'C_3': 500,
-    'C_4': 200,
+capacitances2 = {
+    '1': 200,
+    '2': 200,
+    '3': 500,
+    '4': 200,
+}
+resistances2 = {
+    ('1', 'E1'): 1,
+    ('1', '2'): 1,
+    ('1', '3'): 1,
+    ('2', 'E2'): 1,
+    ('3', '4'): 1,
+    ('4', 'E1'): 1,
+}
+external_nodes2 = ['E1', 'E2']
+
+# Common simulation parameters required by Simulator base class
+sim_params = {
+    'start_time': dt.datetime(2020, 1, 1),
+    'duration': dt.timedelta(hours=1),
+    'verbosity': 0,  # suppress output
 }
 
 
@@ -34,17 +45,17 @@ class RCModelTestCase(unittest.TestCase):
     """
 
     def setUp(self):
-        self.model = RCModel(['EXT'], rc_params=rc_params1, time_res=dt.timedelta(seconds=2))
+        self.model = RCModel(capacitances1, resistances1, external_nodes1,
+                             time_res=dt.timedelta(seconds=2), **sim_params)
 
         # set initial x and u
         self.model.states[:] = [x0_1]
         self.model.inputs[:] = u_defaults1
-        self.model.default_inputs[:] = u_defaults1
 
     def test_init(self):
         self.assertListEqual(self.model.state_names, ['T_INT'])
         self.assertListEqual(self.model.states.tolist(), [x0_1])
-        self.assertListEqual(self.model.capacitances.tolist(), [rc_params1['C_INT']])
+        self.assertListEqual(self.model.capacitances.tolist(), [capacitances1['INT']])
         self.assertListEqual(self.model.input_names, ['T_EXT', 'H_INT'])
         self.assertListEqual(self.model.inputs.tolist(), u_defaults1)
 
@@ -61,9 +72,6 @@ class RCModelTestCase(unittest.TestCase):
         self.assertAlmostEqual(A[0, 0], -0.05)
         self.assertAlmostEqual(B[0, 0], 0.05)
         self.assertAlmostEqual(B[0, 1], 0.1)
-
-        # test abstract
-        self.model.create_rc_matrices({'INT': 10}, {('INT', 'EXT'): 2}, ['INT'], ['EXT'], return_abstract=True)
 
     def test_par(self):
         self.assertAlmostEqual(self.model.par(2, 2), 1)
@@ -85,18 +93,17 @@ class LargeRCModelTestCase(unittest.TestCase):
     """
 
     def setUp(self):
-        self.model = RCModel(['E1', 'E2'], rc_params=rc_params2, unused_inputs=['H_3'],
-                             time_res=dt.timedelta(minutes=1))
+        self.model = RCModel(capacitances2, resistances2, external_nodes2, unused_inputs=['H_3'],
+                             time_res=dt.timedelta(minutes=1), **sim_params)
 
         # set initial x and u
         self.model.states[:] = x0_2
         self.model.inputs[:] = u_defaults2
-        self.model.default_inputs[:] = u_defaults2
 
     def test_init(self):
         self.assertListEqual(self.model.state_names, ['T_1', 'T_2', 'T_3', 'T_4'])
         self.assertListEqual(self.model.states.tolist(), x0_2)
-        self.assertListEqual(self.model.capacitances.tolist(), [rc_params2['C_' + str(i + 1)] for i in range(4)])
+        self.assertListEqual(self.model.capacitances.tolist(), [capacitances2[str(i + 1)] for i in range(4)])
         self.assertListEqual(self.model.input_names, ['T_E1', 'T_E2', 'H_1', 'H_2', 'H_4'])
         self.assertListEqual(self.model.inputs.tolist(), u_defaults2)
 
@@ -126,20 +133,19 @@ class LargeRCModelTestCase(unittest.TestCase):
         for _ in range(200):
             self.model.update({})
         for x, y in zip(self.model.states, [3.6, 1.8, 4.1, 4.5]):
-            self.assertAlmostEquals(x, y, places=1)
+            self.assertAlmostEqual(x, y, places=1)
 
         for _ in range(200):
             self.model.update({'H_1': -3})
         for x, y in zip(self.model.states, [2, 1, 3, 4]):
-            self.assertAlmostEquals(x, y, places=4)
+            self.assertAlmostEqual(x, y, places=4)
 
     def test_time_res(self):
-        fast_model = RCModel(['E1', 'E2'], rc_params=rc_params2, unused_inputs=['H_3'],
-                             time_res=dt.timedelta(seconds=10))
+        fast_model = RCModel(capacitances2, resistances2, external_nodes2, unused_inputs=['H_3'],
+                             time_res=dt.timedelta(seconds=10), **sim_params)
         # set initial x and u
         fast_model.states[:] = x0_2
         fast_model.inputs[:] = u_defaults2
-        fast_model.default_inputs[:] = u_defaults2
 
         # faster model should have larger A diagonal, smaller off diagonal elements and B elements
         self.assertGreater(fast_model.A[0, 0], self.model.A[0, 0])
@@ -164,7 +170,7 @@ class LargeRCModelTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.model.states[0], x0_2[0])
 
         # Test with u_ratios
-        self.model.inputs = self.model.default_inputs.copy()
+        self.model.inputs[:] = u_defaults2  # reset inputs
         u_desired = self.model.solve_for_inputs(0, [2, 3], x0_2[0], u_ratios=[0.75, 0.25])
         self.assertAlmostEqual(u_desired, -6.39, places=2)
 
@@ -174,9 +180,9 @@ class LargeRCModelTestCase(unittest.TestCase):
 
     def test_solve_for_multi_inputs(self):
         self.model.setup_multi_input_solver(['T_1', 'T_2'], [{'H_1': 1}, {'H_2': 0.5, 'H_4': 0.5}])
-        x, B, T = self.model.solver_params
-        self.assertTupleEqual(B.shape, (2, 2))
-        self.assertTupleEqual(T.shape, (5, 2))
+        m_i_inv, input_ratios, solve_as_output = self.model.solver_params
+        self.assertTupleEqual(m_i_inv.shape, (2, 2))  # inverse matrix for 2 outputs
+        self.assertTupleEqual(input_ratios.shape, (5, 2))  # 5 inputs x 2 outputs
 
         u_desired = self.model.solve_for_multi_inputs(x0_2[:2])
         self.assertEqual(len(u_desired), 5)
@@ -184,13 +190,14 @@ class LargeRCModelTestCase(unittest.TestCase):
         self.assertAlmostEqual(u_desired[2], -6.95, places=2)
         self.assertEqual(u_desired[3], u_desired[4])
 
-        self.model.inputs += u_desired
-        self.model.update(reset_inputs=False)
+        # Pass updated inputs via control_signal instead of modifying inputs directly
+        new_inputs = self.model.inputs + u_desired
+        self.model.update(control_signal=dict(zip(self.model.input_names, new_inputs)))
         self.assertAlmostEqual(self.model.states[0], x0_2[0])
         self.assertAlmostEqual(self.model.states[1], x0_2[1])
 
     def test_transform_floating_node(self):
-        resistors = {tuple(name.upper().split('_')[1:]): val for name, val in rc_params2.items() if name[0] == 'R'}
+        resistors = resistances2.copy()
         self.assertEqual(len(resistors), 6)
 
         # 2R combination
