@@ -1,5 +1,4 @@
 import unittest
-import datetime as dt
 
 from ochre.Equipment import GasGenerator, GasFuelCell
 from test.test_equipment import equip_init_args

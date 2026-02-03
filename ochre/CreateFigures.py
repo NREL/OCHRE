@@ -1,6 +1,5 @@
 import pandas as pd
 import datetime as dt
-import string
 
 from pandas.plotting import register_matplotlib_converters
 import matplotlib.pyplot as plt

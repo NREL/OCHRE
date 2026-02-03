@@ -11,7 +11,6 @@ from ochre import (
     ElectricResistanceWaterHeater,
     AirConditioner,
     ScheduledLoad,
-    EventBasedLoad,
     EventDataLoad,
 )
 from ochre import CreateFigures

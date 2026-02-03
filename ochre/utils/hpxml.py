@@ -1538,7 +1538,7 @@ def parse_mel(mel, load_name, is_gas=None):
     if mel["Load"]["Units"] != f"{load_units}/year":
         raise OCHREException(f"Invalid load units for {load_name}:", mel["Load"]["Units"])
     if is_gas and mel.get("FuelType", "natural gas") != "natural gas":
-        raise OCHREException(f"Invalid fuel type for MGL:", mel["FuelLoadType"])
+        raise OCHREException("Invalid fuel type for MGL:", mel["FuelLoadType"])
 
     # TODO: use default annual load values from OS-HPXML
     mel_load = mel["Load"]["Value"] * mel.get("extension", {}).get("UsageMultiplier", 1)

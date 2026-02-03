@@ -1,4 +1,3 @@
-import math
 import numpy as np
 import pandas as pd
 import pvlib
@@ -537,8 +536,6 @@ def calculate_ashrae_infiltration_params(indoor_inf, construction, site, has_flu
     # Calculate SLA for above-grade portion of the building (in IP, ft2)
     indoor_volume = construction["Conditioned Volume (m^3)"]
     indoor_floor_area = construction["Indoor Floor Area (m^2)"]
-    building_height = construction["Ceiling Height (m)"] * construction["Indoor Floors"]
-    building_height_ft = convert(building_height, "m", "ft")  # in ft
     house_pressure = 50
     living_sla = (ach * 0.2835 * 4**n_i * convert(indoor_volume, "m^3", "ft^3")) / (
         convert(indoor_floor_area, "m^2", "in^2") * house_pressure**n_i * 60

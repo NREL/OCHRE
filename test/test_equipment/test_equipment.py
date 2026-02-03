@@ -1,7 +1,8 @@
+import datetime as dt
 import unittest
 
 from ochre.Equipment import Equipment
-from test.test_equipment import *
+from test.test_equipment import equip_init_args
 
 
 class TestEquipment(Equipment):

@@ -1,6 +1,6 @@
 import os
 
-from ochre import Analysis, CreateFigures, Dwelling
+from ochre import Analysis, CreateFigures
 
 # Script to compare OCHRE and E+ outputs for generic model. Assumes both models have been run in the same folder
 
