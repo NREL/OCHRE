@@ -61,8 +61,8 @@ jobs:
           pip install ruff
 
       - name: Run ruff linter
-        run: ruff check ochre/ test/ --output-format=github
+        run: ruff check . --output-format=github
         continue-on-error: true
 
       - name: Run ruff formatter check
-        run: ruff format ochre/ test/ --check --diff
+        run: ruff format . --check --diff

@@ -53,9 +53,7 @@ status_keys = [
 
 # Note: see documentation for where to download other weather files
 # https://ochre-nrel.readthedocs.io/en/latest/InputsAndArguments.html#weather-file
-default_weather_file = os.path.join(
-    default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw"
-)
+default_weather_file = os.path.join(default_input_path, "Weather", "USA_CO_Denver.Intl.AP.725650_TMY3.epw")
 
 # control parameters - keep net load within +/- 1 kW per house
 min_net_load = -1 * n
@@ -97,7 +95,7 @@ def step_to(time, fed, offset=0):
         if t_new >= t_requested:
             return
         time.sleep(0.01)
-        
+
 
 @click.group()
 def cli():
@@ -209,9 +207,7 @@ def aggregator():
         results.append(total_powers)
 
         # determine battery setpoints to maintain net load limits
-        nonbattery_power = (
-            total_powers["Total Electric Power (kW)"] - total_powers["Battery Electric Power (kW)"]
-        )
+        nonbattery_power = total_powers["Total Electric Power (kW)"] - total_powers["Battery Electric Power (kW)"]
         if nonbattery_power > max_net_load:
             battery_power = max_net_load - nonbattery_power
         elif nonbattery_power < min_net_load:
