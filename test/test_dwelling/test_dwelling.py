@@ -2,6 +2,9 @@ import unittest
 import os
 import datetime as dt
 import time
+import subprocess
+import sys
+import glob
 
 from ochre import Dwelling
 from test import test_output_path
@@ -191,6 +194,47 @@ class DwellingWithEquipmentTestCase(unittest.TestCase):
         # check output metrics have expected keys
         self.assertIn("Total Electric Energy (kWh)", metrics)
         self.assertGreater(metrics["Total Electric Energy (kWh)"], 0)
+
+
+class TestRunDwellingScript(unittest.TestCase):
+    """
+    Integration test that runs bin/run_dwelling.py as a subprocess.
+    This validates the example script continues to work end-to-end.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.output_dir = test_output_path
+        cls.script_path = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, "bin", "run_dwelling.py")
+
+    @classmethod
+    def tearDownClass(cls):
+        # Clean up output files created by the script
+        patterns = ["MyHouse*.csv", "MyHouse*.parquet", "MyHouse*.png"]
+        for pattern in patterns:
+            for f in glob.glob(os.path.join(cls.output_dir, pattern)):
+                os.remove(f)
+
+    def test_run_dwelling_script(self):
+        """Test that bin/run_dwelling.py runs successfully as a subprocess."""
+        result = subprocess.run(
+            [sys.executable, self.script_path, "--no-show"],
+            cwd=self.output_dir,  # Use test output directory as working directory
+            capture_output=True,
+            text=True,
+            timeout=180,  # 3 minute timeout for initialization + simulation
+        )
+
+        # Check script completed successfully
+        self.assertEqual(
+            result.returncode,
+            0,
+            f"Script failed with return code {result.returncode}.\nstdout: {result.stdout}\nstderr: {result.stderr}",
+        )
+
+        # Check plot file was created
+        plot_file = os.path.join(self.output_dir, "MyHouse_power_stack.png")
+        self.assertTrue(os.path.exists(plot_file), f"Expected plot file not found: {plot_file}")
 
 
 if __name__ == "__main__":
