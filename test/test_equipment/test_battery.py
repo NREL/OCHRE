@@ -316,6 +316,7 @@ class BatteryDegradationTestCase(unittest.TestCase):
 
         # Add some cycling data
         battery.degradation_data = [(0.3, 0.7), (0.4, 0.8), (0.2, 0.6)]
+        initial_capacity = battery.capacity_kwh_nominal  # noqa: F841
 
         # Run degradation calculation
         battery.calculate_degradation()
