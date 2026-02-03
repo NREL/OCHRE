@@ -117,7 +117,8 @@ For more examples, see:
 - Python example scripts to:
 
   - Run a `single dwelling
-    <https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__
+    <https://github.com/NREL/OCHRE/blob/main/bin/run_dwelling.py>`__ (use
+    ``--no-show`` for headless/CI environments)
 
   - Run a `single piece of equipment
     <https://github.com/NREL/OCHRE/blob/main/bin/run_equipment.py>`__
