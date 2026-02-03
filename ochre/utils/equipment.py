@@ -237,6 +237,7 @@ def calculate_duct_dse(
     # des_in_enthalpy = float(climate_data['Design hin'])
     seas_enthalpy = float(climate_data["Seasonal hout"])
     seas_in_enthalpy = float(climate_data["Seasonal hin"])
+    ground_temp = (heating_des_init + cooling_des_init) / 2  # noqa: F841
 
     # Load zone temperature file
     df_zone_temps = load_csv(zone_temp_file, index_col="Zone Type")
