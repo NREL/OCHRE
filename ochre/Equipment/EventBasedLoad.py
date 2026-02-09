@@ -277,7 +277,7 @@ class DailyLoad(EventBasedLoad):
         if self.event_duration % kwargs["time_res"] != dt.timedelta(0):
             new_duration = self.event_duration // self.time_res * self.time_res
             self.warn(
-                "Changing default duration ({}) to align with simulation time.New duration: {}".format(
+                "Changing default duration ({}) to align with simulation time. New duration: {}".format(
                     self.event_duration, new_duration
                 )
             )
