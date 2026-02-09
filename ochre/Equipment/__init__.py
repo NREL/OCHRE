@@ -2,7 +2,7 @@ from .Equipment import Equipment
 from .ScheduledLoad import ScheduledLoad, LightingLoad
 from .EventBasedLoad import EventBasedLoad, DailyLoad, EventDataLoad
 from .HVAC import (
-    HVAC,
+    HVAC as HVAC,
     Heater,
     ElectricFurnace,
     ElectricBaseboard,
@@ -50,10 +50,7 @@ EQUIPMENT_BY_NAME = {
         ]
     },
     # 'HVAC Cooling'
-    **{
-        equipment.name: equipment
-        for equipment in [Cooler, AirConditioner, ASHPCooler, RoomAC, MinisplitAHSPCooler]
-    },
+    **{equipment.name: equipment for equipment in [Cooler, AirConditioner, ASHPCooler, RoomAC, MinisplitAHSPCooler]},
     # 'Water Heating'
     **{
         equipment.name: equipment
@@ -104,3 +101,48 @@ EQUIPMENT_BY_NAME = {
 }
 
 ALL_END_USES = {cls.end_use for cls in EQUIPMENT_BY_NAME.values()}
+
+__all__ = [
+    # Base classes
+    "Equipment",
+    "ScheduledLoad",
+    "LightingLoad",
+    "EventBasedLoad",
+    "DailyLoad",
+    "EventDataLoad",
+    # HVAC
+    "HVAC",
+    "Heater",
+    "ElectricFurnace",
+    "ElectricBaseboard",
+    "ElectricBoiler",
+    "GasFurnace",
+    "GasBoiler",
+    "HeatPumpHeater",
+    "ASHPHeater",
+    "MinisplitAHSPHeater",
+    "Cooler",
+    "AirConditioner",
+    "ASHPCooler",
+    "RoomAC",
+    "MinisplitAHSPCooler",
+    # Water Heaters
+    "WaterHeater",
+    "ElectricResistanceWaterHeater",
+    "HeatPumpWaterHeater",
+    "GasWaterHeater",
+    "TanklessWaterHeater",
+    "GasTanklessWaterHeater",
+    # Generators
+    "Generator",
+    "GasGenerator",
+    "GasFuelCell",
+    # Other equipment
+    "PV",
+    "Battery",
+    "ElectricVehicle",
+    "ScheduledEV",
+    # Mappings
+    "EQUIPMENT_BY_NAME",
+    "ALL_END_USES",
+]

@@ -4,7 +4,8 @@ on:
   push:
     branches: [main, dev]
   pull_request:
-    branches: [main, dev]
+    # Run on all pull requests
+    types: [opened, synchronize, reopened]
 
 jobs:
   test:
@@ -61,9 +62,8 @@ jobs:
           pip install ruff
 
       - name: Run ruff linter
-        run: ruff check ochre/ --output-format=github
+        run: ruff check . --output-format=github
         continue-on-error: true
 
       - name: Run ruff formatter check
-        run: ruff format ochre/ --check --diff
-        continue-on-error: true
+        run: ruff format . --check --diff

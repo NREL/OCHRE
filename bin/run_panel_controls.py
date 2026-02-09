@@ -10,13 +10,15 @@ from bin.run_multiple import compile_results
 # Example code for running an building with smart panel controls.
 
 main_output_path = dwelling_args.pop("output_path", os.getcwd())
-dwelling_args.update({
-    "name": "ochre",
-    "time_res": dt.timedelta(minutes=2),  # time resolution of the simulation
-    "duration": dt.timedelta(days=10),  # duration of the simulation
-    "verbosity": 6,  # verbosity of time series files (0-9)
-    'seed': 1,
-})
+dwelling_args.update(
+    {
+        "name": "ochre",
+        "time_res": dt.timedelta(minutes=2),  # time resolution of the simulation
+        "duration": dt.timedelta(days=10),  # duration of the simulation
+        "verbosity": 6,  # verbosity of time series files (0-9)
+        "seed": 1,
+    }
+)
 
 
 def circuit_sharing_control(dwelling, tech1, tech2):
@@ -209,7 +211,7 @@ if __name__ == "__main__":
 
     # case 1, circuit sharing with cooking range (primary) and WH (secondary)
     run_simulation(
-        "circuit_sharing", 
+        "circuit_sharing",
         tech1="Cooking Range",
         tech2="Water Heating",
     )

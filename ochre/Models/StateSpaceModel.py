@@ -42,7 +42,8 @@ class StateSpaceModel(Simulator):
      DataFrame contains a DatetimeIndex (or a column called 'Time'), time_res will be inferred from the index.
 
     """
-    name = 'Generic State Space'
+
+    name = "Generic State Space"
 
     def __init__(self, states, inputs, outputs=None, matrices=None, **kwargs):
         super().__init__(**kwargs)
@@ -85,7 +86,7 @@ class StateSpaceModel(Simulator):
         # Reduce model order (i.e. number of states)
         self.reduced = False
         self.transformation_matrix = None
-        if 'reduced_states' in kwargs or 'reduced_min_accuracy' in kwargs:
+        if "reduced_states" in kwargs or "reduced_min_accuracy" in kwargs:
             self.reduce_model(update_discrete=False, **kwargs)
 
         # Create A, B discrete matrices
@@ -101,8 +102,9 @@ class StateSpaceModel(Simulator):
             # if C isn't defined, output names must match state names
             bad_outputs = [output for output in self.output_names if output not in self.state_names]
             if bad_outputs:
-                raise ModelException(f'Outputs must match state names if C matrix is not defined.'
-                                     f' Invalid outputs: {bad_outputs}')
+                raise ModelException(
+                    f"Outputs must match state names if C matrix is not defined. Invalid outputs: {bad_outputs}"
+                )
 
             output_idx = [list(self.state_names).index(output_name) for output_name in self.output_names]
             c = np.eye(self.nx, dtype=float)[output_idx, :]
@@ -121,7 +123,7 @@ class StateSpaceModel(Simulator):
             check = np.zeros(self.nx)
             check[j] = 1
             if not (c[i, :] == check).all() or not (d[i, :] == np.zeros(self.nu)).all():
-                raise ModelException(f'Output equation for {name} does not equal state with same name.')
+                raise ModelException(f"Output equation for {name} does not equal state with same name.")
 
         return a, b, c, d
 
@@ -131,8 +133,15 @@ class StateSpaceModel(Simulator):
     def get_output_weights(self):
         return np.ones(self.ny)
 
-    def reduce_model(self, reduced_states=None, reduced_min_accuracy=None, input_weights=None, output_weights=None, 
-                     update_discrete=True, **kwargs):
+    def reduce_model(
+        self,
+        reduced_states=None,
+        reduced_min_accuracy=None,
+        input_weights=None,
+        output_weights=None,
+        update_discrete=True,
+        **kwargs,
+    ):
         # reduce number of states using balanced truncation model reduction algorithm
         # see Gugercin 2000, section 2.1.1, https://ieeexplore.ieee.org/abstract/document/914153
         a, b, c = self.A_c, self.B_c, self.C
@@ -157,18 +166,18 @@ class StateSpaceModel(Simulator):
         q = linalg.solve_continuous_lyapunov(a.T, -c.T.dot(c))
 
         # Get eigenvalues
-        sigma = linalg.eigvals(p.dot(q)) ** 0.5
+        sigma = linalg.eigvals(p.dot(q)) ** 0.5  # noqa: F841
 
         # Solve for U and L
         u = linalg.cholesky(p).T
-        l = linalg.cholesky(q, lower=True)
+        l = linalg.cholesky(q, lower=True)  # noqa: E741
 
         # SVD of U*L
         z, s, yh = linalg.svd(u.T.dot(l))
-        y = yh.T
+        y = yh.T  # noqa: F841
 
         # Solve for state transformation matrix
-        t = np.diag(s ** 0.5).dot(z.T).dot(linalg.inv(u))
+        t = np.diag(s**0.5).dot(z.T).dot(linalg.inv(u))
         # t_check = np.diag(s ** -0.5).dot(Y.T).dot(L.T)
         # print(t - t_check)
 
@@ -200,14 +209,17 @@ class StateSpaceModel(Simulator):
             if len(available_states):
                 reduced_states = available_states[0]
             else:
-                self.warn(f'Cannot achieve minimum accuracy for {self.name} Model ({reduced_min_accuracy}). '
-                      f'Creating 1 state model with accuracy {max_error[-1]}')
+                self.warn(
+                    f"Cannot achieve minimum accuracy for {self.name} Model ({reduced_min_accuracy}). "
+                    f"Creating 1 state model with accuracy {max_error[-1]}"
+                )
                 reduced_states = 1
 
         # save transformation matrix as DataFrame with named index and columns
-        new_state_names = [f'x{i + 1}' for i in range(reduced_states)]
-        self.transformation_matrix = pd.DataFrame(t[:reduced_states, :],
-                                                  index=new_state_names, columns=self.state_names)
+        new_state_names = [f"x{i + 1}" for i in range(reduced_states)]
+        self.transformation_matrix = pd.DataFrame(
+            t[:reduced_states, :], index=new_state_names, columns=self.state_names
+        )
 
         # update states and state names - default state names are ['x1', 'x2', ...]
         self.state_names = new_state_names
@@ -261,7 +273,7 @@ class StateSpaceModel(Simulator):
                 elif input_name in self.input_names:
                     input_idx = self.input_names.index(input_name)
                 else:
-                    raise ModelException(f'Unknown input name {input_name} for {self.name}')
+                    raise ModelException(f"Unknown input name {input_name} for {self.name}")
                 self.inputs_init[input_idx] = new_val
 
     def update_model(self, control_signal=None):
@@ -341,4 +353,4 @@ class StateSpaceModel(Simulator):
         elif name in self.state_names:
             return self.states[self.state_names.index(name)]
         else:
-            raise ModelException(f'Unknown variable {name}, not in {self.name} model.')
+            raise ModelException(f"Unknown variable {name}, not in {self.name} model.")
