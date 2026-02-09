@@ -1,27 +1,18 @@
 import unittest
 import datetime as dt
-import numpy as np
 import pandas as pd
 
 from ochre.Models.Envelope import Envelope
 from ochre.Equipment.HVAC import (
-    HVAC,
-    Heater,
-    Cooler,
     ElectricFurnace,
     ElectricBoiler,
     ElectricBaseboard,
     GasFurnace,
     GasBoiler,
-    DynamicHVAC,
     AirConditioner,
     RoomAC,
-    ASHPCooler,
-    HeatPumpHeater,
     ASHPHeater,
-    MinisplitHVAC,
     MinisplitAHSPCooler,
-    MinisplitAHSPHeater,
 )
 from test.test_equipment import equip_init_args
 
@@ -236,7 +227,7 @@ class HVACControlTestCase(unittest.TestCase):
         indoor_zone = self.envelope.zones["Indoor"]
         indoor_zone.temperature = 17  # Below 20C - 1C deadband = 19C
         self.heater.update_inputs()
-        mode = self.heater.update_model()
+        self.heater.update_model()
         # Heater should be on
         self.assertIn(self.heater.mode, ["On", "HP On"])
 
@@ -246,7 +237,7 @@ class HVACControlTestCase(unittest.TestCase):
         indoor_zone = self.envelope.zones["Indoor"]
         indoor_zone.temperature = 22  # Above 20C + 1C deadband
         self.heater.update_inputs()
-        mode = self.heater.update_model()
+        self.heater.update_model()
         # Heater should be off
         self.assertEqual(self.heater.mode, "Off")
 

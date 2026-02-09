@@ -1,5 +1,5 @@
-import cProfile, pstats
-from guppy import hpy
+import cProfile
+import pstats
 
 from ochre import Dwelling
 from bin.run_dwelling import dwelling_args

@@ -663,7 +663,6 @@ class EventDataLoadTestCase(unittest.TestCase):
             if len(equip.all_events) > 0:
                 # Start event
                 equip.start_event()
-                first_power = equip.p_setpoint
 
                 # Update inputs should advance to next power value
                 equip.update_inputs()
@@ -823,7 +822,7 @@ class EventFileSavingTestCase(unittest.TestCase):
         args["output_path"] = self.temp_dir
         args["main_sim_name"] = "test_sim"
 
-        equip = EventBasedLoad(name="Saved Events", **args)
+        EventBasedLoad(name="Saved Events", **args)
 
         # Check that file was created
         expected_file = os.path.join(self.temp_dir, "test_sim_Saved Events_events.csv")

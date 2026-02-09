@@ -3,7 +3,7 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 
-from ochre.Models.Envelope import Envelope, Zone, Boundary, BoundarySurface, ExteriorZone
+from ochre.Models.Envelope import Envelope, ExteriorZone
 from ochre.utils import OCHREException
 
 
@@ -252,7 +252,6 @@ class EnvelopeSolverTestCase(unittest.TestCase):
         """Test solving for a single input to achieve desired state"""
         current_temp = self.envelope.states[0]
         # Solve for heat input to maintain current temperature
-        h_idx = self.envelope.input_names.index("H_LIV")
         u_desired = self.envelope.solve_for_input("T_LIV", "H_LIV", current_temp)
         self.assertIsInstance(u_desired, (int, float, np.floating))
 

@@ -1,7 +1,6 @@
 import os
 import json
 import datetime as dt
-import shutil
 import sys
 import click
 import helics

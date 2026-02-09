@@ -225,8 +225,8 @@ def calculate_duct_dse(
     location_index = df_climate["Distance"].argmin() + 1
     climate_data = df_climate.loc[location_index].to_dict()
 
-    heating_des_init = float(climate_data["Heating Design Temp"])  # required for evaluating zone temp file
-    cooling_des_init = float(climate_data["Cooling Design Temp"])  # required for evaluating zone temp file
+    heating_des_init = float(climate_data["Heating Design Temp"])  # noqa: F841 - required for evaluating zone temp file
+    cooling_des_init = float(climate_data["Cooling Design Temp"])  # noqa: F841 - required for evaluating zone temp file
     heating_seas_init = float(climate_data["Heating Seasonal Temp"])  # required for evaluating zone temp file
     cooling_seas_init = float(climate_data["Cooling Seasonal Temp"])  # required for evaluating zone temp file
     # des_HR = float(climate_data['Wdesign'])
@@ -237,7 +237,7 @@ def calculate_duct_dse(
     # des_in_enthalpy = float(climate_data['Design hin'])
     seas_enthalpy = float(climate_data["Seasonal hout"])
     seas_in_enthalpy = float(climate_data["Seasonal hin"])
-    ground_temp = (heating_des_init + cooling_des_init) / 2
+    ground_temp = (heating_des_init + cooling_des_init) / 2  # noqa: F841
 
     # Load zone temperature file
     df_zone_temps = load_csv(zone_temp_file, index_col="Zone Type")

@@ -166,15 +166,15 @@ class StateSpaceModel(Simulator):
         q = linalg.solve_continuous_lyapunov(a.T, -c.T.dot(c))
 
         # Get eigenvalues
-        sigma = linalg.eigvals(p.dot(q)) ** 0.5
+        sigma = linalg.eigvals(p.dot(q)) ** 0.5  # noqa: F841
 
         # Solve for U and L
         u = linalg.cholesky(p).T
-        l = linalg.cholesky(q, lower=True)
+        l = linalg.cholesky(q, lower=True)  # noqa: E741
 
         # SVD of U*L
         z, s, yh = linalg.svd(u.T.dot(l))
-        y = yh.T
+        y = yh.T  # noqa: F841
 
         # Solve for state transformation matrix
         t = np.diag(s**0.5).dot(z.T).dot(linalg.inv(u))

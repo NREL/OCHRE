@@ -2,7 +2,7 @@ import unittest
 import datetime as dt
 import numpy as np
 
-from ochre.Models import StateSpaceModel, ModelException
+from ochre.Models import StateSpaceModel
 
 # inputs for SISO test
 x0_1 = {"x1": 5}
@@ -108,9 +108,6 @@ class LargeRCModelTestCase(unittest.TestCase):
 
     def test_reduce_model(self):
         # reduce_model now modifies the model in-place and returns None
-        # Save original shapes for comparison
-        orig_nx = self.model.nx
-
         # test with reduced states
         self.model.reduce_model(reduced_states=2)
         self.assertEqual(self.model.nx, 2)

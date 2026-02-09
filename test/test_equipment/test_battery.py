@@ -1,6 +1,5 @@
 import unittest
 import datetime as dt
-import numpy as np
 import pandas as pd
 
 from ochre.Equipment import Battery
@@ -78,26 +77,26 @@ class BatteryTestCase(unittest.TestCase):
 
     def test_update_external_control_soc_limits(self):
         """Test Min SOC and Max SOC control signals"""
-        mode = self.battery.update_external_control({"Min SOC": 0.2})
+        self.battery.update_external_control({"Min SOC": 0.2})
         self.assertAlmostEqual(self.battery.soc_min_ctrl, 0.2)
 
-        mode = self.battery.update_external_control({"Max SOC": 0.9})
+        self.battery.update_external_control({"Max SOC": 0.9})
         self.assertAlmostEqual(self.battery.soc_max_ctrl, 0.9)
 
     def test_update_external_control_self_consumption(self):
         """Test Self Consumption Mode control signal"""
-        mode = self.battery.update_external_control({"Self Consumption Mode": True})
+        self.battery.update_external_control({"Self Consumption Mode": True})
         self.assertTrue(self.battery.self_consumption_mode)
 
-        mode = self.battery.update_external_control({"Self Consumption Mode": False})
+        self.battery.update_external_control({"Self Consumption Mode": False})
         self.assertFalse(self.battery.self_consumption_mode)
 
     def test_update_external_control_import_export_limits(self):
         """Test import and export limit control signals"""
-        mode = self.battery.update_external_control({"Max Import Limit": 3})
+        self.battery.update_external_control({"Max Import Limit": 3})
         self.assertEqual(self.battery.import_limit, 3)
 
-        mode = self.battery.update_external_control({"Max Export Limit": 2})
+        self.battery.update_external_control({"Max Export Limit": 2})
         self.assertEqual(self.battery.export_limit, 2)
 
     def test_update_internal_control_schedule(self):
@@ -317,7 +316,7 @@ class BatteryDegradationTestCase(unittest.TestCase):
 
         # Add some cycling data
         battery.degradation_data = [(0.3, 0.7), (0.4, 0.8), (0.2, 0.6)]
-        initial_capacity = battery.capacity_kwh_nominal
+        initial_capacity = battery.capacity_kwh_nominal  # noqa: F841
 
         # Run degradation calculation
         battery.calculate_degradation()
