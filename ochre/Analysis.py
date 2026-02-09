@@ -687,7 +687,7 @@ def find_files_from_ending(path, ending, priority_list=None, **kwargs):
         run_name = get_parent_folders(file_path, **kwargs)
         if run_name in all_files:
             raise OCHREException(
-                f"Multiple files found with same run name ({run_name}).Try increasing dirs_to_include. Error from:",
+                f"Multiple files found with same run name ({run_name}). Try increasing dirs_to_include. Error from:",
                 file_path,
             )
 
