@@ -449,7 +449,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
             self.hp_capacity_nominal = kwargs["HPWH Capacity (W)"]  # max heating capacity, in W
         else:
             hp_power_nominal = kwargs.get("HPWH Power (W)", 500)  # in W
-            self.hp_capacity_nominal = hp_power_nominal * self.hp_cop  # in W
+            self.hp_capacity_nominal = hp_power_nominal * self.cop_nominal  # in W
         self.parasitic_power = kwargs.get("HPWH Parasitics (W)", 1)  # Standby power in W
         self.fan_power = kwargs.get("HPWH Fan Power (W)", 35)  # in W
 

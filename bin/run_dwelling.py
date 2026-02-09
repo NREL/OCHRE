@@ -117,6 +117,16 @@ dwelling_args = {
 }
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run a single dwelling simulation")
+    parser.add_argument(
+        "--no-show",
+        action="store_true",
+        help="Save plot to disk but do not display it (useful for CI/automated testing)",
+    )
+    args = parser.parse_args()
+
     # Initialization
     dwelling = Dwelling(**dwelling_args)
 
@@ -127,5 +137,15 @@ if __name__ == "__main__":
     # df, metrics, hourly = Analysis.load_ochre(dwelling_args["output_path"], dwelling_args["name"])
 
     # Plot results
-    CreateFigures.plot_power_stack(df)
-    CreateFigures.plt.show()
+    fig = CreateFigures.plot_power_stack(df)
+
+    # Always save plot to output directory (if plot was created)
+    if fig is not None:
+        output_path = dwelling_args.get("output_path", os.getcwd())
+        plot_file = os.path.join(output_path, f"{dwelling_args['name']}_power_stack.png")
+        fig.savefig(plot_file)
+        print(f"Plot saved to: {plot_file}")
+
+    # Show plot interactively unless --no-show is specified
+    if not args.no_show:
+        CreateFigures.plt.show()
