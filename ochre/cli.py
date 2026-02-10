@@ -39,7 +39,7 @@ def create_dwelling(
     initialization_time=1,
     export_res=None,
     time_zone=None,
-    output_format='ochre',
+    output_format="ochre",
 ):
     # Update input file paths
     if not os.path.isabs(hpxml_file):
@@ -241,7 +241,7 @@ def common_options(f):
             "--export_res",
             type=int,
             help="Export interval in days (exports results periodically to reduce memory). "
-                 "Recommended: 30 days for 1-minute resolution, 60 days for 5-minute resolution",
+            "Recommended: 30 days for 1-minute resolution, 60 days for 5-minute resolution",
         ),
         click.option(
             "--output_format",

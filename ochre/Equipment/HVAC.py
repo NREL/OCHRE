@@ -527,9 +527,13 @@ class HVAC(Equipment):
         results = super().generate_results()
         on = "On" in self.mode
 
-        if self.verbosity >= 4:
-            # add delivered heat, setpoint, and COP
-            # recalculate COP to account for any changes in power (e.g. crankcase, pan heater)
+        if (col := f"{self.end_use} Delivered (W)") in self.enabled_outputs:
+            results[col] = abs(self.delivered_heat) * self.duct_dse
+
+        if (col := f"{self.end_use} Setpoint (C)") in self.enabled_outputs:
+            results[col] = self.temp_setpoint
+
+        if (col := f"{self.end_use} COP (-)") in self.enabled_outputs:
             main_power = self.electric_kw + self.gas_therms_per_hour / kwh_to_therms - self.fan_power / 1000
             if on and main_power != 0:
                 cop = self.capacity * self.space_fraction / main_power / 1000
@@ -537,24 +541,32 @@ class HVAC(Equipment):
                 cop = 1 / self.eir
             else:
                 cop = 0
-            results[f"{self.end_use} Delivered (W)"] = abs(self.delivered_heat) * self.duct_dse
-            results[f"{self.end_use} Setpoint (C)"] = self.temp_setpoint
-            results[f"{self.end_use} COP (-)"] = cop
+            results[col] = cop
 
-        if self.verbosity >= 5:
-            # add component loads (ducts)
-            results[f"{self.end_use} Duct Losses (W)"] = abs(self.delivered_heat) * (1 - self.duct_dse)
+        if (col := f"{self.end_use} Duct Losses (W)") in self.enabled_outputs:
+            results[col] = abs(self.delivered_heat) * (1 - self.duct_dse)
 
-        if self.verbosity >= 7:
-            # add other results
-            results[f"{self.end_use} Main Power (kW)"] = main_power
-            results[f"{self.end_use} Fan Power (kW)"] = self.fan_power / 1000
-            if not self.is_heater:
-                results[f"{self.end_use} Latent Gains (W)"] = self.latent_gain * self.space_fraction
-                results[f"{self.end_use} SHR (-)"] = self.shr if on or self.show_eir_shr else 0
-            results[f"{self.end_use} Speed (-)"] = self.speed_idx
-            results[f"{self.end_use} Capacity (W)"] = self.capacity
-            results[f"{self.end_use} Max Capacity (W)"] = self.capacity_max
+        if (col := f"{self.end_use} Main Power (kW)") in self.enabled_outputs:
+            main_power = self.electric_kw + self.gas_therms_per_hour / kwh_to_therms - self.fan_power / 1000
+            results[col] = main_power
+
+        if (col := f"{self.end_use} Fan Power (kW)") in self.enabled_outputs:
+            results[col] = self.fan_power / 1000
+
+        if not self.is_heater:
+            if (col := f"{self.end_use} Latent Gains (W)") in self.enabled_outputs:
+                results[col] = self.latent_gain * self.space_fraction
+            if (col := f"{self.end_use} SHR (-)") in self.enabled_outputs:
+                results[col] = self.shr if on or self.show_eir_shr else 0
+
+        if (col := f"{self.end_use} Speed (-)") in self.enabled_outputs:
+            results[col] = self.speed_idx
+
+        if (col := f"{self.end_use} Capacity (W)") in self.enabled_outputs:
+            results[col] = self.capacity
+
+        if (col := f"{self.end_use} Max Capacity (W)") in self.enabled_outputs:
+            results[col] = self.capacity_max
 
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())
@@ -1415,11 +1427,14 @@ class ASHPHeater(HeatPumpHeater):
     def generate_results(self):
         results = super().generate_results()
 
-        if self.verbosity >= 7:
+        if (col := f"{self.end_use} Main Power (kW)") in self.enabled_outputs:
             tot_power = self.capacity * self.eir * self.space_fraction / 1000
             er_power = self.er_capacity * self.er_eir_rated * self.space_fraction / 1000
-            results[f"{self.end_use} Main Power (kW)"] = tot_power - er_power
-            results[f"{self.end_use} ER Power (kW)"] = er_power
+            results[col] = tot_power - er_power
+
+        if (col := f"{self.end_use} ER Power (kW)") in self.enabled_outputs:
+            er_power = self.er_capacity * self.er_eir_rated * self.space_fraction / 1000
+            results[col] = er_power
 
         return results
 

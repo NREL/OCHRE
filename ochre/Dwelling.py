@@ -80,9 +80,9 @@ class Dwelling(Simulator):
                 ochre_schedule_file = None
 
             # ResStock output format: set up different file paths and load crosswalk
-            if self.output_format == 'resstock':
-                self.resstock_timeseries_file = os.path.join(self.output_path, 'results_timeseries.csv')
-                self.resstock_annual_file = os.path.join(self.output_path, 'results_annual.csv')
+            if self.output_format == "resstock":
+                self.resstock_timeseries_file = os.path.join(self.output_path, "results_timeseries.csv")
+                self.resstock_annual_file = os.path.join(self.output_path, "results_annual.csv")
                 self.resstock_crosswalk = load_crosswalk()
                 self.resstock_units_dict = None  # Will be set on first export
                 self._resstock_annual_sums = {}  # Accumulate kWh for annual totals
@@ -319,59 +319,58 @@ class Dwelling(Simulator):
         # See docs for list of results and verbosity levels
         results = super().generate_results()
 
-        if self.verbosity >= 0:
-            results.update(
-                {
-                    "Total Electric Power (kW)": self.total_p_kw,
-                    "Total Reactive Power (kVAR)": self.total_q_kvar,
-                    "Total Gas Power (therms/hour)": self.total_gas_therms_per_hour,
-                }
-            )
+        if (col := "Total Electric Power (kW)") in self.enabled_outputs:
+            results[col] = self.total_p_kw
+        if (col := "Total Reactive Power (kVAR)") in self.enabled_outputs:
+            results[col] = self.total_q_kvar
+        if (col := "Total Gas Power (therms/hour)") in self.enabled_outputs:
+            results[col] = self.total_gas_therms_per_hour
 
-        if self.verbosity >= 6:
+        if (col := "Total Electric Energy (kWh)") in self.enabled_outputs:
             hours_per_step = self.time_res / dt.timedelta(hours=1)
-            results.update(
-                {
-                    "Total Electric Energy (kWh)": self.total_p_kw * hours_per_step,
-                    "Total Reactive Energy (kVARh)": self.total_q_kvar * hours_per_step,
-                    "Total Gas Energy (therms)": self.total_gas_therms_per_hour * hours_per_step,
-                }
-            )
+            results[col] = self.total_p_kw * hours_per_step
+        if (col := "Total Reactive Energy (kVARh)") in self.enabled_outputs:
+            hours_per_step = self.time_res / dt.timedelta(hours=1)
+            results[col] = self.total_q_kvar * hours_per_step
+        if (col := "Total Gas Energy (therms)") in self.enabled_outputs:
+            hours_per_step = self.time_res / dt.timedelta(hours=1)
+            results[col] = self.total_gas_therms_per_hour * hours_per_step
 
-        if self.verbosity >= 2:
-            for end_use, equipment in self.equipment_by_end_use.items():
-                if equipment and any([e.is_electric for e in equipment]):
-                    results[end_use + " Electric Power (kW)"] = sum([e.electric_kw for e in equipment])
-            for end_use, equipment in self.equipment_by_end_use.items():
-                if equipment and any([e.is_gas for e in equipment]):
-                    results[end_use + " Gas Power (therms/hour)"] = sum([e.gas_therms_per_hour for e in equipment])
-        if self.verbosity >= 8:
-            for end_use, equipment in self.equipment_by_end_use.items():
-                if equipment and any([e.is_electric for e in equipment]):
-                    results[end_use + " Reactive Power (kVAR)"] = sum([e.reactive_kvar for e in equipment])
-            results["Grid Voltage (-)"] = self.voltage
+        # End-use level power aggregation
+        for end_use, equipment in self.equipment_by_end_use.items():
+            if equipment and any([e.is_electric for e in equipment]):
+                if (col := end_use + " Electric Power (kW)") in self.enabled_outputs:
+                    results[col] = sum([e.electric_kw for e in equipment])
+        for end_use, equipment in self.equipment_by_end_use.items():
+            if equipment and any([e.is_gas for e in equipment]):
+                if (col := end_use + " Gas Power (therms/hour)") in self.enabled_outputs:
+                    results[col] = sum([e.gas_therms_per_hour for e in equipment])
+        for end_use, equipment in self.equipment_by_end_use.items():
+            if equipment and any([e.is_electric for e in equipment]):
+                if (col := end_use + " Reactive Power (kVAR)") in self.enabled_outputs:
+                    results[col] = sum([e.reactive_kvar for e in equipment])
+        if (col := "Grid Voltage (-)") in self.enabled_outputs:
+            results[col] = self.voltage
 
         return results
 
     def export_results(self):
         """
-        Export results to file. For ResStock format, converts and writes to 
+        Export results to file. For ResStock format, converts and writes to
         results_timeseries.csv instead of ochre.csv.
         """
-        if self.output_format != 'resstock':
+        if self.output_format != "resstock":
             return super().export_results()
 
         # ResStock format: convert and write to results_timeseries.csv
-        df = pd.DataFrame(self.results).set_index('Time') if self.results else None
+        df = pd.DataFrame(self.results).set_index("Time") if self.results else None
         self.results.clear()
 
         if not self.save_results or df is None or self.resstock_timeseries_file is None:
             return df
 
         # Convert to ResStock format
-        resstock_df, units_dict = build_resstock_timeseries(
-            df, self.resstock_crosswalk, self.time_res
-        )
+        resstock_df, units_dict = build_resstock_timeseries(df, self.resstock_crosswalk, self.time_res)
 
         # Store units dict for later appends (only set on first export)
         if self.resstock_units_dict is None:
@@ -384,16 +383,15 @@ class Dwelling(Simulator):
 
         # Write or append to timeseries file
         append = os.path.exists(self.resstock_timeseries_file)
-        write_resstock_timeseries(resstock_df, self.resstock_units_dict, 
-                                  self.resstock_timeseries_file, append=append)
+        write_resstock_timeseries(resstock_df, self.resstock_units_dict, self.resstock_timeseries_file, append=append)
 
         return df
 
     def finalize(self, failed=False):
         # For ResStock format, we need custom finalization
-        if self.output_format == 'resstock':
+        if self.output_format == "resstock":
             return self._finalize_resstock(failed)
-        
+
         # Standard OCHRE format
         df = super().finalize(failed)
 
@@ -433,33 +431,31 @@ class Dwelling(Simulator):
         """
         # Export any remaining results
         df = self.export_results()
-        
+
         # Print status and save status file (similar to Simulator.finalize)
-        status = 'failed' if failed else 'complete'
+        status = "failed" if failed else "complete"
         if self.main_simulator and self.verbosity >= 3:
             if self.resstock_timeseries_file and os.path.exists(self.resstock_timeseries_file):
-                results = f'time series results saved to: {self.resstock_timeseries_file}'
+                results = f"time series results saved to: {self.resstock_timeseries_file}"
             else:
-                results = 'no results'
-            self.print(f'Simulation {status}, {results}')
-        
+                results = "no results"
+            self.print(f"Simulation {status}, {results}")
+
         if self.save_status and self.output_path:
-            status_file = os.path.join(self.output_path, f'{self.name}_{status}')
-            with open(status_file, 'a'):
+            status_file = os.path.join(self.output_path, f"{self.name}_{status}")
+            with open(status_file, "a"):
                 pass
-        
+
         # Finalize sub_simulators
         for sub in self.sub_simulators:
             sub.finalize(failed=failed)
-        
+
         # Calculate and write annual totals
         if self._resstock_annual_sums and self.resstock_annual_file:
-            annual_totals = convert_accumulated_sums_to_annual(
-                self._resstock_annual_sums, self.resstock_crosswalk
-            )
+            annual_totals = convert_accumulated_sums_to_annual(self._resstock_annual_sums, self.resstock_crosswalk)
             update_resstock_annual(annual_totals, self.resstock_annual_file)
             self.print("Annual results saved to:", self.resstock_annual_file)
-        
+
         # For ResStock mode, we don't compute OCHRE metrics or hourly aggregation
         # The ResStock format is the final output
         return df, None, None

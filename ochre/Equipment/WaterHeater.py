@@ -298,14 +298,21 @@ class WaterHeater(Equipment):
     def generate_results(self):
         results = super().generate_results()
 
-        if self.verbosity >= 4:
+        if (col := f"{self.end_use} Delivered (W)") in self.enabled_outputs:
+            results[col] = self.delivered_heat
+
+        if (col := f"{self.end_use} COP (-)") in self.enabled_outputs:
             cop = self.delivered_heat / (self.electric_kw * 1000) if self.electric_kw > 0 else 0
-            results[f"{self.end_use} Delivered (W)"] = self.delivered_heat
-            results[f"{self.end_use} COP (-)"] = cop
-        if self.verbosity >= 7:
-            results[f"{self.end_use} Total Sensible Heat Gain (W)"] = self.sensible_gain
-            results[f"{self.end_use} Deadband Upper Limit (C)"] = self.setpoint_temp
-            results[f"{self.end_use} Deadband Lower Limit (C)"] = self.setpoint_temp - self.deadband_temp
+            results[col] = cop
+
+        if (col := f"{self.end_use} Total Sensible Heat Gain (W)") in self.enabled_outputs:
+            results[col] = self.sensible_gain
+
+        if (col := f"{self.end_use} Deadband Upper Limit (C)") in self.enabled_outputs:
+            results[col] = self.setpoint_temp
+
+        if (col := f"{self.end_use} Deadband Lower Limit (C)") in self.enabled_outputs:
+            results[col] = self.setpoint_temp - self.deadband_temp
 
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())
@@ -682,14 +689,20 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
 
     def generate_results(self):
         results = super().generate_results()
-        if self.verbosity >= 7:
+
+        if (col := f"{self.end_use} Heat Pump Max Capacity (W)") in self.enabled_outputs:
+            results[col] = self.hp_capacity
+
+        if (col := f"{self.end_use} Heat Pump On Fraction (-)") in self.enabled_outputs:
             if self.use_ideal_capacity:
                 hp_on_frac = self.duty_cycle_by_mode["Heat Pump On"]
             else:
                 hp_on_frac = 1 if "Heat Pump" in self.mode else 0
-            results[f"{self.end_use} Heat Pump Max Capacity (W)"] = self.hp_capacity
-            results[f"{self.end_use} Heat Pump On Fraction (-)"] = hp_on_frac
-            results[f"{self.end_use} Heat Pump COP (-)"] = self.hp_cop
+            results[col] = hp_on_frac
+
+        if (col := f"{self.end_use} Heat Pump COP (-)") in self.enabled_outputs:
+            results[col] = self.hp_cop
+
         return results
 
 

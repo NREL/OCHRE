@@ -201,9 +201,10 @@ class Generator(Equipment):
 
     def generate_results(self):
         results = super().generate_results()
-        if self.verbosity >= 6:
-            results[f"{self.end_use} Setpoint (kW)"] = self.power_setpoint
-            results[f"{self.end_use} Efficiency (-)"] = self.efficiency
+        if (col := f"{self.end_use} Setpoint (kW)") in self.enabled_outputs:
+            results[col] = self.power_setpoint
+        if (col := f"{self.end_use} Efficiency (-)") in self.enabled_outputs:
+            results[col] = self.efficiency
         return results
 
 

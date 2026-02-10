@@ -333,19 +333,26 @@ class StratifiedWaterModel(RCModel):
         # Note: most results are included in Dwelling/WH. Only inputs and states are saved to self.results
         results = super().generate_results()
 
-        if self.verbosity >= 3:
-            results["Hot Water Unmet Demand (kW)"] = self.h_unmet_load / 1000
-            results["Hot Water Outlet Temperature (C)"] = self.outlet_temp
-        if self.verbosity >= 4:
-            results["Hot Water Delivered (L/min)"] = self.draw_total
-            results["Hot Water Delivered (W)"] = self.h_delivered
-        if self.verbosity >= 7:
-            results["Hot Water Heat Injected (W)"] = self.h_injections
-            results["Hot Water Heat Loss (W)"] = self.h_loss
-            results["Hot Water Average Temperature (C)"] = self.states.dot(self.vol_fractions)
-            results["Hot Water Maximum Temperature (C)"] = self.states.max()
-            results["Hot Water Minimum Temperature (C)"] = self.states.min()
-            results["Hot Water Mains Temperature (C)"] = self.mains_temp
+        if (col := "Hot Water Unmet Demand (kW)") in self.enabled_outputs:
+            results[col] = self.h_unmet_load / 1000
+        if (col := "Hot Water Outlet Temperature (C)") in self.enabled_outputs:
+            results[col] = self.outlet_temp
+        if (col := "Hot Water Delivered (L/min)") in self.enabled_outputs:
+            results[col] = self.draw_total
+        if (col := "Hot Water Delivered (W)") in self.enabled_outputs:
+            results[col] = self.h_delivered
+        if (col := "Hot Water Heat Injected (W)") in self.enabled_outputs:
+            results[col] = self.h_injections
+        if (col := "Hot Water Heat Loss (W)") in self.enabled_outputs:
+            results[col] = self.h_loss
+        if (col := "Hot Water Average Temperature (C)") in self.enabled_outputs:
+            results[col] = self.states.dot(self.vol_fractions)
+        if (col := "Hot Water Maximum Temperature (C)") in self.enabled_outputs:
+            results[col] = self.states.max()
+        if (col := "Hot Water Minimum Temperature (C)") in self.enabled_outputs:
+            results[col] = self.states.min()
+        if (col := "Hot Water Mains Temperature (C)") in self.enabled_outputs:
+            results[col] = self.mains_temp
         return results
 
 

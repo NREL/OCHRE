@@ -24,8 +24,8 @@ class BatteryThermalModel(OneNodeRCModel):
 
     def generate_results(self):
         results = super().generate_results()
-        if self.verbosity >= 7:
-            results[f"{self.name} (C)"] = self.states[0]
+        if (col := f"{self.name} (C)") in self.enabled_outputs:
+            results[col] = self.states[0]
 
         return results
 
@@ -438,16 +438,25 @@ class Battery(Generator):
 
     def generate_results(self):
         results = super().generate_results()
-        if self.verbosity >= 3:
-            results[f"{self.end_use} SOC (-)"] = self.soc
-        if self.verbosity >= 7:
-            results[f"{self.end_use} Energy to Discharge (kWh)"] = self.get_kwh_remaining()
-            if self.degradation_states is not None:
-                results[f"{self.end_use} Nominal Capacity (kWh)"] = self.capacity_kwh_nominal
-                results[f"{self.end_use} Actual Capacity (kWh)"] = self.capacity_kwh
-                results[f"{self.end_use} Degradation State Q1"] = self.degradation_states[0]
-                results[f"{self.end_use} Degradation State Q2"] = self.degradation_states[1]
-                results[f"{self.end_use} Degradation State Q3"] = self.degradation_states[2]
+
+        if (col := f"{self.end_use} SOC (-)") in self.enabled_outputs:
+            results[col] = self.soc
+
+        if (col := f"{self.end_use} Energy to Discharge (kWh)") in self.enabled_outputs:
+            results[col] = self.get_kwh_remaining()
+
+        if self.degradation_states is not None:
+            if (col := f"{self.end_use} Nominal Capacity (kWh)") in self.enabled_outputs:
+                results[col] = self.capacity_kwh_nominal
+            if (col := f"{self.end_use} Actual Capacity (kWh)") in self.enabled_outputs:
+                results[col] = self.capacity_kwh
+            if (col := f"{self.end_use} Degradation State Q1") in self.enabled_outputs:
+                results[col] = self.degradation_states[0]
+            if (col := f"{self.end_use} Degradation State Q2") in self.enabled_outputs:
+                results[col] = self.degradation_states[1]
+            if (col := f"{self.end_use} Degradation State Q3") in self.enabled_outputs:
+                results[col] = self.degradation_states[2]
+
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())
 
