@@ -1,0 +1,148 @@
+diff a/ochre/utils/schedule.py b/ochre/utils/schedule.py	(rejected hunks)
+@@ -15,64 +15,65 @@
+ 
+ # TODO: move to simple schedule parameters file?
+ SCHEDULE_NAMES = {
+-    "Occupancy": {
+-        "occupants": "Occupancy",
++    'Occupancy': {
++        'occupants': 'Occupancy',
+     },
+-    "Power": {
+-        "clothes_washer": "Clothes Washer",
+-        "clothes_dryer": "Clothes Dryer",
+-        "dishwasher": "Dishwasher",
+-        "refrigerator": "Refrigerator",
+-        "freezer": "Freezer",
+-        "cooking_range": "Cooking Range",
+-        "lighting_interior": "Indoor Lighting",
+-        "lighting_exterior": "Exterior Lighting",
+-        "lighting_basement": "Basement Lighting",
+-        "lighting_garage": "Garage Lighting",
+-        "plug_loads_other": "MELs",
+-        "plug_loads_tv": "TV",
+-        "plug_loads_well_pump": "Well Pump",
++    'Power': {
++        'clothes_washer': 'Clothes Washer',
++        'clothes_dryer': 'Clothes Dryer',
++        'dishwasher': 'Dishwasher',
++        'refrigerator': 'Refrigerator',
++        'freezer': 'Freezer',
++        'cooking_range': 'Cooking Range',
++        'lighting_interior': 'Indoor Lighting',
++        'lighting_exterior': 'Exterior Lighting',
++        'lighting_basement': 'Basement Lighting',
++        'lighting_garage': 'Garage Lighting',
++        'plug_loads_other': 'MELs',
++        'plug_loads_tv': 'TV',
++        'plug_loads_well_pump': 'Well Pump',
+         # 'plug_loads_vehicle': 'electric vehicle charging',  # Not using scheduled EV load
+-        "fuel_loads_grill": "Gas Grill",
+-        "fuel_loads_fireplace": "Gas Fireplace",
+-        "fuel_loads_lighting": "Gas Lighting",
+-        "pool_pump": "Pool Pump",
+-        "pool_heater": "Pool Heater",
+-        "permanent_spa_pump": "Spa Pump",
+-        "permanent_spa_heater": "Spa Heater",
+-        "ceiling_fan": "Ceiling Fan",
++        'fuel_loads_grill': 'Gas Grill',
++        'fuel_loads_fireplace': 'Gas Fireplace',
++        'fuel_loads_lighting': 'Gas Lighting',
++        'pool_pump': 'Pool Pump',
++        'pool_heater': 'Pool Heater',
++        'permanent_spa_pump': 'Spa Pump',
++        'permanent_spa_heater': 'Spa Heater',
++        'ceiling_fan': 'Ceiling Fan',
+         # 'vent_fan': 'Ventilation Fan',  # not included in schedule
+         # 'basement_mels': 'Basement MELs',  # not modeled
+     },
+-    "Water": {
+-        "hot_water_fixtures": "Water Fixtures",
++    'Water': {
++        'hot_water_fixtures': 'Water Fixtures',
+         # "hot_water_showers": "Showers",  # for unmet loads only
+-        "hot_water_clothes_washer": "Clothes Washer",
+-        "hot_water_dishwasher": "Dishwasher",
++        'hot_water_clothes_washer': 'Clothes Washer',
++        'hot_water_dishwasher': 'Dishwasher',
+     },
+-    "Setpoint": {
+-        "heating_setpoint": "HVAC Heating",
+-        "cooling_setpoint": "HVAC Cooling",
+-        "water_heater_setpoint": "Water Heating",
++    'Setpoint': {
++        'heating_setpoint': 'HVAC Heating',
++        'cooling_setpoint': 'HVAC Cooling',
++        'water_heater_setpoint': 'Water Heating',
+     },
+-    "Ignore": {
+-        "extra_refrigerator": None,
+-        "clothes_dryer_exhaust": None,
+-        "lighting_exterior_holiday": None,
+-        "plug_loads_vehicle": None,
+-        "battery": None,
+-        "vacancy": None,
+-        "water_heater_operating_mode": None,
+-        "Vacancy": None,
+-        "Power Outage": None,
+-        "No Space Heating": None,
+-        "No Space Cooling": None,
++    'Ignore': {
++        'extra_refrigerator': None,
++        'clothes_dryer_exhaust': None,
++        'lighting_exterior_holiday': None,
++        'plug_loads_vehicle': None,
++        'battery': None,
++        'vacancy': None,
++        'water_heater_operating_mode': None,
++        'Vacancy': None,
++        'Power Outage': None,
++        'No Space Heating': None,
++        'No Space Cooling': None,
+     },
+ }
+ 
+ ALL_SCHEDULE_NAMES = {
+     hpxml_name: (category, ochre_name)
+-    for category, data in SCHEDULE_NAMES.items() for hpxml_name, ochre_name in data.items()
++    for category, data in SCHEDULE_NAMES.items()
++    for hpxml_name, ochre_name in data.items()
+ }
+ 
+ WEATHER_NAMES = {  # Column names required in weather file
+@@ -395,16 +413,19 @@
+                 df_norm[hpxml_name] = convert(df_norm[hpxml_name].values, 'degF', 'degC')
+             elif ochre_dict.get('Weekday Setpoints (C)') is not None:
+                 # create simple setpoint schedule
+-                s_hpxml = create_simple_schedule(ochre_dict.get('Weekday Setpoints (C)'),
+-                                                 ochre_dict.get('Weekend Setpoints (C)'))
++                s_hpxml = create_simple_schedule(
++                    ochre_dict.get('Weekday Setpoints (C)'), ochre_dict.get('Weekend Setpoints (C)')
++                )
+                 s_hpxml.name = hpxml_name
+                 schedules_to_merge.append(s_hpxml)
+             elif 'Setpoint Temperature (C)' in ochre_dict:
+                 # create a constant setpoint schedule
+                 df_norm[hpxml_name] = ochre_dict['Setpoint Temperature (C)']
+             else:
+-                raise OCHREException(f'Must specify {ochre_name} setpoints in schedule input file or include parameters '
+-                              '"Weekday/Weekend Setpoints (C)" or "Setpoint Temperature (C)".')
++                raise OCHREException(
++                    f'Must specify {ochre_name} setpoints in schedule input file or include parameters '
++                    '"Weekday/Weekend Setpoints (C)" or "Setpoint Temperature (C)".'
++                )
+ 
+         # Add occupancy/power/water draw simple schedules
+         elif hpxml_name not in df_norm:
+@@ -458,8 +479,9 @@
+     return schedule
+ 
+ 
+-def resample_and_reindex(df, time_res, start_time=None, duration=None, interpolate=False, offset=None,
+-                         preserve_sum=False, **kwargs):
++def resample_and_reindex(
++    df, time_res, start_time=None, duration=None, interpolate=False, offset=None, preserve_sum=False, **kwargs
++):
+     # Resamples time series data and sets the index to the simulation duration. df must have a DateTimeIndex
+     # Options to select resample method, e.g. interpolate vs. pad
+     # Will repeat annual data and extend start and end rows by up to 2 time steps if necessary

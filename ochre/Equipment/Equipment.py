@@ -290,16 +290,16 @@ class Equipment(Simulator):
         # Note: individual equipment powers are included in ScheduledLoad.generate_results
         # main_simulator check ensures standalone equipment always outputs its power
         if self.is_electric:
-            if self.main_simulator or (col := f"{self.results_name} Electric Power (kW)") in self.enabled_outputs:
-                results[col] = self.electric_kw
-            if (col := f"{self.results_name} Reactive Power (kVAR)") in self.enabled_outputs:
-                results[col] = self.reactive_kvar
+            electric_power_name = f"{self.results_name} Electric Power (kW)"
+            if self.main_simulator or electric_power_name in self.enabled_outputs:
+                results[electric_power_name] = self.electric_kw
+            self.add_output(results, f"{self.results_name} Reactive Power (kVAR)", self.reactive_kvar)
         if self.is_gas:
-            if self.main_simulator or (col := f"{self.results_name} Gas Power (therms/hour)") in self.enabled_outputs:
-                results[col] = self.gas_therms_per_hour
+            gas_power_name = f"{self.results_name} Gas Power (therms/hour)"
+            if self.main_simulator or gas_power_name in self.enabled_outputs:
+                results[gas_power_name] = self.gas_therms_per_hour
 
-        if (col := f"{self.results_name} Mode") in self.enabled_outputs:
-            results[col] = self.mode
+        self.add_output(results, f"{self.results_name} Mode", self.mode)
 
         return results
 

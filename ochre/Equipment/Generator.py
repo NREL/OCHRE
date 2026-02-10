@@ -201,10 +201,8 @@ class Generator(Equipment):
 
     def generate_results(self):
         results = super().generate_results()
-        if (col := f"{self.end_use} Setpoint (kW)") in self.enabled_outputs:
-            results[col] = self.power_setpoint
-        if (col := f"{self.end_use} Efficiency (-)") in self.enabled_outputs:
-            results[col] = self.efficiency
+        self.add_output(results, f"{self.end_use} Setpoint (kW)", self.power_setpoint)
+        self.add_output(results, f"{self.end_use} Efficiency (-)", self.efficiency)
         return results
 
 

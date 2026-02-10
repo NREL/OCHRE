@@ -1,0 +1,41 @@
+diff a/ochre/utils/hpxml.py b/ochre/utils/hpxml.py	(rejected hunks)
+@@ -1498,7 +1587,7 @@
+     return {
+         'vehicle_type': 'BEV',
+         'charging_level': 'Level 2',
+-        'range': 100 if ev_load < 1500 else 250  # Splits the two EV size options from ResStock
++        'range': 100 if ev_load < 1500 else 250,  # Splits the two EV size options from ResStock
+     }
+ 
+ 
+@@ -1599,18 +1687,22 @@
+         extension = lighting.get('extension', {})
+         for loc, df_lights in df_lights_all.groupby('Location'):
+             if loc == 'interior':
+-                equipment['Indoor Lighting'] = parse_lighting(loc, df_lights,
+-                                                              construction['Indoor Floor Area (m^2)'], extension)
++                equipment['Indoor Lighting'] = parse_lighting(
++                    loc, df_lights, construction['Indoor Floor Area (m^2)'], extension
++                )
+                 if construction['Foundation Type'] == 'Finished Basement':
+-                    equipment['Basement Lighting'] = parse_lighting(loc, df_lights, 
+-                                                                    construction['First Floor Area (m^2)'], extension)
++                    equipment['Basement Lighting'] = parse_lighting(
++                        loc, df_lights, construction['First Floor Area (m^2)'], extension
++                    )
+             elif loc == 'exterior':
+-                equipment['Exterior Lighting'] = parse_lighting(loc, df_lights,
+-                                                                construction['Indoor Floor Area (m^2)'], extension)
++                equipment['Exterior Lighting'] = parse_lighting(
++                    loc, df_lights, construction['Indoor Floor Area (m^2)'], extension
++                )
+             elif loc == 'garage':
+                 if construction['Garage Floor Area (m^2)'] > 0:
+-                    equipment['Garage Lighting'] = parse_lighting(loc, df_lights, 
+-                                                                construction['Garage Floor Area (m^2)'], extension)
++                    equipment['Garage Lighting'] = parse_lighting(
++                        loc, df_lights, construction['Garage Floor Area (m^2)'], extension
++                    )
+                 else:
+                     print('WARNING: Skipping garage lighting, since no garage is modeled.')
+             else:

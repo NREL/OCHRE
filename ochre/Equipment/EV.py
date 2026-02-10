@@ -334,24 +334,18 @@ class ElectricVehicle(EventBasedLoad):
     def generate_results(self):
         results = super().generate_results()
 
-        if (col := f"{self.end_use} SOC (-)") in self.enabled_outputs:
-            results[col] = self.soc
+        self.add_output(results, f"{self.end_use} SOC (-)", self.soc)
 
-        if (col := f"{self.end_use} Unmet Load (kWh)") in self.enabled_outputs:
-            results[col] = self.unmet_load
+        self.add_output(results, f"{self.end_use} Unmet Load (kWh)", self.unmet_load)
 
-        if (col := f"{self.end_use} Parked") in self.enabled_outputs:
-            results[col] = self.in_event
+        self.add_output(results, f"{self.end_use} Parked", self.in_event)
 
-        if (col := f"{self.end_use} Start Time") in self.enabled_outputs:
-            results[col] = self.event_start
+        self.add_output(results, f"{self.end_use} Start Time", self.event_start)
 
-        if (col := f"{self.end_use} End Time") in self.enabled_outputs:
-            results[col] = self.event_end
+        self.add_output(results, f"{self.end_use} End Time", self.event_end)
 
-        if (col := f"{self.end_use} Remaining Charge Time (min)") in self.enabled_outputs:
-            remaining_charge_minutes = (1 - self.soc) * self.capacity / (self.max_power_ctrl * EV_EFFICIENCY) * 60
-            results[col] = remaining_charge_minutes
+        remaining_charge_minutes = (1 - self.soc) * self.capacity / (self.max_power_ctrl * EV_EFFICIENCY) * 60
+        self.add_output(results, f"{self.end_use} Remaining Charge Time (min)", remaining_charge_minutes)
 
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())

@@ -253,8 +253,6 @@ class PV(ScheduledLoad):
 
     def generate_results(self):
         results = super().generate_results()
-        if (col := f"{self.end_use} P Setpoint (kW)") in self.enabled_outputs:
-            results[col] = self.p_set_point
-        if (col := f"{self.end_use} Q Setpoint (kW)") in self.enabled_outputs:
-            results[col] = self.q_set_point
+        self.add_output(results, f"{self.end_use} P Setpoint (kW)", self.p_set_point)
+        self.add_output(results, f"{self.end_use} Q Setpoint (kW)", self.q_set_point)
         return results

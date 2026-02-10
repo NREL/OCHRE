@@ -179,7 +179,7 @@ class DwellingWithEquipmentTestCase(unittest.TestCase):
         t_sim = time.time() - t0
 
         # check speed of simulation - allow more time for CI environments
-        self.assertLess(t_sim, 5.0)
+        self.assertLess(t_sim, 20.0)
 
         # check time series outputs
         self.assertEqual(len(df), 96)

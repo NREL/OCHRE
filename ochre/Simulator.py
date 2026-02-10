@@ -8,6 +8,7 @@ import hashlib
 from ochre import __version__
 from ochre.utils import load_csv, OCHREException
 import ochre.utils.schedule as utils_schedule
+from ochre.utils.output_control import get_enabled_outputs
 
 
 class Simulator:
@@ -294,6 +295,54 @@ class Simulator:
         self.update_model(control_signal)
 
         return self.update_results()
+
+    @property
+    def enabled_outputs(self):
+        """Get the set of enabled outputs based on current output format and verbosity level.
+
+        This is a dynamic property that recomputes when verbosity changes. This allows
+        tests and code to change verbosity levels and have outputs automatically adapt.
+
+        Returns
+        -------
+        frozenset[str]
+            Immutable set of enabled output column names
+        """
+        return get_enabled_outputs(self.output_format, self.verbosity)
+
+    def add_output(self, results, name, value):
+        """Add output to results dict if enabled by current verbosity level.
+
+        This method checks if the output is enabled in the registry before adding
+        it to the results dictionary. Supports lazy evaluation for expensive
+        computations by accepting callable values (use sparingly).
+
+        Parameters
+        ----------
+        results : dict
+            Results dictionary to update
+        name : str
+            Output column name (must match registry names)
+        value : any or callable
+            Output value. If callable, only executed if output is enabled.
+            Note: Use callables only for expensive operations (loops, aggregations).
+            Simple arithmetic should be computed directly.
+
+        Examples
+        --------
+        # Simple outputs (most common)
+        >>> self.add_output(results, "Total Electric Power (kW)", self.total_p_kw)
+
+        # Computed outputs (still simple, compute directly)
+        >>> hours = self.time_res / dt.timedelta(hours=1)
+        >>> self.add_output(results, "Total Energy (kWh)", self.total_p_kw * hours)
+
+        # Expensive operations (rare - use lambda)
+        >>> self.add_output(results, "Zone Losses (W)",
+        ...                 lambda: sum(z.compute_losses() for z in self.zones))
+        """
+        if name in self.enabled_outputs:
+            results[name] = value() if callable(value) else value
 
     def reset_time(self, start_time=None, remove_results=True, **kwargs):
         if start_time is None:

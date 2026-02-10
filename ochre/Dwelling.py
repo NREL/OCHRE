@@ -319,38 +319,26 @@ class Dwelling(Simulator):
         # See docs for list of results and verbosity levels
         results = super().generate_results()
 
-        if (col := "Total Electric Power (kW)") in self.enabled_outputs:
-            results[col] = self.total_p_kw
-        if (col := "Total Reactive Power (kVAR)") in self.enabled_outputs:
-            results[col] = self.total_q_kvar
-        if (col := "Total Gas Power (therms/hour)") in self.enabled_outputs:
-            results[col] = self.total_gas_therms_per_hour
+        self.add_output(results, "Total Electric Power (kW)", self.total_p_kw)
+        self.add_output(results, "Total Reactive Power (kVAR)", self.total_q_kvar)
+        self.add_output(results, "Total Gas Power (therms/hour)", self.total_gas_therms_per_hour)
 
-        if (col := "Total Electric Energy (kWh)") in self.enabled_outputs:
-            hours_per_step = self.time_res / dt.timedelta(hours=1)
-            results[col] = self.total_p_kw * hours_per_step
-        if (col := "Total Reactive Energy (kVARh)") in self.enabled_outputs:
-            hours_per_step = self.time_res / dt.timedelta(hours=1)
-            results[col] = self.total_q_kvar * hours_per_step
-        if (col := "Total Gas Energy (therms)") in self.enabled_outputs:
-            hours_per_step = self.time_res / dt.timedelta(hours=1)
-            results[col] = self.total_gas_therms_per_hour * hours_per_step
+        hours_per_step = self.time_res / dt.timedelta(hours=1)
+        self.add_output(results, "Total Electric Energy (kWh)", self.total_p_kw * hours_per_step)
+        self.add_output(results, "Total Reactive Energy (kVARh)", self.total_q_kvar * hours_per_step)
+        self.add_output(results, "Total Gas Energy (therms)", self.total_gas_therms_per_hour * hours_per_step)
 
         # End-use level power aggregation
         for end_use, equipment in self.equipment_by_end_use.items():
             if equipment and any([e.is_electric for e in equipment]):
-                if (col := end_use + " Electric Power (kW)") in self.enabled_outputs:
-                    results[col] = sum([e.electric_kw for e in equipment])
+                self.add_output(results, end_use + " Electric Power (kW)", sum([e.electric_kw for e in equipment]))
         for end_use, equipment in self.equipment_by_end_use.items():
             if equipment and any([e.is_gas for e in equipment]):
-                if (col := end_use + " Gas Power (therms/hour)") in self.enabled_outputs:
-                    results[col] = sum([e.gas_therms_per_hour for e in equipment])
+                self.add_output(results, end_use + " Gas Power (therms/hour)", sum([e.gas_therms_per_hour for e in equipment]))
         for end_use, equipment in self.equipment_by_end_use.items():
             if equipment and any([e.is_electric for e in equipment]):
-                if (col := end_use + " Reactive Power (kVAR)") in self.enabled_outputs:
-                    results[col] = sum([e.reactive_kvar for e in equipment])
-        if (col := "Grid Voltage (-)") in self.enabled_outputs:
-            results[col] = self.voltage
+                self.add_output(results, end_use + " Reactive Power (kVAR)", sum([e.reactive_kvar for e in equipment]))
+        self.add_output(results, "Grid Voltage (-)", self.voltage)
 
         return results
 
