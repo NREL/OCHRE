@@ -178,8 +178,8 @@ class DwellingWithEquipmentTestCase(unittest.TestCase):
         df, metrics, hourly = self.dwelling.simulate()
         t_sim = time.time() - t0
 
-        # check speed of simulation - allow more time for CI environments
-        self.assertLess(t_sim, 12.0)
+        # check speed of simulation
+        self.assertLess(t_sim, 5.0)
 
         # check time series outputs
         self.assertEqual(len(df), 96)
