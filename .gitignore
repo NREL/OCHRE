@@ -1,5 +1,6 @@
 *.pyc
 *.log
+*.rej
 .DS_Store
 
 .idea/
@@ -14,4 +15,6 @@ docs/_build
 *.code-workspace
 .history
 ochre/defaults/Input Files/OCHRE*
-.history
+test/outputs/
+test_run/
+uv.lock

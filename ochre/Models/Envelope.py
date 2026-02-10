@@ -1159,10 +1159,11 @@ class Envelope(RCModel):
         self.add_output(results, "Internal Heat Gain - Indoor (W)", occupant_gain + self.indoor_zone.internal_sens_gain)
 
         # Add window transmittance (note, gains go to indoor zone and to interior boundaries)
-        windows = [bd for bd in self.ext_boundaries if bd.name == "Window"]
-        if windows:
-            window_gain = windows[0].ext_surface.transmitted_gain
-            self.add_output(results, "Window Transmitted Solar Gain (W)", window_gain)
+        if "Window Transmitted Solar Gain (W)" in self.enabled_outputs:
+            windows = [bd for bd in self.ext_boundaries if bd.name == "Window"]
+            if windows:
+                self.add_output(results, "Window Transmitted Solar Gain (W)",
+                                windows[0].ext_surface.transmitted_gain)
 
         # add other component loads
         if not self.reduced:

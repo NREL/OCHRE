@@ -291,13 +291,17 @@ class Equipment(Simulator):
         # main_simulator check ensures standalone equipment always outputs its power
         if self.is_electric:
             electric_power_name = f"{self.results_name} Electric Power (kW)"
-            if self.main_simulator or electric_power_name in self.enabled_outputs:
+            if self.main_simulator:
                 results[electric_power_name] = self.electric_kw
+            else:
+                self.add_output(results, electric_power_name, self.electric_kw)
             self.add_output(results, f"{self.results_name} Reactive Power (kVAR)", self.reactive_kvar)
         if self.is_gas:
             gas_power_name = f"{self.results_name} Gas Power (therms/hour)"
-            if self.main_simulator or gas_power_name in self.enabled_outputs:
+            if self.main_simulator:
                 results[gas_power_name] = self.gas_therms_per_hour
+            else:
+                self.add_output(results, gas_power_name, self.gas_therms_per_hour)
 
         self.add_output(results, f"{self.results_name} Mode", self.mode)
 

@@ -339,9 +339,12 @@ class StratifiedWaterModel(RCModel):
         self.add_output(results, "Hot Water Delivered (W)", self.h_delivered)
         self.add_output(results, "Hot Water Heat Injected (W)", self.h_injections)
         self.add_output(results, "Hot Water Heat Loss (W)", self.h_loss)
-        self.add_output(results, "Hot Water Average Temperature (C)", self.states.dot(self.vol_fractions))
-        self.add_output(results, "Hot Water Maximum Temperature (C)", self.states.max())
-        self.add_output(results, "Hot Water Minimum Temperature (C)", self.states.min())
+        self.add_output(results, "Hot Water Average Temperature (C)",
+                        lambda: self.states.dot(self.vol_fractions))
+        self.add_output(results, "Hot Water Maximum Temperature (C)",
+                        lambda: self.states.max())
+        self.add_output(results, "Hot Water Minimum Temperature (C)",
+                        lambda: self.states.min())
         self.add_output(results, "Hot Water Mains Temperature (C)", self.mains_temp)
         return results
 
