@@ -1162,8 +1162,7 @@ class Envelope(RCModel):
         if "Window Transmitted Solar Gain (W)" in self.enabled_outputs:
             windows = [bd for bd in self.ext_boundaries if bd.name == "Window"]
             if windows:
-                self.add_output(results, "Window Transmitted Solar Gain (W)",
-                                windows[0].ext_surface.transmitted_gain)
+                self.add_output(results, "Window Transmitted Solar Gain (W)", windows[0].ext_surface.transmitted_gain)
 
         # add other component loads
         if not self.reduced:

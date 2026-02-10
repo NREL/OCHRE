@@ -334,7 +334,9 @@ class Dwelling(Simulator):
                 self.add_output(results, end_use + " Electric Power (kW)", sum([e.electric_kw for e in equipment]))
         for end_use, equipment in self.equipment_by_end_use.items():
             if equipment and any([e.is_gas for e in equipment]):
-                self.add_output(results, end_use + " Gas Power (therms/hour)", sum([e.gas_therms_per_hour for e in equipment]))
+                self.add_output(
+                    results, end_use + " Gas Power (therms/hour)", sum([e.gas_therms_per_hour for e in equipment])
+                )
         for end_use, equipment in self.equipment_by_end_use.items():
             if equipment and any([e.is_electric for e in equipment]):
                 self.add_output(results, end_use + " Reactive Power (kVAR)", sum([e.reactive_kvar for e in equipment]))
