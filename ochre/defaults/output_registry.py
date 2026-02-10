@@ -66,6 +66,8 @@ END_USES = [
     "Heat Pump Water Heater",
     "Gas Tankless Water Heater",
     "Gas Water Heater",
+    # Test equipment (used in unit tests)
+    "Test Equipment",
 ]
 
 ZONE_NAMES = [
