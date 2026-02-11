@@ -31,9 +31,7 @@ class Dwelling(Simulator):
     the timing of the simulation.
     """
 
-    def __init__(
-        self, metrics_verbosity=3, save_schedule_columns=None, save_args_to_json=False, **house_args
-    ):
+    def __init__(self, metrics_verbosity=3, save_schedule_columns=None, save_args_to_json=False, **house_args):
         super().__init__(**house_args)
         house_args.pop("name", None)  # remove name from kwargs
         house_args["main_sim_name"] = self.name
@@ -41,9 +39,7 @@ class Dwelling(Simulator):
         # Time parameters
         if self.initialization_time is not None:
             # TODO: use times before start for initialization, if possible
-            house_args["duration"] = max(
-                self.duration, self.initialization_time
-            )  # used for generating schedules
+            house_args["duration"] = max(self.duration, self.initialization_time)  # used for generating schedules
 
         # voltage-dependency parameters
         self.voltage = 1
@@ -55,9 +51,7 @@ class Dwelling(Simulator):
 
         # Results parameters
         self.metrics_verbosity = metrics_verbosity
-        _ = house_args.pop(
-            "save_results", None
-        )  # remove save_results from args to prevent saving all Equipment files
+        _ = house_args.pop("save_results", None)  # remove save_results from args to prevent saving all Equipment files
         if self.output_path is not None:
             # remove existing output files
             for file_type in ["metrics", "hourly", "schedule"]:
@@ -71,9 +65,7 @@ class Dwelling(Simulator):
             extn = ".parquet" if self.output_to_parquet else ".csv"
             self.metrics_file = os.path.join(self.output_path, self.name + "_metrics.csv")
             if self.verbosity >= 3:
-                self.hourly_output_file = os.path.join(
-                    self.output_path, self.name + "_hourly" + extn
-                )
+                self.hourly_output_file = os.path.join(self.output_path, self.name + "_hourly" + extn)
             else:
                 self.hourly_output_file = None
             if self.verbosity >= 7 or save_schedule_columns:
@@ -89,9 +81,7 @@ class Dwelling(Simulator):
         properties, weather_station = load_hpxml(**house_args)
 
         # Load occupancy schedule and weather files
-        schedule, location = load_schedule(
-            properties, weather_station=weather_station, **house_args
-        )
+        schedule, location = load_schedule(properties, weather_station=weather_station, **house_args)
         properties["location"] = location
         self.start_time = self.start_time.replace(tzinfo=schedule.index.tzinfo)
 
@@ -146,8 +136,7 @@ class Dwelling(Simulator):
 
         # sort equipment by end use
         self.equipment_by_end_use = {
-            end_use: [e for e in self.equipment.values() if e.end_use == end_use]
-            for end_use in ALL_END_USES
+            end_use: [e for e in self.equipment.values() if e.end_use == end_use] for end_use in ALL_END_USES
         }
         for end_use, eq in self.equipment_by_end_use.items():
             # check if there is more than 1 equipment per end use. Raise error for HVAC/WH, else print a warning
@@ -163,22 +152,15 @@ class Dwelling(Simulator):
             if not ideal:
                 if self.time_res >= dt.timedelta(minutes=15):
                     raise OCHREException(
-                        f"Cannot use non-ideal equipment {name} with large time step of"
-                        f" {self.time_res}"
+                        f"Cannot use non-ideal equipment {name} with large time step of {self.time_res}"
                     )
                 if self.time_res >= dt.timedelta(minutes=5):
-                    self.warn(
-                        f"Using non-ideal equipment {name} with large time step of {self.time_res}"
-                    )
+                    self.warn(f"Using non-ideal equipment {name} with large time step of {self.time_res}")
 
         # get list of zone temperatures needed for equipment schedules
         self.zones_for_schedule = []
         for eq in self.equipment.values():
-            if (
-                "Zone Temperature (C)" in eq.all_schedule_inputs
-                and eq.zone
-                and eq.zone not in self.zones_for_schedule
-            ):
+            if "Zone Temperature (C)" in eq.all_schedule_inputs and eq.zone and eq.zone not in self.zones_for_schedule:
                 self.zones_for_schedule.append(eq.zone)
 
         # force ideal HVAC equipment to go last - so all heat from other equipment is known during update
@@ -329,20 +311,14 @@ class Dwelling(Simulator):
         if self.verbosity >= 2:
             for end_use, equipment in self.equipment_by_end_use.items():
                 if equipment and any([e.is_electric for e in equipment]):
-                    results[end_use + " Electric Power (kW)"] = sum(
-                        [e.electric_kw for e in equipment]
-                    )
+                    results[end_use + " Electric Power (kW)"] = sum([e.electric_kw for e in equipment])
             for end_use, equipment in self.equipment_by_end_use.items():
                 if equipment and any([e.is_gas for e in equipment]):
-                    results[end_use + " Gas Power (therms/hour)"] = sum(
-                        [e.gas_therms_per_hour for e in equipment]
-                    )
+                    results[end_use + " Gas Power (therms/hour)"] = sum([e.gas_therms_per_hour for e in equipment])
         if self.verbosity >= 8:
             for end_use, equipment in self.equipment_by_end_use.items():
                 if equipment and any([e.is_electric for e in equipment]):
-                    results[end_use + " Reactive Power (kVAR)"] = sum(
-                        [e.reactive_kvar for e in equipment]
-                    )
+                    results[end_use + " Reactive Power (kVAR)"] = sum([e.reactive_kvar for e in equipment])
             results["Grid Voltage (-)"] = self.voltage
 
         return results
@@ -353,9 +329,7 @@ class Dwelling(Simulator):
 
         if df is not None:
             # calculate metrics
-            metrics = Analysis.calculate_metrics(
-                df, dwelling=self, metrics_verbosity=self.metrics_verbosity
-            )
+            metrics = Analysis.calculate_metrics(df, dwelling=self, metrics_verbosity=self.metrics_verbosity)
 
             # Save metrics to file (as single row df)
             if self.metrics_file is not None:

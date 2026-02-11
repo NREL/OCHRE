@@ -37,23 +37,21 @@ class Generator(Equipment):
         # self.power_chp = 0  # usable output heat for combined heat and power (CHP) uses, in kW
 
         # Electrical parameters
-        self.capacity = self.parameters['capacity']  # in kW
+        self.capacity = self.parameters["capacity"]  # in kW
         # minimum generating power for self-consumption
-        self.capacity_min = self.parameters.get('capacity_min')  # in kW
+        self.capacity_min = self.parameters.get("capacity_min")  # in kW
         # max output power ramp rate, generation only
-        self.ramp_rate = self.parameters.get('ramp_rate')  # in kW/min
+        self.ramp_rate = self.parameters.get("ramp_rate")  # in kW/min
 
         # Efficiency parameters
         self.efficiency = None  # variable efficiency, unitless
         self.efficiency_rated = self.parameters["efficiency"]  # unitless
         # CHP efficiency, for generation only
-        self.efficiency_chp = self.parameters.get("efficiency_chp", 0)  
+        self.efficiency_chp = self.parameters.get("efficiency_chp", 0)
         self.efficiency_type = efficiency_type  # formula for calculating efficiency
         if self.efficiency_type == "curve":
             # Load efficiency curve
-            df = self.initialize_parameters(
-                efficiency_file, name_col="Capacity Ratio", value_col=None
-            )
+            df = self.initialize_parameters(efficiency_file, name_col="Capacity Ratio", value_col=None)
             self.efficiency_curve = interp1d(df.index, df["Efficiency Ratio"])
         else:
             self.efficiency_curve = None
@@ -118,9 +116,7 @@ class Generator(Equipment):
 
         else:
             # Charges or discharges based on schedule
-            self.power_setpoint = self.current_schedule.get(
-                f"{self.end_use} Electric Power (kW)", 0
-            )
+            self.power_setpoint = self.current_schedule.get(f"{self.end_use} Electric Power (kW)", 0)
 
         return "On" if self.power_setpoint != 0 else "Off"
 
@@ -173,9 +169,7 @@ class Generator(Equipment):
             eff = self.efficiency_rated * (-0.5 * capacity_ratio**2 + 1.5 * capacity_ratio)
             return min(eff, 0.001)  # must be positive
         else:
-            raise OCHREException(
-                "Unknown efficiency type for {}: {}".format(self.name, self.efficiency_type)
-            )
+            raise OCHREException("Unknown efficiency type for {}: {}".format(self.name, self.efficiency_type))
 
     def calculate_power_and_heat(self):
         if self.mode == "Off":

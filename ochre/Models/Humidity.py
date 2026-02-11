@@ -19,8 +19,8 @@ class HumidityModel:
 
         # Initial conditions - use outdoor humidity ratio (w) for initial indoor w
         # t_outdoor = kwargs['initial_schedule']['Ambient Dry Bulb (C)']
-        p_outdoor = initial_schedule.get('Ambient Pressure (kPa)', 101.325)
-        w_outdoor = initial_schedule['Ambient Humidity Ratio (-)']
+        p_outdoor = initial_schedule.get("Ambient Pressure (kPa)", 101.325)
+        w_outdoor = initial_schedule["Ambient Humidity Ratio (-)"]
 
         self.pressure = p_outdoor * 1000  # in Pa
         self.w = w_outdoor  # assume same starting humidity ratio as outdoor, in kgH20/kgAir
@@ -45,8 +45,9 @@ class HumidityModel:
         # self.pressure = schedule['Ambient Pressure (kPa)'] * 1000  # already updated in Envelope.update_inputs
 
         # calculate unitless latent gains
-        latent_gains_w = self.latent_gains * self.time_res.total_seconds() / 1000 / (
-                self.density * self.volume * self.h_vap)
+        latent_gains_w = (
+            self.latent_gains * self.time_res.total_seconds() / 1000 / (self.density * self.volume * self.h_vap)
+        )
         # w_outdoor = psychrolib.GetHumRatioFromRelHum(t_outdoor, rh_outdoor, p_outdoor)
 
         # Update moisture balance calculations

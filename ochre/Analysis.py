@@ -74,9 +74,7 @@ def download_resstock_model(
     file_names = ["home.xml", "in.schedules.csv"]
     missing = [f for f in file_names if not os.path.exists(os.path.join(local_folder, f))]
     if missing:
-        print(
-            f"WARNING: Couldn't download ResStock files for {building_id}-{upgrade_str}: {missing}"
-        )
+        print(f"WARNING: Couldn't download ResStock files for {building_id}-{upgrade_str}: {missing}")
 
 
 def get_unit(column):
@@ -125,9 +123,7 @@ def load_timeseries_file(file_name, columns=None, resample_res=None, ignore_erro
     return df
 
 
-def load_ochre(
-    ochre_path, ochre_name, load_main=True, load_hourly=True, combine_schedule=False, remove_tz=True
-):
+def load_ochre(ochre_path, ochre_name, load_main=True, load_hourly=True, combine_schedule=False, remove_tz=True):
     # load metrics file
     metrics_file = os.path.join(ochre_path, ochre_name + "_metrics.csv")
     if not os.path.exists(metrics_file):
@@ -151,14 +147,10 @@ def load_ochre(
     # Combine with schedule file if it exists
     if schedule is not None:
         if main is not None:
-            schedule = schedule.drop(
-                columns=[col for col in schedule.columns if col in main.columns]
-            )
+            schedule = schedule.drop(columns=[col for col in schedule.columns if col in main.columns])
             main = main.join(schedule)
         if hourly is not None:
-            schedule = schedule.drop(
-                columns=[col for col in schedule.columns if col in hourly.columns]
-            )
+            schedule = schedule.drop(columns=[col for col in schedule.columns if col in hourly.columns])
             schedule_hourly = schedule.resample(dt.timedelta(hours=1)).mean()
             hourly = hourly.join(schedule_hourly)
 
@@ -182,9 +174,7 @@ def load_eplus_file(
     if eplus_format == "BEopt":
         # skip header rows, remove "My Design - ", and replace "|"
         df = pd.read_csv(file_name, skiprows=[0, 2, 3, 4], low_memory=False)
-        df.columns = [
-            " - ".join(col.split(" - ")[1:]) if " - " in col else col for col in df.columns
-        ]
+        df.columns = [" - ".join(col.split(" - ")[1:]) if " - " in col else col for col in df.columns]
         df.columns = [col.replace("|", ":") for col in df.columns]
         eplus_format = "OS-HPXML"
     elif eplus_format == "ResStock":
@@ -216,9 +206,7 @@ def load_eplus_file(
             eplus_list = [eplus_name]
 
         # subtracts columns if '~' is the first character in the column name
-        eplus_cols = pd.Series(
-            {col[1:] if col[0] == "~" else col: -1 if col[0] == "~" else 1 for col in eplus_list}
-        )
+        eplus_cols = pd.Series({col[1:] if col[0] == "~" else col: -1 if col[0] == "~" else 1 for col in eplus_list})
         eplus_cols = eplus_cols.loc[eplus_cols.index.isin(df.columns)]
         if len(eplus_cols):
             data = (df.loc[:, eplus_cols.index] * eplus_cols).sum(axis=1)
@@ -263,9 +251,7 @@ def load_eplus_file(
         )
 
         # add unmet HVAC loads - BEopt only
-        df["Unmet HVAC Load (C)"] = df["Temperature - Indoor (C)"] - df[
-            "Temperature - Indoor (C)"
-        ].clip(
+        df["Unmet HVAC Load (C)"] = df["Temperature - Indoor (C)"] - df["Temperature - Indoor (C)"].clip(
             convert(df["Living Space|Heating Setpoint"].values, "degF", "degC"),
             convert(df["Living Space|Cooling Setpoint"].values, "degF", "degC"),
         )
@@ -294,10 +280,7 @@ def add_eplus_detailed_results(df, df_ochre, ochre_properties):
     }
     films = pd.DataFrame(index=df.index)
     for surface, name_list in surface_names.items():
-        cols = [
-            f"{s}:Surface {f} Face Convection Heat Transfer Coefficient [W/m2-K](Hourly)"
-            for s, f in name_list
-        ]
+        cols = [f"{s}:Surface {f} Face Convection Heat Transfer Coefficient [W/m2-K](Hourly)" for s, f in name_list]
         if all([col in df.columns for col in cols]):
             films[f"{surface} Film Coefficient (m^2-K/W)"] = 1 / df.loc[:, cols].mean(axis=1)
     df = df.join(films)
@@ -346,9 +329,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
     for power_name, energy_name in power_names:
         col = "Total " + power_name
         if col in results:
-            metrics[col.replace(power_name, energy_name)] = (
-                results[col].sum(skipna=False) * hr_per_step
-            )
+            metrics[col.replace(power_name, energy_name)] = results[col].sum(skipna=False) * hr_per_step
 
     # Average and peak electrical power
     p = results["Total Electric Power (kW)"]
@@ -366,9 +347,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             for end_use in ALL_END_USES:
                 col = f"{end_use} {power_name}"
                 if col in results:
-                    metrics[col.replace(power_name, energy_name)] = (
-                        results[col].sum(skipna=False) * hr_per_step
-                    )
+                    metrics[col.replace(power_name, energy_name)] = results[col].sum(skipna=False) * hr_per_step
 
     # Envelope metrics
     # Average and std. dev. of zone temperatures
@@ -406,12 +385,8 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
     if metrics_verbosity >= 3:
         if "Unmet HVAC Load (C)" in results:
             unmet_hvac = results["Unmet HVAC Load (C)"]
-            metrics["Unmet Heating Load (C-hours)"] = (
-                -unmet_hvac.clip(upper=0).sum(skipna=False) * hr_per_step
-            )
-            metrics["Unmet Cooling Load (C-hours)"] = (
-                unmet_hvac.clip(lower=0).sum(skipna=False) * hr_per_step
-            )
+            metrics["Unmet Heating Load (C-hours)"] = -unmet_hvac.clip(upper=0).sum(skipna=False) * hr_per_step
+            metrics["Unmet Cooling Load (C-hours)"] = unmet_hvac.clip(lower=0).sum(skipna=False) * hr_per_step
 
         for end_use, hvac_mult in [("HVAC Heating", 1), ("HVAC Cooling", -1)]:
             # Delivered heating/cooling
@@ -451,15 +426,11 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
                 else:
                     fan_heat = 0
                 if sens_capacity_sum != 0:
-                    metrics[f"Average {end_use} Duct Efficiency (-)"] = delivered_sum / (
-                        sens_capacity_sum + fan_heat
-                    )
+                    metrics[f"Average {end_use} Duct Efficiency (-)"] = delivered_sum / (sens_capacity_sum + fan_heat)
 
                 # HVAC capacity - only when device is on
                 if metrics_verbosity >= 7:
-                    metrics["Average {} Capacity (kW)".format(end_use)] = capacity[
-                        capacity > 0
-                    ].mean()
+                    metrics["Average {} Capacity (kW)".format(end_use)] = capacity[capacity > 0].mean()
 
     # Water heater and hot water metrics
     if metrics_verbosity >= 3 and "Hot Water Unmet Demand (kW)" in results:
@@ -475,9 +446,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
         # COP - weighted average only when device is on
         if "Water Heating COP (-)" in results and heat.sum(skipna=False) != 0:
             cop = results["Water Heating COP (-)"]
-            metrics["Average Water Heating COP (-)"] = (cop * heat).sum(skipna=False) / heat.sum(
-                skipna=False
-            )
+            metrics["Average Water Heating COP (-)"] = (cop * heat).sum(skipna=False) / heat.sum(skipna=False)
 
         # Hot water delivered
         if "Hot Water Delivered (L/min)" in results:
@@ -504,16 +473,10 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
         metrics["Battery Discharging Energy (kWh)"] = -batt_energy.clip(upper=0).sum(skipna=False)
         if metrics["Battery Charging Energy (kWh)"] != 0:
             metrics["Battery Round-trip Efficiency (-)"] = (
-                metrics["Battery Discharging Energy (kWh)"]
-                / metrics["Battery Charging Energy (kWh)"]
+                metrics["Battery Discharging Energy (kWh)"] / metrics["Battery Charging Energy (kWh)"]
             )
 
-        if all(
-            [
-                r in results
-                for r in ["Battery Energy to Discharge (kWh)", "Total Electric Energy (kWh)"]
-            ]
-        ):
+        if all([r in results for r in ["Battery Energy to Discharge (kWh)", "Total Electric Energy (kWh)"]]):
             cumulative_energy = (results["Total Electric Energy (kWh)"] - batt_energy).cumsum()
             end_energy = cumulative_energy + results["Battery Energy to Discharge (kWh)"]
             islanding_times = []
@@ -528,9 +491,9 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
 
     # Gas generator metrics
     if metrics_verbosity >= 4 and "Gas Generator Electric Energy (kWh)" in metrics:
-        metrics["Gas Generator Efficiency (-)"] = -metrics[
-            "Gas Generator Electric Energy (kWh)"
-        ] / convert(metrics["Gas Generator Gas Energy (therms)"], "therm", "kWh")
+        metrics["Gas Generator Efficiency (-)"] = -metrics["Gas Generator Electric Energy (kWh)"] / convert(
+            metrics["Gas Generator Gas Energy (therms)"], "therm", "kWh"
+        )
 
     # Outage metrics
     if metrics_verbosity >= 1 and "Grid Voltage (-)" in results:
@@ -542,9 +505,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             outage_ends = np.nonzero(-outage_diff.clip(max=0))[0]
             metrics["Number of Outages"] = len(outage_starts)
             metrics["Average Outage Duration (hours)"] = outage_sum / len(outage_starts)
-            metrics["Longest Outage Duration (hours)"] = (
-                outage_ends - outage_starts
-            ).max() * hr_per_step
+            metrics["Longest Outage Duration (hours)"] = (outage_ends - outage_starts).max() * hr_per_step
 
     # Equipment power metrics
     if metrics_verbosity >= 6:
@@ -552,8 +513,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
             power_cols = [col for col in results.columns if power_name in col]
             metrics.update(
                 {
-                    col.replace(power_name, energy_name): results[col].sum(skipna=False)
-                    * hr_per_step
+                    col.replace(power_name, energy_name): results[col].sum(skipna=False) * hr_per_step
                     for col in power_cols
                 }
             )
@@ -597,8 +557,7 @@ def calculate_metrics(results=None, results_file=None, dwelling=None, metrics_ve
         for power_name, energy_name in power_names:
             metrics.update(
                 {
-                    col.replace(power_name, energy_name): results[col].sum(skipna=False)
-                    * hr_per_step
+                    col.replace(power_name, energy_name): results[col].sum(skipna=False) * hr_per_step
                     for col in results.columns
                     if power_name in col
                 }
@@ -700,9 +659,7 @@ def find_subfolders(root_folder, includes_file_patterns=None, excludes_file_patt
     for root, _, files in os.walk(root_folder):
         if any([any([re.match(pattern, f) for f in files]) for pattern in excludes_file_patterns]):
             continue
-        if not all(
-            [any([re.match(pattern, f) for f in files]) for pattern in includes_file_patterns]
-        ):
+        if not all([any([re.match(pattern, f) for f in files]) for pattern in includes_file_patterns]):
             continue
         subfolders.append(root)
 
@@ -724,16 +681,13 @@ def find_files_from_ending(path, ending, priority_list=None, **kwargs):
             # select file match in priority list. If not found, throw an error
             matches = [f for f in priority_list if f in matches]
             if len(matches) != 1:
-                raise OCHREException(
-                    f"{len(matches)} files found matching {ending} in {root}: {matches}"
-                )
+                raise OCHREException(f"{len(matches)} files found matching {ending} in {root}: {matches}")
 
         file_path = os.path.join(root, matches[0])
         run_name = get_parent_folders(file_path, **kwargs)
         if run_name in all_files:
             raise OCHREException(
-                f"Multiple files found with same run name ({run_name})."
-                "Try increasing dirs_to_include. Error from:",
+                f"Multiple files found with same run name ({run_name}). Try increasing dirs_to_include. Error from:",
                 file_path,
             )
 

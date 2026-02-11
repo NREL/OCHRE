@@ -33,16 +33,12 @@ class EventBasedLoad(Equipment):
         if kwargs.get("verbosity", 1) >= 7 and self.output_path is not None:
             # save event schedule
             if self.main_sim_name:
-                file_name = os.path.join(
-                    self.output_path, f"{self.main_sim_name}_{self.name}_events.csv"
-                )
+                file_name = os.path.join(self.output_path, f"{self.main_sim_name}_{self.name}_events.csv")
             else:
                 file_name = os.path.join(self.output_path, f"{self.name}_events.csv")
             self.all_events.to_csv(file_name, index=True)
 
-    def extract_events(
-        self, eq_powers: pd.DataFrame, random_offset: dt.timedelta | None = None, **kwargs
-    ):
+    def extract_events(self, eq_powers: pd.DataFrame, random_offset: dt.timedelta | None = None, **kwargs):
         # get event information from time series schedule
         # assumes constant power for all events
         # get start times
@@ -157,10 +153,7 @@ class EventBasedLoad(Equipment):
         negative_times = self.all_events["end_time"] < self.all_events["start_time"]
         if negative_times.any():
             bad_event = self.all_events.loc[negative_times.idxmax()]
-            raise ValueError(
-                f"{self.name} has event with end time before start time. "
-                f"Event details: \n{bad_event}"
-            )
+            raise ValueError(f"{self.name} has event with end time before start time. Event details: \n{bad_event}")
         overlap = self.all_events["start_time"] < self.all_events["end_time"].shift()
         if overlap.any():
             bad_index = overlap.idxmax()
@@ -170,9 +163,7 @@ class EventBasedLoad(Equipment):
         # add duration and total energy from each event, in kWh
         self.all_events["duration"] = self.all_events["end_time"] - self.all_events["start_time"]
         if "power" in self.all_events.columns:
-            self.all_events["energy"] = (
-                self.all_events["power"] * self.all_events["duration"].dt.total_seconds() / 3600
-            )
+            self.all_events["energy"] = self.all_events["power"] * self.all_events["duration"].dt.total_seconds() / 3600
 
         return ts_schedule
 
@@ -286,8 +277,9 @@ class DailyLoad(EventBasedLoad):
         if self.event_duration % kwargs["time_res"] != dt.timedelta(0):
             new_duration = self.event_duration // self.time_res * self.time_res
             self.warn(
-                "Changing default duration ({}) to align with simulation time."
-                "New duration: {}".format(self.event_duration, new_duration)
+                "Changing default duration ({}) to align with simulation time. New duration: {}".format(
+                    self.event_duration, new_duration
+                )
             )
             self.event_duration = new_duration
 
@@ -362,7 +354,7 @@ class EventDataLoad(EventBasedLoad):
             duration_mult = duration_ratio.round().clip(lower=1)
             duration_error = abs(duration_ratio - duration_mult) * duration_by_type
             energy_error = (event["energy"] / duration_mult - energy_by_type) / energy_by_type
-            
+
             # determine event type based on duration and energy "scores"
             # 50% error in energy ~= 30 minutes of error in duration
             duration_score = duration_error.dt.total_seconds() / 60
@@ -387,9 +379,7 @@ class EventDataLoad(EventBasedLoad):
         # load event schedule data
         if event_schedule_file is None:
             event_schedule_file = "Event Schedules.csv"
-        self.event_ts_data = load_csv(
-            event_schedule_file, sub_folder=self.name, index_col="Seconds"
-        )
+        self.event_ts_data = load_csv(event_schedule_file, sub_folder=self.name, index_col="Seconds")
         self.event_ts_data.index = pd.to_timedelta(self.event_ts_data.index, unit="s")
 
         # resample event data to time_res
@@ -436,7 +426,7 @@ class EventDataLoad(EventBasedLoad):
             # set schedule to current time
             duration_passed = self.current_time - self.all_events[self.event_index, "start_time"]
             self.event_schedule = self.setup_event_schedule(duration_passed)
-            
+
     def start_event(self):
         super().start_event()
 

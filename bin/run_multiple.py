@@ -2,7 +2,7 @@ import os
 import shutil
 
 from ochre import Analysis
-from ochre.cli import create_dwelling, limit_input_paths, run_multiple_local, run_multiple_hpc
+from ochre.cli import create_dwelling
 from ochre.utils import default_input_path
 
 # Examples to download and run multiple Dwellings. Uses OCHRE's command line
@@ -48,9 +48,7 @@ def compile_results(main_path, n_max=None):
     df.to_csv(os.path.join(output_path, "all_ochre_inputs.csv"))
 
     # combine metrics files
-    metrics_files = {
-        name: os.path.join(path, "ochre_metrics.csv") for name, path in run_names.items()
-    }
+    metrics_files = {name: os.path.join(path, "ochre_metrics.csv") for name, path in run_names.items()}
     df = Analysis.combine_metrics_files(metrics_files)
     df.to_csv(os.path.join(output_path, "all_ochre_metrics.csv"))
 

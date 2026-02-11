@@ -10,11 +10,11 @@ dependencies = [
     "pandas >=1.4, <3.0",
     "scipy ~= 1.15",
     "matplotlib ~= 3.10",
-    "pint ~= 0.23",
+    "pint == 0.23",
     "pvlib >= 0.10, <1.0",
     "nrel-pysam >= 5.1, <7.0",
     "psychrolib ~= 2.5",
-    "numba ~= 0.61",  # required for psychrolib
+    "numba ~= 0.61", # required for psychrolib
     "xmltodict >= 0.13, <1.0",
     "pyarrow >= 15.0",
     "fastparquet >= 2024.0",
@@ -23,11 +23,13 @@ dependencies = [
     "python-dateutil ~= 2.9",
     "click ~= 8.1",
     "boto3 ~= 1.36",
+    "ruff>=0.14.14",
 ]
-requires-python = ">=3.9, <3.13"
+requires-python = ">=3.10, <3.13"
 authors = [
   { name="Jeff Maguire", email="Jeff.Maguire@nrel.gov" },
   { name="Michael Blonsky", email="Michael.Blonsky@nrel.gov" },
+  { name="Rajendra Adhikari", email="Rajendra.Adhikari@nlr.gov" },
 ]
 description = "An energy modeling tool designed to model residential end-use loads and DERs"
 readme = "README.md"
@@ -63,3 +65,9 @@ path = "ochre/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["ochre"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+quote-style = "double"

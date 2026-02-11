@@ -14,3 +14,4 @@ docs/_build
 *.code-workspace
 
 ochre/defaults/Input Files/OCHRE*
+.history
