@@ -141,14 +141,15 @@ def run_exteral_hvac_model():
     cooling.duct_dse = 1.0 #FIXME: This removes ducts for now
     cooling.c_d = 0.0  # Remove cycling losses from example, handled by external model
 
-    ambient_temps = dwelling.envelope.schedule["Ambient Dry Bulb (C)"]
-    ambient_w = dwelling.envelope.schedule["Ambient Humidity Ratio (-)"]
+    #Parsing in for examples that might change capacity based on weather
+    #ambient_temps = dwelling.envelope.schedule["Ambient Dry Bulb (C)"]
+    #ambient_w = dwelling.envelope.schedule["Ambient Humidity Ratio (-)"]
     
     er_capacity = 0.0 #Disable backup element for this example
     #heater.er_ext_capacity = er_capacity #Disable backup ER if you're purely controlling HP
     heater.capacity_min = -heater.capacity_ideal #Allow for reverse cycle defrost up to full capacity
 
-    load = heater.capacity_ideal #The actual capacity to meet the load 100%
+    #load = heater.capacity_ideal #The actual capacity to meet the load 100%
     control_signal = {}
     for t in dwelling.sim_times:
         if not dwelling.initialization:
@@ -162,7 +163,12 @@ def run_exteral_hvac_model():
 
             # Run with controls
             house_status = dwelling.update(control_signal=control_signal)
-    #house_status = dwelling.update(heater.ext_capacity=capacity_fixed)
+    #Example of parsing out more data after updating the house_status for debugging
+    debug = False
+    if debug:
+        setpoint = house_status["HVAC Heating Setpoint (C)"]
+        print("Setpoint = {}".format(setpoint))
+
     
     # Simulate
     df, _, _ = dwelling.simulate()
