@@ -64,6 +64,7 @@ def run_ev_fleet(n=4, n_parallel=2):
     df.plot()
     CreateFigures.plt.show()
 
+
 def setup_wh(i):
     start_time = dt.datetime(2018, 1, 1, 0, 0)  # year, month, day, hour, minute
     time_res = dt.timedelta(minutes=1)
@@ -102,6 +103,7 @@ def setup_wh(i):
     # Initialize equipment
     return ElectricResistanceWaterHeater(**equipment_args)
 
+
 def run_water_heater_fleet(n=5):
     # Initialize equipment
     fleet = [setup_wh(i + 1) for i in range(n)]
@@ -113,7 +115,7 @@ def run_water_heater_fleet(n=5):
         all_data[wh.name] = df
 
     cols_to_plot = [
-        "Water Heating Electric Power (kW)", 
+        "Water Heating Electric Power (kW)",
         "Hot Water Outlet Temperature (C)",
         "Hot Water Delivered (L/min)",
     ]
@@ -142,11 +144,9 @@ def setup_battery(i):
     # Note: can also be done at each time step, see run_external_control.py
     # for examples
     schedule = np.random.randint(-capacity, capacity, len(battery.sim_times))
-    battery.schedule = pd.DataFrame(
-        {"Battery Electric Power (kW)": schedule}, index=battery.sim_times
-    )
+    battery.schedule = pd.DataFrame({"Battery Electric Power (kW)": schedule}, index=battery.sim_times)
     battery.reset_time()  # initializes the new schedule
-    
+
     return battery
 
 
@@ -170,7 +170,7 @@ def run_battery_fleet(n=4):
     CreateFigures.plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_ev_fleet()
     # run_water_heater_fleet()
     # run_battery_fleet()

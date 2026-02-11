@@ -8,8 +8,9 @@ class WetAppTestCase(unittest.TestCase):
     """
     Test Case to test Wet Appliance Equipment.
     """
+
     pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

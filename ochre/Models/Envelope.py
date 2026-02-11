@@ -124,8 +124,7 @@ class BoundarySurface:
             h_lwr_inj = self.e_factor * (t_ext + degC_to_K) ** 4
         else:
             h_lwr_inj = self.e_factor * (
-                (1 - self.sky_view_factor) * (t_ext + degC_to_K) ** 4
-                + self.sky_view_factor * (t_sky + degC_to_K) ** 4
+                (1 - self.sky_view_factor) * (t_ext + degC_to_K) ** 4 + self.sky_view_factor * (t_sky + degC_to_K) ** 4
             )
 
         # excludes irradiance
@@ -139,11 +138,7 @@ class BoundarySurface:
             self.lwr_gain = h_lwr_inj - self.e_factor * (self.temperature + degC_to_K) ** 4
             t_surf_new = t_surf_init + (self.solar_gain + self.lwr_gain) * self.radiation_res
             t_surf_new = min(max(t_surf_new, self.temperature - 2), self.temperature + 2)
-            t_surf = (
-                self.temperature
-                + 0.5 * (t_surf_new - self.temperature)
-                + 0.1 * (self.temperature - self.t_prev)
-            )
+            t_surf = self.temperature + 0.5 * (t_surf_new - self.temperature) + 0.1 * (self.temperature - self.t_prev)
             self.t_prev = self.temperature
             self.temperature = t_surf
             t_error = abs(self.temperature - self.t_prev)
@@ -214,9 +209,7 @@ class Boundary:
         cap_values = kwargs.get("Capacitances", [])
         res_values = kwargs.get("Resistances", [])
         if not len(cap_values) and self.name != "Window":
-            raise OCHREException(
-                f"Missing RC coefficients for {self.name} with properties: {kwargs}"
-            )
+            raise OCHREException(f"Missing RC coefficients for {self.name} with properties: {kwargs}")
         if len(res_values) != len(cap_values):
             raise ModelException(
                 f"Cannot parse RC data for {self.name}. Number of resistors ({len(res_values)}) is not"
@@ -231,16 +224,12 @@ class Boundary:
         self.all_nodes = [self.label + str(i + 1) for i in range(self.n_nodes)]
 
         # Create exterior and interior boundary surfaces
-        node_ext = (
-            self.all_nodes[0] if self.n_nodes else self.int_zone_label
-        )  # node name closest to external zone
+        node_ext = self.all_nodes[0] if self.n_nodes else self.int_zone_label  # node name closest to external zone
         self.ext_surface = BoundarySurface(
             self, True, self.ext_zone_label, node_ext, res_material=res_values[0], **kwargs
         )
         if not same_zones:
-            node_int = (
-                self.all_nodes[-1] if self.n_nodes else self.ext_zone_label
-            )  # node name closest to internal zone
+            node_int = self.all_nodes[-1] if self.n_nodes else self.ext_zone_label  # node name closest to internal zone
             self.int_surface = BoundarySurface(
                 self, False, self.int_zone_label, node_int, res_material=res_values[-1], **kwargs
             )
@@ -248,9 +237,7 @@ class Boundary:
             self.int_surface = BoundarySurface(self, False, **kwargs)  # empty surface
 
         # Save capacitor parameters, converts kJ/m^2-K to kJ/K
-        self.capacitors = {
-            node: val * self.area for node, val in zip(self.all_nodes, cap_values)
-        }  # in kJ/K
+        self.capacitors = {node: val * self.area for node, val in zip(self.all_nodes, cap_values)}  # in kJ/K
 
         # get all resistance node names and values (including film resistances)
         node_list = [self.ext_zone_label, self.label + "-ext"] + self.all_nodes
@@ -267,9 +254,7 @@ class Boundary:
         # for resistances, label each node pair
         # e.g., R_ATC_CL1, R_CL1_CL2, R_CL2_LIV
         assert len(node_list) == len(res_values) + 1
-        self.resistors = {
-            (node_list[i], node_list[i + 1]): r / self.area for i, r in enumerate(res_values)
-        }  # in K/W
+        self.resistors = {(node_list[i], node_list[i + 1]): r / self.area for i, r in enumerate(res_values)}  # in K/W
 
 
 class Zone:
@@ -332,9 +317,7 @@ class Zone:
             "ACH": ["Air Changes (1/hour)"],
             None: [],
         }
-        self.infiltration_parameters = {
-            param: zone_args[param] for param in inf_params[self.infiltration_method]
-        }
+        self.infiltration_parameters = {param: zone_args[param] for param in inf_params[self.infiltration_method]}
 
         # Forced ventilation parameters - Indoor zone only for now
         # self.max_flow_rate = self.volume / kwargs['time_res'].total_seconds()  # in m^3/s
@@ -360,26 +343,18 @@ class Zone:
             return
 
         # find surfaces connected to this zone
-        self.surfaces.extend(
-            [b.int_surface for b in boundaries if b.int_surface.zone_label == self.label]
-        )
-        self.surfaces.extend(
-            [b.ext_surface for b in boundaries if b.ext_surface.zone_label == self.label]
-        )
+        self.surfaces.extend([b.int_surface for b in boundaries if b.int_surface.zone_label == self.label])
+        self.surfaces.extend([b.ext_surface for b in boundaries if b.ext_surface.zone_label == self.label])
 
         # Check that all surfaces have emissivity defined
         for surface in self.surfaces:
             if surface.emissivity is None:
-                raise ModelException(
-                    f"{surface.boundary_name} missing Interior Thermal Absorptivity."
-                )
+                raise ModelException(f"{surface.boundary_name} missing Interior Thermal Absorptivity.")
 
         # calculate view factors for LWR - account for area and emissivity/absorptivity of LWR
         # Option 1: surfaces see themselves, maintains reciprocity
         total_area_absorptivity = sum([s.area * s.emissivity for s in self.surfaces])
-        self.s_view_factors = np.array(
-            [s.area * s.emissivity / total_area_absorptivity for s in self.surfaces]
-        )
+        self.s_view_factors = np.array([s.area * s.emissivity / total_area_absorptivity for s in self.surfaces])
 
         # Option 2: no self-viewing surfaces, does not maintain reciprocity (not implemented)
         # viewable_area = total_area - surface.area
@@ -431,16 +406,12 @@ class Zone:
             params = self.infiltration_parameters
             inf_flow_temp = params["inf_c"] * params["inf_Cs"] * abs(delta_t) ** params["inf_n_i"]
             inf_flow_wind = (
-                params["inf_c"]
-                * params["inf_Cw"]
-                * (params["inf_sft"] * wind_speed) ** (2 * params["inf_n_i"])
+                params["inf_c"] * params["inf_Cw"] * (params["inf_sft"] * wind_speed) ** (2 * params["inf_n_i"])
             )
             self.inf_flow = (inf_flow_temp**2 + inf_flow_wind**2) ** 0.5
 
         elif self.infiltration_method == "ACH":
-            self.inf_flow = (
-                self.infiltration_parameters["Air Changes (1/hour)"] * self.volume / 3600
-            )
+            self.inf_flow = self.infiltration_parameters["Air Changes (1/hour)"] * self.volume / 3600
 
         elif self.infiltration_method == "ELA":
             # FUTURE: update attic wind coefficient based on height. Inputs are in properties file already
@@ -450,9 +421,7 @@ class Zone:
             ela = self.infiltration_parameters["ELA (cm^2)"]
             ela_stack = self.infiltration_parameters["ELA stack coefficient (L/s/cm^4/K)"]
             ela_wind = self.infiltration_parameters["ELA wind coefficient (L/s/cm^4/(m/s))"]
-            self.inf_flow = (
-                f * ela / 1000 * (ela_stack * abs(delta_t) + ela_wind * wind_speed**2) ** 0.5
-            )
+            self.inf_flow = f * ela / 1000 * (ela_stack * abs(delta_t) + ela_wind * wind_speed**2) ** 0.5
 
         elif self.infiltration_method is None:
             pass
@@ -477,9 +446,7 @@ class Zone:
                 max_nat_flow = convert(20 * self.volume, "m^3/hr", "m^3/s")  # max 20 ACH
                 adj = (t_zone - t_base) / (t_zone - t_ext)
                 adj = max(min(adj, 1), 0)
-                nat_vent_data = (
-                    self.nat_vent_stack_coeff * abs(delta_t)
-                ) + self.nat_vent_wind_coeff * (wind_speed**2)
+                nat_vent_data = (self.nat_vent_stack_coeff * abs(delta_t)) + self.nat_vent_wind_coeff * (wind_speed**2)
                 nat_vent_flow = nat_vent_area * adj * (nat_vent_data**0.5) / 1000
                 self.nat_vent_flow = min(nat_vent_flow, max_nat_flow)
             else:
@@ -530,9 +497,7 @@ class Zone:
         # calculate latent heat gains if humidity model exists
         if self.humidity is not None:
             latent_flow = min(latent_flow, self.humidity.max_latent_flow)
-            latent_gains = (
-                latent_flow * self.humidity.h_vap * density * 1000 * (w_amb - self.humidity.w)
-            )
+            latent_gains = latent_flow * self.humidity.h_vap * density * 1000 * (w_amb - self.humidity.w)
             self.humidity.latent_gains_init += latent_gains  # in W
 
         # FUTURE: add latent gains for other zones
@@ -565,11 +530,7 @@ class Zone:
             # update surface temperature based on difference in LWR gain, constrain to min/max values
             t_surfaces_new = t_surf_no_rad + (h_lwr_in - h_lwr_out) * self.s_rad_resistances
             t_surfaces_new = t_surfaces_new.clip(t_surf_min, t_surf_max)
-            t_surfaces_new = (
-                t_surfaces
-                + 0.3 * (t_surfaces_new - t_surfaces)
-                + 0.2 * (t_surfaces - t_surfaces_prev)
-            )
+            t_surfaces_new = t_surfaces + 0.3 * (t_surfaces_new - t_surfaces) + 0.2 * (t_surfaces - t_surfaces_prev)
             t_surfaces_prev = t_surfaces
             t_surfaces = t_surfaces_new
             max_error = np.abs(t_surfaces - t_surfaces_prev).max()
@@ -636,9 +597,7 @@ class Envelope(RCModel):
             # Get detailed boundary properties, e.g. RC coefficients
             boundaries = utils.get_boundary_rc_values(boundaries, **kwargs)
             self.boundaries = [
-                Boundary(
-                    name, location, linearize_ext_radiation=linearize_ext_radiation, **properties
-                )
+                Boundary(name, location, linearize_ext_radiation=linearize_ext_radiation, **properties)
                 for name, properties in boundaries.items()
             ]
         else:
@@ -648,9 +607,7 @@ class Envelope(RCModel):
         default = set([bd.ext_zone_label for bd in self.boundaries])
         ext_zone_labels = kwargs.get("ext_zone_labels", default)
         self.ext_zones = {
-            name: ExteriorZone(name, label)
-            for label, name in utils.EXT_ZONES.items()
-            if label in ext_zone_labels
+            name: ExteriorZone(name, label) for label, name in utils.EXT_ZONES.items() if label in ext_zone_labels
         }
 
         # Create dictionaries of exterior and interior boundaries
@@ -688,10 +645,7 @@ class Envelope(RCModel):
         if self.linearize_infiltration:
             # Note: this won't remove a 1-node internal boundary (e.g. Attic Floor)
             unused_inputs += [
-                f"H_{s.node}"
-                for zone in self.zones.values()
-                for s in zone.surfaces
-                if s.boundary.n_nodes > 1
+                f"H_{s.node}" for zone in self.zones.values() for s in zone.surfaces if s.boundary.n_nodes > 1
             ]
 
         # Add required inputs for envelope schedule
@@ -701,11 +655,7 @@ class Envelope(RCModel):
         if any([zone.infiltration_method == "ASHRAE" for zone in self.zones.values()]):
             required_inputs.append("Wind Speed (m/s)")
         required_inputs.extend(
-            [
-                f"{bd.name} Irradiance (W)"
-                for bd in self.ext_boundaries
-                if bd.name not in ["Raised Floor"]
-            ]
+            [f"{bd.name} Irradiance (W)" for bd in self.ext_boundaries if bd.name not in ["Raised Floor"]]
         )
 
         # Generate RC Model
@@ -730,9 +680,7 @@ class Envelope(RCModel):
 
         # Print warnings for columns that aren't included in schedule
         if "Ambient Pressure (kPa)" not in self.schedule:
-            self.warn(
-                "Ambient pressure not in schedule. Using standard pressure of 1 atm (101.3 kPa)."
-            )
+            self.warn("Ambient pressure not in schedule. Using standard pressure of 1 atm (101.3 kPa).")
         if "Occupancy (Persons)" not in self.schedule:
             self.warn("Occupancy not in schedule. Ignoring heat gains from occupants.")
         if self.run_external_rad and "Sky Temperature (C)" not in self.schedule:
@@ -768,12 +716,9 @@ class Envelope(RCModel):
             occupancy = {}
         occupancy_gain = occupancy.get("Gain per Occupant (W)", convert(400, "Btu/hour", "W"))
         self.occupancy_sensible_gain = (
-            occupancy.get("Convective Gain Fraction (-)", 0.563)
-            + occupancy.get("Radiative Gain Fraction (-)", 0)
+            occupancy.get("Convective Gain Fraction (-)", 0.563) + occupancy.get("Radiative Gain Fraction (-)", 0)
         ) * occupancy_gain
-        self.occupancy_latent_gain = (
-            occupancy.get("Latent Gain Fraction (-)", 0.437) * occupancy_gain
-        )
+        self.occupancy_latent_gain = occupancy.get("Latent Gain Fraction (-)", 0.437) * occupancy_gain
 
         # HVAC parameters
         self.heating_setpoint = None
@@ -809,9 +754,7 @@ class Envelope(RCModel):
 
         # For linear infiltration, add resistors to RC network to approximate infiltration
         if self.linearize_infiltration:
-            resistances = update_with_par(
-                resistances, self.add_infiltration_resistances(kwargs["initial_schedule"])
-            )
+            resistances = update_with_par(resistances, self.add_infiltration_resistances(kwargs["initial_schedule"]))
 
         # Convert capacitances from kJ to J
         capacitances = {key: val * 1000 for key, val in capacitances.items()}
@@ -819,9 +762,7 @@ class Envelope(RCModel):
         return capacitances, resistances
 
     @staticmethod
-    def initialize_state(
-        state_names, input_names, A_c, B_c, initial_schedule, initial_temp_setpoint=None, **kwargs
-    ):
+    def initialize_state(state_names, input_names, A_c, B_c, initial_schedule, initial_temp_setpoint=None, **kwargs):
         # Sets all temperatures to the steady state value based on initial conditions
         # Adds random temperature if exact setpoint is not set
         # Note: initialization will update the initial state to more typical values
@@ -831,9 +772,7 @@ class Envelope(RCModel):
         # get HVAC Heating/Cooling deadbands and setpoints
         options = ["HVAC Heating", "HVAC Cooling"]
         # TODO: Deadbands are broken. Need to decide whether to get from HPXML, dict, or schedule
-        deadbands = [
-            kwargs.get(option, {}).get("Deadband Temperature (C)", 1) for option in options
-        ]
+        deadbands = [kwargs.get(option, {}).get("Deadband Temperature (C)", 1) for option in options]
         setpoints = [initial_schedule.get(f"{option} Setpoint (C)") for option in options]
         nones = sum([setpoint is None for setpoint in setpoints])
         if nones == 2 and not isinstance(initial_temp_setpoint, (int, float)):
@@ -860,9 +799,7 @@ class Envelope(RCModel):
             random_delta = np.random.uniform(low=-deadbands[idx] / 2, high=deadbands[idx] / 2)
             indoor_temp = setpoints[idx] + random_delta
         else:
-            raise ModelException(
-                "Unknown initial temperature setpoint: {}".format(initial_temp_setpoint)
-            )
+            raise ModelException("Unknown initial temperature setpoint: {}".format(initial_temp_setpoint))
 
         # Update continuous time matrices to swap T_LIV from state to input
         x_idx = state_names.index("T_LIV")
@@ -929,9 +866,7 @@ class Envelope(RCModel):
 
         radiation_res = {}
         for zone in self.zones.values():
-            heat = zone.update_infiltration(
-                t_ext_op, t_zone_op, wind_speed_op, density, vent_cfm=vent_cfm_op
-            )
+            heat = zone.update_infiltration(t_ext_op, t_zone_op, wind_speed_op, density, vent_cfm=vent_cfm_op)
             if heat:
                 res = (t_ext_op - t_zone_op) / heat
                 radiation_res[("EXT", zone.label)] = res
@@ -1057,9 +992,7 @@ class Envelope(RCModel):
                     t_ext, zone.temperature, wind_speed, density, w_amb, h_limit, vent_cfm, t_base
                 )
             else:
-                h_inf = zone.update_infiltration(
-                    t_ext, zone.temperature, wind_speed, density, w_amb, h_limit
-                )
+                h_inf = zone.update_infiltration(t_ext, zone.temperature, wind_speed, density, w_amb, h_limit)
             self.inputs_init[zone.h_idx] += h_inf
 
     def update_inputs(self, schedule_inputs=None):
@@ -1071,9 +1004,7 @@ class Envelope(RCModel):
         for zone in self.zones.values():
             if zone.humidity is not None:
                 zone.humidity.latent_gains_init = 0
-                zone.humidity.pressure = (
-                    self.current_schedule.get("Ambient Pressure (kPa)", 101.325) * 1000
-                )  # in Pa
+                zone.humidity.pressure = self.current_schedule.get("Ambient Pressure (kPa)", 101.325) * 1000  # in Pa
             zone.radiation_heat = 0
             zone.internal_sens_gain = 0
             zone.internal_latent_gain = 0
@@ -1131,9 +1062,7 @@ class Envelope(RCModel):
         t_liv = self.next_outputs[self.indoor_zone.t_idx]
         if not (-20 < t_liv < 50):
             raise ModelException(f"Extreme indoor temperature ({t_liv}) C")
-        elif (self.cooling_setpoint is not None and t_liv > 30) or (
-            self.heating_setpoint is not None and t_liv < 10
-        ):
+        elif (self.cooling_setpoint is not None and t_liv > 30) or (self.heating_setpoint is not None and t_liv < 10):
             self.warn(f"Extreme indoor temperature ({t_liv}) C")
 
         # check that all temperatures are within reasonable range
@@ -1144,16 +1073,12 @@ class Envelope(RCModel):
 
         if (t_state_min < -55) or (t_state_max > 130):
             bad_temps = {
-                name: t
-                for name, t in zip(self.state_names[:n], self.next_states[:n])
-                if (t < -55) or (t > 130)
+                name: t for name, t in zip(self.state_names[:n], self.next_states[:n]) if (t < -55) or (t > 130)
             }
             raise ModelException(f"Extreme envelope temperatures: {bad_temps}")
         elif (t_state_min < -40) or (t_state_max > 110):
             bad_temps = {
-                name: t
-                for name, t in zip(self.state_names[:n], self.next_states[:n])
-                if (t < -40) or (t > 110)
+                name: t for name, t in zip(self.state_names[:n], self.next_states[:n]) if (t < -40) or (t > 110)
             }
             self.warn(f"Extreme envelope temperatures: {bad_temps}")
 
@@ -1214,37 +1139,23 @@ class Envelope(RCModel):
 
         if self.verbosity >= 5:
             # All zone temperatures
-            results.update(
-                {f"Temperature - {name} (C)": zone.temperature for name, zone in self.zones.items()}
-            )
-            results.update(
-                {
-                    f"Temperature - {name} (C)": zone.temperature
-                    for name, zone in self.ext_zones.items()
-                }
-            )
+            results.update({f"Temperature - {name} (C)": zone.temperature for name, zone in self.zones.items()})
+            results.update({f"Temperature - {name} (C)": zone.temperature for name, zone in self.ext_zones.items()})
 
             # All component loads (for indoor zone) and net load
             # Net sensible gains =  occupancy + HVAC + equipment
             #                     + infiltration + forced ventilation + natural ventilation
             #                     + absorbed ext. radiation (windows) + transmitted window gains + interior radiation
             results.update(
-                {
-                    f"Net Sensible Heat Gain - {name} (W)": self.inputs[zone.h_idx]
-                    for name, zone in self.zones.items()
-                }
+                {f"Net Sensible Heat Gain - {name} (W)": self.inputs[zone.h_idx] for name, zone in self.zones.items()}
             )
             if not self.linearize_infiltration:
                 results["Infiltration Heat Gain - Indoor (W)"] = self.indoor_zone.inf_heat
             results["Forced Ventilation Heat Gain - Indoor (W)"] = self.indoor_zone.forced_vent_heat
             results["Natural Ventilation Heat Gain - Indoor (W)"] = self.indoor_zone.nat_vent_heat
-            occupant_gain = (
-                self.current_schedule.get("Occupancy (Persons)", 0) * self.occupancy_sensible_gain
-            )
+            occupant_gain = self.current_schedule.get("Occupancy (Persons)", 0) * self.occupancy_sensible_gain
             # internal gains = occupancy + non-HVAC equipment only
-            results["Internal Heat Gain - Indoor (W)"] = (
-                occupant_gain + self.indoor_zone.internal_sens_gain
-            )
+            results["Internal Heat Gain - Indoor (W)"] = occupant_gain + self.indoor_zone.internal_sens_gain
 
             # Add window transmittance (note, gains go to indoor zone and to interior boundaries)
             windows = [bd for bd in self.ext_boundaries if bd.name == "Window"]
@@ -1265,21 +1176,12 @@ class Envelope(RCModel):
                     results[f"Infiltration Heat Gain - {name} (W)"] = zone.inf_heat
 
                 if name == "Indoor":
-                    results[f"Forced Ventilation Flow Rate - {name} (m^3/s)"] = (
-                        zone.forced_vent_flow
-                    )
+                    results[f"Forced Ventilation Flow Rate - {name} (m^3/s)"] = zone.forced_vent_flow
                     results[f"Natural Ventilation Flow Rate - {name} (m^3/s)"] = zone.nat_vent_flow
-                    air_changes = (
-                        (zone.inf_flow + zone.forced_vent_flow + zone.nat_vent_flow)
-                        / zone.volume
-                        * 3600
-                    )
+                    air_changes = (zone.inf_flow + zone.forced_vent_flow + zone.nat_vent_flow) / zone.volume * 3600
                     results[f"Air Changes per Hour - {name} (1/hour)"] = air_changes
 
-                    occupant_gain = (
-                        self.current_schedule.get("Occupancy (Persons)", 0)
-                        * self.occupancy_sensible_gain
-                    )
+                    occupant_gain = self.current_schedule.get("Occupancy (Persons)", 0) * self.occupancy_sensible_gain
                     results[f"Occupancy Heat Gain - {name} (W)"] = occupant_gain
                 else:
                     if zone.internal_sens_gain > 0:

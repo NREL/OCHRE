@@ -109,9 +109,7 @@ def limit_input_paths(input_paths, n_max=None, overwrite=False, **kwargs):
     # limits input paths based on n_max and overwrite
     if not overwrite:
         # remove folders that already have ochre_complete
-        input_paths = [
-            p for p in input_paths if not os.path.exists(os.path.join(p, "ochre_complete"))
-        ]
+        input_paths = [p for p in input_paths if not os.path.exists(os.path.join(p, "ochre_complete"))]
 
     # limit total number of runs
     if n_max is not None and len(input_paths) > n_max:
@@ -215,9 +213,7 @@ def common_options(f):
     options = [
         click.option("--name", default="ochre", help="Simulation name (for output files)"),
         click.option("--hpxml_file", default="home.xml", help="Name of HPXML file"),
-        click.option(
-            "--hpxml_schedule_file", default="in.schedules.csv", help="Name of HPXML schedule file"
-        ),
+        click.option("--hpxml_schedule_file", default="in.schedules.csv", help="Name of HPXML schedule file"),
         click.option(
             "--weather_file_or_path",
             type=click.Path(exists=True),

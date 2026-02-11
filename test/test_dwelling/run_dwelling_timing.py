@@ -1,5 +1,5 @@
-import cProfile, pstats
-from guppy import hpy
+import cProfile
+import pstats
 
 from ochre import Dwelling
 from bin.run_dwelling import dwelling_args
@@ -11,7 +11,7 @@ from bin.run_dwelling import dwelling_args
 # dwelling = Dwelling(**dwelling_args)
 with cProfile.Profile() as profile:
     dwelling = Dwelling(**dwelling_args)
-ps = pstats.Stats(profile).sort_stats('cumulative').print_stats(50)
+ps = pstats.Stats(profile).sort_stats("cumulative").print_stats(50)
 # print(h.heap().size // 1024 // 1024)  # in MB
 
 # Simulation

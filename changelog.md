@@ -1,6 +1,14 @@
 ## OCHRE Changelog
 
-### Updates from PRs
+### OCHRE v0.9.3
+- Allow 120V (aka low power) heat pump water heaters
+- Applied ruff code formatting to entire codebase
+- Fixed ruff lint errors across codebase
+- Updated CI to run tests on all pull requests
+
+### OCHRE v0.9.2
+- Restrict pint version to avoid colab issues [#196](https://github.com/NREL/OCHRE/issues/196)
+- Ignore schedules for broken equipment in 2025 ResStock SDR [#197](https://github.com/NREL/OCHRE/issues/197)
 - Added component load outputs [#19](https://github.com/NREL/OCHRE/issues/19)
 - Added freezers and updated defaults to align with ResStock 2024
   [#167](https://github.com/NREL/OCHRE/issues/167)
