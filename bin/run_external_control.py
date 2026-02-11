@@ -152,17 +152,16 @@ def run_exteral_hvac_model():
     #load = heater.capacity_ideal #The actual capacity to meet the load 100%
     control_signal = {}
     for t in dwelling.sim_times:
-        if not dwelling.initialization:
-            heater.use_ideal_capacity = True
-            cooling.use_ideal_capacity = True
-            heater.ext_ignore_thermostat = True  #Set to true to ignore thermostat setpoint and deadband
-            # Change capacity based on hour of day
-            capacity_fixed = 20 # * t.hour #W
-            control_signal = {'HVAC Heating': {'Capacity': capacity_fixed, 'ER Capacity': er_capacity}, 'HVAC Cooling': {'Capacity': er_capacity}} #An arbitrary example, run at 20W OUTPUT capacity
-            #heater.ext_capacity = load * 0.25   #An arbitrary example, run at 25% of max capacity
+        heater.use_ideal_capacity = True
+        cooling.use_ideal_capacity = True
+        heater.ext_ignore_thermostat = True  #Set to true to ignore thermostat setpoint and deadband
+        # Change capacity based on hour of day
+        capacity_fixed = 20 # * t.hour #W
+        control_signal = {'HVAC Heating': {'Capacity': capacity_fixed, 'ER Capacity': er_capacity}, 'HVAC Cooling': {'Capacity': er_capacity}} #An arbitrary example, run at 20W OUTPUT capacity
+        #heater.ext_capacity = load * 0.25   #An arbitrary example, run at 25% of max capacity
 
-            # Run with controls
-            house_status = dwelling.update(control_signal=control_signal)
+        # Run with controls
+        house_status = dwelling.update(control_signal=control_signal)
     #Example of parsing out more data after updating the house_status for debugging
     debug = False
     if debug:
