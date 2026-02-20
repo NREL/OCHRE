@@ -60,6 +60,12 @@ class HVAC(Equipment):
         self.capacity = self.capacity_list[self.speed_idx]
         self.capacity_ideal = self.capacity  # capacity to maintain setpoint, for ideal equipment, in W
         self.capacity_max = self.capacity_list[-1]  # varies for dynamic equipment, in W
+        self.nominal_index = {
+            1: 1,  # single speed equipment only has one speed, [0, capacity]
+            2: 2,  # for two speed equipment, nominal capacity is at high speed, [0, low_capacity, high_capacity]
+            3: 2,  # for variable speed equipment, nominal capacity is at middle speed, [0, low_capacity, middle_capacity, high_capacity]
+        }[len(self.capacity_list) - 1]  # subtract 1 because capacity_list includes 0 for off speed
+        self.capacity_nominal = self.capacity_list[self.nominal_index]  # varies for dynamic equipment, in W
         self.capacity_min = kwargs.get('Minimum Capacity (W)', 0)  # for ideal equipment, in W
         self.space_fraction = kwargs.get('Conditioned Space Fraction (-)', 1.0)
         self.delivered_heat = 0  # in W, total sensible heat gain, excluding duct losses
@@ -98,15 +104,15 @@ class HVAC(Equipment):
                 delta_t = temp_setpoint - convert(cool_supply_temp, 'degF', 'degC')
             self.flow_rate_list = [cap / 1000 / rho_air / cp_air / delta_t for cap in self.capacity_list]  # in m^3/s
         else:
-            # Use nominal flow rates, values taken from ResStock (see hvac.rb line 2623)
-            cfm_per_ton = 350 if self.is_heater else 312
+            # Use nominal flow rates, values taken from ResStock (see hvac.rb)
+            cfm_per_ton = utils_equipment.get_rated_cfm_per_ton(self.name)
             ratio = convert(cfm_per_ton, 'cubic_feet/min/refrigeration_ton', 'm^3/s/W')
             self.flow_rate_list = [ratio * capacity for capacity in self.capacity_list]  # in m^3/s
         rated_flow_rate = max(self.flow_rate_list)
 
         # Fan power parameters
-        rated_fan_power = kwargs['Rated Auxiliary Power (W)']
-        self.fan_power_per_flow_rate = rated_fan_power / rated_flow_rate
+        self.fan_power_rated = kwargs['Rated Auxiliary Power (W)']
+        self.fan_power_per_flow_rate = self.fan_power_rated / rated_flow_rate
         self.fan_power_list = [self.fan_power_per_flow_rate * rate for rate in self.flow_rate_list]  # in W
         self.fan_power = 0  # in W
         self.fan_power_max = max(self.fan_power_list)
@@ -122,6 +128,7 @@ class HVAC(Equipment):
                                          f' ({len(speed_list) - 1})')
 
         # Duct location and distribution system efficiency (DSE)
+        self.is_ducted = kwargs.get('Ducted') is not None
         ducts = kwargs.get('Ducts', {'DSE (-)': 1})
         self.duct_dse = ducts.get('DSE (-)')  # Duct distribution system efficiency
         self.duct_zone = self.envelope_model.zones.get(ducts.get('Zone'))
@@ -687,8 +694,11 @@ class DynamicHVAC(HVAC):
         min_time_in_low = kwargs.get('Minimum Low Time (minutes)', 5)
         min_time_in_high = kwargs.get('Minimum High Time (minutes)', 5)
         self.min_time_in_speed = [dt.timedelta(minutes=min_time_in_low), dt.timedelta(minutes=min_time_in_high)]
+        self.datapoint_by_speed_htg = None
+        self.datapoint_by_speed_clg = None
         self.detailed_performance_data_htg = kwargs.get('HeatingDetailedPerformance', None)
         self.detailed_performance_data_clg = kwargs.get('CoolingDetailedPerformance', None)
+        self.fan_motor_type = kwargs.get('Fan Motor Type')  # 'PSC' or 'BPM'
 
         # startup capacity degradation parameters
         self.startup_cap_mult = 1.0  # multiplier, unitless
@@ -739,6 +749,12 @@ class DynamicHVAC(HVAC):
                 kwargs['SHR (-)'] = [shr if not np.isnan(shr) else 1 for shr in kwargs['SHR (-)']]
 
         super().__init__(**kwargs)
+
+        print(self.capacity_list)
+        if self.detailed_performance_data_htg:
+            self.datapoint_by_speed_htg = utils_equipment.process_detailed_performance_data(self.detailed_performance_data_htg, 'Heating', self.capacity_nominal, self.name, self.capacity_list, self.fan_power_per_flow_rate, self.fan_motor_type, self.is_ducted)
+        if self.detailed_performance_data_clg:
+            self.datapoint_by_speed_clg = utils_equipment.process_detailed_performance_data(self.detailed_performance_data_clg, 'Cooling', self.capacity_nominal, self.name, self.capacity_list, self.fan_power_per_flow_rate, self.fan_motor_type, self.is_ducted)
 
         # Check EIR and print warning if too low
         if self.eir_max > 0.5:
@@ -864,6 +880,51 @@ class DynamicHVAC(HVAC):
         else:
             raise OCHREException('Incompatible number of speeds for dynamic equipment:', self.n_speeds)
 
+    def calculate_performance_curves(self, param, speed_idx, flow_fraction=1, part_load_ratio=1, biquadratic=True):
+        # runs biquadratic equation or detailed performance interpolation for EIR or capacity given the speed index
+        # param is 'cap' or 'eir'
+
+        # get rated value based on speed
+        if param == 'cap':
+            rated = self.capacity_list[speed_idx]
+        elif param == 'eir':
+            rated = self.eir_list[speed_idx]
+        else:
+            raise OCHREException('Unknown biquadratic parameter:', param)
+
+        if speed_idx == 0 or self.biquad_params is None:
+            return rated
+
+
+        # use coil input wet bulb for cooling, dry bulb for heating; ambient dry bulb for both
+        t_in = self.coil_input_db if self.is_heater else self.coil_input_wb
+        t_ext_db = self.current_schedule['Ambient Dry Bulb (C)']
+
+        # clip temperatures, flow fraction, part load ratio to stay within bounds
+        t_in = min(max(t_in, params['min_Twb']), params['max_Twb'])
+        t_ext_db = min(max(t_ext_db, params['min_Tdb']), params['max_Tdb'])
+        flow_fraction = min(max(flow_fraction, params['min_ff']), params['max_ff'])
+
+        if biquadratic:
+            # get biquadratic parameters for current speed
+            params = self.biquad_params[speed_idx]
+
+            # create vectors based on temperature, flow fraction, and plr
+            t_list = np.array([1, t_in, t_in ** 2, t_ext_db, t_ext_db ** 2, t_in * t_ext_db], dtype=float)
+            t_ratio = np.dot(t_list, params[param + '_t'])
+
+            ff_list = np.array([1, flow_fraction, flow_fraction ** 2], dtype=float)
+            ff_ratio = np.dot(ff_list, params[param + '_ff'])
+
+            plf_list = np.array([1, part_load_ratio, part_load_ratio ** 2], dtype=float)
+            plf_ratio = np.dot(plf_list, params[param + '_plr'])
+            plf_ratio = min(max(plf_ratio, params['min_plf']), params['max_plf'])
+        else:
+            if self.is_heater and self.detailed_performance_data_htg:
+                rated_dp = self.detailed_performance_data_htg[utils_equipment.AIR_SOURCE_HEAT_RATED_ODB]
+
+        return rated * t_ratio * ff_ratio / plf_ratio
+    
     def calculate_biquadratic_param(self, param, speed_idx, flow_fraction=1, part_load_ratio=1):
         # runs biquadratic equation for EIR or capacity given the speed index
         # param is 'cap' or 'eir'
