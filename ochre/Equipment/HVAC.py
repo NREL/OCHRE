@@ -260,7 +260,7 @@ class HVAC(Equipment):
             else:
                 self.ext_capacity = capacity
 
-                capacity = control_signal.get('Capacity')
+                capacity = control_signal.get("Capacity")
 
         # If load fraction = 0, force off
         load_fraction = control_signal.get("Load Fraction", 1)
@@ -401,7 +401,7 @@ class HVAC(Equipment):
             # Enforce min and max capacity limits
             if capacity < self.capacity_min:
                 # If capacity < capacity_min (or capacity is negative), force off
-                capacity = 0 #FIXME: what do we do to allow for reverse cycle defrost? Can we say x% of capacity_max?
+                capacity = 0  # FIXME: what do we do to allow for reverse cycle defrost? Can we say x% of capacity_max?
             elif capacity > self.capacity_max * self.ext_capacity_frac:
                 # Clip at maximum capacity, considering max capacity fraction
                 # Note: if ideal capacity is out of bounds, setpoint won't be met
@@ -567,7 +567,7 @@ class HVAC(Equipment):
         current_results = super().update_results()
 
         # Reset external capacity
-        #self.ext_capacity = None
+        # self.ext_capacity = None
 
         # update previous indoor temperature
         self.temp_indoor_prev = self.zone.temperature
@@ -1100,7 +1100,9 @@ class HeatPumpHeater(DynamicHVAC, Heater):
         # Based on EnergyPlus Engineering Reference, Defrost Operation, for on demand, reverse cycle defrost
         # see https://bigladdersoftware.com/epx/docs/8-9/engineering-reference/variable-refrigerant-flow-heat-pumps.html#defrost-operation-201605050925
         self.defrost = t_ext_db < 4.4445
-        if self.defrost and (self.ext_capacity is not None): #TODO: we should at least throw a warning here that we're ignoring defrost
+        if self.defrost and (
+            self.ext_capacity is not None
+        ):  # TODO: we should at least throw a warning here that we're ignoring defrost
             # Calculate reduced capacity
             T_coil_out = 0.82 * t_ext_db - 8.589
             # omega_ext = psychrolib.GetHumRatioFromRelHum(t_ext_db, rh_ext, pres_ext)
@@ -1124,7 +1126,7 @@ class HeatPumpHeater(DynamicHVAC, Heater):
         else:
             self.defrost_power_mult = 0
             self.power_defrost = 0
-        
+
         if self.ext_capacity is not None:
             capacity = self.ext_capacity
         return capacity

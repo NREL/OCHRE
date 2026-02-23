@@ -114,61 +114,62 @@ def run_hvac_dynamic_control():
     df.loc[:, cols_to_plot].plot()
     CreateFigures.plt.show()
 
+
 def run_exteral_hvac_model():
-    #Example of an external HVAC model, intended to be used with some other HVAC model in an external python script.
+    # Example of an external HVAC model, intended to be used with some other HVAC model in an external python script.
 
     # Update verbosity to get FULL results
     if dwelling_args.get("verbosity", 0) < 9:
         dwelling_args["verbosity"] = 9
-        
-    #if dwelling_args.get("initialization_time", dt.timedelta(days=0)) > dt.timedelta(days=0): #No initialization for this example
+
+    # if dwelling_args.get("initialization_time", dt.timedelta(days=0)) > dt.timedelta(days=0): #No initialization for this example
     #    dwelling_args["initialization_time"] = dt.timedelta(days=0)
     # Initialize
     dwelling = Dwelling(**dwelling_args)
 
     # Get HVAC heater
     heater = dwelling.get_equipment_by_end_use("HVAC Heating")
-    
-    
-    #OPTIONAL: external capacity of HVAC
-    #capacity = heater.capacity  # Get original capacity
+
+    # OPTIONAL: external capacity of HVAC
+    # capacity = heater.capacity  # Get original capacity
 
     cooling = dwelling.get_equipment_by_end_use("HVAC Cooling")
 
-
-    heater.duct_dse = 1.0 #FIXME: This removes ducts for now
+    heater.duct_dse = 1.0  # FIXME: This removes ducts for now
     heater.c_d = 0.0  # Remove cycling losses from example, handled by external model
-    cooling.duct_dse = 1.0 #FIXME: This removes ducts for now
+    cooling.duct_dse = 1.0  # FIXME: This removes ducts for now
     cooling.c_d = 0.0  # Remove cycling losses from example, handled by external model
 
-    #Parsing in for examples that might change capacity based on weather
-    #ambient_temps = dwelling.envelope.schedule["Ambient Dry Bulb (C)"]
-    #ambient_w = dwelling.envelope.schedule["Ambient Humidity Ratio (-)"]
-    
-    er_capacity = 0.0 #Disable backup element for this example
-    #heater.er_ext_capacity = er_capacity #Disable backup ER if you're purely controlling HP
-    heater.capacity_min = -heater.capacity_ideal #Allow for reverse cycle defrost up to full capacity
+    # Parsing in for examples that might change capacity based on weather
+    # ambient_temps = dwelling.envelope.schedule["Ambient Dry Bulb (C)"]
+    # ambient_w = dwelling.envelope.schedule["Ambient Humidity Ratio (-)"]
 
-    #load = heater.capacity_ideal #The actual capacity to meet the load 100%
+    er_capacity = 0.0  # Disable backup element for this example
+    # heater.er_ext_capacity = er_capacity #Disable backup ER if you're purely controlling HP
+    heater.capacity_min = -heater.capacity_ideal  # Allow for reverse cycle defrost up to full capacity
+
+    # load = heater.capacity_ideal #The actual capacity to meet the load 100%
     control_signal = {}
     for t in dwelling.sim_times:
         heater.use_ideal_capacity = True
         cooling.use_ideal_capacity = True
-        heater.ext_ignore_thermostat = True  #Set to true to ignore thermostat setpoint and deadband
+        heater.ext_ignore_thermostat = True  # Set to true to ignore thermostat setpoint and deadband
         # Change capacity based on hour of day
-        capacity_fixed = 20 # * t.hour #W
-        control_signal = {'HVAC Heating': {'Capacity': capacity_fixed, 'ER Capacity': er_capacity}, 'HVAC Cooling': {'Capacity': er_capacity}} #An arbitrary example, run at 20W OUTPUT capacity
-        #heater.ext_capacity = load * 0.25   #An arbitrary example, run at 25% of max capacity
+        capacity_fixed = 20  # * t.hour #W
+        control_signal = {
+            "HVAC Heating": {"Capacity": capacity_fixed, "ER Capacity": er_capacity},
+            "HVAC Cooling": {"Capacity": er_capacity},
+        }  # An arbitrary example, run at 20W OUTPUT capacity
+        # heater.ext_capacity = load * 0.25   #An arbitrary example, run at 25% of max capacity
 
         # Run with controls
         house_status = dwelling.update(control_signal=control_signal)
-    #Example of parsing out more data after updating the house_status for debugging
+    # Example of parsing out more data after updating the house_status for debugging
     debug = False
     if debug:
         setpoint = house_status["HVAC Heating Setpoint (C)"]
         print("Setpoint = {}".format(setpoint))
 
-    
     # Simulate
     df, _, _ = dwelling.simulate()
 
@@ -422,7 +423,7 @@ if __name__ == "__main__":
     # run_hvac_modify_schedule()
 
     # Run HVAC with dynamic control
-    #run_hvac_dynamic_control()
+    # run_hvac_dynamic_control()
 
     # Run HVAC using external HVAC model
     run_exteral_hvac_model()
@@ -431,7 +432,7 @@ if __name__ == "__main__":
     # run_hpwh_cta_2045()
 
     # # Run EV with no TOU peak charging
-    #run_ev_tou()
+    # run_ev_tou()
 
     # # Run EV with perfectly managed charging
     # run_ev_perfect()
