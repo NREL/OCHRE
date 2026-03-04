@@ -5,8 +5,7 @@
   [#167](https://github.com/NREL/OCHRE/issues/167)
 - Added output registry and verbosity-based output control system
 - Added CLI options for `--output_format`, `--time_zone`, and `--export_res`
-- Improved HPXML parsing for zone and boundary classification
-- Added EV and PV equipment support
+- Added EV and PV parsing from dedicated HPXML sections (Vehicles, Photovoltaics)
 - Narrowed Python version requirement
 
 ### OCHRE v0.9.3
