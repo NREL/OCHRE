@@ -358,6 +358,25 @@ The ``verbosity`` will also impact the print statements provided during the
 simulation. Setting ``verbosity >= 3`` will allow most print statements to be
 written.
 
+.. _resstock-output:
+
+ResStock Output Format
+----------------------
+
+When ``output_format`` is set to ``resstock``, OCHRE produces output files
+compatible with the ResStock analysis workflow instead of the default OCHRE
+output files. This mode generates two files:
+
+- ``results_timeseries.csv``: Time series results with ResStock-compatible
+  column names and units. Uses a two-header-row format (column names and units)
+  and supports incremental append via ``export_res``.
+
+- ``results_annual.csv``: Annual energy totals by end use in MBtu.
+
+OCHRE output columns are mapped to ResStock column names using a crosswalk CSV
+(``ochre/defaults/resstock_ochre_crosswalk.csv``). Unit conversions are applied
+automatically (e.g., kW to kWh, Celsius to Fahrenheit, W to kBtu).
+
 .. _all-metrics:
 
 All Metrics
