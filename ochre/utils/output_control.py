@@ -1,10 +1,4 @@
-"""
-Output control utilities for managing verbosity-based output filtering.
-
-This module provides functions to expand template patterns and build the
-enabled_outputs set used throughout OCHRE for determining which outputs
-to generate.
-"""
+"""Output control utilities for managing verbosity-based output filtering."""
 
 from ochre.defaults.output_registry import (
     OUTPUT_REGISTRY,
@@ -15,20 +9,7 @@ from ochre.defaults.output_registry import (
 
 
 def expand_template(pattern, placeholders):
-    """
-    Expand a template pattern with all placeholder combinations.
-
-    Parameters
-    ----------
-    pattern : str
-        Pattern with {placeholder} syntax, e.g., "{end_use} Electric Power (kW)"
-    placeholders : dict
-        Mapping of placeholder names to lists of values
-
-    Returns
-    -------
-    list[str]
-        All expanded output names
+    """Expand a template pattern with all placeholder combinations.
 
     Examples
     --------
@@ -55,24 +36,7 @@ def expand_template(pattern, placeholders):
 
 
 def get_enabled_outputs(output_format, verbosity):
-    """
-    Get the set of all enabled output names for a given format and verbosity.
-
-    Expands all template patterns using the superset of all possible values
-    defined in the output registry. The resulting set is used for O(1) lookup
-    when generating results.
-
-    Parameters
-    ----------
-    output_format : str
-        Output format ('ochre' or 'resstock')
-    verbosity : int
-        Verbosity level (0-9)
-
-    Returns
-    -------
-    frozenset[str]
-        Immutable set of enabled output column names
+    """Get the set of all enabled output names for a given format and verbosity.
 
     Examples
     --------

@@ -14,9 +14,8 @@ from ochre.utils import (
     load_crosswalk,
     build_resstock_timeseries,
     write_resstock_timeseries,
-    update_resstock_annual,
     accumulate_annual_sums,
-    convert_accumulated_sums_to_annual,
+    write_resstock_annual,
 )
 from ochre.Models import Envelope
 from ochre.Equipment import (
@@ -366,9 +365,9 @@ class Dwelling(Simulator):
         if self.resstock_units_dict is None:
             self.resstock_units_dict = units_dict
 
-        # Accumulate annual sums (in kWh) for later conversion to MBtu
+        # Accumulate annual sums from already-converted ResStock columns
         self._resstock_annual_sums = accumulate_annual_sums(
-            df, self.resstock_crosswalk, self.time_res, self._resstock_annual_sums
+            resstock_df, self.resstock_units_dict, self.resstock_crosswalk, self._resstock_annual_sums
         )
 
         # Write or append to timeseries file
@@ -440,10 +439,9 @@ class Dwelling(Simulator):
         for sub in self.sub_simulators:
             sub.finalize(failed=failed)
 
-        # Calculate and write annual totals
+        # Write annual totals (already converted to final units during accumulation)
         if self._resstock_annual_sums and self.resstock_annual_file:
-            annual_totals = convert_accumulated_sums_to_annual(self._resstock_annual_sums, self.resstock_crosswalk)
-            update_resstock_annual(annual_totals, self.resstock_annual_file)
+            write_resstock_annual(self._resstock_annual_sums, self.resstock_annual_file)
             self.print("Annual results saved to:", self.resstock_annual_file)
 
         # For ResStock mode, we don't compute OCHRE metrics or hourly aggregation

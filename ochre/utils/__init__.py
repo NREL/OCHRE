@@ -11,11 +11,9 @@ from .schedule import load_schedule
 from .resstock import (
     load_crosswalk,
     build_resstock_timeseries,
-    calculate_annual_totals,
     write_resstock_timeseries,
-    update_resstock_annual,
     accumulate_annual_sums,
-    convert_accumulated_sums_to_annual,
+    write_resstock_annual,
 )
 
 __all__ = [
@@ -33,9 +31,7 @@ __all__ = [
     "load_schedule",
     "load_crosswalk",
     "build_resstock_timeseries",
-    "calculate_annual_totals",
     "write_resstock_timeseries",
-    "update_resstock_annual",
     "accumulate_annual_sums",
-    "convert_accumulated_sums_to_annual",
+    "write_resstock_annual",
 ]

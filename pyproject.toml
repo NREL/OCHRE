@@ -67,11 +67,6 @@ path = "ochre/__init__.py"
 packages = ["ochre"]
 
 
-[dependency-groups]
-dev = [
-    "ruff>=0.14.14",
-]
-
 [tool.ruff]
 line-length = 120
 target-version = "py311"
