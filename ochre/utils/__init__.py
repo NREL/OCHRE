@@ -8,13 +8,7 @@ from .envelope import ZONES
 from .hpxml import load_hpxml
 from .schedule import load_schedule
 
-from .resstock import (
-    load_crosswalk,
-    build_resstock_timeseries,
-    write_resstock_timeseries,
-    accumulate_annual_sums,
-    write_resstock_annual,
-)
+from .resstock import ResStockOutput
 
 __all__ = [
     "main_path",
@@ -29,9 +23,5 @@ __all__ = [
     "ZONES",
     "load_hpxml",
     "load_schedule",
-    "load_crosswalk",
-    "build_resstock_timeseries",
-    "write_resstock_timeseries",
-    "accumulate_annual_sums",
-    "write_resstock_annual",
+    "ResStockOutput",
 ]

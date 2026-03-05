@@ -1,6 +1,8 @@
 """ResStock output format utilities for OCHRE."""
 
+import datetime as dt
 import os
+
 import pandas as pd
 
 from ochre.utils.base import default_input_path
@@ -142,3 +144,56 @@ def write_resstock_annual(sums, file_path):
     with open(file_path, "w") as f:
         for key, value in sums.items():
             f.write(f"{key},{round(value, 3)}\n")
+    return pd.DataFrame(list(sums.items()), columns=["Metric", "Value"])
+
+
+def _get_resstock_agg_func(col, units_dict):
+    """Determine aggregation function for hourly resampling based on unit."""
+    unit = units_dict.get(col, "")
+    # Energy/quantity columns should be summed; temperature/rate columns averaged
+    sum_units = {"kWh", "kBtu", "lb", "gal", "hr"}
+    return "sum" if unit in sum_units else "mean"
+
+
+class ResStockOutput:
+    """Manages ResStock output file generation (timeseries + annual)."""
+
+    def __init__(self, output_path, time_res):
+        self.timeseries_file = os.path.join(output_path, "results_timeseries.csv")
+        self.annual_file = os.path.join(output_path, "results_annual.csv")
+        self.crosswalk = load_crosswalk()
+        self.time_res = time_res
+        self._units_dict = None
+        self._annual_sums = {}
+
+        if os.path.exists(self.timeseries_file):
+            os.remove(self.timeseries_file)
+
+    def export_chunk(self, df):
+        """Convert OCHRE chunk to ResStock format, accumulate annual sums, write timeseries."""
+        resstock_df, units_dict = build_resstock_timeseries(df, self.crosswalk, self.time_res)
+
+        if self._units_dict is None:
+            self._units_dict = units_dict
+
+        self._annual_sums = accumulate_annual_sums(
+            resstock_df, self._units_dict, self.crosswalk, self._annual_sums
+        )
+
+        append = os.path.exists(self.timeseries_file)
+        write_resstock_timeseries(resstock_df, self._units_dict, self.timeseries_file, append=append)
+
+    def finalize(self, df=None, failed=False):
+        """Write final chunk, annual totals, and return hourly resampled data."""
+        if df is not None:
+            self.export_chunk(df)
+        annual_df = write_resstock_annual(self._annual_sums, self.annual_file)
+
+        # Read back full timeseries, skipping units row (row index 1)
+        ts_df = pd.read_csv(self.timeseries_file, skiprows=[1], parse_dates=["Time"], index_col="Time")
+
+        # Resample to hourly
+        agg_funcs = {col: _get_resstock_agg_func(col, self._units_dict) for col in ts_df.columns}
+        hourly_df = ts_df.resample(dt.timedelta(hours=1)).agg(agg_funcs)
+
+        return ts_df, annual_df, hourly_df
