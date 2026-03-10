@@ -40,7 +40,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest test/ -v --tb=short -n auto --cov=ochre --cov-report=xml --cov-report=term-missing
+          pytest test/ -v --tb=short -n auto --cov=ochre --cov-report=xml --cov-report=term-missing ${{ matrix.os != 'macos-latest' && '-m "not golden"' || '' }}
 
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
