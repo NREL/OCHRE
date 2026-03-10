@@ -176,9 +176,7 @@ class ResStockOutput:
         if self._units_dict is None:
             self._units_dict = units_dict
 
-        self._annual_sums = accumulate_annual_sums(
-            resstock_df, self._units_dict, self.crosswalk, self._annual_sums
-        )
+        self._annual_sums = accumulate_annual_sums(resstock_df, self._units_dict, self.crosswalk, self._annual_sums)
 
         append = os.path.exists(self.timeseries_file)
         write_resstock_timeseries(resstock_df, self._units_dict, self.timeseries_file, append=append)
