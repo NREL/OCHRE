@@ -227,9 +227,7 @@ class ResStockOutputTestCase(unittest.TestCase):
         resstock_args["output_format"] = "resstock"
         resstock_args["output_path"] = cls.resstock_output
         cls.resstock_dwelling = Dwelling(**resstock_args)
-        cls.resstock_ts, cls.resstock_annual, cls.resstock_hourly = (
-            cls.resstock_dwelling.simulate()
-        )
+        cls.resstock_ts, cls.resstock_annual, cls.resstock_hourly = cls.resstock_dwelling.simulate()
 
         cls.crosswalk = load_crosswalk()
         cls.hours_per_step = base_args["time_res"].total_seconds() / 3600
@@ -241,12 +239,8 @@ class ResStockOutputTestCase(unittest.TestCase):
                 shutil.rmtree(path)
 
     def test_resstock_files_exist(self):
-        self.assertTrue(os.path.isfile(
-            os.path.join(self.resstock_output, "results_timeseries.csv")
-        ))
-        self.assertTrue(os.path.isfile(
-            os.path.join(self.resstock_output, "results_annual.csv")
-        ))
+        self.assertTrue(os.path.isfile(os.path.join(self.resstock_output, "results_timeseries.csv")))
+        self.assertTrue(os.path.isfile(os.path.join(self.resstock_output, "results_annual.csv")))
 
     def test_timeseries_has_units_row(self):
         with open(os.path.join(self.resstock_output, "results_timeseries.csv")) as f:
@@ -287,9 +281,7 @@ class ResStockOutputTestCase(unittest.TestCase):
                 continue
 
             from_unit = _parse_unit(ochre_col)
-            expected = convert_units(
-                self.ochre_df[ochre_col], from_unit, target_unit, self.hours_per_step
-            )
+            expected = convert_units(self.ochre_df[ochre_col], from_unit, target_unit, self.hours_per_step)
             actual = self.resstock_ts[rs_col]
 
             pd.testing.assert_series_equal(
@@ -324,9 +316,7 @@ class ResStockOutputTestCase(unittest.TestCase):
             if pd.notna(ts) and ts and pd.notna(annual) and annual:
                 ts_to_annual[ts] = annual
 
-        annual_dict = dict(
-            zip(self.resstock_annual["Metric"], self.resstock_annual["Value"])
-        )
+        annual_dict = dict(zip(self.resstock_annual["Metric"], self.resstock_annual["Value"]))
 
         checked = 0
         for ts_col, annual_col in ts_to_annual.items():
@@ -345,9 +335,10 @@ class ResStockOutputTestCase(unittest.TestCase):
             expected_annual = convert_units(ts_sum, ts_unit, annual_unit)
 
             self.assertAlmostEqual(
-                annual_dict[annual_col], expected_annual, places=3,
-                msg=f"{annual_col}: annual={annual_dict[annual_col]}, "
-                    f"expected={expected_annual}",
+                annual_dict[annual_col],
+                expected_annual,
+                places=3,
+                msg=f"{annual_col}: annual={annual_dict[annual_col]}, expected={expected_annual}",
             )
             checked += 1
 

@@ -149,8 +149,10 @@ def test_building_simulation(bldg_name, tmp_path):
         else:
             raise
     if bldg_name in KNOWN_FAILURES:
-        pytest.fail(f"{bldg_name} was supposed to fail but simulation succeeded."
-                    " If the bug is fixed, remove from KNOWN_FAILURES set.")
+        pytest.fail(
+            f"{bldg_name} was supposed to fail but simulation succeeded."
+            " If the bug is fixed, remove from KNOWN_FAILURES set."
+        )
 
     assert ts_df is not None and len(ts_df) > 0
     assert os.path.isfile(os.path.join(output_path, "results_timeseries.csv"))
@@ -161,10 +163,7 @@ def test_building_simulation(bldg_name, tmp_path):
     actual = _read_results_annual(annual_path)
     for metric, expected_val in EXPECTED_ANNUAL[bldg_name].items():
         actual_val = actual.get(metric)
-        assert actual_val is not None, (
-            f"{bldg_name}: metric '{metric}' not found in results_annual.csv"
-        )
+        assert actual_val is not None, f"{bldg_name}: metric '{metric}' not found in results_annual.csv"
         assert abs(actual_val - expected_val) <= ANNUAL_ATOL, (
-            f"{bldg_name}: {metric} = {actual_val}, expected {expected_val} "
-            f"(diff={abs(actual_val - expected_val):.4f})"
+            f"{bldg_name}: {metric} = {actual_val}, expected {expected_val} (diff={abs(actual_val - expected_val):.4f})"
         )
