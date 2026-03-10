@@ -10,29 +10,16 @@ Usage:
 
 import csv
 import os
-import re
 import sys
 
 # Allow running from the OCHRE root directory
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
+from ochre.utils.resstock import to_underscore_case
 from test import test_path
 
 GOLDEN_TEST_RESULT_PATH = os.path.join(test_path, "resstock_golden", "test_result")
 GOLDEN_RESULTS_CSV = os.path.join(test_path, "resstock_golden", "results_up00.csv")
-
-
-def _to_underscore_case(s):
-    """Port of OpenStudio's toUnderscoreCase (utilities/core/String.cpp)."""
-    result = s
-    result = re.sub(r"[^a-zA-Z0-9]", " ", result)
-    result = re.sub(r"[-]+", "_", result)
-    result = re.sub(r"\s+", "_", result)
-    result = re.sub(r"([A-Za-z])([0-9])", r"\1_\2", result)
-    result = re.sub(r"([0-9]+)([A-Za-z])", r"\1_\2", result)
-    result = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", result)
-    result = re.sub(r"([a-z])([A-Z])", r"\1_\2", result)
-    return result.lower().strip("_")
 
 
 def _metric_to_column(metric_name):
@@ -43,7 +30,7 @@ def _metric_to_column(metric_name):
     Example: "End Use: Electricity: Heating (MBtu)"
           -> "report_simulation_output.end_use_electricity_heating_m_btu"
     """
-    return f"report_simulation_output.{_to_underscore_case(metric_name)}"
+    return f"report_simulation_output.{to_underscore_case(metric_name)}"
 
 
 def _read_results_annual(path):

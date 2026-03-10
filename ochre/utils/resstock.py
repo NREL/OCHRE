@@ -2,10 +2,28 @@
 
 import datetime as dt
 import os
+import re
 
 import pandas as pd
 
 from ochre.utils.base import default_input_path
+
+
+def to_underscore_case(s):
+    """Port of OpenStudio's toUnderscoreCase (utilities/core/String.cpp).
+
+    Converts arbitrary strings (including camelCase, digit boundaries, and
+    special characters) into lower_snake_case.  Used by ResStock to derive
+    CSV column names from metric display names.
+    """
+    result = re.sub(r"[^a-zA-Z0-9]", " ", s)
+    result = re.sub(r"[-]+", "_", result)
+    result = re.sub(r"\s+", "_", result)
+    result = re.sub(r"([A-Za-z])([0-9])", r"\1_\2", result)
+    result = re.sub(r"([0-9]+)([A-Za-z])", r"\1_\2", result)
+    result = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", result)
+    result = re.sub(r"([a-z])([A-Z])", r"\1_\2", result)
+    return result.lower().strip("_")
 
 
 # Conversion constants (matching OS-HPXML unit_conversions.rb)

@@ -18,6 +18,7 @@ import sys
 # Allow running from the OCHRE root directory
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
+from ochre.utils.resstock import to_underscore_case
 from test import test_path
 
 GOLDEN_TEST_RESULT_PATH = os.path.join(test_path, "resstock_golden", "test_result")
@@ -90,13 +91,6 @@ def _load_building_characteristics(csv_path):
     return chars
 
 
-def _sanitize_filename(metric):
-    """Convert a metric name to a safe filename."""
-    name = metric.replace(":", "").replace("(", "").replace(")", "")
-    name = name.replace("  ", " ").strip().replace(" ", "_").lower()
-    return name
-
-
 def main():
     if not os.path.isfile(GOLDEN_EPLUS_CSV):
         print(f"EnergyPlus reference file not found: {GOLDEN_EPLUS_CSV}")
@@ -163,7 +157,7 @@ def main():
         if not rows:
             continue
 
-        filename = _sanitize_filename(metric) + ".csv"
+        filename = to_underscore_case(metric) + ".csv"
         filepath = os.path.join(COMPARISON_OUTPUT_PATH, filename)
 
         with open(filepath, "w", newline="") as f:
