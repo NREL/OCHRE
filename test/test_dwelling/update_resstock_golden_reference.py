@@ -120,7 +120,7 @@ def main():
     print(f"  Values changed: {values_changed}")
 
     if unmapped_metrics:
-        print(f"\n  Metrics in results_annual.csv with no matching column in results_up00.csv:")
+        print("\n  Metrics in results_annual.csv with no matching column in results_up00.csv:")
         for metric, col in sorted(unmapped_metrics):
             print(f"    {metric} -> {col}")
 
