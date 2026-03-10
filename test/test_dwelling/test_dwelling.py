@@ -1,9 +1,13 @@
 import unittest
 import os
+import shutil
 import datetime as dt
 import time
 
+import pandas as pd
+
 from ochre import Dwelling
+from ochre.utils.resstock import _parse_unit, convert_units, load_crosswalk
 from test import test_output_path
 
 dwelling_args = {
@@ -191,6 +195,166 @@ class DwellingWithEquipmentTestCase(unittest.TestCase):
         # check output metrics have expected keys
         self.assertIn("Total Electric Energy (kWh)", metrics)
         self.assertGreater(metrics["Total Electric Energy (kWh)"], 0)
+
+
+class ResStockOutputTestCase(unittest.TestCase):
+    """Test that ResStock output format produces equivalent results to OCHRE format.
+
+    Runs two simulations with the same dwelling config and explicit seed:
+    - One with output_format="ochre" (default)
+    - One with output_format="resstock"
+    Then verifies that the ResStock output matches the OCHRE output after unit
+    conversion, and that the ResStock output files have correct structure.
+    """
+
+    ochre_output = os.path.join(test_output_path, "ochre_run")
+    resstock_output = os.path.join(test_output_path, "resstock_run")
+
+    @classmethod
+    def setUpClass(cls):
+        base_args = dwelling_args.copy()
+        base_args["initialization_time"] = dt.timedelta(hours=1)
+        base_args["seed"] = 42
+
+        # Run OCHRE simulation
+        ochre_args = base_args.copy()
+        ochre_args["output_path"] = cls.ochre_output
+        cls.ochre_dwelling = Dwelling(**ochre_args)
+        cls.ochre_df, cls.ochre_metrics, cls.ochre_hourly = cls.ochre_dwelling.simulate()
+
+        # Run ResStock simulation
+        resstock_args = base_args.copy()
+        resstock_args["output_format"] = "resstock"
+        resstock_args["output_path"] = cls.resstock_output
+        cls.resstock_dwelling = Dwelling(**resstock_args)
+        cls.resstock_ts, cls.resstock_annual, cls.resstock_hourly = (
+            cls.resstock_dwelling.simulate()
+        )
+
+        cls.crosswalk = load_crosswalk()
+        cls.hours_per_step = base_args["time_res"].total_seconds() / 3600
+
+    @classmethod
+    def tearDownClass(cls):
+        for path in [cls.ochre_output, cls.resstock_output]:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+
+    def test_resstock_files_exist(self):
+        self.assertTrue(os.path.isfile(
+            os.path.join(self.resstock_output, "results_timeseries.csv")
+        ))
+        self.assertTrue(os.path.isfile(
+            os.path.join(self.resstock_output, "results_annual.csv")
+        ))
+
+    def test_timeseries_has_units_row(self):
+        with open(os.path.join(self.resstock_output, "results_timeseries.csv")) as f:
+            lines = f.readlines()
+        # Row 0 = header, Row 1 = units, Row 2+ = data
+        self.assertGreater(len(lines), 2)
+        # Units row should have same number of fields as header
+        self.assertEqual(len(lines[0].split(",")), len(lines[1].split(",")))
+
+    def test_timeseries_row_count(self):
+        self.assertEqual(len(self.resstock_ts), len(self.ochre_df))
+
+    def test_total_electric_energy_matches(self):
+        ochre_kwh = (self.ochre_df["Total Electric Power (kW)"] * self.hours_per_step).sum()
+        resstock_kwh = self.resstock_ts["Fuel Use: Electricity: Total"].sum()
+        self.assertAlmostEqual(ochre_kwh, resstock_kwh, places=4)
+
+    def test_end_use_energy_matches(self):
+        """Per-end-use comparison for columns present in both outputs."""
+        valid = self.crosswalk[
+            self.crosswalk["OCHRE"].notna()
+            & (self.crosswalk["OCHRE"] != "")
+            & self.crosswalk["ResStock Timeseries"].notna()
+            & (self.crosswalk["ResStock Timeseries"] != "")
+        ]
+
+        checked = 0
+        for _, row in valid.iterrows():
+            ochre_col = row["OCHRE"]
+            rs_col = row["ResStock Timeseries"]
+            target_unit = row.get("ResStock Timeseries Unit", "")
+            if pd.isna(target_unit):
+                target_unit = ""
+
+            if ochre_col not in self.ochre_df.columns:
+                continue
+            if rs_col not in self.resstock_ts.columns:
+                continue
+
+            from_unit = _parse_unit(ochre_col)
+            expected = convert_units(
+                self.ochre_df[ochre_col], from_unit, target_unit, self.hours_per_step
+            )
+            actual = self.resstock_ts[rs_col]
+
+            pd.testing.assert_series_equal(
+                actual.reset_index(drop=True),
+                expected.reset_index(drop=True),
+                check_names=False,
+                atol=1e-6,
+                rtol=0,
+            )
+            checked += 1
+
+        # Ensure we actually checked some columns
+        self.assertGreater(checked, 5)
+
+    def test_temperature_conversion(self):
+        expected_f = self.ochre_df["Temperature - Indoor (C)"] * 9.0 / 5.0 + 32.0
+        actual_f = self.resstock_ts["Temperature: Conditioned Space"]
+        pd.testing.assert_series_equal(
+            actual_f.reset_index(drop=True),
+            expected_f.reset_index(drop=True),
+            check_names=False,
+            atol=1e-6,
+            rtol=0,
+        )
+
+    def test_annual_totals_consistent_with_timeseries(self):
+        """Annual sums should match timeseries column sums after unit conversion."""
+        ts_to_annual = {}
+        for _, row in self.crosswalk.iterrows():
+            ts = row.get("ResStock Timeseries", "")
+            annual = row.get("ResStock Annual", "")
+            if pd.notna(ts) and ts and pd.notna(annual) and annual:
+                ts_to_annual[ts] = annual
+
+        annual_dict = dict(
+            zip(self.resstock_annual["Metric"], self.resstock_annual["Value"])
+        )
+
+        checked = 0
+        for ts_col, annual_col in ts_to_annual.items():
+            if ts_col not in self.resstock_ts.columns:
+                continue
+            if annual_col not in annual_dict:
+                continue
+
+            match = self.crosswalk[self.crosswalk["ResStock Timeseries"] == ts_col]
+            ts_unit = match["ResStock Timeseries Unit"].iloc[0]
+            if pd.isna(ts_unit):
+                ts_unit = ""
+            annual_unit = _parse_unit(annual_col)
+
+            ts_sum = self.resstock_ts[ts_col].sum()
+            expected_annual = convert_units(ts_sum, ts_unit, annual_unit)
+
+            self.assertAlmostEqual(
+                annual_dict[annual_col], expected_annual, places=3,
+                msg=f"{annual_col}: annual={annual_dict[annual_col]}, "
+                    f"expected={expected_annual}",
+            )
+            checked += 1
+
+        self.assertGreater(checked, 3)
+
+    def test_hourly_row_count(self):
+        self.assertEqual(len(self.resstock_hourly), len(self.ochre_hourly))
 
 
 if __name__ == "__main__":
