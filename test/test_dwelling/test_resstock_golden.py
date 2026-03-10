@@ -16,7 +16,6 @@ After running the tests, compare OCHRE results against EnergyPlus:
 
 """
 
-import csv
 import os
 import traceback
 import warnings
@@ -25,6 +24,7 @@ import pytest
 
 from ochre.cli import create_dwelling
 from test import test_path
+from test.test_dwelling.resstock_test_utils import load_expected_from_csv, read_results_annual
 
 
 GOLDEN_DATA_PATH = os.path.join(test_path, "resstock_golden", "buildings")
@@ -74,33 +74,6 @@ VERBOSITY = 3
 ANNUAL_ATOL = 0.01
 
 
-def _read_results_annual(path):
-    """Read results_annual.csv into a dict keyed by metric name."""
-    results = {}
-    with open(path) as f:
-        for row in csv.reader(f):
-            if len(row) < 2 or not row[0].strip():
-                continue
-            results[row[0].strip()] = float(row[1])
-    return results
-
-
-def _load_expected_from_csv(csv_path):
-    """Load expected values from a results CSV, keyed by bldg_name."""
-    expected = {}
-    with open(csv_path) as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            bldg_id = int(row["building_id"])
-            bldg_name = f"bldg{bldg_id:07d}"
-            expected[bldg_name] = {}
-            for csv_col, annual_metric in COLUMNS_TO_VALIDATE:
-                val = row.get(csv_col, "")
-                if val:
-                    expected[bldg_name][annual_metric] = float(val)
-    return expected
-
-
 def _discover_buildings(data_path):
     """Return sorted list of building directory names."""
     return sorted(
@@ -112,7 +85,7 @@ def _discover_buildings(data_path):
 
 DATA_AVAILABLE = os.path.isdir(GOLDEN_DATA_PATH) and os.path.isdir(GOLDEN_WEATHER_PATH)
 ALL_BUILDINGS = _discover_buildings(GOLDEN_DATA_PATH) if DATA_AVAILABLE else []
-EXPECTED_ANNUAL = _load_expected_from_csv(GOLDEN_RESULTS_CSV) if DATA_AVAILABLE else {}
+EXPECTED_ANNUAL = load_expected_from_csv(GOLDEN_RESULTS_CSV, COLUMNS_TO_VALIDATE) if DATA_AVAILABLE else {}
 
 
 @pytest.mark.golden
@@ -166,7 +139,7 @@ def test_building_simulation(bldg_name):
     annual_path = os.path.join(output_path, "results_annual.csv")
     assert os.path.isfile(annual_path)
 
-    actual = _read_results_annual(annual_path)
+    actual = read_results_annual(annual_path)
 
     # Exact match against OCHRE reference results
     for metric, expected_val in EXPECTED_ANNUAL[bldg_name].items():

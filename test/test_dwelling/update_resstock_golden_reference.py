@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
 
 from ochre.utils.resstock import to_underscore_case
 from test import test_path
+from test.test_dwelling.resstock_test_utils import read_results_annual
 
 GOLDEN_TEST_RESULT_PATH = os.path.join(test_path, "resstock_golden", "test_result")
 GOLDEN_RESULTS_CSV = os.path.join(test_path, "resstock_golden", "results_up00.csv")
@@ -31,17 +32,6 @@ def _metric_to_column(metric_name):
           -> "report_simulation_output.end_use_electricity_heating_m_btu"
     """
     return f"report_simulation_output.{to_underscore_case(metric_name)}"
-
-
-def _read_results_annual(path):
-    """Read results_annual.csv into a dict keyed by metric name."""
-    results = {}
-    with open(path) as f:
-        for row in csv.reader(f):
-            if len(row) < 2 or not row[0].strip():
-                continue
-            results[row[0].strip()] = row[1].strip()
-    return results
 
 
 def main():
@@ -88,10 +78,10 @@ def main():
             continue
 
         row = row_index[bldg_name]
-        annual = _read_results_annual(annual_path)
+        annual = read_results_annual(annual_path)
         building_changed = False
 
-        for metric_name, value_str in annual.items():
+        for metric_name, value in annual.items():
             col_name = _metric_to_column(metric_name)
             if col_name is None:
                 continue
@@ -100,7 +90,7 @@ def main():
                 continue
 
             old_val = row.get(col_name, "")
-            new_val = value_str
+            new_val = str(round(value, 3))
             if old_val != new_val:
                 row[col_name] = new_val
                 values_changed += 1

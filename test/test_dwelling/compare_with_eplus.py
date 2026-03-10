@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
 
 from ochre.utils.resstock import to_underscore_case
 from test import test_path
+from test.test_dwelling.resstock_test_utils import load_expected_from_csv, read_results_annual
 
 GOLDEN_TEST_RESULT_PATH = os.path.join(test_path, "resstock_golden", "test_result")
 GOLDEN_RESULTS_CSV = os.path.join(test_path, "resstock_golden", "results_up00.csv")
@@ -50,33 +51,6 @@ SUMMARY_COLUMNS = [
 ]
 
 
-def _read_results_annual(path):
-    """Read results_annual.csv into a dict keyed by metric name."""
-    results = {}
-    with open(path) as f:
-        for row in csv.reader(f):
-            if len(row) < 2 or not row[0].strip():
-                continue
-            results[row[0].strip()] = float(row[1])
-    return results
-
-
-def _load_expected_from_csv(csv_path):
-    """Load expected values from a results CSV, keyed by bldg_name."""
-    expected = {}
-    with open(csv_path) as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            bldg_id = int(row["building_id"])
-            bldg_name = f"bldg{bldg_id:07d}"
-            expected[bldg_name] = {}
-            for csv_col, annual_metric in COLUMNS_TO_COMPARE:
-                val = row.get(csv_col, "")
-                if val:
-                    expected[bldg_name][annual_metric] = float(val)
-    return expected
-
-
 def _load_building_characteristics(csv_path):
     """Load building characteristics from results CSV for summary display."""
     chars = {}
@@ -96,7 +70,7 @@ def main():
         print(f"EnergyPlus reference file not found: {GOLDEN_EPLUS_CSV}")
         sys.exit(1)
 
-    expected_eplus = _load_expected_from_csv(GOLDEN_EPLUS_CSV)
+    expected_eplus = load_expected_from_csv(GOLDEN_EPLUS_CSV, COLUMNS_TO_COMPARE)
     building_chars = _load_building_characteristics(GOLDEN_RESULTS_CSV)
     char_headers = [hdr for _, hdr in SUMMARY_COLUMNS]
 
@@ -108,7 +82,7 @@ def main():
     for bldg_name in all_buildings:
         annual_path = os.path.join(GOLDEN_TEST_RESULT_PATH, bldg_name, "results_annual.csv")
         if os.path.isfile(annual_path):
-            ochre_results[bldg_name] = _read_results_annual(annual_path)
+            ochre_results[bldg_name] = read_results_annual(annual_path)
 
     if not ochre_results:
         print(f"No OCHRE test results found in {GOLDEN_TEST_RESULT_PATH}")
