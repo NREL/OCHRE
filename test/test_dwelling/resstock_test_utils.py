@@ -1,8 +1,32 @@
-"""Shared utilities for ResStock golden test scripts."""
+"""Shared utilities and constants for ResStock golden test scripts."""
 
 import csv
+import os
 
 from ochre.utils.resstock import to_underscore_case
+from test import test_path
+
+# Paths shared across golden test scripts
+GOLDEN_PATH = os.path.join(test_path, "resstock_golden")
+GOLDEN_DATA_PATH = os.path.join(GOLDEN_PATH, "buildings")
+GOLDEN_WEATHER_PATH = os.path.join(GOLDEN_PATH, "weather")
+GOLDEN_RESULTS_CSV = os.path.join(GOLDEN_PATH, "results_up00.csv")
+GOLDEN_EPLUS_CSV = os.path.join(GOLDEN_PATH, "results_up00_eplus.csv")
+GOLDEN_TEST_RESULT_PATH = os.path.join(GOLDEN_PATH, "test_result")
+COMPARISON_OUTPUT_PATH = os.path.join(GOLDEN_PATH, "comparison")
+
+# Metrics validated between OCHRE and EnergyPlus / golden reference.
+RESSTOCK_METRICS = [
+    "Fuel Use: Electricity: Total (MBtu)",
+    "Fuel Use: Natural Gas: Total (MBtu)",
+    "End Use: Electricity: Heating (MBtu)",
+    "End Use: Electricity: Cooling (MBtu)",
+    "End Use: Electricity: Hot Water (MBtu)",
+    "End Use: Electricity: Plug Loads (MBtu)",
+    "Load: Heating: Delivered (MBtu)",
+    "Load: Cooling: Delivered (MBtu)",
+    "Load: Hot Water: Delivered (MBtu)",
+]
 
 
 def metric_to_column(metric_name):

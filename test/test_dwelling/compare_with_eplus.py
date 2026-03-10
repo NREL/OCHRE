@@ -19,25 +19,15 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
 from ochre.utils.resstock import to_underscore_case
-from test import test_path
-from test.test_dwelling.resstock_test_utils import load_expected_from_csv, read_results_annual
-
-GOLDEN_TEST_RESULT_PATH = os.path.join(test_path, "resstock_golden", "test_result")
-GOLDEN_RESULTS_CSV = os.path.join(test_path, "resstock_golden", "results_up00.csv")
-GOLDEN_EPLUS_CSV = os.path.join(test_path, "resstock_golden", "results_up00_eplus.csv")
-COMPARISON_OUTPUT_PATH = os.path.join(test_path, "resstock_golden", "comparison")
-
-METRICS_TO_COMPARE = [
-    "Fuel Use: Electricity: Total (MBtu)",
-    "Fuel Use: Natural Gas: Total (MBtu)",
-    "End Use: Electricity: Heating (MBtu)",
-    "End Use: Electricity: Cooling (MBtu)",
-    "End Use: Electricity: Hot Water (MBtu)",
-    "End Use: Electricity: Plug Loads (MBtu)",
-    "Load: Heating: Delivered (MBtu)",
-    "Load: Cooling: Delivered (MBtu)",
-    "Load: Hot Water: Delivered (MBtu)",
-]
+from test.test_dwelling.resstock_test_utils import (
+    COMPARISON_OUTPUT_PATH,
+    GOLDEN_EPLUS_CSV,
+    GOLDEN_RESULTS_CSV,
+    GOLDEN_TEST_RESULT_PATH,
+    RESSTOCK_METRICS,
+    load_expected_from_csv,
+    read_results_annual,
+)
 
 # Building characteristics to include in summary tables.
 # Each tuple: (results_up00.csv column name, display header)
@@ -68,7 +58,7 @@ def main():
         print(f"EnergyPlus reference file not found: {GOLDEN_EPLUS_CSV}")
         sys.exit(1)
 
-    expected_eplus = load_expected_from_csv(GOLDEN_EPLUS_CSV, METRICS_TO_COMPARE)
+    expected_eplus = load_expected_from_csv(GOLDEN_EPLUS_CSV, RESSTOCK_METRICS)
     building_chars = _load_building_characteristics(GOLDEN_RESULTS_CSV)
     char_headers = [hdr for _, hdr in SUMMARY_COLUMNS]
 
@@ -90,7 +80,7 @@ def main():
 
     # Collect rows per metric: buildings with results first, then NA buildings
     rows_per_metric = {}
-    for metric in METRICS_TO_COMPARE:
+    for metric in RESSTOCK_METRICS:
         rows_with_results = []
         rows_na = []
 
@@ -156,7 +146,7 @@ def main():
     print(f"  ({n_with_results}/{n_total} buildings with OCHRE results)")
     print("=" * 80)
 
-    for metric in METRICS_TO_COMPARE:
+    for metric in RESSTOCK_METRICS:
         rows = rows_per_metric.get(metric)
         if not rows:
             continue

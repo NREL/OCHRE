@@ -15,11 +15,12 @@ import sys
 # Allow running from the OCHRE root directory
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
-from test import test_path
-from test.test_dwelling.resstock_test_utils import metric_to_column, read_results_annual
-
-GOLDEN_TEST_RESULT_PATH = os.path.join(test_path, "resstock_golden", "test_result")
-GOLDEN_RESULTS_CSV = os.path.join(test_path, "resstock_golden", "results_up00.csv")
+from test.test_dwelling.resstock_test_utils import (
+    GOLDEN_RESULTS_CSV,
+    GOLDEN_TEST_RESULT_PATH,
+    metric_to_column,
+    read_results_annual,
+)
 
 
 def main():
@@ -33,12 +34,7 @@ def main():
         fieldnames = reader.fieldnames
         rows = list(reader)
 
-    # Index rows by building name
-    row_index = {}
-    for row in rows:
-        bldg_id = int(row["building_id"])
-        bldg_name = f"bldg{bldg_id:07d}"
-        row_index[bldg_name] = row
+    row_index = {f"bldg{int(row['building_id']):07d}": row for row in rows}
 
     # Identify energy columns in results_up00.csv
     energy_columns = {

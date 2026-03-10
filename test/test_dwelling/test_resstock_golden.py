@@ -23,14 +23,15 @@ import warnings
 import pytest
 
 from ochre.cli import create_dwelling
-from test import test_path
-from test.test_dwelling.resstock_test_utils import load_expected_from_csv, read_results_annual
-
-
-GOLDEN_DATA_PATH = os.path.join(test_path, "resstock_golden", "buildings")
-GOLDEN_WEATHER_PATH = os.path.join(test_path, "resstock_golden", "weather")
-GOLDEN_RESULTS_CSV = os.path.join(test_path, "resstock_golden", "results_up00.csv")
-GOLDEN_TEST_RESULT_PATH = os.path.join(test_path, "resstock_golden", "test_result")
+from test.test_dwelling.resstock_test_utils import (
+    GOLDEN_DATA_PATH,
+    GOLDEN_RESULTS_CSV,
+    GOLDEN_TEST_RESULT_PATH,
+    GOLDEN_WEATHER_PATH,
+    RESSTOCK_METRICS,
+    load_expected_from_csv,
+    read_results_annual,
+)
 
 
 # Buildings known to fail (update as bugs are fixed).
@@ -50,19 +51,6 @@ KNOWN_FAILURES = {
     "bldg4484460",
 }
 
-METRICS_TO_VALIDATE = [
-    "Fuel Use: Electricity: Total (MBtu)",
-    "Fuel Use: Natural Gas: Total (MBtu)",
-    "End Use: Electricity: Heating (MBtu)",
-    "End Use: Electricity: Cooling (MBtu)",
-    "End Use: Electricity: Plug Loads (MBtu)",
-    "Load: Heating: Delivered (MBtu)",
-    "Load: Cooling: Delivered (MBtu)",
-    "Load: Hot Water: Delivered (MBtu)",
-    "End Use: Electricity: Hot Water (MBtu)",
-]
-
-
 TIME_RES_MINUTES = 15
 START_YEAR = 2007
 INIT_DAYS = 1
@@ -77,7 +65,7 @@ ALL_BUILDINGS = sorted(
     for name in os.listdir(GOLDEN_DATA_PATH)
     if name.startswith("bldg") and os.path.isdir(os.path.join(GOLDEN_DATA_PATH, name))
 )
-EXPECTED_ANNUAL = load_expected_from_csv(GOLDEN_RESULTS_CSV, METRICS_TO_VALIDATE)
+EXPECTED_ANNUAL = load_expected_from_csv(GOLDEN_RESULTS_CSV, RESSTOCK_METRICS)
 
 
 @pytest.mark.golden

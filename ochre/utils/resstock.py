@@ -16,7 +16,10 @@ def to_underscore_case(s):
     special characters) into lower_snake_case.  Used by ResStock to derive
     CSV column names from metric display names.
     """
-    result = re.sub(r"[^a-zA-Z0-9]", " ", s)
+    # Collapse brand names so camelCase splitting doesn't insert underscores
+    # (matches the C++ replace_all calls in toUnderscoreCase).
+    result = s.replace("OpenStudio", "Openstudio").replace("EnergyPlus", "Energyplus")
+    result = re.sub(r"[^a-zA-Z0-9]", " ", result)
     result = re.sub(r"[-]+", "_", result)
     result = re.sub(r"\s+", "_", result)
     result = re.sub(r"([A-Za-z])([0-9])", r"\1_\2", result)
