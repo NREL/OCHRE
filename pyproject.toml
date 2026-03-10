@@ -24,6 +24,7 @@ dependencies = [
     "click ~= 8.1",
     "boto3 ~= 1.36",
     "ruff>=0.14.14",
+    "pytest-xdist>=3.8.0",
 ]
 requires-python = ">=3.10, <3.13"
 authors = [
@@ -66,6 +67,11 @@ path = "ochre/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["ochre"]
 
+
+[tool.pytest.ini_options]
+markers = [
+    "golden: ResStock golden test suite (requires golden test data in test/resstock_golden/)",
+]
 
 [tool.ruff]
 line-length = 120
