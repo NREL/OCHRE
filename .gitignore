@@ -16,5 +16,6 @@ docs/_build
 .history
 ochre/defaults/Input Files/OCHRE*
 test/outputs/
+test/resstock_golden/test_result/
 test_run/
 uv.lock

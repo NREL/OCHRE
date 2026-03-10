@@ -42,6 +42,19 @@ jobs:
         run: |
           pytest test/ -v --tb=short -n auto --cov=ochre --cov-report=xml --cov-report=term-missing ${{ matrix.os != 'macos-latest' && '-m "not golden"' || '' }}
 
+      - name: Compare OCHRE vs EnergyPlus
+        if: matrix.os == 'macos-latest'
+        run: python test/test_dwelling/compare_with_eplus.py
+
+      - name: Commit comparison CSVs
+        if: matrix.os == 'macos-latest' && github.event_name == 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add test/resstock_golden/comparison/
+          git diff --cached --quiet || git commit -m "Update EPlus comparison CSVs"
+          git push origin HEAD:${{ github.head_ref }}
+
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         uses: codecov/codecov-action@v4
