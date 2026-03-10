@@ -7,6 +7,13 @@ on:
     # Run on all pull requests
     types: [opened, synchronize, reopened]
 
+# Add concurrency to cancel in-progress jobs when a new commit is pushed to the PR
+# This avoids CI jobs "stacking up" for the same PR
+concurrency:
+  # Cancel in-progress runs when a new workflow with the same concurrency group is queued
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
@@ -29,11 +36,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pytest-xdist
 
       - name: Run tests
         run: |
-          pytest test/ -v --tb=short --cov=ochre --cov-report=xml --cov-report=term-missing
+          pytest test/ -v --tb=short -n auto --cov=ochre --cov-report=xml --cov-report=term-missing
 
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
