@@ -58,6 +58,14 @@ COLUMNS_TO_VALIDATE = [
     ("report_simulation_output.load_heating_delivered_m_btu", "Load: Heating: Delivered (MBtu)"),
     ("report_simulation_output.load_cooling_delivered_m_btu", "Load: Cooling: Delivered (MBtu)"),
     ("report_simulation_output.load_hot_water_delivered_m_btu", "Load: Hot Water: Delivered (MBtu)"),
+    ("report_simulation_output.end_use_electricity_hot_water_m_btu", "End Use: Electricity: Hot Water (MBtu)"),
+]
+
+# Building characteristics to include in EPlus summary tables.
+# Each tuple: (results_up00.csv column name, display header)
+SUMMARY_COLUMNS = [
+    ("build_existing_model.heating_fuel", "Heating Fuel"),
+    ("build_existing_model.water_heater_fuel", "WH Fuel"),
 ]
 
 
@@ -100,6 +108,20 @@ def _load_expected_from_csv(csv_path):
     return expected
 
 
+def _load_building_characteristics(csv_path):
+    """Load building characteristics from results CSV for summary display."""
+    chars = {}
+    with open(csv_path) as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            bldg_id = int(row["building_id"])
+            bldg_name = f"bldg{bldg_id:07d}"
+            chars[bldg_name] = {}
+            for csv_col, _ in SUMMARY_COLUMNS:
+                chars[bldg_name][csv_col] = row.get(csv_col, "")
+    return chars
+
+
 def _discover_buildings(data_path):
     """Return sorted list of building directory names."""
     return sorted(
@@ -113,12 +135,13 @@ DATA_AVAILABLE = os.path.isdir(GOLDEN_DATA_PATH) and os.path.isdir(GOLDEN_WEATHE
 ALL_BUILDINGS = _discover_buildings(GOLDEN_DATA_PATH) if DATA_AVAILABLE else []
 EXPECTED_ANNUAL = _load_expected_from_csv(GOLDEN_RESULTS_CSV) if DATA_AVAILABLE else {}
 EXPECTED_EPLUS = _load_expected_from_csv(GOLDEN_EPLUS_CSV) if DATA_AVAILABLE else {}
+BUILDING_CHARS = _load_building_characteristics(GOLDEN_RESULTS_CSV) if DATA_AVAILABLE else {}
 
 
 @pytest.mark.golden
 @pytest.mark.skipif(not DATA_AVAILABLE, reason="Golden test data not available")
 @pytest.mark.parametrize("bldg_name", ALL_BUILDINGS)
-def test_building_simulation(bldg_name, tmp_path):
+def test_building_simulation(bldg_name, tmp_path, eplus_collector):
     """Run OCHRE ResStock simulation for a single building."""
     duration = 365
     input_path = os.path.join(GOLDEN_DATA_PATH, bldg_name)
@@ -175,24 +198,17 @@ def test_building_simulation(bldg_name, tmp_path):
             f"{bldg_name}: {metric} = {actual_val}, expected {expected_val} (diff={abs(actual_val - expected_val):.4f})"
         )
 
-    # Cross-validation against EnergyPlus results (warn if >50%, never fail)
+    # Cross-validation against EnergyPlus results (collect for summary, never fail)
     for metric, eplus_val in EXPECTED_EPLUS.get(bldg_name, {}).items():
         actual_val = actual.get(metric)
         if actual_val is None:
             continue
-        if abs(eplus_val) < 1.0:
-            diff = abs(actual_val - eplus_val)
-            if diff > EPLUS_ATOL:
-                warnings.warn(
-                    f"{bldg_name} vs EPlus: {metric} = {actual_val}, eplus = {eplus_val} "
-                    f"(diff={diff:.3f} MBtu, atol={EPLUS_ATOL})",
-                    stacklevel=1,
-                )
+        if abs(eplus_val) > 1e-9:
+            pct = (actual_val - eplus_val) / abs(eplus_val) * 100.0
         else:
-            rel_diff = abs(actual_val - eplus_val) / abs(eplus_val)
-            if rel_diff > EPLUS_RTOL:
-                warnings.warn(
-                    f"{bldg_name} vs EPlus: {metric} = {actual_val}, eplus = {eplus_val} "
-                    f"(rel_diff={rel_diff:.1%}, rtol={EPLUS_RTOL:.0%})",
-                    stacklevel=1,
-                )
+            pct = float("inf") if actual_val > 0 else float("-inf") if actual_val < 0 else 0.0
+        chars = {hdr: BUILDING_CHARS.get(bldg_name, {}).get(col, "")
+                 for col, hdr in SUMMARY_COLUMNS}
+        eplus_collector.setdefault(metric, []).append(
+            (bldg_name, actual_val, eplus_val, pct, chars)
+        )
