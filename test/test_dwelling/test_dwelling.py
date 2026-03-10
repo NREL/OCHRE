@@ -7,7 +7,7 @@ import time
 import pandas as pd
 
 from ochre import Dwelling
-from ochre.utils.resstock import _parse_unit, convert_units, load_crosswalk
+from ochre.utils.resstock import parse_unit, convert_units, load_crosswalk
 from test import test_output_path
 
 dwelling_args = {
@@ -280,7 +280,7 @@ class ResStockOutputTestCase(unittest.TestCase):
             if rs_col not in self.resstock_ts.columns:
                 continue
 
-            from_unit = _parse_unit(ochre_col)
+            from_unit = parse_unit(ochre_col)
             expected = convert_units(self.ochre_df[ochre_col], from_unit, target_unit, self.hours_per_step)
             actual = self.resstock_ts[rs_col]
 
@@ -329,7 +329,7 @@ class ResStockOutputTestCase(unittest.TestCase):
             ts_unit = match["ResStock Timeseries Unit"].iloc[0]
             if pd.isna(ts_unit):
                 ts_unit = ""
-            annual_unit = _parse_unit(annual_col)
+            annual_unit = parse_unit(annual_col)
 
             ts_sum = self.resstock_ts[ts_col].sum()
             expected_annual = convert_units(ts_sum, ts_unit, annual_unit)

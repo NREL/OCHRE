@@ -39,7 +39,7 @@ THERM_TO_KBTU = 100.0
 THERM_TO_KWH = 29.307107017222222
 
 
-def _parse_unit(col_name):
+def parse_unit(col_name):
     """Extract unit from parenthesized suffix, e.g. 'Power (kW)' -> 'kW'."""
     start = col_name.rfind("(")
     end = col_name.rfind(")")
@@ -106,7 +106,7 @@ def build_resstock_timeseries(df, crosswalk, time_res):
         if ochre_col not in df.columns:
             continue
 
-        from_unit = _parse_unit(ochre_col)
+        from_unit = parse_unit(ochre_col)
         result[resstock_col] = convert_units(df[ochre_col], from_unit, target_unit, hours_per_step)
         units_dict[resstock_col] = target_unit
 
@@ -134,7 +134,7 @@ def accumulate_annual_sums(resstock_df, units_dict, crosswalk, existing_sums=Non
             continue
         annual_col = ts_to_annual[col]
         ts_unit = units_dict.get(col, "")
-        annual_unit = _parse_unit(annual_col)
+        annual_unit = parse_unit(annual_col)
         chunk_sum = convert_units(resstock_df[col].sum(), ts_unit, annual_unit)
         sums[annual_col] = sums.get(annual_col, 0) + chunk_sum
 
