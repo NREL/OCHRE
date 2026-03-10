@@ -51,7 +51,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout ${{ github.head_ref }}
+          git fetch origin ${{ github.head_ref }}
+          git checkout -B ${{ github.head_ref }} FETCH_HEAD
           git add test/resstock_golden/comparison/
           git diff --cached --quiet || git commit -m "Update EPlus comparison CSVs"
           git push origin ${{ github.head_ref }}
