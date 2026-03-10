@@ -66,6 +66,8 @@ SCHEDULE_NAMES = {
         "No Space Heating": None,
         "No Space Cooling": None,
         "electric_vehicle": None,
+        "electric_vehicle_charging": None,
+        "electric_vehicle_discharging": None,
     },
 }
 

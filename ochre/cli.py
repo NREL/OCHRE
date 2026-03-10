@@ -40,12 +40,15 @@ def create_dwelling(
     export_res=None,
     time_zone=None,
     output_format="ochre",
+    seed=None,
 ):
     # Update input file paths
     if not os.path.isabs(hpxml_file):
         hpxml_file = os.path.join(input_path, hpxml_file)
     if not os.path.isabs(hpxml_schedule_file):
         hpxml_schedule_file = os.path.join(input_path, hpxml_schedule_file)
+    if not os.path.isfile(hpxml_schedule_file):
+        hpxml_schedule_file = None
 
     output_path = update_output_path(output_path, input_path)
 
@@ -79,6 +82,7 @@ def create_dwelling(
         verbosity=verbosity,
         time_zone=time_zone,
         output_format=output_format,
+        seed=seed,
         **weather_args,
     )
 
@@ -249,6 +253,7 @@ def common_options(f):
             type=click.Choice(["ochre", "resstock"]),
             help="Output format: 'ochre' (default) or 'resstock' (ResStock-compatible CSV)",
         ),
+        click.option("--seed", type=int, default=None, help="Random seed for reproducibility"),
     ]
     return functools.reduce(lambda x, opt: opt(x), options[::-1], f)
 
