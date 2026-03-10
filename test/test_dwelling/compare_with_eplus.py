@@ -27,18 +27,16 @@ GOLDEN_RESULTS_CSV = os.path.join(test_path, "resstock_golden", "results_up00.cs
 GOLDEN_EPLUS_CSV = os.path.join(test_path, "resstock_golden", "results_up00_eplus.csv")
 COMPARISON_OUTPUT_PATH = os.path.join(test_path, "resstock_golden", "comparison")
 
-# Columns to compare between results_annual.csv and EnergyPlus reference.
-# Each tuple: (results CSV column name, results_annual.csv metric name)
-COLUMNS_TO_COMPARE = [
-    ("report_simulation_output.fuel_use_electricity_total_m_btu", "Fuel Use: Electricity: Total (MBtu)"),
-    ("report_simulation_output.fuel_use_natural_gas_total_m_btu", "Fuel Use: Natural Gas: Total (MBtu)"),
-    ("report_simulation_output.end_use_electricity_heating_m_btu", "End Use: Electricity: Heating (MBtu)"),
-    ("report_simulation_output.end_use_electricity_cooling_m_btu", "End Use: Electricity: Cooling (MBtu)"),
-    ("report_simulation_output.end_use_electricity_hot_water_m_btu", "End Use: Electricity: Hot Water (MBtu)"),
-    ("report_simulation_output.end_use_electricity_plug_loads_m_btu", "End Use: Electricity: Plug Loads (MBtu)"),
-    ("report_simulation_output.load_heating_delivered_m_btu", "Load: Heating: Delivered (MBtu)"),
-    ("report_simulation_output.load_cooling_delivered_m_btu", "Load: Cooling: Delivered (MBtu)"),
-    ("report_simulation_output.load_hot_water_delivered_m_btu", "Load: Hot Water: Delivered (MBtu)"),
+METRICS_TO_COMPARE = [
+    "Fuel Use: Electricity: Total (MBtu)",
+    "Fuel Use: Natural Gas: Total (MBtu)",
+    "End Use: Electricity: Heating (MBtu)",
+    "End Use: Electricity: Cooling (MBtu)",
+    "End Use: Electricity: Hot Water (MBtu)",
+    "End Use: Electricity: Plug Loads (MBtu)",
+    "Load: Heating: Delivered (MBtu)",
+    "Load: Cooling: Delivered (MBtu)",
+    "Load: Hot Water: Delivered (MBtu)",
 ]
 
 # Building characteristics to include in summary tables.
@@ -70,7 +68,7 @@ def main():
         print(f"EnergyPlus reference file not found: {GOLDEN_EPLUS_CSV}")
         sys.exit(1)
 
-    expected_eplus = load_expected_from_csv(GOLDEN_EPLUS_CSV, COLUMNS_TO_COMPARE)
+    expected_eplus = load_expected_from_csv(GOLDEN_EPLUS_CSV, METRICS_TO_COMPARE)
     building_chars = _load_building_characteristics(GOLDEN_RESULTS_CSV)
     char_headers = [hdr for _, hdr in SUMMARY_COLUMNS]
 
@@ -92,12 +90,12 @@ def main():
 
     # Collect rows per metric: buildings with results first, then NA buildings
     rows_per_metric = {}
-    for _, annual_metric in COLUMNS_TO_COMPARE:
+    for metric in METRICS_TO_COMPARE:
         rows_with_results = []
         rows_na = []
 
         for bldg_name in all_buildings:
-            eplus_val = expected_eplus.get(bldg_name, {}).get(annual_metric)
+            eplus_val = expected_eplus.get(bldg_name, {}).get(metric)
             if eplus_val is None:
                 continue
 
@@ -108,7 +106,7 @@ def main():
                 # Building failed OCHRE simulation
                 rows_na.append((bldg_name, None, eplus_val, None, chars))
             else:
-                actual_val = actual.get(annual_metric)
+                actual_val = actual.get(metric)
                 if actual_val is None:
                     rows_na.append((bldg_name, None, eplus_val, None, chars))
                 else:
@@ -120,7 +118,7 @@ def main():
 
         # Sort results by abs(%diff) descending, then append NA rows at the bottom
         rows_with_results.sort(key=lambda r: abs(r[3]) if math.isfinite(r[3]) else float("inf"), reverse=True)
-        rows_per_metric[annual_metric] = rows_with_results + rows_na
+        rows_per_metric[metric] = rows_with_results + rows_na
 
     # Write CSV files
     os.makedirs(COMPARISON_OUTPUT_PATH, exist_ok=True)
@@ -158,7 +156,7 @@ def main():
     print(f"  ({n_with_results}/{n_total} buildings with OCHRE results)")
     print("=" * 80)
 
-    for _, metric in COLUMNS_TO_COMPARE:
+    for metric in METRICS_TO_COMPARE:
         rows = rows_per_metric.get(metric)
         if not rows:
             continue

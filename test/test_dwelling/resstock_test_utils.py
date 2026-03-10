@@ -2,6 +2,17 @@
 
 import csv
 
+from ochre.utils.resstock import to_underscore_case
+
+
+def metric_to_column(metric_name):
+    """Convert a results_annual.csv metric name to a results_up00.csv column name.
+
+    Example: "End Use: Electricity: Heating (MBtu)"
+          -> "report_simulation_output.end_use_electricity_heating_m_btu"
+    """
+    return f"report_simulation_output.{to_underscore_case(metric_name)}"
+
 
 def read_results_annual(path):
     """Read results_annual.csv into a dict mapping metric name to float value."""
@@ -14,10 +25,11 @@ def read_results_annual(path):
     return results
 
 
-def load_expected_from_csv(csv_path, columns):
+def load_expected_from_csv(csv_path, metrics):
     """Load expected values from a results CSV, keyed by bldg_name.
 
-    *columns* is a list of (csv_column_name, annual_metric_name) tuples.
+    *metrics* is a list of metric name strings (e.g. "Fuel Use: Electricity: Total (MBtu)").
+    CSV column names are derived via metric_to_column().
     """
     expected = {}
     with open(csv_path) as f:
@@ -26,8 +38,8 @@ def load_expected_from_csv(csv_path, columns):
             bldg_id = int(row["building_id"])
             bldg_name = f"bldg{bldg_id:07d}"
             expected[bldg_name] = {}
-            for csv_col, annual_metric in columns:
-                val = row.get(csv_col, "")
+            for metric in metrics:
+                val = row.get(metric_to_column(metric), "")
                 if val:
-                    expected[bldg_name][annual_metric] = float(val)
+                    expected[bldg_name][metric] = float(val)
     return expected

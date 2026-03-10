@@ -50,18 +50,16 @@ KNOWN_FAILURES = {
     "bldg4484460",
 }
 
-# Columns to validate between results_up00.csv and results_annual.csv.
-# Each tuple: (results_up00.csv column name, results_annual.csv metric name)
-COLUMNS_TO_VALIDATE = [
-    ("report_simulation_output.fuel_use_electricity_total_m_btu", "Fuel Use: Electricity: Total (MBtu)"),
-    ("report_simulation_output.fuel_use_natural_gas_total_m_btu", "Fuel Use: Natural Gas: Total (MBtu)"),
-    ("report_simulation_output.end_use_electricity_heating_m_btu", "End Use: Electricity: Heating (MBtu)"),
-    ("report_simulation_output.end_use_electricity_cooling_m_btu", "End Use: Electricity: Cooling (MBtu)"),
-    ("report_simulation_output.end_use_electricity_plug_loads_m_btu", "End Use: Electricity: Plug Loads (MBtu)"),
-    ("report_simulation_output.load_heating_delivered_m_btu", "Load: Heating: Delivered (MBtu)"),
-    ("report_simulation_output.load_cooling_delivered_m_btu", "Load: Cooling: Delivered (MBtu)"),
-    ("report_simulation_output.load_hot_water_delivered_m_btu", "Load: Hot Water: Delivered (MBtu)"),
-    ("report_simulation_output.end_use_electricity_hot_water_m_btu", "End Use: Electricity: Hot Water (MBtu)"),
+METRICS_TO_VALIDATE = [
+    "Fuel Use: Electricity: Total (MBtu)",
+    "Fuel Use: Natural Gas: Total (MBtu)",
+    "End Use: Electricity: Heating (MBtu)",
+    "End Use: Electricity: Cooling (MBtu)",
+    "End Use: Electricity: Plug Loads (MBtu)",
+    "Load: Heating: Delivered (MBtu)",
+    "Load: Cooling: Delivered (MBtu)",
+    "Load: Hot Water: Delivered (MBtu)",
+    "End Use: Electricity: Hot Water (MBtu)",
 ]
 
 
@@ -74,26 +72,18 @@ VERBOSITY = 3
 ANNUAL_ATOL = 0.01
 
 
-def _discover_buildings(data_path):
-    """Return sorted list of building directory names."""
-    return sorted(
-        name
-        for name in os.listdir(data_path)
-        if name.startswith("bldg") and os.path.isdir(os.path.join(data_path, name))
-    )
-
-
-DATA_AVAILABLE = os.path.isdir(GOLDEN_DATA_PATH) and os.path.isdir(GOLDEN_WEATHER_PATH)
-ALL_BUILDINGS = _discover_buildings(GOLDEN_DATA_PATH) if DATA_AVAILABLE else []
-EXPECTED_ANNUAL = load_expected_from_csv(GOLDEN_RESULTS_CSV, COLUMNS_TO_VALIDATE) if DATA_AVAILABLE else {}
+ALL_BUILDINGS = sorted(
+    name
+    for name in os.listdir(GOLDEN_DATA_PATH)
+    if name.startswith("bldg") and os.path.isdir(os.path.join(GOLDEN_DATA_PATH, name))
+)
+EXPECTED_ANNUAL = load_expected_from_csv(GOLDEN_RESULTS_CSV, METRICS_TO_VALIDATE)
 
 
 @pytest.mark.golden
-@pytest.mark.skipif(not DATA_AVAILABLE, reason="Golden test data not available")
 @pytest.mark.parametrize("bldg_name", ALL_BUILDINGS)
 def test_building_simulation(bldg_name):
     """Run OCHRE ResStock simulation for a single building."""
-    duration = 365
     input_path = os.path.join(GOLDEN_DATA_PATH, bldg_name)
     output_path = os.path.join(GOLDEN_TEST_RESULT_PATH, bldg_name)
     os.makedirs(output_path, exist_ok=True)
@@ -109,7 +99,7 @@ def test_building_simulation(bldg_name):
             weather_file_or_path=GOLDEN_WEATHER_PATH,
             output_path=output_path,
             output_format="resstock",
-            duration=duration,
+            duration=365,
             time_res=TIME_RES_MINUTES,
             start_year=START_YEAR,
             initialization_time=INIT_DAYS,
