@@ -27,6 +27,7 @@ from test import test_path
 GOLDEN_DATA_PATH = os.path.join(test_path, "resstock_golden", "buildings")
 GOLDEN_WEATHER_PATH = os.path.join(test_path, "resstock_golden", "weather")
 GOLDEN_RESULTS_CSV = os.path.join(test_path, "resstock_golden", "results_up00.csv")
+GOLDEN_EPLUS_CSV = os.path.join(test_path, "resstock_golden", "results_up00_eplus.csv")
 
 
 # Buildings known to fail (update as bugs are fixed).
@@ -67,6 +68,9 @@ VERBOSITY = 3
 
 # Tolerance for annual energy comparisons (MBtu)
 ANNUAL_ATOL = 0.01
+# Tolerance for OCHRE vs EnergyPlus cross-validation
+EPLUS_RTOL = 0.50  # 50% relative tolerance; differences beyond this are warned, not failed
+EPLUS_ATOL = 1.0  # absolute fallback (MBtu) when eplus value < 1 MBtu
 
 
 def _read_results_annual(path):
@@ -80,10 +84,10 @@ def _read_results_annual(path):
     return results
 
 
-def _load_golden_expected():
-    """Load expected values from results_up00.csv, keyed by bldg_name."""
+def _load_expected_from_csv(csv_path):
+    """Load expected values from a results CSV, keyed by bldg_name."""
     expected = {}
-    with open(GOLDEN_RESULTS_CSV) as f:
+    with open(csv_path) as f:
         reader = csv.DictReader(f)
         for row in reader:
             bldg_id = int(row["building_id"])
@@ -107,7 +111,8 @@ def _discover_buildings(data_path):
 
 DATA_AVAILABLE = os.path.isdir(GOLDEN_DATA_PATH) and os.path.isdir(GOLDEN_WEATHER_PATH)
 ALL_BUILDINGS = _discover_buildings(GOLDEN_DATA_PATH) if DATA_AVAILABLE else []
-EXPECTED_ANNUAL = _load_golden_expected() if DATA_AVAILABLE else {}
+EXPECTED_ANNUAL = _load_expected_from_csv(GOLDEN_RESULTS_CSV) if DATA_AVAILABLE else {}
+EXPECTED_EPLUS = _load_expected_from_csv(GOLDEN_EPLUS_CSV) if DATA_AVAILABLE else {}
 
 
 @pytest.mark.golden
@@ -161,9 +166,33 @@ def test_building_simulation(bldg_name, tmp_path):
     assert os.path.isfile(annual_path)
 
     actual = _read_results_annual(annual_path)
+
+    # Exact match against OCHRE reference results
     for metric, expected_val in EXPECTED_ANNUAL[bldg_name].items():
         actual_val = actual.get(metric)
         assert actual_val is not None, f"{bldg_name}: metric '{metric}' not found in results_annual.csv"
         assert abs(actual_val - expected_val) <= ANNUAL_ATOL, (
             f"{bldg_name}: {metric} = {actual_val}, expected {expected_val} (diff={abs(actual_val - expected_val):.4f})"
         )
+
+    # Cross-validation against EnergyPlus results (warn if >50%, never fail)
+    for metric, eplus_val in EXPECTED_EPLUS.get(bldg_name, {}).items():
+        actual_val = actual.get(metric)
+        if actual_val is None:
+            continue
+        if abs(eplus_val) < 1.0:
+            diff = abs(actual_val - eplus_val)
+            if diff > EPLUS_ATOL:
+                warnings.warn(
+                    f"{bldg_name} vs EPlus: {metric} = {actual_val}, eplus = {eplus_val} "
+                    f"(diff={diff:.3f} MBtu, atol={EPLUS_ATOL})",
+                    stacklevel=1,
+                )
+        else:
+            rel_diff = abs(actual_val - eplus_val) / abs(eplus_val)
+            if rel_diff > EPLUS_RTOL:
+                warnings.warn(
+                    f"{bldg_name} vs EPlus: {metric} = {actual_val}, eplus = {eplus_val} "
+                    f"(rel_diff={rel_diff:.1%}, rtol={EPLUS_RTOL:.0%})",
+                    stacklevel=1,
+                )
