@@ -207,8 +207,5 @@ def test_building_simulation(bldg_name, tmp_path, eplus_collector):
             pct = (actual_val - eplus_val) / abs(eplus_val) * 100.0
         else:
             pct = float("inf") if actual_val > 0 else float("-inf") if actual_val < 0 else 0.0
-        chars = {hdr: BUILDING_CHARS.get(bldg_name, {}).get(col, "")
-                 for col, hdr in SUMMARY_COLUMNS}
-        eplus_collector.setdefault(metric, []).append(
-            (bldg_name, actual_val, eplus_val, pct, chars)
-        )
+        chars = {hdr: BUILDING_CHARS.get(bldg_name, {}).get(col, "") for col, hdr in SUMMARY_COLUMNS}
+        eplus_collector.setdefault(metric, []).append((bldg_name, actual_val, eplus_val, pct, chars))

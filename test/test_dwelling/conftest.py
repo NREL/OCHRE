@@ -54,17 +54,11 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
         terminalreporter.write_line("")
         terminalreporter.write_line(f"  {metric}")
-        terminalreporter.write_line(
-            f"  {'Building':<16}{char_hdr_parts}  {'OCHRE':>12}  {'EPlus':>12}  {'%Diff':>10}"
-        )
-        terminalreporter.write_line(
-            f"  {'-' * 16}{char_sep_parts}  {'-' * 12}  {'-' * 12}  {'-' * 10}"
-        )
+        terminalreporter.write_line(f"  {'Building':<16}{char_hdr_parts}  {'OCHRE':>12}  {'EPlus':>12}  {'%Diff':>10}")
+        terminalreporter.write_line(f"  {'-' * 16}{char_sep_parts}  {'-' * 12}  {'-' * 12}  {'-' * 10}")
 
         for bldg_name, ochre_val, eplus_val, pct_diff, chars in rows:
-            char_vals = "  ".join(
-                f"{chars.get(hdr, ''):<{char_widths[hdr]}}" for hdr in char_headers
-            )
+            char_vals = "  ".join(f"{chars.get(hdr, ''):<{char_widths[hdr]}}" for hdr in char_headers)
             if math.isfinite(pct_diff):
                 pct_str = f"{pct_diff:>+9.1f}%"
             else:
