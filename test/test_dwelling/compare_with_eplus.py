@@ -166,8 +166,8 @@ def main():
         filename = _sanitize_filename(metric) + ".csv"
         filepath = os.path.join(COMPARISON_OUTPUT_PATH, filename)
 
-        with open(filepath, "w", newline="\n") as f:
-            writer = csv.writer(f)
+        with open(filepath, "w", newline="") as f:
+            writer = csv.writer(f, lineterminator="\n")
             writer.writerow(["Building"] + char_headers + ["OCHRE (MBtu)", "EPlus (MBtu)", "%Diff"])
 
             for bldg_name, ochre_val, eplus_val, pct_diff, chars in sorted(rows, key=lambda r: r[0]):
