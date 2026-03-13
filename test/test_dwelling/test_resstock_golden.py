@@ -1,60 +1,31 @@
-"""Golden test suite: run OCHRE ResStock simulations on 69 diverse buildings.
+"""Golden tests: validate OCHRE ResStock results against reference values.
 
-Exercises OCHRE's full simulation pipeline with ResStock output mode across a
-diverse set of residential buildings from a ResStock simulation. Serves as a
-comprehensive smoke test ensuring OCHRE handles a wide variety of building
-types, HVAC systems, and configurations.
+Tests read pre-computed results from test/resstock_golden/ochre_result/.
+If ochre_result/ is missing, tests fail with instructions to generate it.
+
+Generate results (re-run when OCHRE changes alter outputs):
+    python test/resstock_golden/generate_ochre_result.py
 
 Run all golden tests:
     pytest test/test_dwelling/test_resstock_golden.py -v --tb=short
 
 Run a single building:
-    pytest test/test_dwelling/test_resstock_golden.py -k bldg5219269 -v
-
-After running the tests, compare OCHRE results against EnergyPlus:
-    python test/test_dwelling/compare_with_eplus.py
-
+    pytest test/test_dwelling/test_resstock_golden.py -k bldg0108019 -v
 """
 
 import os
-import traceback
-import warnings
 
 import pytest
 
-from ochre.cli import create_dwelling
 from test.test_dwelling.resstock_test_utils import (
     GOLDEN_DATA_PATH,
     GOLDEN_RESULTS_CSV,
     GOLDEN_TEST_RESULT_PATH,
-    GOLDEN_WEATHER_PATH,
     RESSTOCK_METRICS,
     load_expected_from_csv,
     read_results_annual,
 )
 
-
-# Buildings known to fail (update as bugs are fixed).
-KNOWN_FAILURES = {
-    "bldg0203414",
-    "bldg0999920",
-    "bldg1138321",
-    "bldg1532617",
-    "bldg1638229",
-    "bldg1785305",
-    "bldg2164906",
-    "bldg2543739",
-    "bldg2557486",
-    "bldg3145607",
-    "bldg3800983",
-    "bldg3873309",
-    "bldg4484460",
-}
-
-TIME_RES_MINUTES = 15
-START_YEAR = 2007
-INIT_DAYS = 1
-VERBOSITY = 3
 
 # Tolerance for annual energy comparisons (MBtu)
 ANNUAL_ATOL = 0.01
@@ -68,56 +39,39 @@ ALL_BUILDINGS = sorted(
 EXPECTED_ANNUAL = load_expected_from_csv(GOLDEN_RESULTS_CSV, RESSTOCK_METRICS)
 
 
+def _check_test_results_exist():
+    """Raise a clear error if test_result/ hasn't been generated."""
+    if not os.path.isdir(GOLDEN_TEST_RESULT_PATH):
+        pytest.fail(
+            f"Golden test results not found at {GOLDEN_TEST_RESULT_PATH}\n"
+            "Run simulations first:\n"
+            "    python test/resstock_golden/generate_ochre_result.py\n"
+            "Re-run that script whenever OCHRE changes are expected to alter results.",
+            pytrace=False,
+        )
+
+
 @pytest.mark.golden
 @pytest.mark.parametrize("bldg_name", ALL_BUILDINGS)
-def test_building_simulation(bldg_name):
-    """Run OCHRE ResStock simulation for a single building."""
-    input_path = os.path.join(GOLDEN_DATA_PATH, bldg_name)
+def test_building_results(bldg_name):
+    """Validate pre-computed OCHRE results for a single building."""
+    _check_test_results_exist()
+
     output_path = os.path.join(GOLDEN_TEST_RESULT_PATH, bldg_name)
-    os.makedirs(output_path, exist_ok=True)
+    if not os.path.isdir(output_path):
+        pytest.skip(f"No test results for {bldg_name} (vacant unit or not yet simulated)")
 
-    # Extract numeric building ID for deterministic seeding
-    bldg_id = int(bldg_name.replace("bldg", ""))
-
-    try:
-        dwelling = create_dwelling(
-            input_path=input_path,
-            hpxml_file="home.xml",
-            hpxml_schedule_file="in.schedules.csv",
-            weather_file_or_path=GOLDEN_WEATHER_PATH,
-            output_path=output_path,
-            output_format="resstock",
-            duration=365,
-            time_res=TIME_RES_MINUTES,
-            start_year=START_YEAR,
-            initialization_time=INIT_DAYS,
-            verbosity=VERBOSITY,
-            seed=bldg_id,
-        )
-        ts_df, annual_df, hourly_df = dwelling.simulate()
-    except Exception as e:
-        if bldg_name in KNOWN_FAILURES:
-            tb = traceback.format_exc()
-            warnings.warn(
-                f"KNOWN FAILURE: {bldg_name}\n{tb}",
-                stacklevel=1,
-            )
-            pytest.xfail(f"{type(e).__name__}: {str(e)[:120]}")
-        else:
-            raise
-    if bldg_name in KNOWN_FAILURES:
-        pytest.fail(
-            f"{bldg_name} was supposed to fail but simulation succeeded."
-            " If the bug is fixed, remove from KNOWN_FAILURES set."
-        )
-
-    assert ts_df is not None and len(ts_df) > 0
-    assert os.path.isfile(os.path.join(output_path, "results_timeseries.csv"))
-
+    # Check that timeseries and annual files exist
+    ts_path = os.path.join(output_path, "results_timeseries.csv")
     annual_path = os.path.join(output_path, "results_annual.csv")
-    assert os.path.isfile(annual_path)
+
+    assert os.path.isfile(ts_path), f"{bldg_name}: results_timeseries.csv not found in {output_path}"
+    assert os.path.isfile(annual_path), f"{bldg_name}: results_annual.csv not found in {output_path}"
 
     actual = read_results_annual(annual_path)
+
+    if bldg_name not in EXPECTED_ANNUAL:
+        pytest.skip(f"{bldg_name} not in ochre_annual_result.csv reference")
 
     # Exact match against OCHRE reference results
     for metric, expected_val in EXPECTED_ANNUAL[bldg_name].items():

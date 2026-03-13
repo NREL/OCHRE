@@ -44,7 +44,7 @@ jobs:
 
       - name: Compare OCHRE vs EnergyPlus
         if: matrix.os == 'macos-latest'
-        run: python test/test_dwelling/compare_with_eplus.py
+        run: python test/resstock_golden/compare_ochre_and_eplus.py
 
       - name: Commit comparison CSVs
         if: matrix.os == 'macos-latest' && github.event_name == 'pull_request'

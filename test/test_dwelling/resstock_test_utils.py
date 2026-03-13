@@ -8,11 +8,11 @@ from test import test_path
 
 # Paths shared across golden test scripts
 GOLDEN_PATH = os.path.join(test_path, "resstock_golden")
-GOLDEN_DATA_PATH = os.path.join(GOLDEN_PATH, "buildings")
+GOLDEN_DATA_PATH = os.path.join(GOLDEN_PATH, "eplus_result")
 GOLDEN_WEATHER_PATH = os.path.join(GOLDEN_PATH, "weather")
-GOLDEN_RESULTS_CSV = os.path.join(GOLDEN_PATH, "results_up00.csv")
-GOLDEN_EPLUS_CSV = os.path.join(GOLDEN_PATH, "results_up00_eplus.csv")
-GOLDEN_TEST_RESULT_PATH = os.path.join(GOLDEN_PATH, "test_result")
+GOLDEN_RESULTS_CSV = os.path.join(GOLDEN_PATH, "ochre_result", "ochre_annual_result.csv")
+GOLDEN_EPLUS_CSV = os.path.join(GOLDEN_PATH, "eplus_result", "eplus_annual_result.csv")
+GOLDEN_TEST_RESULT_PATH = os.path.join(GOLDEN_PATH, "ochre_result")
 COMPARISON_OUTPUT_PATH = os.path.join(GOLDEN_PATH, "comparison")
 
 # Metrics validated between OCHRE and EnergyPlus / golden reference.
@@ -30,7 +30,7 @@ RESSTOCK_METRICS = [
 
 
 def metric_to_column(metric_name):
-    """Convert a results_annual.csv metric name to a results_up00.csv column name.
+    """Convert a results_annual.csv metric name to an annual result CSV column name.
 
     Example: "End Use: Electricity: Heating (MBtu)"
           -> "report_simulation_output.end_use_electricity_heating_m_btu"

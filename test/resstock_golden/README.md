@@ -2,115 +2,175 @@
 
 ## Overview
 
-This directory contains a curated set of 69 residential buildings used as golden test
-inputs for OCHRE's ResStock simulation pipeline. The test verifies that OCHRE can
-successfully simulate a diverse range of building configurations with ResStock output mode.
+This directory contains a curated set of residential buildings used as golden test inputs
+for OCHRE's ResStock simulation pipeline. The buildings are selected to cover a diverse
+range of housing characteristics — HVAC types, fuels, climate zones, insulation levels,
+water heaters, building geometries, and more — so that changes to OCHRE can be validated
+against known-good results.
 
-## How the Dataset Was Created
+The golden tests serve two purposes:
 
-### 1. Minimal Buildstock Selection (super69_buildstock.csv)
+1. **Regression testing** — verify that OCHRE produces the same annual energy results as a
+   previous run (exact match within tolerance).
+2. **Cross-validation** — compare OCHRE results against EnergyPlus for the same buildings
+   to track where the two engines agree and diverge.
 
-The `super69_buildstock.csv` was created by downsampling from a 5M-sample buildstock.csv
-using the **buildstock-query** upgrades analyzer's minimal buildstock creation tool. The
-algorithm selects the smallest set of buildings such that every housing characteristic with
-a cardinality of 25 or lower appears in at least one building. This ensures coverage of all:
+## What's in This Directory
 
-- HVAC system types (heat pumps, gas furnaces, electric resistance, etc.)
-- Insulation levels
-- Climate zones
-- Water heater types
-- Foundation types
-- Building geometries
-- And other key housing characteristics with cardinality <= 25
+### Data
 
-This process initially produced 68 buildings. One building was then manually duplicated and
-modified to be fully electric with all available electric end-uses (building ID starting
-with `9` — bldg9521019). This brings the total to 69 buildings.
+| Path | Description |
+|------|-------------|
+| `eplus_result/` | One subdirectory per building containing `home.xml` (HPXML building definition) and `in.schedules.csv` (normalized schedule profiles). Also contains `eplus_annual_result.csv` with EnergyPlus annual energy results for all buildings. |
+| `ochre_result/` | Contains `ochre_annual_result.csv` (committed) with OCHRE's reference annual energy results. Per-building simulation outputs (`results_annual.csv`, `results_timeseries.csv`) are written here by `generate_ochre_result.py` but are **gitignored**. |
+| `weather/` | Shared EPW weather files referenced by the buildings' `home.xml` files. |
+| `comparison/` | One CSV per energy metric comparing OCHRE vs EnergyPlus. Auto-generated and committed so that changes are visible in PR diffs. |
 
-### 2. ResStock Simulation (BuildStockBatch)
+### Scripts
 
-The `super69_buildstock.csv` was run through BuildStockBatch with OCHRE output mode. From
-the simulation output, only the input files needed by OCHRE were extracted:
+| Script | Purpose |
+|--------|---------|
+| `generate_ochre_result.py` | Run OCHRE simulations on all buildings and update `ochre_annual_result.csv`. |
+| `compare_ochre_and_eplus.py` | Compare OCHRE results against EnergyPlus and write per-metric CSVs to `comparison/`. |
+| `generate_minimal_buildstock.py` | Create a minimal buildstock CSV covering all key housing characteristics. Only needed when changing the building set. |
+| `copy_eplus_result.py` | Extract building files, weather, and EnergyPlus results from a ResStock simulation output. Only needed when changing the building set. |
 
-- `home.xml` — the HPXML building definition file
-- `in.schedules.csv` — normalized occupancy and equipment schedule profiles
+## How to Use the Golden Tests
 
-The OCHRE output mode setting does not affect these input files; they are produced by
-ResStock's standard HPXML generation pipeline.
+All commands are run from the OCHRE root directory.
 
-### 3. Reference Results (results_up00.csv)
+### Step 1: Generate OCHRE Results
 
-`results_up00.csv` contains the annual simulation results from the BuildStockBatch run.
-For buildings that OCHRE successfully simulates, their annual energy results should match
-the values in this file.
-
-### 4. EnergyPlus Reference Results (results_up00_eplus.csv)
-
-`results_up00_eplus.csv` contains annual simulation results from EnergyPlus for the same
-69 buildings. These serve as a cross-validation reference -- OCHRE results are compared
-against EnergyPlus to identify discrepancies in energy modeling. This comparison is not
-used for pass/fail testing (differences are expected between the two engines), but helps
-track where OCHRE diverges and by how much.
-
-### 5. EPlus Comparison Output (comparison/)
-
-The `comparison/` directory contains one CSV file per energy end-use metric, comparing
-OCHRE test results (from `test_result/`) against the EnergyPlus reference values in
-`results_up00_eplus.csv`. These files are generated by running:
-
-```
-python test/test_dwelling/compare_with_eplus.py
+```bash
+python test/resstock_golden/generate_ochre_result.py              # all buildings
+python test/resstock_golden/generate_ochre_result.py bldg0108019  # one building
 ```
 
-Each CSV includes all 69 buildings sorted by building ID, with columns for building
-characteristics (heating fuel, HVAC type, water heater fuel), OCHRE and EPlus values,
-and percent difference. Buildings that failed OCHRE simulation appear with `NA` values.
+This runs OCHRE on each building using all available CPU cores. For each building it writes
+`results_annual.csv` and `results_timeseries.csv` to `ochre_result/<bldg>/`. After all
+simulations complete, the script automatically updates `ochre_result/ochre_annual_result.csv`
+with the new annual energy values.
 
-These CSVs are committed to the repo so that changes in OCHRE-vs-EPlus agreement are
-visible in pull request diffs. CI automatically updates them on PRs.
+**When to run:** whenever OCHRE changes are expected to alter simulation outputs.
 
-## Directory Structure
+### Step 2: Run Golden Tests
 
-```
-resstock_golden/
-  README.md                  # This file
-  super69_buildstock.csv     # The 69-building buildstock input (186 columns)
-  results_up00.csv           # Reference annual results from BuildStockBatch
-  results_up00_eplus.csv     # EnergyPlus reference results for cross-validation
-  buildings/                 # 69 building directories
-    bldg0120236/
-      home.xml               # HPXML building definition
-      in.schedules.csv       # Normalized schedule profiles
-    bldg0163682/
-      ...
-    ...
-  weather/                   # 62 unique EPW weather files
-    G0100890.epw
-    G0200200.epw
-    ...
-  comparison/                # OCHRE vs EPlus comparison CSVs (auto-generated)
-    fuel_use_electricity_total_mbtu.csv
-    end_use_electricity_heating_mbtu.csv
-    ...
-  test_result/               # OCHRE test outputs (gitignored)
-    bldg0120236/
-      results_annual.csv
-      results_timeseries.csv
-    ...
+```bash
+pytest test/test_dwelling/test_resstock_golden.py -v --tb=short       # all buildings
+pytest test/test_dwelling/test_resstock_golden.py -k bldg0108019 -v   # one building
 ```
 
-## Test Status
+Each building's `results_annual.csv` is compared against the reference values in
+`ochre_annual_result.csv` across 9 energy metrics (see below). The tolerance is
+**0.01 MBtu** per metric. Buildings without simulation output are skipped.
 
-Currently **56 out of 69** buildings simulate successfully. The 13 known failures are
-tracked in `test/test_dwelling/test_resstock_golden.py` and fall into these categories:
+### Step 3: Compare with EnergyPlus (optional)
 
-| Error | Count | Description |
-|-------|-------|-------------|
-| `KeyError: 'HeatingSystemType'` | 6 | HPXML parsing issue for certain HVAC configs |
-| `Unable to parse multiple attic floor areas` | 2 | Multi-attic geometry not supported |
-| `Cannot find material properties for Garage Roof` | 2 | Missing material lookup |
-| `'HeatPumpWaterHeater' has no attribute 'hp_cop'` | 2 | HPWH model issue |
-| `HVAC Heating system and heat pump cannot both be specified` | 1 | Dual-system config |
+```bash
+python test/resstock_golden/compare_ochre_and_eplus.py
+```
 
-As these bugs are fixed, the known failures list should be updated and the pass count
-should increase toward 69.
+Produces one CSV per energy metric in `comparison/`, showing each building's OCHRE value,
+EnergyPlus value, and percent difference. Buildings that failed OCHRE simulation appear
+with `NA` values. These CSVs are committed to the repo and CI automatically updates them
+on pull requests. This helps us track alignment between OCHRE and Energy Plus simulation.
+
+## How to Recreate the Dataset
+
+These steps are only needed when the building set itself needs to change
+(e.g., updating to a new ResStock version).
+
+### 1. Select a minimal buildstock
+
+Run from the OCHRE root:
+
+```bash
+uv run test/resstock_golden/generate_minimal_buildstock.py
+```
+
+`generate_minimal_buildstock.py` uses
+[buildstock-query](https://github.com/NatLabRockies/buildstock-query) to downsample a
+large buildstock into the smallest set of buildings that covers most housing characteristic
+with cardinality less than 20. The script expects a sibling `resstock/` directory and uses
+the following files from ResStock:
+
+```
+resstock/
+  resources/res_ochre_550K.csv                          # large buildstock CSV
+  project_national/sdr_upgrades_tmy3.yml                # project YAML config
+  project_national/resources/options_saturations.csv    # upgrade options
+```
+
+[uv](https://docs.astral.sh/uv/) installs all Python dependencies automatically from the
+inline script metadata.
+
+If you don't already have the 550K buildstock (`res_ochre_550K.csv`) - you should create it first.
+Running the following command from ResStock directory can be used to generate it.
+
+```bash
+resstock>  openstudio resources/run_sampling.rb -n 550000 -o res_ochre_550K.csv  -p project_national 
+```
+
+The `generate_minimal_buildstock.py` will write `ochre_minimal_buildstock.csv` into the project_national
+directory.
+
+### 2. Run ResStock Simulation with the minimal buildstock.
+
+Update the ResStock project_national/national_baseline.yml to use the `ochre_minimal_buildstock.csv`
+
+````yml
+output_directory: ocher_minimal_run
+
+sampler:
+  type: precomputed
+  args:
+    sample_file: ochre_minimal_buildstock.csv
+````
+
+Then run ResStock simulation. Make sure to use the `-k` flag to preserve all run folders.
+
+```bash
+resstock>  openstudio ./workflow/run_analysis.rb -y ./project_national/national_baseline.yml -k 
+```
+
+### 3. Extract results into this directory
+
+Set `resstock_output_directory` in `copy_eplus_result.py` to point to the `ocher_minimal_run`
+output directory, then run:
+
+```bash
+uv run test/resstock_golden/copy_eplus_result.py
+```
+
+This copies building files into `eplus_result/`, weather files into `weather/`, and builds
+`eplus_result/eplus_annual_result.csv` from the ResStock outputs.
+
+### 4. Generate OCHRE results
+
+```bash
+python test/resstock_golden/generate_ochre_result.py
+```
+
+This runs OCHRE simulation on the copied buildings and populates `ochre_result/` with
+ OCHRE simulation outputs and creates the initial `ochre_annual_result.csv`.
+
+## Compare OCHRE and Energy Plus
+
+```bash
+uv run test/resstock_golden/compare_ochre_and_eplus.py
+```
+Will compare between the OCHRE and Eplus result and generate `comparison/` files.
+
+The golden tests and EnergyPlus comparison cover these 9 annual energy metrics:
+
+| Metric | Unit |
+|--------|------|
+| Fuel Use: Electricity: Total | MBtu |
+| Fuel Use: Natural Gas: Total | MBtu |
+| End Use: Electricity: Heating | MBtu |
+| End Use: Electricity: Cooling | MBtu |
+| End Use: Electricity: Hot Water | MBtu |
+| End Use: Electricity: Plug Loads | MBtu |
+| Load: Heating: Delivered | MBtu |
+| Load: Cooling: Delivered | MBtu |
+| Load: Hot Water: Delivered | MBtu |
