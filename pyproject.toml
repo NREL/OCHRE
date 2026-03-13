@@ -25,7 +25,6 @@ dependencies = [
     "boto3 ~= 1.36",
     "ruff==0.14.14",
     "pytest-xdist>=3.8.0",
-    "buildstock-query",
 ]
 requires-python = ">=3.10, <3.13"
 authors = [
@@ -80,6 +79,3 @@ target-version = "py311"
 
 [tool.ruff.format]
 quote-style = "double"
-
-[tool.uv.sources]
-buildstock-query = { git = "https://github.com/NatLabRockies/buildstock-query.git", rev = "55b9d70a17fb62fb03e0e5f31c95cc739dbd0330" }
