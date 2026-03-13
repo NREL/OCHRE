@@ -42,6 +42,10 @@ jobs:
         run: |
           pytest test/ -v --tb=short -n auto --cov=ochre --cov-report=xml --cov-report=term-missing ${{ matrix.os != 'macos-latest' && '-m "not golden"' || '' }}
 
+      - name: Generate OCHRE golden results
+        if: matrix.os == 'macos-latest'
+        run: python test/resstock_golden/generate_ochre_result.py
+
       - name: Compare OCHRE vs EnergyPlus
         if: matrix.os == 'macos-latest'
         run: python test/resstock_golden/compare_ochre_and_eplus.py
