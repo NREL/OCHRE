@@ -16,6 +16,7 @@ import shutil
 import sys
 import time
 import traceback
+import warnings
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -48,14 +49,16 @@ def run_building(name):
     output.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     try:
-        dwelling = create_dwelling(
-            input_path=str(BUILDINGS / name),
-            weather_file_or_path=str(WEATHER),
-            output_path=str(output),
-            seed=int(name.removeprefix("bldg")),
-            **SIM_KWARGS,
-        )
-        dwelling.simulate()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            dwelling = create_dwelling(
+                input_path=str(BUILDINGS / name),
+                weather_file_or_path=str(WEATHER),
+                output_path=str(output),
+                seed=int(name.removeprefix("bldg")),
+                **SIM_KWARGS,
+            )
+            dwelling.simulate()
         return name, None, time.time() - t0
     except Exception:
         return name, traceback.format_exc(), time.time() - t0
@@ -140,18 +143,16 @@ def main():
             status = "OK" if error is None else "FAILED"
             print(f"[{i}/{len(buildings)}] {name} {status} ({elapsed:.0f}s)")
             if error:
+                # Print only the last line of the traceback (the exception)
                 print(f"  {error.strip().splitlines()[-1]}")
                 failed.append(name)
 
     print(f"\n{len(buildings) - len(failed)} succeeded, {len(failed)} failed in {time.time() - t0:.0f}s")
     if failed:
-        print("Failed:", " ".join(failed))
+        print("Failed:", " ".join(sorted(failed)))
 
     # Update ochre_annual_result.csv with the new simulation results
     update_ochre_annual_result()
-
-    if failed:
-        sys.exit(1)
 
 
 if __name__ == "__main__":

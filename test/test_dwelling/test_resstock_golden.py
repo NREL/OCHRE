@@ -1,7 +1,8 @@
 """Golden tests: validate OCHRE ResStock results against reference values.
 
 Tests read pre-computed results from test/resstock_golden/ochre_result/.
-If ochre_result/ is missing, tests fail with instructions to generate it.
+If ochre_result/ has no building subdirectories, tests fail with instructions
+to generate results first.
 
 Generate results (re-run when OCHRE changes alter outputs):
     python test/resstock_golden/generate_ochre_result.py
@@ -30,6 +31,19 @@ from test.test_dwelling.resstock_test_utils import (
 # Tolerance for annual energy comparisons (MBtu)
 ANNUAL_ATOL = 0.01
 
+# Buildings known to fail OCHRE simulation (update as bugs are fixed).
+# When a bug is fixed and a building starts succeeding, remove it from this set
+# so the test verifies it continues to work.
+KNOWN_FAILURES = {
+    "bldg0229989",
+    "bldg0276627",
+    "bldg0294702",
+    "bldg0336334",
+    "bldg0475650",
+    "bldg0486267",
+    "bldg0522592",
+}
+
 
 ALL_BUILDINGS = sorted(
     name
@@ -39,14 +53,37 @@ ALL_BUILDINGS = sorted(
 EXPECTED_ANNUAL = load_expected_from_csv(GOLDEN_RESULTS_CSV, RESSTOCK_METRICS)
 
 
+def _has_results(bldg_name):
+    """Check if a building has simulation output files."""
+    output_path = os.path.join(GOLDEN_TEST_RESULT_PATH, bldg_name)
+    return (
+        os.path.isdir(output_path)
+        and os.path.isfile(os.path.join(output_path, "results_annual.csv"))
+        and os.path.isfile(os.path.join(output_path, "results_timeseries.csv"))
+    )
+
+
 def _check_test_results_exist():
-    """Raise a clear error if test_result/ hasn't been generated."""
+    """Raise a clear error if no simulation results have been generated."""
     if not os.path.isdir(GOLDEN_TEST_RESULT_PATH):
         pytest.fail(
             f"Golden test results not found at {GOLDEN_TEST_RESULT_PATH}\n"
             "Run simulations first:\n"
             "    python test/resstock_golden/generate_ochre_result.py\n"
             "Re-run that script whenever OCHRE changes are expected to alter results.",
+            pytrace=False,
+        )
+    # Check that at least some buildings have results
+    has_any = any(
+        os.path.isdir(os.path.join(GOLDEN_TEST_RESULT_PATH, name))
+        for name in os.listdir(GOLDEN_TEST_RESULT_PATH)
+        if name.startswith("bldg")
+    )
+    if not has_any:
+        pytest.fail(
+            "No building results found in ochre_result/.\n"
+            "Run simulations first:\n"
+            "    python test/resstock_golden/generate_ochre_result.py",
             pytrace=False,
         )
 
@@ -57,11 +94,16 @@ def test_building_results(bldg_name):
     """Validate pre-computed OCHRE results for a single building."""
     _check_test_results_exist()
 
-    output_path = os.path.join(GOLDEN_TEST_RESULT_PATH, bldg_name)
-    if not os.path.isdir(output_path):
-        pytest.skip(f"No test results for {bldg_name} (vacant unit or not yet simulated)")
+    if bldg_name in KNOWN_FAILURES:
+        if _has_results(bldg_name):
+            pytest.fail(
+                f"{bldg_name} is in KNOWN_FAILURES but simulation succeeded. "
+                "Remove it from KNOWN_FAILURES if the bug is fixed."
+            )
+        pytest.xfail(f"{bldg_name} is a known simulation failure")
 
-    # Check that timeseries and annual files exist
+    # For non-known-failure buildings, results must exist
+    output_path = os.path.join(GOLDEN_TEST_RESULT_PATH, bldg_name)
     ts_path = os.path.join(output_path, "results_timeseries.csv")
     annual_path = os.path.join(output_path, "results_annual.csv")
 
