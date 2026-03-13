@@ -38,13 +38,13 @@ jobs:
           pip install -e .
           pip install pytest pytest-cov pytest-xdist
 
-      - name: Run tests
-        run: |
-          pytest test/ -v --tb=short -n auto --cov=ochre --cov-report=xml --cov-report=term-missing ${{ matrix.os != 'macos-latest' && '-m "not golden"' || '' }}
-
       - name: Generate OCHRE golden results
         if: matrix.os == 'macos-latest'
         run: python test/resstock_golden/generate_ochre_result.py
+
+      - name: Run tests
+        run: |
+          pytest test/ -v --tb=short -n auto --cov=ochre --cov-report=xml --cov-report=term-missing ${{ matrix.os != 'macos-latest' && '-m "not golden"' || '' }}
 
       - name: Compare OCHRE vs EnergyPlus
         if: matrix.os == 'macos-latest'
