@@ -163,15 +163,17 @@ def build_eplus_csv(runs):
 
     # Determine column order: fixed columns first, then sorted section columns
     fixed_columns = [
-        "building_id", "job_id", "started_at", "completed_at",
+        "building_id",
+        "job_id",
+        "started_at",
+        "completed_at",
         "completed_status",
     ]
     section_columns = sorted(all_columns - set(fixed_columns))
     fieldnames = fixed_columns + section_columns
 
     with open(EPLUS_CSV, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n",
-                                extrasaction="ignore")
+        writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n", extrasaction="ignore")
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
