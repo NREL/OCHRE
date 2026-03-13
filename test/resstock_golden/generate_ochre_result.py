@@ -40,7 +40,7 @@ SIM_KWARGS = dict(
     time_res=15,
     start_year=2007,
     initialization_time=1,
-    verbosity=0,
+    verbosity=1,
 )
 
 
@@ -49,16 +49,22 @@ def run_building(name):
     output.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     try:
-        with warnings.catch_warnings():
+        # Suppress OCHRE's print-based warnings and Python warnings
+        with warnings.catch_warnings(), open(os.devnull, "w") as devnull:
             warnings.simplefilter("ignore")
-            dwelling = create_dwelling(
-                input_path=str(BUILDINGS / name),
-                weather_file_or_path=str(WEATHER),
-                output_path=str(output),
-                seed=int(name.removeprefix("bldg")),
-                **SIM_KWARGS,
-            )
-            dwelling.simulate()
+            old_stdout, old_stderr = sys.stdout, sys.stderr
+            sys.stdout, sys.stderr = devnull, devnull
+            try:
+                dwelling = create_dwelling(
+                    input_path=str(BUILDINGS / name),
+                    weather_file_or_path=str(WEATHER),
+                    output_path=str(output),
+                    seed=int(name.removeprefix("bldg")),
+                    **SIM_KWARGS,
+                )
+                dwelling.simulate()
+            finally:
+                sys.stdout, sys.stderr = old_stdout, old_stderr
         return name, None, time.time() - t0
     except Exception:
         return name, traceback.format_exc(), time.time() - t0
@@ -143,8 +149,7 @@ def main():
             status = "OK" if error is None else "FAILED"
             print(f"[{i}/{len(buildings)}] {name} {status} ({elapsed:.0f}s)")
             if error:
-                # Print only the last line of the traceback (the exception)
-                print(f"  {error.strip().splitlines()[-1]}")
+                print(error)
                 failed.append(name)
 
     print(f"\n{len(buildings) - len(failed)} succeeded, {len(failed)} failed in {time.time() - t0:.0f}s")
