@@ -88,7 +88,7 @@ def update_ochre_annual_result():
     }
 
     buildings_updated = 0
-    values_changed = 0
+    values_written = 0
 
     for bldg_name in sorted(os.listdir(GOLDEN_TEST_RESULT_PATH)):
         annual_path = os.path.join(GOLDEN_TEST_RESULT_PATH, bldg_name, "results_annual.csv")
@@ -100,22 +100,20 @@ def update_ochre_annual_result():
 
         row = row_index[bldg_name]
         annual = read_results_annual(annual_path)
-        building_changed = False
+
+        # Blank out all energy columns first so only OCHRE-produced values remain.
+        for col in energy_columns:
+            row[col] = ""
 
         for metric_name, value in annual.items():
             col_name = metric_to_column(metric_name)
             if col_name not in energy_columns:
                 continue
 
-            old_val = row.get(col_name, "")
-            new_val = str(round(value, 3))
-            if old_val != new_val:
-                row[col_name] = new_val
-                values_changed += 1
-                building_changed = True
+            row[col_name] = str(round(value, 3))
+            values_written += 1
 
-        if building_changed:
-            buildings_updated += 1
+        buildings_updated += 1
 
     with open(GOLDEN_RESULTS_CSV, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
@@ -123,8 +121,8 @@ def update_ochre_annual_result():
         writer.writerows(rows)
 
     print(f"\nUpdated {GOLDEN_RESULTS_CSV}")
-    print(f"  Buildings with OCHRE overlay: {buildings_updated}")
-    print(f"  Values changed vs EPlus: {values_changed}")
+    print(f"  Buildings with OCHRE results: {buildings_updated}")
+    print(f"  Values written from OCHRE: {values_written}")
 
 
 def main():

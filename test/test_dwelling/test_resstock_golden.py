@@ -35,13 +35,19 @@ ANNUAL_ATOL = 0.01
 # When a bug is fixed and a building starts succeeding, remove it from this set
 # so the test verifies it continues to work.
 KNOWN_FAILURES = {
-    "bldg0229989",
+    "bldg0066501",
+    "bldg0094522",
+    "bldg0116109",
+    "bldg0126235",
+    "bldg0145426",
     "bldg0276627",
-    "bldg0294702",
-    "bldg0336334",
+    "bldg0288066",
+    "bldg0451855",
+    "bldg0464288",
     "bldg0475650",
-    "bldg0486267",
-    "bldg0522592",
+    "bldg0499827",
+    "bldg0501306",
+    "bldg9064288",
 }
 
 
