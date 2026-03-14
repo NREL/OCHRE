@@ -1,78 +1,66 @@
 Building,Heating Fuel,HVAC Heating,HVAC Cooling,WH Fuel,OCHRE (MBtu),EPlus (MBtu),%Diff
-bldg0017888,None,None,None,Solar Thermal,4.4130,2.9950,+47.3%
-bldg0024316,Natural Gas,Ducted Heating,Central AC,Natural Gas,6.3680,11.1540,-42.9%
-bldg0036592,Natural Gas,Non-Ducted Heating,Room AC,Natural Gas,84.3340,74.5530,+13.1%
-bldg0046693,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,143.8990,NA
-bldg0051177,Natural Gas,Ducted Heating,None,Natural Gas,45.6650,56.2060,-18.8%
-bldg0052269,Natural Gas,Non-Ducted Heating,Central AC,Natural Gas,57.0530,126.6190,-54.9%
-bldg0053410,Electricity,Non-Ducted Heating,Room AC,Propane,NA,0.0000,NA
-bldg0074271,Electricity,Non-Ducted Heating,Room AC,Electricity,0.0000,0.0000,+0.0%
-bldg0082920,Electricity,Non-Ducted Heating,Room AC,Natural Gas,3.7920,10.7370,-64.7%
-bldg0084672,Propane,Non-Ducted Heating,Central AC,Propane,NA,0.0000,NA
+bldg0000935,Natural Gas,Ducted Heating,Room AC,Electricity,44.0920,46.8640,-5.9%
+bldg0008984,Electricity,Non-Ducted Heating,Central AC,Electricity,0.0000,0.0000,+0.0%
+bldg0020895,Electricity,Non-Ducted Heating,Central AC,Electricity,0.0000,0.0000,+0.0%
+bldg0021070,Wood,Non-Ducted Heating,Central AC,Electricity,86.7590,0.0000,inf
+bldg0027147,Natural Gas,Ducted Heating,Central AC,Natural Gas,7.3550,27.2070,-73.0%
+bldg0027808,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,2.3960,-100.0%
+bldg0028885,None,None,None,Electricity,8.4800,8.4800,+0.0%
+bldg0034729,Electricity,Ducted Heating,None,Electricity,0.0000,0.0000,+0.0%
+bldg0035052,Electricity,Non-Ducted Heating,None,Electricity,0.0000,0.0000,+0.0%
+bldg0064657,Natural Gas,Ducted Heating,None,Natural Gas,7.0730,18.0310,-60.8%
+bldg0066501,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,64.1390,NA
+bldg0085067,Other Fuel,Non-Ducted Heating,Room AC,Electricity,131.0290,0.0000,inf
+bldg0094522,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,110.0800,NA
+bldg0099159,Natural Gas,Ducted Heating,Central AC,Natural Gas,21.1320,35.8330,-41.0%
+bldg0103939,Fuel Oil,Ducted Heating,Room AC,Solar Thermal,54.6440,0.0000,inf
+bldg0104117,Natural Gas,Ducted Heating,Room AC,Natural Gas,19.2650,32.6800,-41.0%
 bldg0108019,Fuel Oil,Ducted Heating,Room AC,Fuel Oil,74.9960,2.7920,+2586.1%
-bldg0113533,Other Fuel,Non-Ducted Heating,Central AC,Electricity,NA,0.0000,NA
-bldg0115511,Natural Gas,Ducted Heating,Room AC,Natural Gas,55.2570,69.8980,-20.9%
+bldg0111149,Natural Gas,Ducted Heating,Room AC,Natural Gas,56.7360,85.5570,-33.7%
+bldg0112572,Natural Gas,Ducted Heating,Room AC,Natural Gas,35.5590,43.2480,-17.8%
 bldg0116109,Fuel Oil,Non-Ducted Heating,None,Fuel Oil,NA,0.0000,NA
+bldg0117900,Natural Gas,Non-Ducted Heating,Central AC,Natural Gas,45.1690,77.1690,-41.5%
+bldg0120120,Electricity,Ducted Heating,Room AC,Electricity,0.0000,2.6760,-100.0%
+bldg0125496,Natural Gas,Non-Ducted Heating,Room AC,Natural Gas,23.1400,55.4390,-58.3%
 bldg0126235,Propane,Ducted Heating,Central AC,Propane,NA,8.2850,NA
-bldg0131251,Electricity,Ducted Heating,Central AC,Electricity,NA,0.0000,NA
-bldg0142040,None,None,Room AC,Solar Thermal,5.1020,2.7920,+82.7%
+bldg0134115,None,None,Central AC,Electricity,0.0000,0.0000,+0.0%
 bldg0145426,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,111.4490,NA
 bldg0149742,Electricity,Non-Ducted Heating,Central AC,Electricity,0.0000,3.9080,-100.0%
-bldg0174098,Natural Gas,Ducted Heating,Room AC,Natural Gas,8.8390,25.6830,-65.6%
-bldg0174672,Electricity,Non-Ducted Heat Pump,Non-Ducted Heat Pump,Natural Gas,3.1790,9.4970,-66.5%
-bldg0175835,Electricity,Ducted Heat Pump,Ducted Heat Pump,Other Fuel,6.0990,0.0000,inf
+bldg0172208,Natural Gas,Ducted Heating,None,Natural Gas,8.8800,18.6870,-52.5%
 bldg0180324,Electricity,Non-Ducted Heating,None,Electricity,0.0000,0.0000,+0.0%
-bldg0182500,Natural Gas,Ducted Heating,None,Natural Gas,41.7190,44.1880,-5.6%
-bldg0183011,Wood,Non-Ducted Heating,Room AC,Natural Gas,232.0260,13.6380,+1601.3%
-bldg0194127,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,68.1850,NA
-bldg0203883,Fuel Oil,Non-Ducted Heating,Central AC,Fuel Oil,25.6140,2.2950,+1016.1%
+bldg0189657,Electricity,Non-Ducted Heat Pump,Non-Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
+bldg0208851,Electricity,Non-Ducted Heating,Central AC,Electricity,0.0000,0.0000,+0.0%
 bldg0208877,Natural Gas,Non-Ducted Heating,None,Natural Gas,6.1830,12.0280,-48.6%
-bldg0218249,Natural Gas,Ducted Heating,None,Natural Gas,NA,37.4930,NA
-bldg0219922,Natural Gas,Non-Ducted Heating,Room AC,Natural Gas,32.0020,19.1420,+67.2%
-bldg0231055,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
+bldg0224395,Electricity,Non-Ducted Heating,None,Electricity,0.0000,0.0000,+0.0%
+bldg0229989,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,4.2770,-100.0%
+bldg0234075,Natural Gas,Ducted Heating,Room AC,Natural Gas,32.2030,29.6610,+8.6%
 bldg0236990,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,5.4790,5.2360,+4.6%
-bldg0249633,Natural Gas,Ducted Heating,None,Natural Gas,29.4410,29.9260,-1.6%
-bldg0250840,Electricity,Ducted Heat Pump,Ducted Heat Pump,Solar Thermal,0.0000,0.0000,+0.0%
-bldg0272485,Electricity,Non-Ducted Heating,Central AC,Electricity,0.0000,0.0000,+0.0%
-bldg0276025,None,None,None,Natural Gas,3.5120,2.7440,+28.0%
+bldg0240393,Natural Gas,Ducted Heating,Central AC,Natural Gas,29.3340,36.6930,-20.1%
+bldg0245787,Electricity,Non-Ducted Heating,Room AC,Natural Gas,2.9020,8.1260,-64.3%
+bldg0250585,Electricity,Ducted Heat Pump,Ducted Heat Pump,Other Fuel,4.6890,2.7460,+70.8%
+bldg0259582,Natural Gas,Ducted Heating,None,Natural Gas,5.5020,12.1090,-54.6%
+bldg0274778,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
+bldg0275797,Natural Gas,Ducted Heating,Room AC,Natural Gas,16.4640,21.2570,-22.5%
 bldg0276627,Fuel Oil,Non-Ducted Heating,None,Propane,NA,0.0000,NA
-bldg0279527,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
-bldg0285401,Natural Gas,Ducted Heating,None,Natural Gas,62.9030,78.1130,-19.5%
-bldg0285800,None,None,Room AC,Solar Thermal,0.0000,1.5710,-100.0%
-bldg0286336,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
-bldg0286855,Wood,Ducted Heating,Room AC,Wood,169.5650,0.0000,inf
-bldg0288108,Propane,Ducted Heating,Room AC,Electricity,74.7180,2.8020,+2566.6%
-bldg0290668,None,None,None,Solar Thermal,0.0000,0.0000,+0.0%
-bldg0292927,Electricity,Non-Ducted Heat Pump,Non-Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
-bldg0296642,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,5.0820,8.2640,-38.5%
-bldg0298801,Natural Gas,Ducted Heating,None,Natural Gas,18.2310,29.8190,-38.9%
-bldg0301805,Electricity,Ducted Heating,Room AC,Electricity,0.0000,0.0000,+0.0%
-bldg0331512,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,76.2240,NA
+bldg0288066,Natural Gas,Ducted Heating,Central AC,Natural Gas,NA,43.9740,NA
+bldg0294702,Natural Gas,Non-Ducted Heating,Central AC,Natural Gas,129.8440,96.9660,+33.9%
+bldg0336334,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,1.7910,16.0850,-88.9%
 bldg0338190,Electricity,Ducted Heating,Central AC,Electricity,15.2560,15.2450,+0.1%
-bldg0342061,Natural Gas,Ducted Heating,Central AC,Natural Gas,76.0670,112.3790,-32.3%
-bldg0346592,Natural Gas,Ducted Heating,Central AC,Natural Gas,92.5410,112.2670,-17.6%
-bldg0360146,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,6.4010,5.7190,+11.9%
-bldg0375409,Propane,Non-Ducted Heating,Room AC,Propane,47.0080,0.0000,inf
-bldg0383333,Natural Gas,Ducted Heating,Room AC,Natural Gas,6.2190,6.1530,+1.1%
-bldg0385216,Electricity,Non-Ducted Heating,Central AC,Electricity,0.0000,0.0000,+0.0%
-bldg0385521,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
-bldg0385926,None,None,Central AC,Electricity,0.0000,0.0000,+0.0%
-bldg0411430,Natural Gas,Ducted Heating,None,Natural Gas,74.2300,67.1570,+10.5%
-bldg0426645,Natural Gas,Ducted Heating,None,Natural Gas,NA,64.1320,NA
-bldg0429676,None,None,Room AC,Solar Thermal,0.0000,0.0000,+0.0%
-bldg0434610,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
-bldg0436612,Other Fuel,Non-Ducted Heating,None,Electricity,3.3540,3.9040,-14.1%
-bldg0474023,Natural Gas,Ducted Heating,None,Natural Gas,NA,86.2580,NA
-bldg0482543,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,4.9760,6.9720,-28.6%
+bldg0353300,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,5.2780,16.9100,-68.8%
+bldg0353418,Electricity,Ducted Heat Pump,Ducted Heat Pump,Propane,6.1770,0.0000,inf
+bldg0355977,Electricity,Non-Ducted Heating,Room AC,Electricity,0.0000,0.0000,+0.0%
+bldg0372624,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,4.1860,-100.0%
+bldg0422846,Natural Gas,Ducted Heating,Room AC,Natural Gas,31.6040,36.5990,-13.6%
+bldg0437452,Electricity,Ducted Heating,None,Natural Gas,5.3500,7.5380,-29.0%
+bldg0445042,Natural Gas,Ducted Heating,Central AC,Natural Gas,12.6440,31.9540,-60.4%
+bldg0449322,Electricity,Non-Ducted Heating,Room AC,Electricity,0.0000,0.0000,+0.0%
+bldg0451855,Electricity,Ducted Heating,Central AC,Electricity,NA,0.0000,NA
+bldg0464288,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,NA,7.5240,NA
+bldg0475650,Natural Gas,Ducted Heating,None,Natural Gas,NA,62.9070,NA
 bldg0483730,Natural Gas,Ducted Heating,Central AC,Natural Gas,92.6760,101.5010,-8.7%
-bldg0487441,Fuel Oil,Non-Ducted Heating,Room AC,Natural Gas,27.1940,11.4600,+137.3%
-bldg0511004,Electricity,Non-Ducted Heating,None,Electricity,0.0000,2.2950,-100.0%
-bldg0513346,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,NA,1.7840,NA
-bldg0529232,Fuel Oil,Non-Ducted Heating,Central AC,Natural Gas,33.9130,23.4690,+44.5%
-bldg0531202,Other Fuel,Non-Ducted Heating,None,Other Fuel,7.2180,0.0000,inf
-bldg0534573,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
-bldg0544679,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
-bldg0545762,Natural Gas,Ducted Heating,Central AC,Natural Gas,45.4940,50.9400,-10.7%
-bldg0546864,Electricity,Ducted Heating,Room AC,Electricity,0.0000,2.2360,-100.0%
-bldg0549873,Electricity,Non-Ducted Heating,Central AC,Electricity,0.0000,0.0000,+0.0%
-bldg9013346,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,NA,0.0000,NA
+bldg0486267,Fuel Oil,Non-Ducted Heating,Central AC,Wood,66.7270,0.0000,inf
+bldg0487739,Natural Gas,Ducted Heating,Room AC,Natural Gas,66.3740,82.9270,-20.0%
+bldg0499827,Propane,Non-Ducted Heating,Central AC,Propane,NA,0.0000,NA
+bldg0501306,Natural Gas,Ducted Heating,Central AC,Electricity,NA,17.1380,NA
+bldg0522592,Electricity,Non-Ducted Heat Pump,Non-Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
+bldg9064288,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,NA,7.5240,NA
