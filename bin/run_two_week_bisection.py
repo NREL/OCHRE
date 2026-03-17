@@ -10,7 +10,31 @@ from ochre.utils import default_input_path  # for using sample files
 from ochre import HeatPumpWaterHeater
 
 #Two week rolling average
-sites = [ 99148, 99162, 99103, 99092, 99084] #80 G
+# sites = [ 99148, 99162, 99103, 99092, 99084] #80 G
+
+sites = [ 22096, 13438, 11531, 23744,
+11289,
+13265,
+23666,
+90028,
+90050,
+90135,
+10441,
+90015,
+90030
+] # 60 G sites
+
+sites = [ 22096, 13438, 11531, 23744,
+11289,
+13265,
+23666,
+90028,
+90050,
+90135,
+10441,
+90015,
+90030, 21578, 22897, 90023, 90130, 99094, 90051, 90069, 90131, 90034, 99148, 99162, 99103, 99092, 99084
+] #all sites
 for site_number in sites:
 #site_number = '11531' #90023 #10292#'10441'
     tank_volume = 151 #40g
@@ -21,7 +45,7 @@ for site_number in sites:
 
 
     # Define equipment and simulation parameters
-    setpoint_default = 51  # in C #alternate b/w 60 and 49
+    setpoint_default = 51.5  # in C #alternate b/w 60 and 49
     deadband_default = 5.56  # in C
 
     max_setpoint = 60
@@ -318,8 +342,9 @@ for site_number in sites:
             "T_WH3",
             #"T_WH7",
             "T_WH10",
-            "T_WH12"
-            #"T_AMB"
+            #"T_WH12",
+            #"T_AMB",
+            "Water Heating Heat Pump COP (-)"
         ]
 
         avg_setpoints = np.convolve(setpoints, np.ones(15)/15, 'same')
@@ -328,16 +353,42 @@ for site_number in sites:
         df['Energy (kWh)'] = df['Water Heating Electric Power (kW)']/ 60  # energy per minute
         kwh_energy = df['Energy (kWh)'].resample('15T').sum()  # sum up 15 mins = total kWh per interval
 
+        
+        # Convert to kWh per minute
+        df['HotWaterDelivered_kWh'] = df['Hot Water Delivered (W)'] / 1000 / 60
+        df['HotWaterLoss_kWh'] = df['Hot Water Heat Loss (W)'] / 1000 / 60
+        df["HotWaterInjection_kWh"] = df['Hot Water Heat Injected (W)'] / 1000 / 60
+        df["Hot Water Unmet Demand (kWh)"] = df['Hot Water Unmet Demand (kW)'] / 60
+
+        # Resample to 15-min totals
+        delivered_15min = df['HotWaterDelivered_kWh'].resample('15T').sum()
+        loss_15min = df['HotWaterLoss_kWh'].resample('15T').sum()
+        injection_15min = df['HotWaterInjection_kWh'].resample('15T').sum()
+        unmet_demand_15min = df['Hot Water Unmet Demand (kWh)'].resample('15T').sum()
+
+
+
         # For the DataFrame, select columns and calculate the rolling average for each column
         to_save = df[cols_to_save].rolling(window=15).mean()
 
         #electric_energy_kwh = electric_energy_kwh[14::15]
+        #resample hot water delivered 
+
 
         to_save = df.loc[:, cols_to_save]
+
         to_save["Water Heating Mode"] = df["Water Heating Mode"]
 
         to_save = to_save[14::15].copy()
+
         to_save["Water Heating Electric Power"] = kwh_energy.values
+        to_save["Hot Water Delivered (kWh)"] = delivered_15min.values
+        to_save["Hot Water Heat Loss (kWh)"] = loss_15min.values
+        to_save["Hot Water Heat Injected (kWh)"] = injection_15min.values
+        to_save["Hot Water Unmet Demand (kWh)"] = unmet_demand_15min.values
+
+
+
         #to_save["Water Heating Electric Power"] = kwh_energy #pd.Series(kwh_energy, index=to_save.index)
         to_save["Setpoints"] = avg_setpoints
 
