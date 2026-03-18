@@ -664,7 +664,7 @@ def calculate_mass_flow_rate(DBin, Win, P, flow):
     mfr = flow * rho_in
     return mfr
 
-def process_detailed_performance_data(detailed_performance_data, mode, nominal_capacity, system_type, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted):
+def process_detailed_performance_data(detailed_performance_data, mode, nominal_capacity, rated_cfm_per_ton, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted):
     datapoints_by_speed = {}
     for outtemp, speed_data in detailed_performance_data.items():
       for speed_description, datapoints in speed_data.items():
@@ -677,22 +677,11 @@ def process_detailed_performance_data(detailed_performance_data, mode, nominal_c
         dp['net_capacity'] = datapoints['capacity']
         dp['net_COP'] = datapoints['COP']
         datapoints_by_speed[speed_description].append(dp)
-    datapoints_by_speed = convert_datapoint_net_to_gross(datapoints_by_speed, mode, nominal_capacity, system_type, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted)
+    datapoints_by_speed = convert_datapoint_net_to_gross(datapoints_by_speed, mode, nominal_capacity, rated_cfm_per_ton, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted)
     #extrapolate_datapoints(datapoints_by_speed mode, hp_min_temp, weather_temp)
     datapoints_by_speed = correct_ft_cap_eir(datapoints_by_speed, mode)
-    for speed_description, datapoints in datapoints_by_speed.items():
-        for dp in datapoints:
-            print(f'Speed: {speed_description}, ODB: {dp["outdoor_temperature"]}, IDB: {dp["indoor_temperature"]}, Gross Capacity: {dp["gross_capacity"]}, Gross COP: {dp["gross_COP"]}')
-
-def extrapolate_datapoints(datapoints_by_speed, mode, hp_min_temp, weather_temp, heating_capacity, cooling_capacity, system_type, capacity_ratio, fan_power_rated, fan_motor_type, is_ducted):
-    for speed_description, datapoints in datapoints_by_speed.items():
-        user_odbs = sorted(datapoints.keys())
-        outdoor_dry_bulbs = []
-        if mode == "Cooling":
-            # Max cooling ODB temperature
-            max_odb = weather_temp
-            if max_odb > max(user_odbs):
-                outdoor_dry_bulbs.append([max_odb, None, None])
+    print(datapoints_by_speed)
+    return datapoints_by_speed
 
 def calculate_biquadratic(x, y, c):
     if len(c) != 6:
@@ -754,15 +743,14 @@ def correct_ft_cap_eir(datapoints_by_speed, mode):
             datapoints.extend(new_data)
     return datapoints_by_speed
 
-def convert_datapoint_net_to_gross(datapoints_by_speed, mode, nominal_capacity, system_type, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted):
+def convert_datapoint_net_to_gross(datapoints_by_speed, mode, nominal_capacity, rated_cfm_per_ton, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted):
     speed_index = {
         HPXML_SPEED_DESCRIPTION_MINIMUM: 1,
         HPXML_SPEED_DESCRIPTION_NOMINAL: 2,
         HPXML_SPEED_DESCRIPTION_MAXIMUM: 3
     } # add 1 to speed index to include off speed in capacity list
     # Calculate rated cfm based on cooling per AHRI
-    rated_cfm_per_ton = get_rated_cfm_per_ton(system_type)
-    rated_cfm = rated_cfm_per_ton * convert(nominal_capacity, 'W', 'refrigeration_ton')
+    rated_cfm = calc_rated_airflow(nominal_capacity, rated_cfm_per_ton, 'cubic_feet/min')
     print(f'Nominal capacity: {nominal_capacity} W, {convert(nominal_capacity, "W", "refrigeration_ton")} tons')
     print(f'Rated CFM based on nominal capacity and system type: {rated_cfm} cfm')
     if rated_cfm < 3: # Resort to heating if we get a HP w/ only heating
@@ -771,8 +759,8 @@ def convert_datapoint_net_to_gross(datapoints_by_speed, mode, nominal_capacity, 
     # data structure: datapoints_by_speed[speed_description][outtemp]['net_capacity'] = 1000
     for speed_description, datapoints in datapoints_by_speed.items():
         for dp in datapoints:
-            fan_cfm = calc_rated_airflow(nominal_capacity, rated_cfm_per_ton, 'cubic_feet/min') * (capacity_list[speed_index[speed_description]] / nominal_capacity)
-            fan_ratio = fan_cfm / rated_cfm
+            fan_cfm = rated_cfm * (capacity_list[speed_index[speed_description]] / nominal_capacity)
+            fan_ratio = fan_cfm / rated_cfm # equal to capacity ratio in this case, OS-HPXML could be different since the rated_cfm 
             watts_per_cfm = convert(fan_power_per_flow_rate, 'W/(m^3/s)', 'W/(cubic_feet/min)')
             fan_power = calculate_fan_power(watts_per_cfm * rated_cfm, fan_ratio, fan_motor_type, is_ducted)
             dp['gross_capacity'], dp['gross_COP'] = convert_net_to_gross_capacity_cop(mode, dp['net_capacity'], fan_power, dp['net_COP'])
