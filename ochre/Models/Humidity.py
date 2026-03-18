@@ -12,10 +12,11 @@ class HumidityModel:
         Dwelling humidity model
         """
         self.time_res = time_res
+        self._dt_seconds = self.time_res.total_seconds()
         self.latent_gains = 0  # in W
         self.latent_gains_init = self.latent_gains  # for saving values from update_inputs step
         self.volume = volume
-        self.max_latent_flow = self.volume * self.humidity_cap_mult / self.time_res.total_seconds()  # in m^3/s
+        self.max_latent_flow = self.volume * self.humidity_cap_mult / self._dt_seconds  # in m^3/s
 
         # Initial conditions - use outdoor humidity ratio (w) for initial indoor w
         # t_outdoor = kwargs['initial_schedule']['Ambient Dry Bulb (C)']
@@ -46,7 +47,7 @@ class HumidityModel:
 
         # calculate unitless latent gains
         latent_gains_w = (
-            self.latent_gains * self.time_res.total_seconds() / 1000 / (self.density * self.volume * self.h_vap)
+            self.latent_gains * self._dt_seconds / 1000 / (self.density * self.volume * self.h_vap)
         )
         # w_outdoor = psychrolib.GetHumRatioFromRelHum(t_outdoor, rh_outdoor, p_outdoor)
 

@@ -222,6 +222,71 @@ class EnvelopeInfiltrationTestCase(unittest.TestCase):
         self.assertTrue(envelope.linearize_infiltration)
 
 
+class NaturalVentilationUnitTestCase(unittest.TestCase):
+    """Tests for natural ventilation unit consistency.
+
+    open_window_area is computed in m^2 (from HPXML import which converts ft^2 → m^2).
+    The natural ventilation calculation must treat it as m^2 throughout.
+    """
+
+    def _make_zone_with_nat_vent(self, open_window_area_m2: float = 1.0) -> "Zone":
+        """Create a minimal Indoor zone with natural ventilation enabled."""
+        envelope = create_minimal_envelope(
+            zones={
+                "Indoor": {
+                    "Volume (m^3)": 600,
+                    # ELA coefficients are needed for nat vent flow formula
+                    "ELA stack coefficient (L/s/cm^4/K)": 0.00029,
+                    "ELA wind coefficient (L/s/cm^4/(m/s))": 0.000231,
+                    "enable_humidity": False,
+                },
+            },
+        )
+        zone = envelope.indoor_zone
+        zone.open_window_area = open_window_area_m2
+        return zone
+
+    def test_nat_vent_area_uses_m2_not_ft2(self):
+        """Natural ventilation should use m^2 → cm^2 module-level conversion constant."""
+        from ochre.Models.Envelope import _M2_TO_CM2
+
+        vent_kwargs = dict(t_ext=20.0, t_zone=25.0, wind_speed=2.0, density=1.2, w_amb=0.005)
+        zone = self._make_zone_with_nat_vent(open_window_area_m2=1.0)
+
+        self.assertAlmostEqual(_M2_TO_CM2, 10000.0)
+
+        zone.update_infiltration(**vent_kwargs)
+        self.assertGreater(zone.nat_vent_flow, 0, "Natural ventilation should be active")
+
+    def test_nat_vent_not_triggered_when_conditions_unmet(self):
+        """Natural ventilation should be zero when conditions are not met."""
+        zone = self._make_zone_with_nat_vent(open_window_area_m2=1.0)
+
+        # t_zone < t_ext → should NOT trigger nat vent
+        zone.update_infiltration(
+            t_ext=30.0,
+            t_zone=20.0,
+            wind_speed=2.0,
+            density=1.2,
+            w_amb=0.005,
+        )
+        self.assertEqual(zone.nat_vent_flow, 0)
+
+    def test_nat_vent_zero_when_no_window_area(self):
+        """Natural ventilation should be zero when open_window_area is None."""
+        zone = self._make_zone_with_nat_vent()
+        zone.open_window_area = None
+
+        zone.update_infiltration(
+            t_ext=20.0,
+            t_zone=25.0,
+            wind_speed=2.0,
+            density=1.2,
+            w_amb=0.005,
+        )
+        self.assertEqual(zone.nat_vent_flow, 0)
+
+
 class EnvelopeRadiationTestCase(unittest.TestCase):
     """Tests for radiation methods"""
 

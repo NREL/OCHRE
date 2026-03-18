@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 from ochre import Simulator, Analysis
+from ochre.Simulator import KIND_EQUIPMENT, KIND_GENERATOR, KIND_BATTERY
 from ochre.utils import (
     OCHREException,
     load_hpxml,
@@ -162,6 +163,9 @@ class Dwelling(Simulator):
         for eq in self.equipment.values():
             if "Zone Temperature (C)" in eq.all_schedule_inputs and eq.zone and eq.zone not in self.zones_for_schedule:
                 self.zones_for_schedule.append(eq.zone)
+        for zone in self.zones_for_schedule:
+            zone._temp_sched_key = f"{zone.name} Temperature (C)"
+            zone._wb_sched_key = f"{zone.name} Wet Bulb Temperature (C)"
 
         # force ideal HVAC equipment to go last - so all heat from other equipment is known during update
         for eq in self.equipment.values():
@@ -176,6 +180,10 @@ class Dwelling(Simulator):
 
         # add envelope to sub_simulators after all equipment
         self.sub_simulators.append(self.envelope)
+
+        self._same_resolution = all(
+            sub.time_res == self.time_res for sub in self.sub_simulators
+        )
 
         # Run initialization to get realistic initial state
         if self.initialization_time is not None:
@@ -213,10 +221,10 @@ class Dwelling(Simulator):
 
         # Add zone temperatures (dry and wet bulb) to schedule for equipment that use it
         for zone in self.zones_for_schedule:
-            schedule_inputs[f"{zone.name} Temperature (C)"] = zone.temperature
+            schedule_inputs[zone._temp_sched_key] = zone.temperature
             if zone.humidity is not None:
                 # TODO: only add wet bulb when it's required
-                schedule_inputs[f"{zone.name} Wet Bulb Temperature (C)"] = zone.humidity.wet_bulb
+                schedule_inputs[zone._wb_sched_key] = zone.humidity.wet_bulb
 
         # Reset house power
         self.total_p_kw = 0
@@ -267,18 +275,18 @@ class Dwelling(Simulator):
         sub_control_signal = super().start_sub_update(sub, control_signal)
 
         # Add house net_power to schedule for Generator
-        if isinstance(sub, Generator) and "net_power" not in sub.current_schedule:
+        if sub._kind & KIND_GENERATOR and "net_power" not in sub.current_schedule:
             sub.current_schedule["net_power"] = self.total_p_kw
 
         # Add pv_power to schedule for Battery
-        if isinstance(sub, Battery) and "pv_power" not in sub.current_schedule:
-            pv_power = sum([e.electric_kw for e in self.equipment_by_end_use["PV"]])
+        if sub._kind & KIND_BATTERY and "pv_power" not in sub.current_schedule:
+            pv_power = sum(e.electric_kw for e in self.equipment_by_end_use["PV"])
             sub.current_schedule["pv_power"] = pv_power
 
         return sub_control_signal
 
     def finish_sub_update(self, sub):
-        if isinstance(sub, Equipment):
+        if sub._kind & KIND_EQUIPMENT:
             # update total electric and gas powers
             self.total_p_kw += sub.electric_kw
             self.total_q_kvar += sub.reactive_kvar
@@ -310,15 +318,15 @@ class Dwelling(Simulator):
 
         if self.verbosity >= 2:
             for end_use, equipment in self.equipment_by_end_use.items():
-                if equipment and any([e.is_electric for e in equipment]):
-                    results[end_use + " Electric Power (kW)"] = sum([e.electric_kw for e in equipment])
+                if equipment and any(e.is_electric for e in equipment):
+                    results[end_use + " Electric Power (kW)"] = sum(e.electric_kw for e in equipment)
             for end_use, equipment in self.equipment_by_end_use.items():
-                if equipment and any([e.is_gas for e in equipment]):
-                    results[end_use + " Gas Power (therms/hour)"] = sum([e.gas_therms_per_hour for e in equipment])
+                if equipment and any(e.is_gas for e in equipment):
+                    results[end_use + " Gas Power (therms/hour)"] = sum(e.gas_therms_per_hour for e in equipment)
         if self.verbosity >= 8:
             for end_use, equipment in self.equipment_by_end_use.items():
-                if equipment and any([e.is_electric for e in equipment]):
-                    results[end_use + " Reactive Power (kVAR)"] = sum([e.reactive_kvar for e in equipment])
+                if equipment and any(e.is_electric for e in equipment):
+                    results[end_use + " Reactive Power (kVAR)"] = sum(e.reactive_kvar for e in equipment)
             results["Grid Voltage (-)"] = self.voltage
 
         return results

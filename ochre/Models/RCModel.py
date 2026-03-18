@@ -273,6 +273,22 @@ class RCModel(StateSpaceModel):
     def solve_for_input(self, y_idx, u_idx, x_desired, solve_as_output=None):
         # if 1 state or output is fixed, solve for 1 input that controls state to desired setpoint
         # Accepts input/state/output indices or input/state/output names
+
+        # Scalar fast path: skip list wrapping and generic solver when both indices are ints
+        if isinstance(y_idx, int) and isinstance(u_idx, int) and solve_as_output is not None:
+            inputs = self.inputs_init
+            if solve_as_output:
+                c_i = self.C[y_idx, :]
+                d_i = self.D[y_idx, :]
+                u_factor = (d_i + c_i.dot(self.B))[u_idx]
+                y_current = c_i.dot(self.A.dot(self.states) + self.B.dot(inputs)) + d_i.dot(inputs)
+                return (x_desired - y_current) / u_factor
+            else:
+                a_i = self.A[y_idx, :]
+                b_i = self.B[y_idx, :]
+                u_factor = b_i[u_idx]
+                return (x_desired - a_i.dot(self.states) - b_i.dot(inputs)) / u_factor
+
         if isinstance(y_idx, str) and y_idx in self.state_names:
             y_idx = self.state_names.index(y_idx)
             solve_as_output = False

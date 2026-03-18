@@ -5,6 +5,7 @@ Created on Thu May 23 13:28:35 2019
 @author: rchintal, xjin, mblonsky
 """
 
+import math
 import numpy as np
 import datetime as dt
 import pandas as pd
@@ -15,6 +16,7 @@ from ochre.utils import OCHREException
 from ochre.utils.units import convert, degC_to_K
 from ochre.Models import OneNodeRCModel
 from ochre.Equipment import Generator
+from ochre.Simulator import KIND_EQUIPMENT, KIND_GENERATOR, KIND_BATTERY
 
 
 class BatteryThermalModel(OneNodeRCModel):
@@ -35,6 +37,7 @@ class Battery(Generator):
     end_use = "Battery"
     allow_consumption = True
     is_gas = False
+    _kind = KIND_EQUIPMENT | KIND_GENERATOR | KIND_BATTERY
     optional_inputs = Generator.optional_inputs + [
         "pv_power",
         "Battery Electric Power (kW)",
@@ -150,7 +153,7 @@ class Battery(Generator):
     def update_inputs(self, schedule_inputs=None):
         # Add zone temperature to schedule inputs for water tank
         if not self.main_simulator and self.thermal_model:
-            schedule_inputs["Zone Temperture (C)"] = schedule_inputs[f"{self.zone_name} Temperature (C)"]
+            schedule_inputs["Zone Temperature (C)"] = schedule_inputs[f"{self.zone_name} Temperature (C)"]
 
         super().update_inputs(schedule_inputs)
 
@@ -289,7 +292,7 @@ class Battery(Generator):
             voc = float(self.voc_curve(self.soc)) * self.n_series
             if is_output_power:
                 electric_kw *= self.efficiency_inverter
-                v = voc / 2 + np.sqrt((voc / 2) ** 2 + (electric_kw * 1000) * self.r_internal)  # V = V_oc + P*R/V
+                v = voc / 2 + math.sqrt((voc / 2) ** 2 + (electric_kw * 1000) * self.r_internal)  # V = V_oc + P*R/V
             else:
                 v = voc + (electric_kw * 1000 / voc) * self.r_internal  # V = V_oc + I*R = V_oc + P/V_oc * R
 
@@ -322,7 +325,7 @@ class Battery(Generator):
         e_ad2 = 9.752e6  # J / mol
         if self.thermal_model is not None:
             t_batt = self.thermal_model.states[self.t_idx] + degC_to_K
-            d0 = d0_ref * np.exp(-e_ad1 / R * (1 / t_batt - 1 / t_ref) + -e_ad2 / R * (1 / t_batt - 1 / t_ref) ** 2)
+            d0 = d0_ref * math.exp(-e_ad1 / R * (1 / t_batt - 1 / t_ref) + -e_ad2 / R * (1 / t_batt - 1 / t_ref) ** 2)
             self.capacity_kwh = self.capacity_kwh_nominal * d0
         else:
             self.capacity_kwh = self.capacity_kwh_nominal
@@ -423,15 +426,16 @@ class Battery(Generator):
         q3 += deg_time / tau_b3 * min(b3 - q3, 0)  # q3 always decreasing, always negative
         q3 = max(q3, b3)
         self.degradation_states = q1, q2, q3
+        deg_sum = sum(self.degradation_states)
 
         # raise warning/error if degradation is too high
-        if sum(self.degradation_states) >= 1:
+        if deg_sum >= 1:
             raise OCHREException("{} degraded beyond useful life.".format(self.name))
-        elif sum(self.degradation_states) >= 0.7:
+        elif deg_sum >= 0.7:
             self.warn("Degraded beyond useful life.")
 
         # update nominal capacity due to degradation
-        self.capacity_kwh_nominal = self.capacity_rated * (b0 - sum(self.degradation_states))
+        self.capacity_kwh_nominal = self.capacity_rated * (b0 - deg_sum)
 
         # reset degradation data
         self.degradation_data.clear()

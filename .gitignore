@@ -15,3 +15,7 @@ docs/_build
 
 ochre/defaults/Input Files/OCHRE*
 .history
+
+test/outputs/*
+!test/outputs/benchmark_golden.parquet
+!test/outputs/benchmark_baseline.pstats

@@ -122,7 +122,7 @@ class ScheduleFileLoadTestCase(unittest.TestCase):
         # Check that schedule was loaded and has DatetimeIndex
         self.assertIn("Power (kW)", self.equipment.schedule.columns)
         self.assertIsInstance(self.equipment.schedule.index, pd.DatetimeIndex)
-        self.assertIsNotNone(self.equipment.schedule_iterable)
+        self.assertTrue(self.equipment._has_schedule)
 
     def test_reset_time(self):
         # Step through schedule a few times
