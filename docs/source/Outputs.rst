@@ -363,6 +363,11 @@ written.
 ResStock Output Format
 ----------------------
 
+.. note::
+
+   ResStock OCHRE support is currently available on the
+   ``sdr_2025_ochre_support`` branch of ResStock.
+
 When ``output_format`` is set to ``resstock``, OCHRE produces output files
 compatible with the ResStock analysis workflow instead of the default OCHRE
 output files. This mode generates two files:
