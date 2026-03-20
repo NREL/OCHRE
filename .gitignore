@@ -17,5 +17,6 @@ docs/_build
 ochre/defaults/Input Files/OCHRE*
 test/outputs/
 test/resstock_golden/ochre_result/bldg*/
+test/resstock_golden/ochre_result/ochre_annual_result_new.csv
 test_run/
 uv.lock
