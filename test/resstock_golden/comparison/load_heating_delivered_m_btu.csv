@@ -1,66 +1,66 @@
-Building,Heating Fuel,HVAC Heating,HVAC Cooling,WH Fuel,OCHRE (MBtu),EPlus (MBtu),%Diff
-bldg0000935,Natural Gas,Ducted Heating,Room AC,Electricity,29.1620,42.5040,-31.4%
-bldg0008984,Electricity,Non-Ducted Heating,Central AC,Electricity,48.2690,36.4610,+32.4%
-bldg0020895,Electricity,Non-Ducted Heating,Central AC,Electricity,17.8700,14.3750,+24.3%
-bldg0021070,Wood,Non-Ducted Heating,Central AC,Electricity,29.4160,41.9990,-30.0%
-bldg0027147,Natural Gas,Ducted Heating,Central AC,Natural Gas,1.6950,3.3410,-49.3%
-bldg0027808,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,37.2040,0.0000,inf
-bldg0028885,None,None,None,Electricity,NA,0.0000,NA
-bldg0034729,Electricity,Ducted Heating,None,Electricity,18.3430,32.0900,-42.8%
-bldg0035052,Electricity,Non-Ducted Heating,None,Electricity,15.2280,10.8410,+40.5%
-bldg0064657,Natural Gas,Ducted Heating,None,Natural Gas,3.4070,0.7740,+340.2%
-bldg0066501,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,52.3830,NA
-bldg0085067,Other Fuel,Non-Ducted Heating,Room AC,Electricity,96.7220,97.0180,-0.3%
-bldg0094522,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,116.2230,NA
-bldg0099159,Natural Gas,Ducted Heating,Central AC,Natural Gas,9.6930,8.3800,+15.7%
-bldg0103939,Fuel Oil,Ducted Heating,Room AC,Solar Thermal,38.5120,57.3390,-32.8%
-bldg0104117,Natural Gas,Ducted Heating,Room AC,Natural Gas,12.1240,19.5690,-38.0%
-bldg0108019,Fuel Oil,Ducted Heating,Room AC,Fuel Oil,42.6170,63.1860,-32.6%
-bldg0111149,Natural Gas,Ducted Heating,Room AC,Natural Gas,37.1800,52.7330,-29.5%
-bldg0112572,Natural Gas,Ducted Heating,Room AC,Natural Gas,21.6790,21.5820,+0.4%
-bldg0116109,Fuel Oil,Non-Ducted Heating,None,Fuel Oil,NA,46.6060,NA
-bldg0117900,Natural Gas,Non-Ducted Heating,Central AC,Natural Gas,25.2320,35.6090,-29.1%
-bldg0120120,Electricity,Ducted Heating,Room AC,Electricity,18.9500,22.1740,-14.5%
-bldg0125496,Natural Gas,Non-Ducted Heating,Room AC,Natural Gas,13.5480,24.7970,-45.4%
-bldg0126235,Propane,Ducted Heating,Central AC,Propane,NA,47.2700,NA
-bldg0134115,None,None,Central AC,Electricity,NA,0.0000,NA
-bldg0145426,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,51.0190,NA
-bldg0149742,Electricity,Non-Ducted Heating,Central AC,Electricity,11.6690,6.2030,+88.1%
-bldg0172208,Natural Gas,Ducted Heating,None,Natural Gas,0.0000,0.0000,+0.0%
-bldg0180324,Electricity,Non-Ducted Heating,None,Electricity,0.7950,0.9490,-16.2%
-bldg0189657,Electricity,Non-Ducted Heat Pump,Non-Ducted Heat Pump,Electricity,22.0510,35.5680,-38.0%
-bldg0208851,Electricity,Non-Ducted Heating,Central AC,Electricity,79.5500,68.7980,+15.6%
-bldg0208877,Natural Gas,Non-Ducted Heating,None,Natural Gas,1.7880,1.5100,+18.4%
-bldg0224395,Electricity,Non-Ducted Heating,None,Electricity,1.5570,0.3680,+323.1%
-bldg0229989,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,32.7290,27.6840,+18.2%
-bldg0234075,Natural Gas,Ducted Heating,Room AC,Natural Gas,16.6390,13.0280,+27.7%
-bldg0236990,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,0.3810,2.0560,-81.5%
-bldg0240393,Natural Gas,Ducted Heating,Central AC,Natural Gas,13.7640,9.5690,+43.8%
-bldg0245787,Electricity,Non-Ducted Heating,Room AC,Natural Gas,1.8930,1.3960,+35.6%
-bldg0250585,Electricity,Ducted Heat Pump,Ducted Heat Pump,Other Fuel,1.0360,1.6770,-38.2%
-bldg0259582,Natural Gas,Ducted Heating,None,Natural Gas,0.3810,0.6710,-43.2%
-bldg0274778,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,40.8820,92.9880,-56.0%
-bldg0275797,Natural Gas,Ducted Heating,Room AC,Natural Gas,4.9300,0.7550,+553.0%
-bldg0276627,Fuel Oil,Non-Ducted Heating,None,Propane,NA,84.8650,NA
-bldg0288066,Natural Gas,Ducted Heating,Central AC,Natural Gas,NA,8.0380,NA
-bldg0294702,Natural Gas,Non-Ducted Heating,Central AC,Natural Gas,98.9650,61.7800,+60.2%
-bldg0336334,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,1.1130,0.4580,+143.0%
-bldg0338190,Electricity,Ducted Heating,Central AC,Electricity,21.1160,28.8990,-26.9%
-bldg0353300,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,0.0000,0.0030,-100.0%
-bldg0353418,Electricity,Ducted Heat Pump,Ducted Heat Pump,Propane,4.6190,13.1620,-64.9%
-bldg0355977,Electricity,Non-Ducted Heating,Room AC,Electricity,18.3930,13.0300,+41.2%
-bldg0372624,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.0000,0.0000,+0.0%
-bldg0422846,Natural Gas,Ducted Heating,Room AC,Natural Gas,20.3780,20.3130,+0.3%
-bldg0437452,Electricity,Ducted Heating,None,Natural Gas,3.4550,0.6660,+418.8%
-bldg0445042,Natural Gas,Ducted Heating,Central AC,Natural Gas,5.4500,6.9810,-21.9%
-bldg0449322,Electricity,Non-Ducted Heating,Room AC,Electricity,9.3650,6.0370,+55.1%
-bldg0451855,Electricity,Ducted Heating,Central AC,Electricity,NA,1.1790,NA
-bldg0464288,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,NA,141.6150,NA
-bldg0475650,Natural Gas,Ducted Heating,None,Natural Gas,NA,37.5610,NA
-bldg0483730,Natural Gas,Ducted Heating,Central AC,Natural Gas,65.9810,70.3330,-6.2%
-bldg0486267,Fuel Oil,Non-Ducted Heating,Central AC,Wood,52.5330,61.5980,-14.7%
-bldg0487739,Natural Gas,Ducted Heating,Room AC,Natural Gas,42.5550,41.4570,+2.6%
-bldg0499827,Propane,Non-Ducted Heating,Central AC,Propane,NA,13.2050,NA
-bldg0501306,Natural Gas,Ducted Heating,Central AC,Electricity,NA,5.9470,NA
-bldg0522592,Electricity,Non-Ducted Heat Pump,Non-Ducted Heat Pump,Electricity,4.5130,0.9200,+390.5%
-bldg9064288,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,NA,142.7210,NA
+Building,State,Building Type,Vintage,Floor Area,Heating,Cooling,OCHRE,EPlus,%Diff
+bldg0000935,MA,Single-Family Attached,2000s,2500-2999,"Fuel Furnace, 92.5% AFUE","Room AC, EER 10.7",29.1620,42.5040,-31.4%
+bldg0008984,LA,Single-Family Attached,1970s,1500-1999,"Electric Wall Furnace, 100% AFUE","AC, SEER 13",48.2690,36.4610,+32.4%
+bldg0020895,CA,Single-Family Attached,1990s,1500-1999,"Electric Boiler, 100% AFUE","AC, SEER 8",17.8700,14.3750,+24.3%
+bldg0021070,MI,Single-Family Detached,1990s,1000-1499,"Fuel Wall/Floor Furnace, 60% AFUE","AC, SEER 15",29.4160,41.9990,-30.0%
+bldg0027147,CA,Multi-Family with 5+ Units,2000s,1000-1499,Shared Heating,Shared Cooling,1.6950,3.3410,-49.3%
+bldg0027808,CA,Single-Family Attached,1990s,4000+,"ASHP, SEER 13, 7.7 HSPF",Ducted Heat Pump,37.2040,0.0000,inf
+bldg0028885,HI,Single-Family Detached,1940s,4000+,None,None,NA,0.0000,NA
+bldg0034729,VA,Single-Family Attached,1970s,1000-1499,"Electric Furnace, 100% AFUE",None,18.3430,32.0900,-42.8%
+bldg0035052,WA,Multi-Family with 5+ Units,1970s,750-999,"Electric Baseboard, 100% Efficiency",None,15.2280,10.8410,+40.5%
+bldg0064657,CA,Single-Family Attached,1990s,1500-1999,"Fuel Furnace, 80% AFUE",None,3.4070,0.7740,+340.2%
+bldg0066501,AK,Single-Family Detached,1990s,1500-1999,"Fuel Boiler, 80% AFUE",None,FAILED,52.3830,FAILED
+bldg0085067,NV,Single-Family Detached,1970s,2500-2999,"Fuel Boiler, 76% AFUE","Room AC, EER 12.0",96.7220,97.0180,-0.3%
+bldg0094522,AK,Single-Family Attached,1980s,4000+,"Fuel Boiler, 76% AFUE",None,FAILED,116.2230,FAILED
+bldg0099159,WY,Single-Family Attached,2010s,1000-1499,"Fuel Furnace, 92.5% AFUE","AC, SEER 13",9.6930,8.3800,+15.7%
+bldg0103939,CT,Single-Family Detached,1960s,1000-1499,"Fuel Furnace, 80% AFUE","Room AC, EER 8.5",38.5120,57.3390,-32.8%
+bldg0104117,NY,Multi-Family with 5+ Units,<1940,750-999,"Fuel Furnace, 80% AFUE","Room AC, EER 12.0",12.1240,19.5690,-38.0%
+bldg0108019,RI,Single-Family Detached,<1940,1000-1499,"Fuel Furnace, 80% AFUE","Room AC, EER 10.7",42.6170,63.1860,-32.6%
+bldg0111149,CA,Single-Family Detached,1970s,3000-3999,"Fuel Furnace, 80% AFUE","Room AC, EER 12.0",37.1800,52.7330,-29.5%
+bldg0112572,NY,Multi-Family with 2 - 4 Units,1940s,500-749,Shared Heating,"Room AC, EER 10.7",21.6790,21.5820,+0.4%
+bldg0116109,AK,Single-Family Detached,1970s,1500-1999,"Fuel Boiler, 76% AFUE",None,FAILED,46.6060,FAILED
+bldg0117900,OH,Mobile Home,2000s,1000-1499,"Fuel Wall/Floor Furnace, 60% AFUE","AC, SEER 13",25.2320,35.6090,-29.1%
+bldg0120120,TX,Single-Family Detached,1950s,1000-1499,"Electric Furnace, 100% AFUE","Room AC, EER 9.8",18.9500,22.1740,-14.5%
+bldg0125496,NY,Multi-Family with 5+ Units,1970s,750-999,"Fuel Boiler, 80% AFUE","Room AC, EER 9.8",13.5480,24.7970,-45.4%
+bldg0126235,MI,Single-Family Detached,1990s,2500-2999,"Fuel Furnace, 92.5% AFUE","AC, SEER 13",FAILED,47.2700,FAILED
+bldg0134115,FL,Multi-Family with 5+ Units,1970s,0-499,None,Shared Cooling,NA,0.0000,NA
+bldg0145426,AK,Single-Family Detached,1970s,1000-1499,"Fuel Boiler, 76% AFUE",None,FAILED,51.0190,FAILED
+bldg0149742,WA,Single-Family Attached,2000s,2500-2999,"Electric Baseboard, 100% Efficiency","AC, SEER 15",11.6690,6.2030,+88.1%
+bldg0172208,CA,Multi-Family with 5+ Units,1940s,750-999,Shared Heating,None,0.0000,0.0000,+0.0%
+bldg0180324,AZ,Multi-Family with 5+ Units,1970s,750-999,Shared Heating,None,0.7950,0.9490,-16.2%
+bldg0189657,AK,Multi-Family with 2 - 4 Units,2010s,1000-1499,"MSHP, SEER 29.3, 14 HSPF",Non-Ducted Heat Pump,22.0510,35.5680,-38.0%
+bldg0208851,SD,Single-Family Detached,2000s,4000+,"Electric Baseboard, 100% Efficiency","AC, SEER 10",79.5500,68.7980,+15.6%
+bldg0208877,NM,Multi-Family with 5+ Units,<1940,500-749,Shared Heating,None,1.7880,1.5100,+18.4%
+bldg0224395,FL,Single-Family Attached,1980s,2000-2499,"Electric Baseboard, 100% Efficiency",None,1.5570,0.3680,+323.1%
+bldg0229989,MD,Single-Family Attached,1990s,1500-1999,"ASHP, SEER 15, 8.5 HSPF",Ducted Heat Pump,32.7290,27.6840,+18.2%
+bldg0234075,IL,Multi-Family with 5+ Units,<1940,500-749,"Fuel Furnace, 80% AFUE","Room AC, EER 10.7",16.6390,13.0280,+27.7%
+bldg0236990,TX,Multi-Family with 5+ Units,1980s,500-749,"ASHP, SEER 13, 7.7 HSPF",Ducted Heat Pump,0.3810,2.0560,-81.5%
+bldg0240393,GA,Single-Family Attached,1980s,1000-1499,"Fuel Furnace, 60% AFUE","AC, SEER 10",13.7640,9.5690,+43.8%
+bldg0245787,OH,Multi-Family with 5+ Units,2000s,0-499,"Electric Baseboard, 100% Efficiency","Room AC, EER 10.7",1.8930,1.3960,+35.6%
+bldg0250585,FL,Single-Family Attached,1980s,2500-2999,"ASHP, SEER 15, 8.5 HSPF",Ducted Heat Pump,1.0360,1.6770,-38.2%
+bldg0259582,CA,Single-Family Detached,<1940,500-749,"Fuel Furnace, 80% AFUE",None,0.3810,0.6710,-43.2%
+bldg0274778,OK,Single-Family Detached,1990s,3000-3999,"ASHP, SEER 15, 8.5 HSPF",Ducted Heat Pump,40.8820,92.9880,-56.0%
+bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,Shared Heating,"Room AC, EER 10.7",4.9300,0.7550,+553.0%
+bldg0276627,AK,Single-Family Detached,2000s,2000-2499,"Fuel Boiler, 90% AFUE",None,FAILED,84.8650,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,"Fuel Furnace, 80% AFUE","AC, SEER 13",FAILED,8.0380,FAILED
+bldg0294702,NM,Single-Family Detached,2000s,4000+,"Fuel Boiler, 80% AFUE","AC, SEER 10",98.9650,61.7800,+60.2%
+bldg0336334,CA,Single-Family Attached,1990s,2500-2999,"ASHP, SEER 10, 6.2 HSPF",Ducted Heat Pump,1.1130,0.4580,+143.0%
+bldg0338190,KY,Single-Family Detached,2000s,1500-1999,"Electric Furnace, 100% AFUE","AC, SEER 13",21.1160,28.8990,-26.9%
+bldg0353300,CA,Multi-Family with 5+ Units,2010s,0-499,"ASHP, SEER 15, 8.5 HSPF",Ducted Heat Pump,0.0000,0.0030,-100.0%
+bldg0353418,CA,Single-Family Detached,2000s,4000+,"ASHP, SEER 15, 8.5 HSPF",Ducted Heat Pump,4.6190,13.1620,-64.9%
+bldg0355977,OH,Multi-Family with 5+ Units,1970s,750-999,Shared Heating,"Room AC, EER 10.7",18.3930,13.0300,+41.2%
+bldg0372624,HI,Single-Family Detached,1980s,2000-2499,"ASHP, SEER 15, 8.5 HSPF",Ducted Heat Pump,0.0000,0.0000,+0.0%
+bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,Shared Heating,"Room AC, EER 10.7",20.3780,20.3130,+0.3%
+bldg0437452,CA,Single-Family Attached,1960s,750-999,"Electric Furnace, 100% AFUE",None,3.4550,0.6660,+418.8%
+bldg0445042,CA,Single-Family Attached,1980s,1500-1999,"Fuel Furnace, 80% AFUE","AC, SEER 15",5.4500,6.9810,-21.9%
+bldg0449322,CA,Single-Family Attached,1970s,1000-1499,"Electric Baseboard, 100% Efficiency","Room AC, EER 10.7",9.3650,6.0370,+55.1%
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,Shared Heating,Shared Cooling,FAILED,1.1790,FAILED
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,"ASHP, SEER 13, 7.7 HSPF",Ducted Heat Pump,FAILED,141.6150,FAILED
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,"Fuel Furnace, 92.5% AFUE",None,FAILED,37.5610,FAILED
+bldg0483730,CA,Single-Family Detached,1950s,4000+,"Fuel Furnace, 92.5% AFUE","AC, SEER 13",65.9810,70.3330,-6.2%
+bldg0486267,ME,Single-Family Detached,1990s,1000-1499,"Fuel Boiler, 90% AFUE","AC, SEER 15",52.5330,61.5980,-14.7%
+bldg0487739,WY,Mobile Home,1970s,750-999,"Fuel Furnace, 76% AFUE","Room AC, EER 12.0",42.5550,41.4570,+2.6%
+bldg0499827,CA,Single-Family Detached,1990s,2000-2499,"Fuel Wall/Floor Furnace, 68% AFUE","AC, SEER 13",FAILED,13.2050,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,"Fuel Furnace, 80% AFUE","AC, SEER 13",FAILED,5.9470,FAILED
+bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,"MSHP, SEER 14.5, 8.2 HSPF",Non-Ducted Heat Pump,4.5130,0.9200,+390.5%
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,"ASHP, SEER 13, 7.7 HSPF",Ducted Heat Pump,FAILED,142.7210,FAILED

@@ -9,22 +9,22 @@ bldg0028885,HI,Single-Family Detached,1940s,4000+,None,NA,0.0000,NA
 bldg0034729,VA,Single-Family Attached,1970s,1000-1499,None,NA,0.0000,NA
 bldg0035052,WA,Multi-Family with 5+ Units,1970s,750-999,None,NA,0.0000,NA
 bldg0064657,CA,Single-Family Attached,1990s,1500-1999,Electricity,NA,0.0000,NA
-bldg0066501,AK,Single-Family Detached,1990s,1500-1999,None,NA,0.0000,NA
+bldg0066501,AK,Single-Family Detached,1990s,1500-1999,None,FAILED,0.0000,FAILED
 bldg0085067,NV,Single-Family Detached,1970s,2500-2999,None,NA,0.0000,NA
-bldg0094522,AK,Single-Family Attached,1980s,4000+,None,NA,0.0000,NA
+bldg0094522,AK,Single-Family Attached,1980s,4000+,None,FAILED,0.0000,FAILED
 bldg0099159,WY,Single-Family Attached,2010s,1000-1499,None,NA,0.0000,NA
 bldg0103939,CT,Single-Family Detached,1960s,1000-1499,None,NA,0.0000,NA
 bldg0104117,NY,Multi-Family with 5+ Units,<1940,750-999,None,NA,0.0000,NA
 bldg0108019,RI,Single-Family Detached,<1940,1000-1499,None,NA,0.0000,NA
 bldg0111149,CA,Single-Family Detached,1970s,3000-3999,None,NA,0.0000,NA
 bldg0112572,NY,Multi-Family with 2 - 4 Units,1940s,500-749,None,NA,0.0000,NA
-bldg0116109,AK,Single-Family Detached,1970s,1500-1999,None,NA,0.0000,NA
+bldg0116109,AK,Single-Family Detached,1970s,1500-1999,None,FAILED,0.0000,FAILED
 bldg0117900,OH,Mobile Home,2000s,1000-1499,None,NA,0.0000,NA
 bldg0120120,TX,Single-Family Detached,1950s,1000-1499,None,NA,0.0000,NA
 bldg0125496,NY,Multi-Family with 5+ Units,1970s,750-999,None,NA,0.0000,NA
-bldg0126235,MI,Single-Family Detached,1990s,2500-2999,None,NA,0.0000,NA
+bldg0126235,MI,Single-Family Detached,1990s,2500-2999,None,FAILED,0.0000,FAILED
 bldg0134115,FL,Multi-Family with 5+ Units,1970s,0-499,None,NA,0.0000,NA
-bldg0145426,AK,Single-Family Detached,1970s,1000-1499,None,NA,0.0000,NA
+bldg0145426,AK,Single-Family Detached,1970s,1000-1499,None,FAILED,0.0000,FAILED
 bldg0149742,WA,Single-Family Attached,2000s,2500-2999,None,NA,0.0000,NA
 bldg0172208,CA,Multi-Family with 5+ Units,1940s,750-999,None,NA,0.0000,NA
 bldg0180324,AZ,Multi-Family with 5+ Units,1970s,750-999,None,NA,0.0000,NA
@@ -41,8 +41,8 @@ bldg0250585,FL,Single-Family Attached,1980s,2500-2999,None,NA,0.0000,NA
 bldg0259582,CA,Single-Family Detached,<1940,500-749,None,NA,0.0000,NA
 bldg0274778,OK,Single-Family Detached,1990s,3000-3999,None,NA,0.0000,NA
 bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,Natural Gas,5.3540,5.3580,-0.1%
-bldg0276627,AK,Single-Family Detached,2000s,2000-2499,None,NA,0.0000,NA
-bldg0288066,CA,Single-Family Detached,2000s,2500-2999,None,NA,0.0000,NA
+bldg0276627,AK,Single-Family Detached,2000s,2000-2499,None,FAILED,0.0000,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,None,FAILED,0.0000,FAILED
 bldg0294702,NM,Single-Family Detached,2000s,4000+,None,NA,0.0000,NA
 bldg0336334,CA,Single-Family Attached,1990s,2500-2999,None,NA,0.0000,NA
 bldg0338190,KY,Single-Family Detached,2000s,1500-1999,None,NA,0.0000,NA
@@ -54,13 +54,13 @@ bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,None,NA,0.0000,NA
 bldg0437452,CA,Single-Family Attached,1960s,750-999,None,NA,0.0000,NA
 bldg0445042,CA,Single-Family Attached,1980s,1500-1999,None,NA,0.0000,NA
 bldg0449322,CA,Single-Family Attached,1970s,1000-1499,None,NA,0.0000,NA
-bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,None,NA,0.0000,NA
-bldg0464288,WA,Single-Family Detached,1950s,2000-2499,None,NA,0.0000,NA
-bldg0475650,CA,Single-Family Detached,2000s,1000-1499,None,NA,0.0000,NA
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,None,FAILED,0.0000,FAILED
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,None,FAILED,0.0000,FAILED
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,None,FAILED,0.0000,FAILED
 bldg0483730,CA,Single-Family Detached,1950s,4000+,None,NA,0.0000,NA
 bldg0486267,ME,Single-Family Detached,1990s,1000-1499,None,NA,0.0000,NA
 bldg0487739,WY,Mobile Home,1970s,750-999,None,NA,0.0000,NA
-bldg0499827,CA,Single-Family Detached,1990s,2000-2499,Other Fuel,NA,0.0000,NA
-bldg0501306,CA,Single-Family Detached,1960s,2500-2999,None,NA,0.0000,NA
+bldg0499827,CA,Single-Family Detached,1990s,2000-2499,Other Fuel,FAILED,0.0000,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,None,FAILED,0.0000,FAILED
 bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,None,NA,0.0000,NA
-bldg9064288,WA,Single-Family Detached,1950s,2000-2499,Electricity,NA,0.0000,NA
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,Electricity,FAILED,0.0000,FAILED

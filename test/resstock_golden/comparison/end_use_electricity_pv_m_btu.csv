@@ -9,22 +9,22 @@ bldg0028885,HI,Single-Family Detached,1940s,4000+,3.0 kWDC,Northeast,-13.1490,-1
 bldg0034729,VA,Single-Family Attached,1970s,1000-1499,None,None,NA,0.0000,NA
 bldg0035052,WA,Multi-Family with 5+ Units,1970s,750-999,None,None,NA,0.0000,NA
 bldg0064657,CA,Single-Family Attached,1990s,1500-1999,None,None,NA,0.0000,NA
-bldg0066501,AK,Single-Family Detached,1990s,1500-1999,None,None,NA,0.0000,NA
+bldg0066501,AK,Single-Family Detached,1990s,1500-1999,None,None,FAILED,0.0000,FAILED
 bldg0085067,NV,Single-Family Detached,1970s,2500-2999,None,None,NA,0.0000,NA
-bldg0094522,AK,Single-Family Attached,1980s,4000+,None,None,NA,0.0000,NA
+bldg0094522,AK,Single-Family Attached,1980s,4000+,None,None,FAILED,0.0000,FAILED
 bldg0099159,WY,Single-Family Attached,2010s,1000-1499,None,None,NA,0.0000,NA
 bldg0103939,CT,Single-Family Detached,1960s,1000-1499,None,None,NA,0.0000,NA
 bldg0104117,NY,Multi-Family with 5+ Units,<1940,750-999,None,None,NA,0.0000,NA
 bldg0108019,RI,Single-Family Detached,<1940,1000-1499,None,None,NA,0.0000,NA
 bldg0111149,CA,Single-Family Detached,1970s,3000-3999,1.0 kWDC,Northwest,-3.8630,-3.6890,-4.7%
 bldg0112572,NY,Multi-Family with 2 - 4 Units,1940s,500-749,None,None,NA,0.0000,NA
-bldg0116109,AK,Single-Family Detached,1970s,1500-1999,None,None,NA,0.0000,NA
+bldg0116109,AK,Single-Family Detached,1970s,1500-1999,None,None,FAILED,0.0000,FAILED
 bldg0117900,OH,Mobile Home,2000s,1000-1499,None,None,NA,0.0000,NA
 bldg0120120,TX,Single-Family Detached,1950s,1000-1499,13.0 kWDC,North,-41.2610,-41.5000,+0.6%
 bldg0125496,NY,Multi-Family with 5+ Units,1970s,750-999,None,None,NA,0.0000,NA
-bldg0126235,MI,Single-Family Detached,1990s,2500-2999,None,None,NA,0.0000,NA
+bldg0126235,MI,Single-Family Detached,1990s,2500-2999,None,None,FAILED,0.0000,FAILED
 bldg0134115,FL,Multi-Family with 5+ Units,1970s,0-499,None,None,NA,0.0000,NA
-bldg0145426,AK,Single-Family Detached,1970s,1000-1499,None,None,NA,0.0000,NA
+bldg0145426,AK,Single-Family Detached,1970s,1000-1499,None,None,FAILED,0.0000,FAILED
 bldg0149742,WA,Single-Family Attached,2000s,2500-2999,None,None,NA,0.0000,NA
 bldg0172208,CA,Multi-Family with 5+ Units,1940s,750-999,None,None,NA,0.0000,NA
 bldg0180324,AZ,Multi-Family with 5+ Units,1970s,750-999,None,None,NA,0.0000,NA
@@ -41,8 +41,8 @@ bldg0250585,FL,Single-Family Attached,1980s,2500-2999,None,None,NA,0.0000,NA
 bldg0259582,CA,Single-Family Detached,<1940,500-749,11.0 kWDC,West,-53.6350,-51.0150,-5.1%
 bldg0274778,OK,Single-Family Detached,1990s,3000-3999,None,None,NA,0.0000,NA
 bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,None,None,NA,0.0000,NA
-bldg0276627,AK,Single-Family Detached,2000s,2000-2499,None,None,NA,0.0000,NA
-bldg0288066,CA,Single-Family Detached,2000s,2500-2999,5.0 kWDC,East,NA,-24.8980,NA
+bldg0276627,AK,Single-Family Detached,2000s,2000-2499,None,None,FAILED,0.0000,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,5.0 kWDC,East,FAILED,-24.8980,FAILED
 bldg0294702,NM,Single-Family Detached,2000s,4000+,3.0 kWDC,Southwest,-17.1250,-16.4040,-4.4%
 bldg0336334,CA,Single-Family Attached,1990s,2500-2999,None,None,NA,0.0000,NA
 bldg0338190,KY,Single-Family Detached,2000s,1500-1999,None,None,NA,0.0000,NA
@@ -54,13 +54,13 @@ bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,None,None,NA,0.0000,NA
 bldg0437452,CA,Single-Family Attached,1960s,750-999,None,None,NA,0.0000,NA
 bldg0445042,CA,Single-Family Attached,1980s,1500-1999,None,None,NA,0.0000,NA
 bldg0449322,CA,Single-Family Attached,1970s,1000-1499,None,None,NA,0.0000,NA
-bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,None,None,NA,0.0000,NA
-bldg0464288,WA,Single-Family Detached,1950s,2000-2499,None,None,NA,0.0000,NA
-bldg0475650,CA,Single-Family Detached,2000s,1000-1499,7.0 kWDC,Southeast,NA,-30.2730,NA
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,None,None,FAILED,0.0000,FAILED
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,None,None,FAILED,0.0000,FAILED
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,7.0 kWDC,Southeast,FAILED,-30.2730,FAILED
 bldg0483730,CA,Single-Family Detached,1950s,4000+,5.0 kWDC,East,-21.1340,-22.1380,+4.5%
 bldg0486267,ME,Single-Family Detached,1990s,1000-1499,None,None,NA,0.0000,NA
 bldg0487739,WY,Mobile Home,1970s,750-999,None,None,NA,0.0000,NA
-bldg0499827,CA,Single-Family Detached,1990s,2000-2499,None,None,NA,0.0000,NA
-bldg0501306,CA,Single-Family Detached,1960s,2500-2999,9.0 kWDC,South,NA,-42.9640,NA
+bldg0499827,CA,Single-Family Detached,1990s,2000-2499,None,None,FAILED,0.0000,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,9.0 kWDC,South,FAILED,-42.9640,FAILED
 bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,None,None,NA,0.0000,NA
-bldg9064288,WA,Single-Family Detached,1950s,2000-2499,11.0 kWDC,East,NA,-42.4190,NA
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,11.0 kWDC,East,FAILED,-42.4190,FAILED

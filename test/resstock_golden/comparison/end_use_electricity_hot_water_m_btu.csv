@@ -1,66 +1,66 @@
-Building,Heating Fuel,HVAC Heating,HVAC Cooling,WH Fuel,OCHRE (MBtu),EPlus (MBtu),%Diff
-bldg0000935,Natural Gas,Ducted Heating,Room AC,Electricity,1.7880,4.2030,-57.5%
-bldg0008984,Electricity,Non-Ducted Heating,Central AC,Electricity,1.4040,4.9610,-71.7%
-bldg0020895,Electricity,Non-Ducted Heating,Central AC,Electricity,1.9190,7.5870,-74.7%
-bldg0021070,Wood,Non-Ducted Heating,Central AC,Electricity,1.4820,4.5170,-67.2%
-bldg0027147,Natural Gas,Ducted Heating,Central AC,Natural Gas,NA,0.0000,NA
-bldg0027808,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.8140,4.3030,-81.1%
-bldg0028885,None,None,None,Electricity,1.5260,4.3630,-65.0%
-bldg0034729,Electricity,Ducted Heating,None,Electricity,0.9160,11.0430,-91.7%
-bldg0035052,Electricity,Non-Ducted Heating,None,Electricity,0.6350,15.1810,-95.8%
-bldg0064657,Natural Gas,Ducted Heating,None,Natural Gas,NA,0.0000,NA
-bldg0066501,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,0.0000,NA
-bldg0085067,Other Fuel,Non-Ducted Heating,Room AC,Electricity,3.8200,25.4690,-85.0%
-bldg0094522,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,0.0000,NA
-bldg0099159,Natural Gas,Ducted Heating,Central AC,Natural Gas,NA,0.0000,NA
-bldg0103939,Fuel Oil,Ducted Heating,Room AC,Solar Thermal,0.6700,2.8640,-76.6%
-bldg0104117,Natural Gas,Ducted Heating,Room AC,Natural Gas,NA,0.0000,NA
-bldg0108019,Fuel Oil,Ducted Heating,Room AC,Fuel Oil,NA,0.0000,NA
-bldg0111149,Natural Gas,Ducted Heating,Room AC,Natural Gas,0.2210,0.0000,inf
-bldg0112572,Natural Gas,Ducted Heating,Room AC,Natural Gas,NA,0.0000,NA
-bldg0116109,Fuel Oil,Non-Ducted Heating,None,Fuel Oil,NA,0.0000,NA
-bldg0117900,Natural Gas,Non-Ducted Heating,Central AC,Natural Gas,NA,0.0000,NA
-bldg0120120,Electricity,Ducted Heating,Room AC,Electricity,1.2740,3.6270,-64.9%
-bldg0125496,Natural Gas,Non-Ducted Heating,Room AC,Natural Gas,NA,0.0000,NA
-bldg0126235,Propane,Ducted Heating,Central AC,Propane,NA,0.0000,NA
-bldg0134115,None,None,Central AC,Electricity,1.1160,2.3100,-51.7%
-bldg0145426,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,0.0000,NA
-bldg0149742,Electricity,Non-Ducted Heating,Central AC,Electricity,1.9830,17.9040,-88.9%
-bldg0172208,Natural Gas,Ducted Heating,None,Natural Gas,NA,0.0000,NA
-bldg0180324,Electricity,Non-Ducted Heating,None,Electricity,1.1730,6.0810,-80.7%
-bldg0189657,Electricity,Non-Ducted Heat Pump,Non-Ducted Heat Pump,Electricity,0.6710,15.3580,-95.6%
-bldg0208851,Electricity,Non-Ducted Heating,Central AC,Electricity,1.7840,11.8210,-84.9%
-bldg0208877,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,0.0000,NA
-bldg0224395,Electricity,Non-Ducted Heating,None,Electricity,1.3410,3.1550,-57.5%
-bldg0229989,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,1.7760,16.2940,-89.1%
-bldg0234075,Natural Gas,Ducted Heating,Room AC,Natural Gas,NA,0.0000,NA
-bldg0236990,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,NA,0.0000,NA
-bldg0240393,Natural Gas,Ducted Heating,Central AC,Natural Gas,NA,0.0000,NA
-bldg0245787,Electricity,Non-Ducted Heating,Room AC,Natural Gas,NA,0.0000,NA
-bldg0250585,Electricity,Ducted Heat Pump,Ducted Heat Pump,Other Fuel,NA,0.0000,NA
-bldg0259582,Natural Gas,Ducted Heating,None,Natural Gas,NA,0.0000,NA
-bldg0274778,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,0.9700,17.1560,-94.3%
-bldg0275797,Natural Gas,Ducted Heating,Room AC,Natural Gas,NA,0.0000,NA
-bldg0276627,Fuel Oil,Non-Ducted Heating,None,Propane,NA,0.0000,NA
-bldg0288066,Natural Gas,Ducted Heating,Central AC,Natural Gas,NA,0.0000,NA
-bldg0294702,Natural Gas,Non-Ducted Heating,Central AC,Natural Gas,NA,0.0000,NA
-bldg0336334,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,0.2210,0.0000,inf
-bldg0338190,Electricity,Ducted Heating,Central AC,Electricity,0.7880,4.4150,-82.2%
-bldg0353300,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,NA,0.0000,NA
-bldg0353418,Electricity,Ducted Heat Pump,Ducted Heat Pump,Propane,NA,0.0000,NA
-bldg0355977,Electricity,Non-Ducted Heating,Room AC,Electricity,0.6160,7.0800,-91.3%
-bldg0372624,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,2.1080,5.4690,-61.5%
-bldg0422846,Natural Gas,Ducted Heating,Room AC,Natural Gas,NA,0.0000,NA
-bldg0437452,Electricity,Ducted Heating,None,Natural Gas,NA,0.0000,NA
-bldg0445042,Natural Gas,Ducted Heating,Central AC,Natural Gas,NA,0.0000,NA
-bldg0449322,Electricity,Non-Ducted Heating,Room AC,Electricity,0.0000,6.1710,-100.0%
-bldg0451855,Electricity,Ducted Heating,Central AC,Electricity,NA,2.2660,NA
-bldg0464288,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,NA,32.2430,NA
-bldg0475650,Natural Gas,Ducted Heating,None,Natural Gas,NA,0.0000,NA
-bldg0483730,Natural Gas,Ducted Heating,Central AC,Natural Gas,NA,0.0000,NA
-bldg0486267,Fuel Oil,Non-Ducted Heating,Central AC,Wood,NA,0.0000,NA
-bldg0487739,Natural Gas,Ducted Heating,Room AC,Natural Gas,NA,0.0000,NA
-bldg0499827,Propane,Non-Ducted Heating,Central AC,Propane,NA,0.0000,NA
-bldg0501306,Natural Gas,Ducted Heating,Central AC,Electricity,NA,12.4860,NA
-bldg0522592,Electricity,Non-Ducted Heat Pump,Non-Ducted Heat Pump,Electricity,2.0110,6.1810,-67.5%
-bldg9064288,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,NA,114.9120,NA
+Building,State,Building Type,Vintage,Floor Area,Water Heating,OCHRE,EPlus,%Diff
+bldg0000935,MA,Single-Family Attached,2000s,2500-2999,Electric Standard,1.7880,4.2030,-57.5%
+bldg0008984,LA,Single-Family Attached,1970s,1500-1999,Electric Premium,1.4040,4.9610,-71.7%
+bldg0020895,CA,Single-Family Attached,1990s,1500-1999,Electric Standard,1.9190,7.5870,-74.7%
+bldg0021070,MI,Single-Family Detached,1990s,1000-1499,Electric Standard,1.4820,4.5170,-67.2%
+bldg0027147,CA,Multi-Family with 5+ Units,2000s,1000-1499,Natural Gas Standard,NA,0.0000,NA
+bldg0027808,CA,Single-Family Attached,1990s,4000+,Electric Tankless,0.8140,4.3030,-81.1%
+bldg0028885,HI,Single-Family Detached,1940s,4000+,Electric Standard,1.5260,4.3630,-65.0%
+bldg0034729,VA,Single-Family Attached,1970s,1000-1499,Electric Standard,0.9160,11.0430,-91.7%
+bldg0035052,WA,Multi-Family with 5+ Units,1970s,750-999,Electric Premium,0.6350,15.1810,-95.8%
+bldg0064657,CA,Single-Family Attached,1990s,1500-1999,Natural Gas Premium,NA,0.0000,NA
+bldg0066501,AK,Single-Family Detached,1990s,1500-1999,Natural Gas Standard,FAILED,0.0000,FAILED
+bldg0085067,NV,Single-Family Detached,1970s,2500-2999,Electric Standard,3.8200,25.4690,-85.0%
+bldg0094522,AK,Single-Family Attached,1980s,4000+,Natural Gas Standard,FAILED,0.0000,FAILED
+bldg0099159,WY,Single-Family Attached,2010s,1000-1499,Natural Gas Standard,NA,0.0000,NA
+bldg0103939,CT,Single-Family Detached,1960s,1000-1499,"Solar Thermal, 40 sqft, East, Roof Pitch, Electric Standard Backup",0.6700,2.8640,-76.6%
+bldg0104117,NY,Multi-Family with 5+ Units,<1940,750-999,Natural Gas Standard,NA,0.0000,NA
+bldg0108019,RI,Single-Family Detached,<1940,1000-1499,FIXME Fuel Oil Indirect,NA,0.0000,NA
+bldg0111149,CA,Single-Family Detached,1970s,3000-3999,Natural Gas Tankless,0.2210,0.0000,inf
+bldg0112572,NY,Multi-Family with 2 - 4 Units,1940s,500-749,Natural Gas Premium,NA,0.0000,NA
+bldg0116109,AK,Single-Family Detached,1970s,1500-1999,Fuel Oil Standard,FAILED,0.0000,FAILED
+bldg0117900,OH,Mobile Home,2000s,1000-1499,Natural Gas Premium,NA,0.0000,NA
+bldg0120120,TX,Single-Family Detached,1950s,1000-1499,Electric Standard,1.2740,3.6270,-64.9%
+bldg0125496,NY,Multi-Family with 5+ Units,1970s,750-999,Natural Gas Standard,NA,0.0000,NA
+bldg0126235,MI,Single-Family Detached,1990s,2500-2999,Propane Standard,FAILED,0.0000,FAILED
+bldg0134115,FL,Multi-Family with 5+ Units,1970s,0-499,Electric Standard,1.1160,2.3100,-51.7%
+bldg0145426,AK,Single-Family Detached,1970s,1000-1499,Natural Gas Standard,FAILED,0.0000,FAILED
+bldg0149742,WA,Single-Family Attached,2000s,2500-2999,Electric Standard,1.9830,17.9040,-88.9%
+bldg0172208,CA,Multi-Family with 5+ Units,1940s,750-999,Natural Gas Standard,NA,0.0000,NA
+bldg0180324,AZ,Multi-Family with 5+ Units,1970s,750-999,Electric Standard,1.1730,6.0810,-80.7%
+bldg0189657,AK,Multi-Family with 2 - 4 Units,2010s,1000-1499,Electric Tankless,0.6710,15.3580,-95.6%
+bldg0208851,SD,Single-Family Detached,2000s,4000+,Electric Tankless,1.7840,11.8210,-84.9%
+bldg0208877,NM,Multi-Family with 5+ Units,<1940,500-749,Natural Gas Standard,NA,0.0000,NA
+bldg0224395,FL,Single-Family Attached,1980s,2000-2499,Electric Standard,1.3410,3.1550,-57.5%
+bldg0229989,MD,Single-Family Attached,1990s,1500-1999,Electric Standard,1.7760,16.2940,-89.1%
+bldg0234075,IL,Multi-Family with 5+ Units,<1940,500-749,Natural Gas Standard,NA,0.0000,NA
+bldg0236990,TX,Multi-Family with 5+ Units,1980s,500-749,Natural Gas Standard,NA,0.0000,NA
+bldg0240393,GA,Single-Family Attached,1980s,1000-1499,Natural Gas Standard,NA,0.0000,NA
+bldg0245787,OH,Multi-Family with 5+ Units,2000s,0-499,Natural Gas Premium,NA,0.0000,NA
+bldg0250585,FL,Single-Family Attached,1980s,2500-2999,Other Fuel,NA,0.0000,NA
+bldg0259582,CA,Single-Family Detached,<1940,500-749,Natural Gas Standard,NA,0.0000,NA
+bldg0274778,OK,Single-Family Detached,1990s,3000-3999,Electric Premium,0.9700,17.1560,-94.3%
+bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,Natural Gas Standard,NA,0.0000,NA
+bldg0276627,AK,Single-Family Detached,2000s,2000-2499,Propane Standard,FAILED,0.0000,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,Natural Gas Standard,FAILED,0.0000,FAILED
+bldg0294702,NM,Single-Family Detached,2000s,4000+,Natural Gas Premium,NA,0.0000,NA
+bldg0336334,CA,Single-Family Attached,1990s,2500-2999,Natural Gas Tankless,0.2210,0.0000,inf
+bldg0338190,KY,Single-Family Detached,2000s,1500-1999,Electric Tankless,0.7880,4.4150,-82.2%
+bldg0353300,CA,Multi-Family with 5+ Units,2010s,0-499,Natural Gas Standard,NA,0.0000,NA
+bldg0353418,CA,Single-Family Detached,2000s,4000+,Propane Standard,NA,0.0000,NA
+bldg0355977,OH,Multi-Family with 5+ Units,1970s,750-999,Electric Premium,0.6160,7.0800,-91.3%
+bldg0372624,HI,Single-Family Detached,1980s,2000-2499,Electric Standard,2.1080,5.4690,-61.5%
+bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,Natural Gas Standard,NA,0.0000,NA
+bldg0437452,CA,Single-Family Attached,1960s,750-999,Natural Gas Standard,NA,0.0000,NA
+bldg0445042,CA,Single-Family Attached,1980s,1500-1999,Natural Gas Standard,NA,0.0000,NA
+bldg0449322,CA,Single-Family Attached,1970s,1000-1499,Electric Tankless,0.0000,6.1710,-100.0%
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,"Electric Heat Pump, 50 gal, 3.45 UEF",FAILED,2.2660,FAILED
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,Electric Standard,FAILED,32.2430,FAILED
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,Natural Gas Standard,FAILED,0.0000,FAILED
+bldg0483730,CA,Single-Family Detached,1950s,4000+,Natural Gas Standard,NA,0.0000,NA
+bldg0486267,ME,Single-Family Detached,1990s,1000-1499,Wood,NA,0.0000,NA
+bldg0487739,WY,Mobile Home,1970s,750-999,Natural Gas Standard,NA,0.0000,NA
+bldg0499827,CA,Single-Family Detached,1990s,2000-2499,Propane Premium,FAILED,0.0000,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,Electric Premium,FAILED,12.4860,FAILED
+bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,Electric Standard,2.0110,6.1810,-67.5%
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,Electric Standard,FAILED,114.9120,FAILED

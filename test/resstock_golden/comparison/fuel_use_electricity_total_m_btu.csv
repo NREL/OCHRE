@@ -1,66 +1,66 @@
-Building,Heating Fuel,HVAC Heating,HVAC Cooling,WH Fuel,OCHRE (MBtu),EPlus (MBtu),%Diff
-bldg0000935,Natural Gas,Ducted Heating,Room AC,Electricity,13.5990,14.8760,-8.6%
-bldg0008984,Electricity,Non-Ducted Heating,Central AC,Electricity,83.9630,72.1100,+16.4%
-bldg0020895,Electricity,Non-Ducted Heating,Central AC,Electricity,43.7270,55.2690,-20.9%
-bldg0021070,Wood,Non-Ducted Heating,Central AC,Electricity,13.4500,16.3930,-18.0%
-bldg0027147,Natural Gas,Ducted Heating,Central AC,Natural Gas,23.1480,21.6870,+6.7%
-bldg0027808,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,39.0320,22.2260,+75.6%
-bldg0028885,None,None,None,Electricity,16.9060,35.4170,-52.3%
-bldg0034729,Electricity,Ducted Heating,None,Electricity,39.3350,55.7880,-29.5%
-bldg0035052,Electricity,Non-Ducted Heating,None,Electricity,26.2610,36.4680,-28.0%
-bldg0064657,Natural Gas,Ducted Heating,None,Natural Gas,27.1900,29.0650,-6.5%
-bldg0066501,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,25.9340,NA
-bldg0085067,Other Fuel,Non-Ducted Heating,Room AC,Electricity,54.5610,76.1330,-28.3%
-bldg0094522,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,26.6300,NA
-bldg0099159,Natural Gas,Ducted Heating,Central AC,Natural Gas,17.9260,18.0960,-0.9%
-bldg0103939,Fuel Oil,Ducted Heating,Room AC,Solar Thermal,22.2260,25.9390,-14.3%
-bldg0104117,Natural Gas,Ducted Heating,Room AC,Natural Gas,10.5020,9.4420,+11.2%
-bldg0108019,Fuel Oil,Ducted Heating,Room AC,Fuel Oil,20.3260,19.7990,+2.7%
-bldg0111149,Natural Gas,Ducted Heating,Room AC,Natural Gas,31.9060,35.3730,-9.8%
-bldg0112572,Natural Gas,Ducted Heating,Room AC,Natural Gas,14.8570,14.1730,+4.8%
-bldg0116109,Fuel Oil,Non-Ducted Heating,None,Fuel Oil,NA,21.0460,NA
-bldg0117900,Natural Gas,Non-Ducted Heating,Central AC,Natural Gas,20.8880,21.5610,-3.1%
-bldg0120120,Electricity,Ducted Heating,Room AC,Electricity,18.9600,66.2610,-71.4%
-bldg0125496,Natural Gas,Non-Ducted Heating,Room AC,Natural Gas,17.7500,16.1870,+9.7%
-bldg0126235,Propane,Ducted Heating,Central AC,Propane,NA,29.8690,NA
-bldg0134115,None,None,Central AC,Electricity,11.1910,10.8300,+3.3%
-bldg0145426,Natural Gas,Non-Ducted Heating,None,Natural Gas,NA,31.8120,NA
-bldg0149742,Electricity,Non-Ducted Heating,Central AC,Electricity,39.9240,51.0770,-21.8%
-bldg0172208,Natural Gas,Ducted Heating,None,Natural Gas,6.8900,9.9710,-30.9%
-bldg0180324,Electricity,Non-Ducted Heating,None,Electricity,14.8610,20.2130,-26.5%
-bldg0189657,Electricity,Non-Ducted Heat Pump,Non-Ducted Heat Pump,Electricity,21.6140,42.0880,-48.6%
-bldg0208851,Electricity,Non-Ducted Heating,Central AC,Electricity,131.4210,143.0980,-8.2%
-bldg0208877,Natural Gas,Non-Ducted Heating,None,Natural Gas,7.7260,7.7310,-0.1%
-bldg0224395,Electricity,Non-Ducted Heating,None,Electricity,13.9940,17.1270,-18.3%
-bldg0229989,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,64.4040,66.3220,-2.9%
-bldg0234075,Natural Gas,Ducted Heating,Room AC,Natural Gas,18.5630,17.9120,+3.6%
-bldg0236990,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,14.4890,10.5600,+37.2%
-bldg0240393,Natural Gas,Ducted Heating,Central AC,Natural Gas,36.3450,41.7470,-12.9%
-bldg0245787,Electricity,Non-Ducted Heating,Room AC,Natural Gas,14.7580,13.8080,+6.9%
-bldg0250585,Electricity,Ducted Heat Pump,Ducted Heat Pump,Other Fuel,46.2840,58.2790,-20.6%
-bldg0259582,Natural Gas,Ducted Heating,None,Natural Gas,-41.5020,12.0910,-443.2%
-bldg0274778,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,79.0690,109.9180,-28.1%
-bldg0275797,Natural Gas,Ducted Heating,Room AC,Natural Gas,22.3940,21.7150,+3.1%
-bldg0276627,Fuel Oil,Non-Ducted Heating,None,Propane,NA,27.3670,NA
-bldg0288066,Natural Gas,Ducted Heating,Central AC,Natural Gas,NA,59.1650,NA
-bldg0294702,Natural Gas,Non-Ducted Heating,Central AC,Natural Gas,9.9920,56.4570,-82.3%
-bldg0336334,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,47.3920,51.5450,-8.1%
-bldg0338190,Electricity,Ducted Heating,Central AC,Electricity,65.0180,68.7400,-5.4%
-bldg0353300,Electricity,Ducted Heat Pump,Ducted Heat Pump,Natural Gas,21.9430,22.6720,-3.2%
-bldg0353418,Electricity,Ducted Heat Pump,Ducted Heat Pump,Propane,36.1340,50.5860,-28.6%
-bldg0355977,Electricity,Non-Ducted Heating,Room AC,Electricity,33.0080,33.7030,-2.1%
-bldg0372624,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,11.0730,50.9930,-78.3%
-bldg0422846,Natural Gas,Ducted Heating,Room AC,Natural Gas,6.8280,6.2450,+9.3%
-bldg0437452,Electricity,Ducted Heating,None,Natural Gas,14.4480,11.7060,+23.4%
-bldg0445042,Natural Gas,Ducted Heating,Central AC,Natural Gas,30.4160,37.9260,-19.8%
-bldg0449322,Electricity,Non-Ducted Heating,Room AC,Electricity,29.1530,30.6350,-4.8%
-bldg0451855,Electricity,Ducted Heating,Central AC,Electricity,NA,33.1250,NA
-bldg0464288,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,NA,165.8360,NA
-bldg0475650,Natural Gas,Ducted Heating,None,Natural Gas,NA,16.5610,NA
-bldg0483730,Natural Gas,Ducted Heating,Central AC,Natural Gas,41.8870,66.9140,-37.4%
-bldg0486267,Fuel Oil,Non-Ducted Heating,Central AC,Wood,23.3510,25.0930,-6.9%
-bldg0487739,Natural Gas,Ducted Heating,Room AC,Natural Gas,29.8840,28.9460,+3.2%
-bldg0499827,Propane,Non-Ducted Heating,Central AC,Propane,NA,25.2840,NA
-bldg0501306,Natural Gas,Ducted Heating,Central AC,Electricity,NA,58.1570,NA
-bldg0522592,Electricity,Non-Ducted Heat Pump,Non-Ducted Heat Pump,Electricity,22.3370,23.3470,-4.3%
-bldg9064288,Electricity,Ducted Heat Pump,Ducted Heat Pump,Electricity,NA,308.0800,NA
+Building,State,Building Type,Vintage,Floor Area,OCHRE,EPlus,%Diff
+bldg0000935,MA,Single-Family Attached,2000s,2500-2999,13.5990,14.8760,-8.6%
+bldg0008984,LA,Single-Family Attached,1970s,1500-1999,83.9630,72.1100,+16.4%
+bldg0020895,CA,Single-Family Attached,1990s,1500-1999,43.7270,55.2690,-20.9%
+bldg0021070,MI,Single-Family Detached,1990s,1000-1499,13.4500,16.3930,-18.0%
+bldg0027147,CA,Multi-Family with 5+ Units,2000s,1000-1499,23.1480,21.6870,+6.7%
+bldg0027808,CA,Single-Family Attached,1990s,4000+,39.0320,22.2260,+75.6%
+bldg0028885,HI,Single-Family Detached,1940s,4000+,16.9060,35.4170,-52.3%
+bldg0034729,VA,Single-Family Attached,1970s,1000-1499,39.3350,55.7880,-29.5%
+bldg0035052,WA,Multi-Family with 5+ Units,1970s,750-999,26.2610,36.4680,-28.0%
+bldg0064657,CA,Single-Family Attached,1990s,1500-1999,27.1900,29.0650,-6.5%
+bldg0066501,AK,Single-Family Detached,1990s,1500-1999,FAILED,25.9340,FAILED
+bldg0085067,NV,Single-Family Detached,1970s,2500-2999,54.5610,76.1330,-28.3%
+bldg0094522,AK,Single-Family Attached,1980s,4000+,FAILED,26.6300,FAILED
+bldg0099159,WY,Single-Family Attached,2010s,1000-1499,17.9260,18.0960,-0.9%
+bldg0103939,CT,Single-Family Detached,1960s,1000-1499,22.2260,25.9390,-14.3%
+bldg0104117,NY,Multi-Family with 5+ Units,<1940,750-999,10.5020,9.4420,+11.2%
+bldg0108019,RI,Single-Family Detached,<1940,1000-1499,20.3260,19.7990,+2.7%
+bldg0111149,CA,Single-Family Detached,1970s,3000-3999,31.9060,35.3730,-9.8%
+bldg0112572,NY,Multi-Family with 2 - 4 Units,1940s,500-749,14.8570,14.1730,+4.8%
+bldg0116109,AK,Single-Family Detached,1970s,1500-1999,FAILED,21.0460,FAILED
+bldg0117900,OH,Mobile Home,2000s,1000-1499,20.8880,21.5610,-3.1%
+bldg0120120,TX,Single-Family Detached,1950s,1000-1499,18.9600,66.2610,-71.4%
+bldg0125496,NY,Multi-Family with 5+ Units,1970s,750-999,17.7500,16.1870,+9.7%
+bldg0126235,MI,Single-Family Detached,1990s,2500-2999,FAILED,29.8690,FAILED
+bldg0134115,FL,Multi-Family with 5+ Units,1970s,0-499,11.1910,10.8300,+3.3%
+bldg0145426,AK,Single-Family Detached,1970s,1000-1499,FAILED,31.8120,FAILED
+bldg0149742,WA,Single-Family Attached,2000s,2500-2999,39.9240,51.0770,-21.8%
+bldg0172208,CA,Multi-Family with 5+ Units,1940s,750-999,6.8900,9.9710,-30.9%
+bldg0180324,AZ,Multi-Family with 5+ Units,1970s,750-999,14.8610,20.2130,-26.5%
+bldg0189657,AK,Multi-Family with 2 - 4 Units,2010s,1000-1499,21.6140,42.0880,-48.6%
+bldg0208851,SD,Single-Family Detached,2000s,4000+,131.4210,143.0980,-8.2%
+bldg0208877,NM,Multi-Family with 5+ Units,<1940,500-749,7.7260,7.7310,-0.1%
+bldg0224395,FL,Single-Family Attached,1980s,2000-2499,13.9940,17.1270,-18.3%
+bldg0229989,MD,Single-Family Attached,1990s,1500-1999,64.4040,66.3220,-2.9%
+bldg0234075,IL,Multi-Family with 5+ Units,<1940,500-749,18.5630,17.9120,+3.6%
+bldg0236990,TX,Multi-Family with 5+ Units,1980s,500-749,14.4890,10.5600,+37.2%
+bldg0240393,GA,Single-Family Attached,1980s,1000-1499,36.3450,41.7470,-12.9%
+bldg0245787,OH,Multi-Family with 5+ Units,2000s,0-499,14.7580,13.8080,+6.9%
+bldg0250585,FL,Single-Family Attached,1980s,2500-2999,46.2840,58.2790,-20.6%
+bldg0259582,CA,Single-Family Detached,<1940,500-749,-41.5020,12.0910,-443.2%
+bldg0274778,OK,Single-Family Detached,1990s,3000-3999,79.0690,109.9180,-28.1%
+bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,22.3940,21.7150,+3.1%
+bldg0276627,AK,Single-Family Detached,2000s,2000-2499,FAILED,27.3670,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,FAILED,59.1650,FAILED
+bldg0294702,NM,Single-Family Detached,2000s,4000+,9.9920,56.4570,-82.3%
+bldg0336334,CA,Single-Family Attached,1990s,2500-2999,47.3920,51.5450,-8.1%
+bldg0338190,KY,Single-Family Detached,2000s,1500-1999,65.0180,68.7400,-5.4%
+bldg0353300,CA,Multi-Family with 5+ Units,2010s,0-499,21.9430,22.6720,-3.2%
+bldg0353418,CA,Single-Family Detached,2000s,4000+,36.1340,50.5860,-28.6%
+bldg0355977,OH,Multi-Family with 5+ Units,1970s,750-999,33.0080,33.7030,-2.1%
+bldg0372624,HI,Single-Family Detached,1980s,2000-2499,11.0730,50.9930,-78.3%
+bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,6.8280,6.2450,+9.3%
+bldg0437452,CA,Single-Family Attached,1960s,750-999,14.4480,11.7060,+23.4%
+bldg0445042,CA,Single-Family Attached,1980s,1500-1999,30.4160,37.9260,-19.8%
+bldg0449322,CA,Single-Family Attached,1970s,1000-1499,29.1530,30.6350,-4.8%
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,FAILED,33.1250,FAILED
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,FAILED,165.8360,FAILED
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,FAILED,16.5610,FAILED
+bldg0483730,CA,Single-Family Detached,1950s,4000+,41.8870,66.9140,-37.4%
+bldg0486267,ME,Single-Family Detached,1990s,1000-1499,23.3510,25.0930,-6.9%
+bldg0487739,WY,Mobile Home,1970s,750-999,29.8840,28.9460,+3.2%
+bldg0499827,CA,Single-Family Detached,1990s,2000-2499,FAILED,25.2840,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,FAILED,58.1570,FAILED
+bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,22.3370,23.3470,-4.3%
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,FAILED,308.0800,FAILED
