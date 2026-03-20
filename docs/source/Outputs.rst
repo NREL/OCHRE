@@ -369,13 +369,58 @@ output files. This mode generates two files:
 
 - ``results_timeseries.csv``: Time series results with ResStock-compatible
   column names and units. Uses a two-header-row format (column names and units)
-  and supports incremental append via ``export_res``.
+  and supports incremental append via ``export_res``. This format is also
+  compatible with `DView <https://github.com/NREL/wex/wiki/DView>`_, NREL's
+  time-series data viewer.
 
 - ``results_annual.csv``: Annual energy totals by end use in MBtu.
 
 OCHRE output columns are mapped to ResStock column names using a crosswalk CSV
 (``ochre/defaults/resstock_ochre_crosswalk.csv``). Unit conversions are applied
 automatically (e.g., kW to kWh, Celsius to Fahrenheit, W to kBtu).
+
+Known Limitations
+^^^^^^^^^^^^^^^^^
+
+OCHRE models a subset of what ResStock/EnergyPlus covers. The crosswalk CSV
+indicates which ResStock metrics have an OCHRE equivalent (rows with a blank
+OCHRE column are not populated). Key limitations are summarized below.
+
+**Unsupported end uses.** The following equipment types are not modeled in OCHRE
+and their ResStock columns will be blank:
+
+- Dehumidifier
+- Whole house fan
+- Solar thermal pump
+- Mechanical ventilation precooling/preheating
+
+**Partial equipment support.** Some equipment is modeled but with constraints:
+
+- **PV**: Only one PV system is parsed from HPXML. Homes with panels on
+  multiple roof orientations will only use the first system
+  (`#223 <https://github.com/NatLabRockies/OCHRE/issues/223>`_).
+- **Electric vehicle**: Only one vehicle is parsed. Additional vehicles in the
+  HPXML Vehicles section are ignored.
+- **Home battery**: OCHRE has a Battery equipment model, but battery inputs are
+  not yet parsed from HPXML
+  (`#224 <https://github.com/NatLabRockies/OCHRE/issues/224>`_).
+
+**Unmapped ResStock metric categories.** The following categories of ResStock
+output columns are not currently populated by OCHRE:
+
+- **Emissions**: CO2e emissions calculations are not implemented.
+- **Weather**: Only drybulb temperature is mapped. Wetbulb, relative humidity,
+  wind speed, and solar radiation are not yet populated from the weather file
+  (`#222 <https://github.com/NatLabRockies/OCHRE/issues/222>`_).
+- **Peak electricity**: Winter, summer, and annual peak metrics.
+- **Alternative fuels**: End uses for propane, fuel oil, coal, wood cord, and
+  wood pellets.
+- **HVAC design**: Design loads, capacities, and design temperatures.
+- **Electrical panel**: Breaker space counts and panel load metrics.
+- **Hot water volumes**: Clothes washer, dishwasher, fixtures, and distribution
+  waste volumes.
+
+See the crosswalk CSV for the complete column-by-column mapping.
 
 .. _all-metrics:
 

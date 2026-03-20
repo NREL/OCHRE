@@ -1,12 +1,13 @@
-"""Run OCHRE ResStock simulations and update ochre_annual_result.csv.
+"""Run OCHRE ResStock simulations and generate ochre_annual_result_new.csv.
 
 Writes per-building results to test/resstock_golden/ochre_result/<bldg_name>/
-and then updates ochre_result/ochre_annual_result.csv with the new annual values.
+and then generates ochre_result/ochre_annual_result_new.csv from those results.
 Re-run whenever OCHRE changes are expected to alter outputs.
 
 Usage (from OCHRE root):
-    python test/resstock_golden/generate_ochre_result.py              # all buildings
-    python test/resstock_golden/generate_ochre_result.py bldg0108019  # one building
+    python test/resstock_golden/generate_ochre_result.py                          # all buildings
+    python test/resstock_golden/generate_ochre_result.py bldg0108019              # one building
+    python test/resstock_golden/generate_ochre_result.py --update-annual-only     # skip simulation, regenerate CSV only
 """
 
 import csv
@@ -23,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from ochre.cli import create_dwelling
 from test.test_dwelling.resstock_test_utils import (
     GOLDEN_EPLUS_CSV,
-    GOLDEN_RESULTS_CSV,
+    GOLDEN_NEW_RESULTS_CSV,
     GOLDEN_TEST_RESULT_PATH,
     metric_to_column,
     read_results_annual,
@@ -71,7 +72,7 @@ def run_building(name):
 
 
 def update_ochre_annual_result():
-    """Update ochre_annual_result.csv by overlaying OCHRE results onto the EPlus baseline."""
+    """Write ochre_annual_result_new.csv by overlaying OCHRE results onto the EPlus baseline."""
     if not os.path.isfile(GOLDEN_EPLUS_CSV):
         print(f"\nSkipping ochre_annual_result.csv update: {GOLDEN_EPLUS_CSV} not found")
         return
@@ -83,9 +84,14 @@ def update_ochre_annual_result():
 
     row_index = {f"bldg{int(row['building_id']):07d}": row for row in rows}
 
-    energy_columns = {
-        col for col in fieldnames if col.startswith("report_simulation_output.") and col.endswith("_m_btu")
+    output_columns = {
+        col for col in fieldnames if col.startswith("report_simulation_output.")
     }
+
+    # Blank all output columns for all buildings so only OCHRE-produced values remain.
+    for row in rows:
+        for col in output_columns:
+            row[col] = ""
 
     buildings_updated = 0
     values_written = 0
@@ -101,13 +107,9 @@ def update_ochre_annual_result():
         row = row_index[bldg_name]
         annual = read_results_annual(annual_path)
 
-        # Blank out all energy columns first so only OCHRE-produced values remain.
-        for col in energy_columns:
-            row[col] = ""
-
         for metric_name, value in annual.items():
             col_name = metric_to_column(metric_name)
-            if col_name not in energy_columns:
+            if col_name not in output_columns:
                 continue
 
             row[col_name] = str(round(value, 3))
@@ -115,46 +117,50 @@ def update_ochre_annual_result():
 
         buildings_updated += 1
 
-    with open(GOLDEN_RESULTS_CSV, "w", newline="") as f:
+    with open(GOLDEN_NEW_RESULTS_CSV, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
-    print(f"\nUpdated {GOLDEN_RESULTS_CSV}")
+    print(f"\nUpdated {GOLDEN_NEW_RESULTS_CSV}")
     print(f"  Buildings with OCHRE results: {buildings_updated}")
     print(f"  Values written from OCHRE: {values_written}")
 
 
 def main():
-    if len(sys.argv) > 1:
-        buildings = sys.argv[1:]
-    else:
-        buildings = sorted(p.name for p in BUILDINGS.iterdir() if p.is_dir() and p.name.startswith("bldg"))
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    update_only = "--update-annual-only" in sys.argv[1:]
 
-    # Clear old per-building simulation outputs, preserving ochre_annual_result.csv
-    for entry in RESULTS.iterdir():
-        if entry.is_dir() and entry.name.startswith("bldg"):
-            shutil.rmtree(entry)
+    if not update_only:
+        if args:
+            buildings = args
+        else:
+            buildings = sorted(p.name for p in BUILDINGS.iterdir() if p.is_dir() and p.name.startswith("bldg"))
 
-    n_workers = multiprocessing.cpu_count()
-    print(f"Simulating {len(buildings)} buildings with {n_workers} workers\n")
+        # Clear old per-building simulation outputs, preserving ochre_annual_result.csv
+        for entry in RESULTS.iterdir():
+            if entry.is_dir() and entry.name.startswith("bldg"):
+                shutil.rmtree(entry)
 
-    t0 = time.time()
-    failed = []
+        n_workers = multiprocessing.cpu_count()
+        print(f"Simulating {len(buildings)} buildings with {n_workers} workers\n")
 
-    with multiprocessing.Pool(n_workers) as pool:
-        for i, (name, error, elapsed) in enumerate(pool.imap_unordered(run_building, buildings), 1):
-            status = "OK" if error is None else "FAILED"
-            print(f"[{i}/{len(buildings)}] {name} {status} ({elapsed:.0f}s)")
-            if error:
-                print(error)
-                failed.append(name)
+        t0 = time.time()
+        failed = []
 
-    print(f"\n{len(buildings) - len(failed)} succeeded, {len(failed)} failed in {time.time() - t0:.0f}s")
-    if failed:
-        print("Failed:", " ".join(sorted(failed)))
+        with multiprocessing.Pool(n_workers) as pool:
+            for i, (name, error, elapsed) in enumerate(pool.imap_unordered(run_building, buildings), 1):
+                status = "OK" if error is None else "FAILED"
+                print(f"[{i}/{len(buildings)}] {name} {status} ({elapsed:.0f}s)")
+                if error:
+                    print(error)
+                    failed.append(name)
 
-    # Update ochre_annual_result.csv with the new simulation results
+        print(f"\n{len(buildings) - len(failed)} succeeded, {len(failed)} failed in {time.time() - t0:.0f}s")
+        if failed:
+            print("Failed:", " ".join(sorted(failed)))
+
+    # Update ochre_annual_result_new.csv from per-building results
     update_ochre_annual_result()
 
 

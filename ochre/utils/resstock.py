@@ -7,6 +7,7 @@ import re
 import pandas as pd
 
 from ochre.utils.base import default_input_path
+from ochre.utils.units import convert
 
 
 def to_underscore_case(s):
@@ -29,16 +30,6 @@ def to_underscore_case(s):
     return result.lower().strip("_")
 
 
-# Conversion constants (matching OS-HPXML unit_conversions.rb)
-KWH_TO_MBTU = 0.003412141633
-KW_TO_KBTU_HR = 3.412141633
-C_TO_F_MULT = 9.0 / 5.0
-C_TO_F_ADD = 32.0
-M3S_TO_CFM = 2118.88
-THERM_TO_KBTU = 100.0
-THERM_TO_KWH = 29.307107017222222
-
-
 def parse_unit(col_name):
     """Extract unit from parenthesized suffix, e.g. 'Power (kW)' -> 'kW'."""
     start = col_name.rfind("(")
@@ -49,7 +40,12 @@ def parse_unit(col_name):
 
 
 def convert_units(value, from_unit, to_unit, hours_per_step=1.0):
-    """Convert value between OCHRE and ResStock units."""
+    """Convert value between OCHRE and ResStock units.
+
+    Uses pint for unit conversion factors. Power-to-energy conversions
+    (kW->kWh, etc.) multiply by hours_per_step since pint can't handle
+    the implicit time integration.
+    """
     if from_unit == to_unit or not from_unit or not to_unit:
         return value
     key = (from_unit, to_unit)
@@ -58,19 +54,21 @@ def convert_units(value, from_unit, to_unit, hours_per_step=1.0):
     if key == ("W", "kWh"):
         return value * 0.001 * hours_per_step
     if key == ("W", "kBtu"):
-        return value * 0.001 * hours_per_step * KW_TO_KBTU_HR
+        return value * 0.001 * hours_per_step * convert(1, "kW", "kBtu/hr")
     if key == ("therms/hour", "kBtu"):
-        return value * hours_per_step * THERM_TO_KBTU
+        return value * hours_per_step * convert(1, "therm", "kBtu")
     if key == ("therms/hour", "kWh"):
-        return value * hours_per_step * THERM_TO_KWH
+        return value * hours_per_step * convert(1, "therm", "kWh")
     if key == ("C", "F"):
-        return value * C_TO_F_MULT + C_TO_F_ADD
+        # Temperature is an offset conversion; pint can't handle pandas Series
+        # for offset units, so apply the formula directly.
+        return value * (convert(1, "delta_degC", "delta_degF")) + convert(0, "degC", "degF")
     if key == ("m^3/s", "cfm"):
-        return value * M3S_TO_CFM
+        return value * convert(1, "m^3/s", "cubic_feet/min")
     if key == ("kWh", "MBtu"):
-        return value * KWH_TO_MBTU
+        return value * convert(1, "kWh", "MBtu")
     if key == ("kBtu", "MBtu"):
-        return value * 0.001
+        return value * convert(1, "kBtu", "MBtu")
     return value
 
 
@@ -204,9 +202,12 @@ class ResStockOutput:
 
     def finalize(self, df=None, failed=False):
         """Write final chunk, annual totals, and return hourly resampled data."""
-        if df is not None:
+        if df is not None and not failed:
             self.export_chunk(df)
         annual_df = write_resstock_annual(self._annual_sums, self.annual_file)
+
+        if failed or not os.path.exists(self.timeseries_file):
+            return pd.DataFrame(), annual_df, pd.DataFrame()
 
         # Read back full timeseries, skipping units row (row index 1)
         ts_df = pd.read_csv(self.timeseries_file, skiprows=[1], parse_dates=["Time"], index_col="Time")

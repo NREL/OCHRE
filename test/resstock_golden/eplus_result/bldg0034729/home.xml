@@ -34,7 +34,7 @@
           <EmissionsFactor>
             <FuelType>electricity</FuelType>
             <Units>kg/MWh</Units>
-            <ScheduleFilePath>/Users/radhikar/Documents/buildstock2025/res_ochre/resstock/resources/data/emissions/cambium/2024/LRMER_MidCase_15/PJM East.csv</ScheduleFilePath>
+            <ScheduleFilePath>PJM East.csv</ScheduleFilePath>
             <NumberofHeaderRows>0</NumberofHeaderRows>
             <ColumnNumber>1</ColumnNumber>
           </EmissionsFactor>
@@ -155,7 +155,7 @@
             </ManualJInputs>
           </HVACSizingControl>
           <NaturalVentilationAvailabilityDaysperWeek>3</NaturalVentilationAvailabilityDaysperWeek>
-          <SchedulesFilePath>/Users/radhikar/Documents/buildstock2025/res_ochre/resstock/national_baseline_super_ochre/run47/run/schedules.csv</SchedulesFilePath>
+          <SchedulesFilePath>schedules.csv</SchedulesFilePath>
           <ShadingControl>
             <SummerBeginMonth>5</SummerBeginMonth>
             <SummerBeginDayOfMonth>1</SummerBeginDayOfMonth>

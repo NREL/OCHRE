@@ -35,7 +35,7 @@
           <EmissionsFactor>
             <FuelType>electricity</FuelType>
             <Units>kg/MWh</Units>
-            <ScheduleFilePath>/Users/radhikar/Documents/buildstock2025/res_ochre/resstock/resources/data/emissions/cambium/2024/LRMER_MidCase_15/ERCOT.csv</ScheduleFilePath>
+            <ScheduleFilePath>ERCOT.csv</ScheduleFilePath>
             <NumberofHeaderRows>0</NumberofHeaderRows>
             <ColumnNumber>1</ColumnNumber>
           </EmissionsFactor>

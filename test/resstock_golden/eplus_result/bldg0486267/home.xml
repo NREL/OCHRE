@@ -34,7 +34,7 @@
           <EmissionsFactor>
             <FuelType>electricity</FuelType>
             <Units>kg/MWh</Units>
-            <ScheduleFilePath>/Users/radhikar/Documents/buildstock2025/res_ochre/resstock/resources/data/emissions/cambium/2024/LRMER_MidCase_15/ISONE.csv</ScheduleFilePath>
+            <ScheduleFilePath>ISONE.csv</ScheduleFilePath>
             <NumberofHeaderRows>0</NumberofHeaderRows>
             <ColumnNumber>1</ColumnNumber>
           </EmissionsFactor>
@@ -169,7 +169,7 @@
             </ManualJInputs>
           </HVACSizingControl>
           <NaturalVentilationAvailabilityDaysperWeek>3</NaturalVentilationAvailabilityDaysperWeek>
-          <SchedulesFilePath>/Users/radhikar/Documents/buildstock2025/res_ochre/resstock/national_baseline_super_ochre/run54/run/schedules.csv</SchedulesFilePath>
+          <SchedulesFilePath>schedules.csv</SchedulesFilePath>
           <ShadingControl>
             <SummerBeginMonth>6</SummerBeginMonth>
             <SummerBeginDayOfMonth>1</SummerBeginDayOfMonth>

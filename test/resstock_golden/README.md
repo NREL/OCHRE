@@ -135,11 +135,10 @@ resstock>  openstudio ./workflow/run_analysis.rb -y ./project_national/national_
 
 ### 3. Extract results into this directory
 
-Set `resstock_output_directory` in `copy_eplus_result.py` to point to the `ocher_minimal_run`
-output directory, then run:
+Pass the path to the ResStock output directory as an argument:
 
 ```bash
-uv run test/resstock_golden/copy_eplus_result.py
+uv run test/resstock_golden/copy_eplus_result.py /path/to/ochre_minimal_run
 ```
 
 This copies building files into `eplus_result/`, weather files into `weather/`, and builds
@@ -161,16 +160,15 @@ uv run test/resstock_golden/compare_ochre_and_eplus.py
 ```
 Will compare between the OCHRE and Eplus result and generate `comparison/` files.
 
-The golden tests and EnergyPlus comparison cover these 9 annual energy metrics:
+The golden tests and EnergyPlus comparison dynamically discover all
+`report_simulation_output` columns with non-empty numeric values in both the
+OCHRE and EPlus results. No hardcoded metric list is maintained.
 
-| Metric | Unit |
-|--------|------|
-| Fuel Use: Electricity: Total | MBtu |
-| Fuel Use: Natural Gas: Total | MBtu |
-| End Use: Electricity: Heating | MBtu |
-| End Use: Electricity: Cooling | MBtu |
-| End Use: Electricity: Hot Water | MBtu |
-| End Use: Electricity: Plug Loads | MBtu |
-| Load: Heating: Delivered | MBtu |
-| Load: Cooling: Delivered | MBtu |
-| Load: Hot Water: Delivered | MBtu |
+The golden test compares `ochre_annual_result_new.csv` (freshly generated)
+against the committed `ochre_annual_result.csv` reference. If results change
+due to legitimate OCHRE changes, update the reference:
+
+```bash
+cp test/resstock_golden/ochre_result/ochre_annual_result_new.csv \
+   test/resstock_golden/ochre_result/ochre_annual_result.csv
+```

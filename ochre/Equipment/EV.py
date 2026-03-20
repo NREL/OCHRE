@@ -344,8 +344,11 @@ class ElectricVehicle(EventBasedLoad):
 
         self.add_output(results, f"{self.end_use} End Time", self.event_end)
 
-        remaining_charge_minutes = (1 - self.soc) * self.capacity / (self.max_power_ctrl * EV_EFFICIENCY) * 60
-        self.add_output(results, f"{self.end_use} Remaining Charge Time (min)", remaining_charge_minutes)
+        self.add_output(
+            results,
+            f"{self.end_use} Remaining Charge Time (min)",
+            lambda: (1 - self.soc) * self.capacity / (self.max_power_ctrl * EV_EFFICIENCY) * 60,
+        )
 
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())

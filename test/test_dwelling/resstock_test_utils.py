@@ -11,22 +11,10 @@ GOLDEN_PATH = os.path.join(test_path, "resstock_golden")
 GOLDEN_DATA_PATH = os.path.join(GOLDEN_PATH, "eplus_result")
 GOLDEN_WEATHER_PATH = os.path.join(GOLDEN_PATH, "weather")
 GOLDEN_RESULTS_CSV = os.path.join(GOLDEN_PATH, "ochre_result", "ochre_annual_result.csv")
+GOLDEN_NEW_RESULTS_CSV = os.path.join(GOLDEN_PATH, "ochre_result", "ochre_annual_result_new.csv")
 GOLDEN_EPLUS_CSV = os.path.join(GOLDEN_PATH, "eplus_result", "eplus_annual_result.csv")
 GOLDEN_TEST_RESULT_PATH = os.path.join(GOLDEN_PATH, "ochre_result")
 COMPARISON_OUTPUT_PATH = os.path.join(GOLDEN_PATH, "comparison")
-
-# Metrics validated between OCHRE and EnergyPlus / golden reference.
-RESSTOCK_METRICS = [
-    "Fuel Use: Electricity: Total (MBtu)",
-    "Fuel Use: Natural Gas: Total (MBtu)",
-    "End Use: Electricity: Heating (MBtu)",
-    "End Use: Electricity: Cooling (MBtu)",
-    "End Use: Electricity: Hot Water (MBtu)",
-    "End Use: Electricity: Plug Loads (MBtu)",
-    "Load: Heating: Delivered (MBtu)",
-    "Load: Cooling: Delivered (MBtu)",
-    "Load: Hot Water: Delivered (MBtu)",
-]
 
 
 def metric_to_column(metric_name):
@@ -49,21 +37,27 @@ def read_results_annual(path):
     return results
 
 
-def load_expected_from_csv(csv_path, metrics):
-    """Load expected values from a results CSV, keyed by bldg_name.
+def load_results_csv(csv_path):
+    """Load all numeric output metrics from a results CSV.
 
-    *metrics* is a list of metric name strings (e.g. "Fuel Use: Electricity: Total (MBtu)").
-    CSV column names are derived via metric_to_column().
+    Auto-discovers all report_simulation_output.* columns with non-empty
+    numeric values. Returns {bldg_name: {column_name: float_value}}.
     """
-    expected = {}
+    results = {}
     with open(csv_path) as f:
         reader = csv.DictReader(f)
+        output_cols = sorted(
+            col for col in reader.fieldnames if col.startswith("report_simulation_output.")
+        )
         for row in reader:
             bldg_id = int(row["building_id"])
             bldg_name = f"bldg{bldg_id:07d}"
-            expected[bldg_name] = {}
-            for metric in metrics:
-                val = row.get(metric_to_column(metric), "")
+            results[bldg_name] = {}
+            for col in output_cols:
+                val = row.get(col, "")
                 if val:
-                    expected[bldg_name][metric] = float(val)
-    return expected
+                    try:
+                        results[bldg_name][col] = float(val)
+                    except ValueError:
+                        pass
+    return results

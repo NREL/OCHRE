@@ -151,7 +151,7 @@
             </ManualJInputs>
           </HVACSizingControl>
           <NaturalVentilationAvailabilityDaysperWeek>3</NaturalVentilationAvailabilityDaysperWeek>
-          <SchedulesFilePath>/Users/radhikar/Documents/buildstock2025/res_ochre/resstock/national_baseline_super_ochre/run13/run/schedules.csv</SchedulesFilePath>
+          <SchedulesFilePath>schedules.csv</SchedulesFilePath>
           <ShadingControl>
             <SummerBeginMonth>6</SummerBeginMonth>
             <SummerBeginDayOfMonth>1</SummerBeginDayOfMonth>

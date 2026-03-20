@@ -4,9 +4,10 @@
 # ///
 """Pull building files, weather, and EPlus results from a ResStock output into the golden test directory.
 
-Set resstock_output_directory below to point to your ResStock simulation output,
-then run:
-    uv run test/resstock_golden/copy_eplus_result.py
+Usage:
+    uv run test/resstock_golden/copy_eplus_result.py <resstock_output_directory>
+
+Or set the RESSTOCK_OUTPUT_DIR environment variable.
 """
 
 import csv
@@ -14,10 +15,15 @@ import json
 import os
 import re
 import shutil
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-resstock_output_directory = "/Users/radhikar/Documents/buildstock2025/res_ochre/resstock/national_baseline_super_ochre"
+resstock_output_directory = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("RESSTOCK_OUTPUT_DIR", "")
+if not resstock_output_directory:
+    print("Usage: uv run test/resstock_golden/copy_eplus_result.py <resstock_output_directory>")
+    print("  Or set the RESSTOCK_OUTPUT_DIR environment variable.")
+    sys.exit(1)
 
 # --- Paths (relative to this script) ---
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -33,6 +39,9 @@ SECTION_PREFIX = {
     "ReportUtilityBills": "report_utility_bills",
     "UpgradeCosts": "upgrade_costs",
 }
+
+# ResStock project root (parent of the output directory) — stripped from committed files.
+RESSTOCK_ROOT = str(Path(resstock_output_directory).resolve().parent) + "/"
 
 # ResStock weather directory (sibling of the output directory's parent project)
 RESSTOCK_WEATHER_DIR = Path(resstock_output_directory).resolve().parent.parent / "weather"
@@ -82,6 +91,13 @@ def copy_building_files(bldg_id, run_dir):
             shutil.copy2(src, dest_dir / filename)
         else:
             print(f"  WARNING: {src} not found for {bldg_name}")
+
+    # Strip resstock project root from home.xml to avoid leaking local paths.
+    home_xml = dest_dir / "home.xml"
+    if home_xml.exists():
+        content = home_xml.read_text()
+        content = content.replace(RESSTOCK_ROOT, "")
+        home_xml.write_text(content)
 
 
 def extract_weather_filename(home_xml_path):
@@ -171,6 +187,12 @@ def build_eplus_csv(runs):
     ]
     section_columns = sorted(all_columns - set(fixed_columns))
     fieldnames = fixed_columns + section_columns
+
+    # Strip absolute paths from values to avoid leaking local paths in committed files.
+    for row in rows:
+        for key, val in row.items():
+            if isinstance(val, str) and RESSTOCK_ROOT in val:
+                row[key] = val.replace(RESSTOCK_ROOT, "")
 
     with open(EPLUS_CSV, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n", extrasaction="ignore")

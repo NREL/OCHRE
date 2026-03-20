@@ -1888,11 +1888,9 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
         mgl_dict = {key: val for key, val in misc_loads.items() if "FuelLoad" in key}
 
     # Add MELs: TV, other MELs, well pump
-    # Note: EV is now parsed separately from Vehicles section
+    # Note: EV is parsed separately from Vehicles section (preferred) or MEL fallback
     mels = parse_mels(mel_dict)
-    if "Electric Vehicle" in mels:
-        # Remove EV from MELs - will be parsed from Vehicle section instead
-        mels.pop("Electric Vehicle")
+    ev_mel_data = mels.pop("Electric Vehicle", None)
     equipment.update(mels)
 
     # Add MGLs: Grill, Fireplace, and Lighting
@@ -1904,7 +1902,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     pool_equipment = parse_pool_equipment(hpxml)
     equipment.update(pool_equipment)
 
-    # Add EV: Parse from Vehicles section
+    # Add EV: Prefer Vehicles section, fall back to MEL-derived EV
     systems = hpxml.get("Systems", {})
     vehicles = systems.get("Vehicles", {})
     if vehicles:
@@ -1928,6 +1926,9 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
         ev_equipment = parse_ev_from_vehicle(vehicle, charger_dict)
         if ev_equipment is not None:
             equipment["Electric Vehicle"] = ev_equipment
+    elif ev_mel_data is not None:
+        # Fallback: derive EV from MEL PlugLoad data (legacy HPXML format)
+        equipment["Electric Vehicle"] = parse_ev_from_mel(ev_mel_data)
 
     # Add PV system: Parse from Photovoltaics section
     photovoltaics = systems.get("Photovoltaics", {})

@@ -128,7 +128,7 @@ OUTPUT_REGISTRY = {
             "Hot Water Unmet Demand (kW)",
             "Hot Water Outlet Temperature (C)",
             "{end_use} SOC (-)",
-            "{end_use} Unmet Load (kWh)",
+            "EV Unmet Load (kWh)",
         ],
         4: [
             # Detailed equipment outputs - delivered heat, setpoints, efficiency
@@ -137,7 +137,7 @@ OUTPUT_REGISTRY = {
             "{end_use} COP (-)",
             "Hot Water Delivered (L/min)",
             "Hot Water Delivered (W)",
-            "{end_use} Parked",
+            "EV Parked",
         ],
         5: [
             # Component loads, zone temperatures

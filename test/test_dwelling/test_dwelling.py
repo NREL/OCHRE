@@ -297,7 +297,9 @@ class ResStockOutputTestCase(unittest.TestCase):
         self.assertGreater(checked, 5)
 
     def test_temperature_conversion(self):
-        expected_f = self.ochre_df["Temperature - Indoor (C)"] * 9.0 / 5.0 + 32.0
+        from ochre.utils.units import convert
+
+        expected_f = self.ochre_df["Temperature - Indoor (C)"].apply(lambda c: convert(c, "degC", "degF"))
         actual_f = self.resstock_ts["Temperature: Conditioned Space"]
         pd.testing.assert_series_equal(
             actual_f.reset_index(drop=True),
