@@ -38,7 +38,6 @@ def create_dwelling(
     duration=365,
     initialization_time=1,
     export_res=None,
-    time_zone=None,
     output_format="ochre",
     seed=None,
 ):
@@ -80,7 +79,6 @@ def create_dwelling(
         hpxml_schedule_file=hpxml_schedule_file,
         output_path=output_path,
         verbosity=verbosity,
-        time_zone=time_zone,
         output_format=output_format,
         seed=seed,
         **weather_args,
@@ -238,7 +236,6 @@ def common_options(f):
         click.option("--start_month", default=1, help="Simulation start month"),
         click.option("--start_day", default=1, help="Simulation start day"),
         click.option("--time_res", default=60, help="Time resolution, in minutes"),
-        click.option("--time_zone", default=None, help="Time zone for simulation (e.g., 'DST')"),
         click.option("--duration", default=365, help="Simulation duration, in days"),
         click.option("--initialization_time", default=1, help="Initialization duration, in days"),
         click.option(

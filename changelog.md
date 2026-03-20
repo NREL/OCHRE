@@ -4,7 +4,7 @@
 - Added ResStock output mode producing `results_timeseries.csv` and `results_annual.csv`
   [#167](https://github.com/NREL/OCHRE/issues/167)
 - Added output registry and verbosity-based output control system
-- Added CLI options for `--output_format`, `--time_zone`, and `--export_res`
+- Added CLI options for `--output_format` and `--export_res`
 - Added EV and PV parsing from dedicated HPXML sections (Vehicles, Photovoltaics)
 - Narrowed Python version requirement
 
