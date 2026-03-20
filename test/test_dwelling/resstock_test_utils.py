@@ -46,9 +46,7 @@ def load_results_csv(csv_path):
     results = {}
     with open(csv_path) as f:
         reader = csv.DictReader(f)
-        output_cols = sorted(
-            col for col in reader.fieldnames if col.startswith("report_simulation_output.")
-        )
+        output_cols = sorted(col for col in reader.fieldnames if col.startswith("report_simulation_output."))
         for row in reader:
             bldg_id = int(row["building_id"])
             bldg_name = f"bldg{bldg_id:07d}"

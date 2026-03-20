@@ -84,9 +84,7 @@ def update_ochre_annual_result():
 
     row_index = {f"bldg{int(row['building_id']):07d}": row for row in rows}
 
-    output_columns = {
-        col for col in fieldnames if col.startswith("report_simulation_output.")
-    }
+    output_columns = {col for col in fieldnames if col.startswith("report_simulation_output.")}
 
     # Blank all output columns for all buildings so only OCHRE-produced values remain.
     for row in rows:

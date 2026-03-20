@@ -124,6 +124,5 @@ def test_building_results(bldg_name):
         if act is None and exp is not None:
             pytest.fail(f"{bldg_name}: metric '{col}' = {exp} missing from new results.")
         assert abs(act - exp) <= ANNUAL_ATOL, (
-            f"{bldg_name}: {col} = {act}, expected {exp} (diff={abs(act - exp):.4f}). "
-            "Update reference if intentional."
+            f"{bldg_name}: {col} = {act}, expected {exp} (diff={abs(act - exp):.4f}). Update reference if intentional."
         )
