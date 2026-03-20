@@ -45,10 +45,14 @@ def convert_units(value, from_unit, to_unit, hours_per_step=1.0):
     Uses pint for unit conversion factors. Power-to-energy conversions
     (kW->kWh, etc.) multiply by hours_per_step since pint can't handle
     the implicit time integration.
+
+    Raises ValueError for unrecognized unit pairs to prevent silent
+    pass-through of unconverted data.
     """
-    if from_unit == to_unit or not from_unit or not to_unit:
+    if from_unit == to_unit:
         return value
     key = (from_unit, to_unit)
+    # Power -> energy (time integration, not a pure unit conversion)
     if key == ("kW", "kWh"):
         return value * hours_per_step
     if key == ("W", "kWh"):
@@ -59,17 +63,23 @@ def convert_units(value, from_unit, to_unit, hours_per_step=1.0):
         return value * hours_per_step * convert(1, "therm", "kBtu")
     if key == ("therms/hour", "kWh"):
         return value * hours_per_step * convert(1, "therm", "kWh")
+    # Temperature (offset conversion; pint can't handle pandas Series for offset units)
     if key == ("C", "F"):
-        # Temperature is an offset conversion; pint can't handle pandas Series
-        # for offset units, so apply the formula directly.
         return value * (convert(1, "delta_degC", "delta_degF")) + convert(0, "degC", "degF")
+    # Volume flow rate
     if key == ("m^3/s", "cfm"):
         return value * convert(1, "m^3/s", "cubic_feet/min")
+    # Energy scaling
     if key == ("kWh", "MBtu"):
         return value * convert(1, "kWh", "MBtu")
     if key == ("kBtu", "MBtu"):
         return value * convert(1, "kBtu", "MBtu")
-    return value
+    # Dimensionless
+    if key == ("-", "%"):
+        return value * 100
+    if key == ("-", "frac"):
+        return value
+    raise ValueError(f"No unit conversion defined for '{from_unit}' -> '{to_unit}'")
 
 
 def load_crosswalk(crosswalk_file=None):

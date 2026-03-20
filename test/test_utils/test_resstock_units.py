@@ -90,12 +90,25 @@ class TestConvertUnits(unittest.TestCase):
     def test_kbtu_to_mbtu(self):
         self.assertAlmostEqual(convert_units(1.0, "kBtu", "MBtu"), 0.001, places=9)
 
+    def test_fraction_to_percent(self):
+        self.assertAlmostEqual(convert_units(0.5, "-", "%"), 50.0)
+        self.assertAlmostEqual(convert_units(1.0, "-", "%"), 100.0)
+
+    def test_fraction_to_frac(self):
+        self.assertEqual(convert_units(0.42, "-", "frac"), 0.42)
+
     def test_same_unit_passthrough(self):
         self.assertEqual(convert_units(42.0, "kW", "kW"), 42.0)
 
-    def test_empty_unit_passthrough(self):
-        self.assertEqual(convert_units(42.0, "", "kW"), 42.0)
-        self.assertEqual(convert_units(42.0, "kW", ""), 42.0)
+    def test_empty_unit_raises(self):
+        with self.assertRaises(ValueError):
+            convert_units(42.0, "", "kW")
+        with self.assertRaises(ValueError):
+            convert_units(42.0, "kW", "")
+
+    def test_unknown_conversion_raises(self):
+        with self.assertRaises(ValueError):
+            convert_units(1.0, "foo", "bar")
 
 
 if __name__ == "__main__":
