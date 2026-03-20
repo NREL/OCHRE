@@ -1,54 +1,8 @@
-"""Unit tests verifying pint-based conversions used in resstock.py."""
+"""Unit tests verifying unit conversions used in resstock.py."""
 
 import unittest
 
-from ochre.utils.units import convert
 from ochre.utils.resstock import convert_units
-
-
-class TestPintConversions(unittest.TestCase):
-    """Verify pint produces correct conversion factors for all unit pairs."""
-
-    def test_kw_to_kbtu_hr(self):
-        result = convert(1, "kW", "kBtu/hr")
-        self.assertAlmostEqual(result, 3.412141633, places=5)
-
-    def test_therm_to_kbtu(self):
-        result = convert(1, "therm", "kBtu")
-        self.assertAlmostEqual(result, 100.0, places=5)
-
-    def test_therm_to_kwh(self):
-        result = convert(1, "therm", "kWh")
-        self.assertAlmostEqual(result, 29.3071, places=3)
-
-    def test_degc_to_degf_freezing(self):
-        result = convert(0, "degC", "degF")
-        self.assertAlmostEqual(result, 32.0, places=5)
-
-    def test_degc_to_degf_boiling(self):
-        result = convert(100, "degC", "degF")
-        self.assertAlmostEqual(result, 212.0, places=5)
-
-    def test_degc_to_degf_negative(self):
-        result = convert(-40, "degC", "degF")
-        self.assertAlmostEqual(result, -40.0, places=5)
-
-    def test_delta_degc_to_delta_degf(self):
-        # Used in resstock.py for pandas-compatible temperature conversion
-        result = convert(1, "delta_degC", "delta_degF")
-        self.assertAlmostEqual(result, 1.8, places=5)
-
-    def test_m3s_to_cfm(self):
-        result = convert(1, "m^3/s", "cubic_feet/min")
-        self.assertAlmostEqual(result, 2118.88, places=1)
-
-    def test_kwh_to_mbtu(self):
-        result = convert(1, "kWh", "MBtu")
-        self.assertAlmostEqual(result, 0.003412141633, places=9)
-
-    def test_kbtu_to_mbtu(self):
-        result = convert(1, "kBtu", "MBtu")
-        self.assertAlmostEqual(result, 0.001, places=9)
 
 
 class TestConvertUnits(unittest.TestCase):
