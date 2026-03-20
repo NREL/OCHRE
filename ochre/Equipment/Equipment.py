@@ -288,16 +288,22 @@ class Equipment(Simulator):
 
         # Note: end use power is included in Dwelling.generate_results
         # Note: individual equipment powers are included in ScheduledLoad.generate_results
-        if self.main_simulator or (self.verbosity >= 6 and self.name != self.end_use):
-            if self.is_electric:
-                results[f"{self.results_name} Electric Power (kW)"] = self.electric_kw
-                if self.verbosity >= 8:
-                    results[f"{self.results_name} Reactive Power (kVAR)"] = self.reactive_kvar
-            if self.is_gas:
-                results[f"{self.results_name} Gas Power (therms/hour)"] = self.gas_therms_per_hour
+        # main_simulator check ensures standalone equipment always outputs its power
+        if self.is_electric:
+            electric_power_name = f"{self.results_name} Electric Power (kW)"
+            if self.main_simulator:
+                results[electric_power_name] = self.electric_kw
+            else:
+                self.add_output(results, electric_power_name, self.electric_kw)
+            self.add_output(results, f"{self.results_name} Reactive Power (kVAR)", self.reactive_kvar)
+        if self.is_gas:
+            gas_power_name = f"{self.results_name} Gas Power (therms/hour)"
+            if self.main_simulator:
+                results[gas_power_name] = self.gas_therms_per_hour
+            else:
+                self.add_output(results, gas_power_name, self.gas_therms_per_hour)
 
-        if self.verbosity >= 7:
-            results[f"{self.results_name} Mode"] = self.mode
+        self.add_output(results, f"{self.results_name} Mode", self.mode)
 
         return results
 

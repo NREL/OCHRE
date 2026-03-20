@@ -8,6 +8,8 @@ from .envelope import ZONES
 from .hpxml import load_hpxml
 from .schedule import load_schedule
 
+from .resstock import ResStockOutput, to_underscore_case
+
 __all__ = [
     "main_path",
     "default_input_path",
@@ -21,4 +23,6 @@ __all__ = [
     "ZONES",
     "load_hpxml",
     "load_schedule",
+    "ResStockOutput",
+    "to_underscore_case",
 ]

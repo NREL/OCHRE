@@ -1580,15 +1580,181 @@ def parse_mels(mel_dict, is_gas=False):
     return mels
 
 
-def parse_ev(ev):
-    # create EV equipment from MEL info
-    print("Creating EV equipment with a Level 2 charger from HPXML ")
+def parse_ev_from_mel(ev):
+    # create EV equipment from MEL (PlugLoad) info
+    # Legacy method: used when EV is specified as a PlugLoad with type 'electric vehicle charging'
+    print("Creating EV equipment from PlugLoad with a Level 2 charger from HPXML")
     ev_load = ev["Annual Electric Energy (kWh)"]
     return {
         "vehicle_type": "BEV",
         "charging_level": "Level 2",
-        "range": 100 if ev_load < 1500 else 250,  # Splits the two EV size options from ResStock
+        "range": (100 if ev_load < 1500 else 250),  # Splits the two EV size options from ResStock
     }
+
+
+def parse_pv(pv_system, inverter_dict):
+    """
+    Parse PV system from HPXML Photovoltaics section.
+
+    Args:
+        pv_system: Dict containing PVSystem data from HPXML
+        inverter_dict: Dict of inverters keyed by SystemIdentifier id
+
+    Returns:
+        Dict with PV parameters for OCHRE (capacity, tilt, azimuth, inverter_efficiency, inverter_capacity)
+        or None if required data is missing
+    """
+    print("Creating PV equipment from Photovoltaics section in HPXML")
+
+    # Extract required parameters
+    max_power_output = pv_system.get("MaxPowerOutput")  # in W
+    if not max_power_output:
+        print("WARNING: PV system missing MaxPowerOutput, skipping PV parsing")
+        return None
+
+    capacity = max_power_output / 1000  # convert W to kW
+
+    # Extract tilt and azimuth (optional - OCHRE can calculate from roof if missing)
+    tilt = pv_system.get("ArrayTilt")
+    azimuth_hpxml = pv_system.get("ArrayAzimuth")
+
+    # Convert azimuth from HPXML convention to OCHRE convention
+    # HPXML: 0=north, 90=east, 180=south, 270=west
+    # OCHRE: 0=south, 90=west, 180=north, 270=east (west-of-south is positive)
+    # Conversion: ochre_azimuth = (hpxml_azimuth - 180) % 360
+    azimuth = None
+    if azimuth_hpxml is not None:
+        azimuth = (azimuth_hpxml - 180) % 360
+
+    # Get inverter information
+    inverter_efficiency = None
+    inverter_capacity = None
+
+    inverter_ref = pv_system.get("AttachedToInverter", {}).get("idref")
+    if inverter_ref and inverter_ref in inverter_dict:
+        inverter = inverter_dict[inverter_ref]
+        inv_eff = inverter.get("InverterEfficiency")
+        if inv_eff:
+            # Convert from fraction to percentage (0.96 -> 96)
+            inverter_efficiency = inv_eff * 100
+    else:
+        if inverter_ref:
+            print(f'WARNING: Could not find inverter with id "{inverter_ref}", using default efficiency (96%)')
+
+    result = {
+        "capacity": capacity,  # kW (DC)
+    }
+
+    # Add optional parameters if available
+    if tilt is not None:
+        result["tilt"] = tilt
+    if azimuth is not None:
+        result["azimuth"] = azimuth
+    if inverter_efficiency is not None:
+        result["inverter_efficiency"] = inverter_efficiency
+    if inverter_capacity is not None:
+        result["inverter_capacity"] = inverter_capacity
+
+    return result
+
+
+def parse_ev_from_vehicle(vehicle, charger_dict):
+    """
+    Parse EV equipment from HPXML Vehicle and ElectricVehicleCharger sections.
+
+    Args:
+        vehicle: Dict containing Vehicle data from HPXML
+        charger_dict: Dict of chargers keyed by SystemIdentifier id
+
+    Returns:
+        Dict with EV parameters for OCHRE (vehicle_type, charging_level, range, capacity, max_power)
+        or None if required data is missing
+    """
+    print("Creating EV equipment from Vehicle section in HPXML")
+
+    # Determine vehicle type (BEV vs PHEV)
+    vehicle_type_data = vehicle.get("VehicleType", {})
+    if "BatteryElectricVehicle" in vehicle_type_data:
+        vehicle_type = "BEV"
+        vehicle_data = vehicle_type_data["BatteryElectricVehicle"]
+    elif "PlugInHybridElectricVehicle" in vehicle_type_data:
+        vehicle_type = "PHEV"
+        vehicle_data = vehicle_type_data["PlugInHybridElectricVehicle"]
+    else:
+        print("WARNING: Unknown vehicle type, defaulting to BEV")
+        vehicle_type = "BEV"
+        vehicle_data = {}
+
+    # Extract battery capacity (kWh)
+    battery = vehicle_data.get("Battery", {})
+    capacity = None
+    if "UsableCapacity" in battery:
+        capacity = battery["UsableCapacity"].get("Value")
+    elif "NominalCapacity" in battery:
+        capacity = battery["NominalCapacity"].get("Value")
+        if capacity:
+            print("WARNING: Using NominalCapacity instead of UsableCapacity for EV battery")
+
+    # Calculate or extract vehicle range
+    range_miles = None
+    fuel_economy = vehicle.get("FuelEconomyCombined", {}).get("Value")  # kWh/mile
+
+    if capacity is not None:
+        # Use capacity to calculate range (default: 325 Wh/mile efficiency = 1/325 miles/Wh)
+        range_miles = capacity * 1000 / 325  # convert kWh to Wh, then to miles
+    elif fuel_economy and "MilesDrivenPerYear" in vehicle:
+        # Alternative: use fuel economy and annual miles
+        annual_miles = vehicle["MilesDrivenPerYear"]
+        annual_kwh = annual_miles * fuel_economy
+        # Estimate capacity assuming 250 charges per year
+        capacity = annual_kwh / 250
+        range_miles = capacity * 1000 / 325
+
+    # Classify vehicle size for OCHRE
+    if range_miles:
+        if vehicle_type == "PHEV":
+            range_ochre = 20 if range_miles < 35 else 50
+        else:  # BEV
+            range_ochre = 100 if range_miles < 175 else 250
+    else:
+        print("WARNING: Could not determine EV range, defaulting to 250 miles for BEV")
+        range_ochre = 250
+        range_miles = 250
+
+    # Get charging information
+    charging_level = "Level 2"  # default
+    max_power = None
+
+    # Find connected charger
+    charger_ref = vehicle_data.get("ConnectedCharger", {}).get("idref")
+    if charger_ref and charger_ref in charger_dict:
+        charger = charger_dict[charger_ref]
+        charging_level_num = charger.get("ChargingLevel", 2)
+        charging_level = f"Level {charging_level_num}"
+
+        # Get charging power (convert W to kW)
+        charging_power_w = charger.get("ChargingPower")
+        if charging_power_w:
+            max_power = charging_power_w / 1000  # convert W to kW
+    else:
+        if charger_ref:
+            print(f'WARNING: Could not find charger with id "{charger_ref}", using Level 2 defaults')
+        else:
+            print("WARNING: No charger connected to vehicle, using Level 2 defaults")
+
+    result = {
+        "vehicle_type": vehicle_type,
+        "charging_level": charging_level,
+        "range": range_ochre,
+    }
+
+    # Add optional parameters if available
+    if capacity:
+        result["capacity"] = capacity
+    if max_power:
+        result["max_power"] = max_power
+
+    return result
 
 
 def parse_pool_equipment(hpxml):
@@ -1721,11 +1887,10 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
         mel_dict = {key: val for key, val in misc_loads.items() if "PlugLoad" in key}
         mgl_dict = {key: val for key, val in misc_loads.items() if "FuelLoad" in key}
 
-    # Add MELs: TV, other MELs, well pump, EV
+    # Add MELs: TV, other MELs, well pump
+    # Note: EV is parsed separately from Vehicles section (preferred) or MEL fallback
     mels = parse_mels(mel_dict)
-    if "Electric Vehicle" in mels:
-        ev = mels.pop("Electric Vehicle")
-        equipment["Electric Vehicle"] = parse_ev(ev)
+    ev_mel_data = mels.pop("Electric Vehicle", None)
     equipment.update(mels)
 
     # Add MGLs: Grill, Fireplace, and Lighting
@@ -1736,6 +1901,59 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     # Add pool/spa equipment: pumps and heaters
     pool_equipment = parse_pool_equipment(hpxml)
     equipment.update(pool_equipment)
+
+    # Add EV: Prefer Vehicles section, fall back to MEL-derived EV
+    systems = hpxml.get("Systems", {})
+    vehicles = systems.get("Vehicles", {})
+    if vehicles:
+        vehicle_list = vehicles.get("Vehicle", {})
+        # Handle single vs multiple vehicles
+        if "SystemIdentifier" in vehicle_list:
+            vehicle_list = {"Vehicle1": vehicle_list}
+
+        if len(vehicle_list) > 1:
+            print(f"WARNING: Found {len(vehicle_list)} vehicles. Only parsing the first one.")
+
+        # Get chargers
+        chargers = systems.get("ElectricVehicleChargers", {})
+        charger_list = chargers.get("ElectricVehicleCharger", {})
+        if "SystemIdentifier" in charger_list:
+            charger_list = {"EVCharger1": charger_list}
+        charger_dict = {ch.get("SystemIdentifier", {}).get("id"): ch for ch in charger_list.values()}
+
+        # Parse first vehicle
+        vehicle = list(vehicle_list.values())[0]
+        ev_equipment = parse_ev_from_vehicle(vehicle, charger_dict)
+        if ev_equipment is not None:
+            equipment["Electric Vehicle"] = ev_equipment
+    elif ev_mel_data is not None:
+        # Fallback: derive EV from MEL PlugLoad data (legacy HPXML format)
+        equipment["Electric Vehicle"] = parse_ev_from_mel(ev_mel_data)
+
+    # Add PV system: Parse from Photovoltaics section
+    photovoltaics = systems.get("Photovoltaics", {})
+    if photovoltaics:
+        pv_systems = photovoltaics.get("PVSystem", {})
+        inverters = photovoltaics.get("Inverter", {})
+
+        # Handle single vs multiple systems
+        if "SystemIdentifier" in pv_systems:
+            # Single PV system
+            pv_systems = {"PVSystem1": pv_systems}
+
+        # Create inverter lookup dict
+        if "SystemIdentifier" in inverters:
+            inverters = {"Inverter1": inverters}
+        inverter_dict = {inv.get("SystemIdentifier", {}).get("id"): inv for inv in inverters.values()}
+
+        if len(pv_systems) > 1:
+            print(f"WARNING: Found {len(pv_systems)} PV systems. Only parsing the first one.")
+
+        # Parse first PV system
+        pv_system = list(pv_systems.values())[0]
+        pv_equipment = parse_pv(pv_system, inverter_dict)
+        if pv_equipment is not None:
+            equipment["PV"] = pv_equipment
 
     # Add ceiling fan
     ceiling_fan = lighting.get("CeilingFan")

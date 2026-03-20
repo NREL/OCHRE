@@ -1,0 +1,66 @@
+Building,State,Building Type,Vintage,Floor Area,Cooking Range,Cooking Usage Level,OCHRE,EPlus,%Diff
+bldg0000935,MA,Single-Family Attached,2000s,2500-2999,Gas,80% Usage,0.0650,0.0610,+6.6%
+bldg0008984,LA,Single-Family Attached,1970s,1500-1999,Electric Resistance,100% Usage,1.3290,1.3690,-2.9%
+bldg0020895,CA,Single-Family Attached,1990s,1500-1999,Electric Resistance,100% Usage,1.3290,1.3690,-2.9%
+bldg0021070,MI,Single-Family Detached,1990s,1000-1499,Propane,80% Usage,0.0630,0.0610,+3.3%
+bldg0027147,CA,Multi-Family with 5+ Units,2000s,1000-1499,Gas,120% Usage,0.1210,0.1270,-4.7%
+bldg0027808,CA,Single-Family Attached,1990s,4000+,Electric Resistance,80% Usage,1.0630,1.0950,-2.9%
+bldg0028885,HI,Single-Family Detached,1940s,4000+,Electric Resistance,100% Usage,1.3840,1.3920,-0.6%
+bldg0034729,VA,Single-Family Attached,1970s,1000-1499,Electric Resistance,80% Usage,1.4110,1.6990,-17.0%
+bldg0035052,WA,Multi-Family with 5+ Units,1970s,750-999,Electric Resistance,100% Usage,1.6190,1.7420,-7.1%
+bldg0064657,CA,Single-Family Attached,1990s,1500-1999,Gas,120% Usage,0.1090,0.1120,-2.7%
+bldg0066501,AK,Single-Family Detached,1990s,1500-1999,Gas,120% Usage,FAILED,0.1140,FAILED
+bldg0085067,NV,Single-Family Detached,1970s,2500-2999,Electric Resistance,120% Usage,2.4700,2.6660,-7.4%
+bldg0094522,AK,Single-Family Attached,1980s,4000+,Gas,100% Usage,FAILED,0.1290,FAILED
+bldg0099159,WY,Single-Family Attached,2010s,1000-1499,Gas,100% Usage,0.1010,0.1110,-9.0%
+bldg0103939,CT,Single-Family Detached,1960s,1000-1499,Propane,100% Usage,0.0950,0.0950,+0.0%
+bldg0104117,NY,Multi-Family with 5+ Units,<1940,750-999,Electric Resistance,100% Usage,1.1840,1.1470,+3.2%
+bldg0108019,RI,Single-Family Detached,<1940,1000-1499,Gas,100% Usage,0.0950,0.0950,+0.0%
+bldg0111149,CA,Single-Family Detached,1970s,3000-3999,Electric Resistance,80% Usage,2.1860,2.4420,-10.5%
+bldg0112572,NY,Multi-Family with 2 - 4 Units,1940s,500-749,Electric Resistance,100% Usage,1.3290,1.3450,-1.2%
+bldg0116109,AK,Single-Family Detached,1970s,1500-1999,Propane,80% Usage,FAILED,0.0610,FAILED
+bldg0117900,OH,Mobile Home,2000s,1000-1499,Electric Resistance,100% Usage,1.6080,1.6040,+0.2%
+bldg0120120,TX,Single-Family Detached,1950s,1000-1499,Gas,120% Usage,0.0950,0.0910,+4.4%
+bldg0125496,NY,Multi-Family with 5+ Units,1970s,750-999,Electric Resistance,100% Usage,1.9090,2.1380,-10.7%
+bldg0126235,MI,Single-Family Detached,1990s,2500-2999,Propane,100% Usage,FAILED,0.1340,FAILED
+bldg0134115,FL,Multi-Family with 5+ Units,1970s,0-499,Electric Resistance,80% Usage,0.9470,0.9170,+3.3%
+bldg0145426,AK,Single-Family Detached,1970s,1000-1499,Gas,120% Usage,FAILED,0.1600,FAILED
+bldg0149742,WA,Single-Family Attached,2000s,2500-2999,Gas,120% Usage,0.1210,0.1330,-9.0%
+bldg0172208,CA,Multi-Family with 5+ Units,1940s,750-999,Gas,80% Usage,0.0810,0.0850,-4.7%
+bldg0180324,AZ,Multi-Family with 5+ Units,1970s,750-999,Electric Resistance,100% Usage,1.3290,1.3450,-1.2%
+bldg0189657,AK,Multi-Family with 2 - 4 Units,2010s,1000-1499,Electric Resistance,80% Usage,1.4110,1.5520,-9.1%
+bldg0208851,SD,Single-Family Detached,2000s,4000+,Electric Resistance,100% Usage,1.6080,1.6680,-3.6%
+bldg0208877,NM,Multi-Family with 5+ Units,<1940,500-749,Gas,100% Usage,0.0810,0.0780,+3.8%
+bldg0224395,FL,Single-Family Attached,1980s,2000-2499,Electric Resistance,80% Usage,1.0630,1.0950,-2.9%
+bldg0229989,MD,Single-Family Attached,1990s,1500-1999,Gas,100% Usage,0.1210,0.1460,-17.1%
+bldg0234075,IL,Multi-Family with 5+ Units,<1940,500-749,Gas,120% Usage,0.0970,0.0940,+3.2%
+bldg0236990,TX,Multi-Family with 5+ Units,1980s,500-749,Electric Resistance,80% Usage,0.0000,0.0000,+0.0%
+bldg0240393,GA,Single-Family Attached,1980s,1000-1499,Gas,100% Usage,0.1010,0.1110,-9.0%
+bldg0245787,OH,Multi-Family with 5+ Units,2000s,0-499,Electric Resistance,120% Usage,1.4210,1.3760,+3.3%
+bldg0250585,FL,Single-Family Attached,1980s,2500-2999,Gas,100% Usage,0.0910,0.0940,-3.2%
+bldg0259582,CA,Single-Family Detached,<1940,500-749,Gas,100% Usage,0.0790,0.0760,+3.9%
+bldg0274778,OK,Single-Family Detached,1990s,3000-3999,Electric Resistance,80% Usage,2.3660,2.6630,-11.2%
+bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,Electric Resistance,120% Usage,1.5950,1.6140,-1.2%
+bldg0276627,AK,Single-Family Detached,2000s,2000-2499,Propane,120% Usage,FAILED,0.1140,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,Gas,120% Usage,FAILED,0.1370,FAILED
+bldg0294702,NM,Single-Family Detached,2000s,4000+,Gas,80% Usage,0.1010,0.1070,-5.6%
+bldg0336334,CA,Single-Family Attached,1990s,2500-2999,Propane,120% Usage,0.1210,0.1330,-9.0%
+bldg0338190,KY,Single-Family Detached,2000s,1500-1999,Electric Resistance,100% Usage,1.1590,1.1150,+3.9%
+bldg0353300,CA,Multi-Family with 5+ Units,2010s,0-499,Electric Resistance,120% Usage,1.7690,1.8520,-4.5%
+bldg0353418,CA,Single-Family Detached,2000s,4000+,Electric Resistance,100% Usage,1.6080,1.6680,-3.6%
+bldg0355977,OH,Multi-Family with 5+ Units,1970s,750-999,Electric Resistance,100% Usage,1.3290,1.3450,-1.2%
+bldg0372624,HI,Single-Family Detached,1980s,2000-2499,Electric Induction,80% Usage,1.4980,1.6180,-7.4%
+bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,Gas,80% Usage,0.0650,0.0630,+3.2%
+bldg0437452,CA,Single-Family Attached,1960s,750-999,Electric Resistance,80% Usage,0.9470,0.8940,+5.9%
+bldg0445042,CA,Single-Family Attached,1980s,1500-1999,Gas,120% Usage,0.1090,0.1120,-2.7%
+bldg0449322,CA,Single-Family Attached,1970s,1000-1499,Electric Resistance,80% Usage,1.1790,1.2960,-9.0%
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,Electric Resistance,120% Usage,FAILED,1.6140,FAILED
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,Electric Resistance,80% Usage,FAILED,3.1060,FAILED
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,Gas,100% Usage,FAILED,0.1140,FAILED
+bldg0483730,CA,Single-Family Detached,1950s,4000+,Gas,120% Usage,0.1320,0.1370,-3.6%
+bldg0486267,ME,Single-Family Detached,1990s,1000-1499,Electric Resistance,120% Usage,1.6600,1.6700,-0.6%
+bldg0487739,WY,Mobile Home,1970s,750-999,Gas,120% Usage,0.1140,0.1140,+0.0%
+bldg0499827,CA,Single-Family Detached,1990s,2000-2499,Electric Resistance,100% Usage,FAILED,1.3920,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,Gas,80% Usage,FAILED,0.1530,FAILED
+bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,None,120% Usage,NA,0.0000,NA
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,Electric Resistance,80% Usage,FAILED,3.1060,FAILED

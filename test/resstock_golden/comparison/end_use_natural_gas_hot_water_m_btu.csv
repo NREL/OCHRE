@@ -1,0 +1,66 @@
+Building,State,Building Type,Vintage,Floor Area,Water Heating,OCHRE,EPlus,%Diff
+bldg0000935,MA,Single-Family Attached,2000s,2500-2999,Electric Standard,NA,0.0000,NA
+bldg0008984,LA,Single-Family Attached,1970s,1500-1999,Electric Premium,NA,0.0000,NA
+bldg0020895,CA,Single-Family Attached,1990s,1500-1999,Electric Standard,NA,0.0000,NA
+bldg0021070,MI,Single-Family Detached,1990s,1000-1499,Electric Standard,NA,0.0000,NA
+bldg0027147,CA,Multi-Family with 5+ Units,2000s,1000-1499,Natural Gas Standard,5.2640,19.2960,-72.7%
+bldg0027808,CA,Single-Family Attached,1990s,4000+,Electric Tankless,NA,0.0000,NA
+bldg0028885,HI,Single-Family Detached,1940s,4000+,Electric Standard,NA,0.0000,NA
+bldg0034729,VA,Single-Family Attached,1970s,1000-1499,Electric Standard,NA,0.0000,NA
+bldg0035052,WA,Multi-Family with 5+ Units,1970s,750-999,Electric Premium,NA,0.0000,NA
+bldg0064657,CA,Single-Family Attached,1990s,1500-1999,Natural Gas Premium,3.0160,11.9330,-74.7%
+bldg0066501,AK,Single-Family Detached,1990s,1500-1999,Natural Gas Standard,FAILED,23.3940,FAILED
+bldg0085067,NV,Single-Family Detached,1970s,2500-2999,Electric Standard,NA,0.0000,NA
+bldg0094522,AK,Single-Family Attached,1980s,4000+,Natural Gas Standard,FAILED,25.6670,FAILED
+bldg0099159,WY,Single-Family Attached,2010s,1000-1499,Natural Gas Standard,6.3880,23.7330,-73.1%
+bldg0103939,CT,Single-Family Detached,1960s,1000-1499,"Solar Thermal, 40 sqft, East, Roof Pitch, Electric Standard Backup",NA,0.0000,NA
+bldg0104117,NY,Multi-Family with 5+ Units,<1940,750-999,Natural Gas Standard,4.8280,8.9260,-45.9%
+bldg0108019,RI,Single-Family Detached,<1940,1000-1499,FIXME Fuel Oil Indirect,5.9620,0.0000,inf
+bldg0111149,CA,Single-Family Detached,1970s,3000-3999,Natural Gas Tankless,1.5950,20.8560,-92.4%
+bldg0112572,NY,Multi-Family with 2 - 4 Units,1940s,500-749,Natural Gas Premium,2.8100,10.5600,-73.4%
+bldg0116109,AK,Single-Family Detached,1970s,1500-1999,Fuel Oil Standard,FAILED,0.0000,FAILED
+bldg0117900,OH,Mobile Home,2000s,1000-1499,Natural Gas Premium,3.1150,17.0540,-81.7%
+bldg0120120,TX,Single-Family Detached,1950s,1000-1499,Electric Standard,NA,0.0000,NA
+bldg0125496,NY,Multi-Family with 5+ Units,1970s,750-999,Natural Gas Standard,5.5980,24.1670,-76.8%
+bldg0126235,MI,Single-Family Detached,1990s,2500-2999,Propane Standard,FAILED,0.0000,FAILED
+bldg0134115,FL,Multi-Family with 5+ Units,1970s,0-499,Electric Standard,NA,0.0000,NA
+bldg0145426,AK,Single-Family Detached,1970s,1000-1499,Natural Gas Standard,FAILED,38.8040,FAILED
+bldg0149742,WA,Single-Family Attached,2000s,2500-2999,Electric Standard,NA,0.0000,NA
+bldg0172208,CA,Multi-Family with 5+ Units,1940s,750-999,Natural Gas Standard,3.5760,10.9030,-67.2%
+bldg0180324,AZ,Multi-Family with 5+ Units,1970s,750-999,Electric Standard,NA,0.0000,NA
+bldg0189657,AK,Multi-Family with 2 - 4 Units,2010s,1000-1499,Electric Tankless,NA,0.0000,NA
+bldg0208851,SD,Single-Family Detached,2000s,4000+,Electric Tankless,NA,0.0000,NA
+bldg0208877,NM,Multi-Family with 5+ Units,<1940,500-749,Natural Gas Standard,3.9110,8.0590,-51.5%
+bldg0224395,FL,Single-Family Attached,1980s,2000-2499,Electric Standard,NA,0.0000,NA
+bldg0229989,MD,Single-Family Attached,1990s,1500-1999,Electric Standard,NA,0.0000,NA
+bldg0234075,IL,Multi-Family with 5+ Units,<1940,500-749,Natural Gas Standard,6.0970,11.1130,-45.1%
+bldg0236990,TX,Multi-Family with 5+ Units,1980s,500-749,Natural Gas Standard,5.4790,5.2360,+4.6%
+bldg0240393,GA,Single-Family Attached,1980s,1000-1499,Natural Gas Standard,5.7130,15.8590,-64.0%
+bldg0245787,OH,Multi-Family with 5+ Units,2000s,0-499,Natural Gas Premium,2.9020,8.1260,-64.3%
+bldg0250585,FL,Single-Family Attached,1980s,2500-2999,Other Fuel,4.6890,0.0000,inf
+bldg0259582,CA,Single-Family Detached,<1940,500-749,Natural Gas Standard,4.9590,9.0630,-45.3%
+bldg0274778,OK,Single-Family Detached,1990s,3000-3999,Electric Premium,NA,0.0000,NA
+bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,Natural Gas Standard,5.6070,15.0940,-62.9%
+bldg0276627,AK,Single-Family Detached,2000s,2000-2499,Propane Standard,FAILED,0.0000,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,Natural Gas Standard,FAILED,25.4910,FAILED
+bldg0294702,NM,Single-Family Detached,2000s,4000+,Natural Gas Premium,4.3860,14.5780,-69.9%
+bldg0336334,CA,Single-Family Attached,1990s,2500-2999,Natural Gas Tankless,1.7910,16.0850,-88.9%
+bldg0338190,KY,Single-Family Detached,2000s,1500-1999,Electric Tankless,NA,0.0000,NA
+bldg0353300,CA,Multi-Family with 5+ Units,2010s,0-499,Natural Gas Standard,5.2780,16.9100,-68.8%
+bldg0353418,CA,Single-Family Detached,2000s,4000+,Propane Standard,6.1770,0.0000,inf
+bldg0355977,OH,Multi-Family with 5+ Units,1970s,750-999,Electric Premium,NA,0.0000,NA
+bldg0372624,HI,Single-Family Detached,1980s,2000-2499,Electric Standard,NA,0.0000,NA
+bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,Natural Gas Standard,5.4470,8.5810,-36.5%
+bldg0437452,CA,Single-Family Attached,1960s,750-999,Natural Gas Standard,5.3500,7.5380,-29.0%
+bldg0445042,CA,Single-Family Attached,1980s,1500-1999,Natural Gas Standard,6.1550,18.0730,-65.9%
+bldg0449322,CA,Single-Family Attached,1970s,1000-1499,Electric Tankless,NA,0.0000,NA
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,"Electric Heat Pump, 50 gal, 3.45 UEF",FAILED,0.0000,FAILED
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,Electric Standard,FAILED,0.0000,FAILED
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,Natural Gas Standard,FAILED,16.1210,FAILED
+bldg0483730,CA,Single-Family Detached,1950s,4000+,Natural Gas Standard,5.7110,19.9430,-71.4%
+bldg0486267,ME,Single-Family Detached,1990s,1000-1499,Wood,5.3010,0.0000,inf
+bldg0487739,WY,Mobile Home,1970s,750-999,Natural Gas Standard,5.9600,19.9380,-70.1%
+bldg0499827,CA,Single-Family Detached,1990s,2000-2499,Propane Premium,FAILED,0.0000,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,Electric Premium,FAILED,0.0000,FAILED
+bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,Electric Standard,NA,0.0000,NA
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,Electric Standard,FAILED,0.0000,FAILED

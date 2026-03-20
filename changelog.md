@@ -1,5 +1,13 @@
 ## OCHRE Changelog
 
+### OCHRE v0.9.4
+- Added ResStock output mode producing `results_timeseries.csv` and `results_annual.csv`
+  [#167](https://github.com/NREL/OCHRE/issues/167)
+- Added output registry and verbosity-based output control system
+- Added CLI options for `--output_format` and `--export_res`
+- Added EV and PV parsing from dedicated HPXML sections (Vehicles, Photovoltaics)
+- Narrowed Python version requirement
+
 ### OCHRE v0.9.3
 - Allow 120V (aka low power) heat pump water heaters
 - Applied ruff code formatting to entire codebase
