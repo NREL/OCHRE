@@ -175,6 +175,9 @@ def main():
     # All buildings come from the EPlus reference (the complete roster)
     all_buildings = sorted(eplus_results.keys())
 
+    # Buildings with no OCHRE results at all (simulation failed/crashed)
+    failed_buildings = {bldg for bldg in all_buildings if not ochre_results.get(bldg)}
+
     # Discover columns with non-empty values in at least one building in both CSVs
     eplus_cols = {col for bldg in eplus_results.values() for col in bldg}
     ochre_cols = {col for bldg in ochre_results.values() for col in bldg}
@@ -229,14 +232,15 @@ def main():
             for bldg_name, ochre_val, eplus_val, pct_diff in sorted(rows, key=lambda r: r[0]):
                 bldg_chars = building_chars.get(bldg_name, {})
                 char_vals = [bldg_chars.get(csv_col, "") for csv_col, _ in metric_columns]
-                ochre_str = f"{ochre_val:.4f}" if ochre_val is not None else "NA"
+                failed = bldg_name in failed_buildings
+                ochre_str = f"{ochre_val:.4f}" if ochre_val is not None else ("FAILED" if failed else "NA")
                 eplus_str = f"{eplus_val:.4f}" if eplus_val is not None else "NA"
                 if pct_diff is not None and math.isfinite(pct_diff):
                     pct_str = f"{pct_diff:+.1f}%"
                 elif pct_diff is not None:
                     pct_str = "inf"
                 else:
-                    pct_str = "NA"
+                    pct_str = "FAILED" if failed else "NA"
                 writer.writerow([bldg_name] + char_vals + [ochre_str, eplus_str, pct_str])
 
         print(f"  Written: {filepath}")
@@ -276,14 +280,16 @@ def main():
             char_vals = "  ".join(
                 f"{bldg_chars.get(csv_col, ''):<{char_widths[hdr]}}" for csv_col, hdr in metric_columns
             )
-            ochre_str = f"{ochre_val:>12.3f}" if ochre_val is not None else f"{'NA':>12}"
+            failed = bldg_name in failed_buildings
+            na_label = "FAILED" if failed else "NA"
+            ochre_str = f"{ochre_val:>12.3f}" if ochre_val is not None else f"{na_label:>12}"
             eplus_str = f"{eplus_val:>12.3f}" if eplus_val is not None else f"{'NA':>12}"
             if pct_diff is not None and math.isfinite(pct_diff):
                 pct_str = f"{pct_diff:>+9.1f}%"
             elif pct_diff is not None:
                 pct_str = f"{'inf':>10}"
             else:
-                pct_str = f"{'NA':>10}"
+                pct_str = f"{na_label:>10}"
             print(f"  {bldg_name:<16}{char_vals}  {ochre_str}  {eplus_str}  {pct_str}")
 
     print()
