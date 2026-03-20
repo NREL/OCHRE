@@ -37,13 +37,12 @@ The golden tests serve two purposes:
 
 ## How to Use the Golden Tests
 
-All commands are run from the OCHRE root directory.
+All commands are run from the OCHRE root directory with the OCHRE environment activated.
 
 ### Step 1: Generate OCHRE Results
 
 ```bash
 python test/resstock_golden/generate_ochre_result.py              # all buildings
-python test/resstock_golden/generate_ochre_result.py bldg0108019  # one building
 ```
 
 This runs OCHRE on each building using all available CPU cores. For each building it writes
@@ -57,7 +56,6 @@ new annual values.
 
 ```bash
 pytest test/test_dwelling/test_resstock_golden.py -v --tb=short       # all buildings
-pytest test/test_dwelling/test_resstock_golden.py -k bldg0108019 -v   # one building
 ```
 
 The golden test compares `ochre_annual_result_new.csv` (freshly generated) against the
@@ -91,7 +89,7 @@ to be updated:
    cp test/resstock_golden/ochre_result/ochre_annual_result_new.csv \
       test/resstock_golden/ochre_result/ochre_annual_result.csv
    ```
-5. Optionally regenerate the EPlus comparison:
+5. Regenerate the EPlus comparison:
    ```bash
    python test/resstock_golden/compare_ochre_and_eplus.py
    ```
