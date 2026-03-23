@@ -1,5 +1,19 @@
 ## OCHRE Changelog
 
+### OCHRE v0.9.4
+- Added ResStock output mode producing `results_timeseries.csv` and `results_annual.csv`
+  [#167](https://github.com/NREL/OCHRE/issues/167)
+- Added output registry and verbosity-based output control system
+- Added CLI options for `--output_format` and `--export_res`
+- Added EV and PV parsing from dedicated HPXML sections (Vehicles, Photovoltaics)
+- Narrowed Python version requirement
+
+### OCHRE v0.9.3
+- Allow 120V (aka low power) heat pump water heaters
+- Applied ruff code formatting to entire codebase
+- Fixed ruff lint errors across codebase
+- Updated CI to run tests on all pull requests
+
 ### OCHRE v0.9.2
 - Restrict pint version to avoid colab issues [#196](https://github.com/NREL/OCHRE/issues/196)
 - Ignore schedules for broken equipment in 2025 ResStock SDR [#197](https://github.com/NREL/OCHRE/issues/197)

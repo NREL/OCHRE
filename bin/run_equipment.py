@@ -11,7 +11,6 @@ from ochre import (
     ElectricResistanceWaterHeater,
     AirConditioner,
     ScheduledLoad,
-    EventBasedLoad,
     EventDataLoad,
 )
 from ochre import CreateFigures
@@ -45,7 +44,7 @@ def run_equipment_from_house_model(end_use):
 
     # Extract equipment by its name or end use
     equipment = dwelling.get_equipment_by_end_use(end_use)
-    
+
     # Update simulation properties to save results
     equipment.main_simulator = True
     equipment.save_results = True
@@ -130,8 +129,7 @@ def run_battery_from_schedule():
     # Note: can also be done at each time step, see run_external_control.py
     # for examples
     schedule = np.random.randint(-5, 5, len(battery.sim_times))
-    battery.schedule = pd.DataFrame({"Battery Electric Power (kW)": schedule},
-                                    index=battery.sim_times)
+    battery.schedule = pd.DataFrame({"Battery Electric Power (kW)": schedule}, index=battery.sim_times)
     battery.reset_time()  # initializes the new schedule
 
     # Simulate equipment
@@ -264,20 +262,24 @@ def run_hvac():
 
     # create example HVAC schedule
     # TODO: add solar radiation to schedule (in H_LIV)
-    times = pd.date_range(timing["start_time"], timing["start_time"] + timing["duration"], freq=timing["time_res"],
-                          inclusive="left")
+    times = pd.date_range(
+        timing["start_time"], timing["start_time"] + timing["duration"], freq=timing["time_res"], inclusive="left"
+    )
     deadband = (2 + 1 * np.random.randn(len(times))).clip(min=1)
     ambient_temp = 27 - np.abs(times.hour.values - 14) / 2 + 0.5 * np.random.randn(len(times))
     internal_gains = 100 + 30 * np.random.randn(len(times))
-    schedule = pd.DataFrame({
-        "HVAC Cooling Setpoint (C)": 22,
-        "HVAC Cooling Deadband (C)": deadband,
-        "Ambient Dry Bulb (C)": ambient_temp,
-        "Ambient Humidity Ratio (-)": 0.001,
-        # "Ambient Pressure (kPa)": 101,
-        # "T_EXT": ambient_temp,
-        "Internal Gains (W)": internal_gains,
-    }, index=times)
+    schedule = pd.DataFrame(
+        {
+            "HVAC Cooling Setpoint (C)": 22,
+            "HVAC Cooling Deadband (C)": deadband,
+            "Ambient Dry Bulb (C)": ambient_temp,
+            "Ambient Humidity Ratio (-)": 0.001,
+            # "Ambient Pressure (kPa)": 101,
+            # "T_EXT": ambient_temp,
+            "Internal Gains (W)": internal_gains,
+        },
+        index=times,
+    )
 
     envelope_args = {
         "capacitances": {
@@ -319,8 +321,7 @@ def run_hvac():
 
     print()
     # print(df.head())
-    CreateFigures.plot_daily_profile(df, "HVAC Cooling Electric Power (kW)",
-                                     plot_max=False, plot_min=False)
+    CreateFigures.plot_daily_profile(df, "HVAC Cooling Electric Power (kW)", plot_max=False, plot_min=False)
     CreateFigures.plot_hvac({"": df})
     # CreateFigures.plot_envelope({"": df})
     CreateFigures.plt.show()

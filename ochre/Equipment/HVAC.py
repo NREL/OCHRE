@@ -53,9 +53,7 @@ class HVAC(Equipment):
         # Capacity parameters
         self.speed_idx = 1  # speed index, 0=Off, 1=lowest speed, max=n_speeds
         if isinstance(kwargs["Capacity (W)"], list):
-            self.capacity_list = [0] + kwargs[
-                "Capacity (W)"
-            ]  # rated capacities by speed, in W
+            self.capacity_list = [0] + kwargs["Capacity (W)"]  # rated capacities by speed, in W
         else:
             self.capacity_list = [0, kwargs["Capacity (W)"]]
         # Nominal and max can be the same from NEEP database
@@ -86,9 +84,7 @@ class HVAC(Equipment):
             self.eir_list = kwargs["EIR (-)"]  # Energy Input Ratios by speed, unitless
         else:
             self.eir_list = [kwargs["EIR (-)"]]
-        self.eir_list = [
-            self.eir_list[0]
-        ] + self.eir_list  # add lowest speed EIR as 'off' EIR
+        self.eir_list = [self.eir_list[0]] + self.eir_list  # add lowest speed EIR as 'off' EIR
         self.eir = self.eir_list[self.speed_idx]
         self.eir_max = self.eir_list[
             -1
@@ -152,19 +148,14 @@ class HVAC(Equipment):
             self.capacity_max * self.eir_max
         )  # For ideal capacity equipment
         initial_setpoint = kwargs["initial_schedule"][f"{self.end_use} Setpoint (C)"]
-        self.coil_input_db = (
-            initial_setpoint  # Dry bulb temperature after increase from fan power
-        )
-        self.coil_input_wb = (
-            initial_setpoint  # Wet bulb temperature after increase from fan power
-        )
+        self.coil_input_db = initial_setpoint  # Dry bulb temperature after increase from fan power
+        self.coil_input_wb = initial_setpoint  # Wet bulb temperature after increase from fan power
 
         # check length of rated lists
         for speed_list in [self.capacity_list, self.eir_list, self.fan_power_list]:
             if len(speed_list) - 1 != self.n_speeds:
                 raise OCHREException(
-                    f"Number of speeds ({self.n_speeds}) does not match length of list"
-                    f" ({len(speed_list) - 1})"
+                    f"Number of speeds ({self.n_speeds}) does not match length of list ({len(speed_list) - 1})"
                 )
 
         # Duct location and distribution system efficiency (DSE)
@@ -187,14 +178,8 @@ class HVAC(Equipment):
         # basement zone heat fraction
         basement_zone = self.envelope_model.zones.get("Foundation")
         if basement_zone:
-            default_basement_frac = (
-                0.2
-                if basement_zone.zone_type == "Finished Basement" and self.is_heater
-                else 0
-            )
-            self.basement_heat_frac = kwargs.get(
-                "Basement Airflow Ratio (-)", default_basement_frac
-            )
+            default_basement_frac = 0.2 if basement_zone.zone_type == "Finished Basement" and self.is_heater else 0
+            self.basement_heat_frac = kwargs.get("Basement Airflow Ratio (-)", default_basement_frac)
         else:
             self.basement_heat_frac = 0
 
@@ -225,14 +210,7 @@ class HVAC(Equipment):
             )
             ao_data = zip(self.capacity_list[1:], self.flow_rate_list[1:], shr_list[1:])
             ao_list = [
-                utils_equipment.coil_ao_factor(
-                    rated_dry_bulb,
-                    rated_w,
-                    rated_pressure,
-                    capacity / 1000,
-                    flow_rate,
-                    shr,
-                )
+                utils_equipment.coil_ao_factor(rated_dry_bulb, rated_w, rated_pressure, capacity / 1000, flow_rate, shr)
                 for capacity, flow_rate, shr in ao_data
             ]
             self.Ao_list = [ao_list[0]] + ao_list
@@ -273,9 +251,7 @@ class HVAC(Equipment):
         required_inputs = [f"{self.end_use} Setpoint (C)"]
         if isinstance(self, DynamicHVAC):
             required_inputs.append("Ambient Dry Bulb (C)")
-        if isinstance(self, HeatPumpHeater) or (
-            not self.is_heater and self.zone.humidity is None
-        ):
+        if isinstance(self, HeatPumpHeater) or (not self.is_heater and self.zone.humidity is None):
             # Required for heat pump heater and dynamic AC if humidity model not included
             required_inputs.append("Ambient Humidity Ratio (-)")
             required_inputs.append("Ambient Pressure (kPa)")
@@ -329,8 +305,7 @@ class HVAC(Equipment):
         if capacity is not None:
             if not self.use_ideal_capacity:
                 raise IOError(
-                    f"Cannot set {self.name} Capacity. "
-                    'Set `use_ideal_capacity` to True or control "Duty Cycle".'
+                    f'Cannot set {self.name} Capacity. Set `use_ideal_capacity` to True or control "Duty Cycle".'
                 )
             if f"{self.end_use} Capacity (W)" in self.current_schedule:
                 self.current_schedule[f"{self.end_use} Capacity (W)"] = capacity
@@ -347,8 +322,7 @@ class HVAC(Equipment):
         if any(["Duty Cycle" in key for key in control_signal]):
             if self.use_ideal_capacity:
                 raise IOError(
-                    f"Cannot set {self.name} Duty Cycle. "
-                    'Set `use_ideal_capacity` to False or use "Capacity" control.'
+                    f'Cannot set {self.name} Duty Cycle. Set `use_ideal_capacity` to False or use "Capacity" control.'
                 )
             duty_cycles = self.parse_duty_cycles(control_signal)
             return self.run_duty_cycle_control(duty_cycles)
@@ -617,46 +591,34 @@ class HVAC(Equipment):
         results = super().generate_results()
         on = "On" in self.mode
 
-        if self.verbosity >= 4:
-            # add delivered heat, setpoint, and COP
-            # recalculate COP to account for any changes in power (e.g. crankcase, pan heater)
-            main_power = (
-                self.electric_kw
-                + self.gas_therms_per_hour / kwh_to_therms
-                - self.fan_power / 1000
-            )
-            if on and main_power != 0:
-                cop = self.capacity * self.space_fraction / main_power / 1000
-            elif self.show_eir_shr:
-                cop = 1 / self.eir
-            else:
-                cop = 0
-            results[f"{self.end_use} Delivered (W)"] = (
-                abs(self.delivered_heat) * self.duct_dse
-            )
-            results[f"{self.end_use} Setpoint (C)"] = self.temp_setpoint
-            results[f"{self.end_use} COP (-)"] = cop
+        self.add_output(results, f"{self.end_use} Delivered (W)", abs(self.delivered_heat) * self.duct_dse)
 
-        if self.verbosity >= 5:
-            # add component loads (ducts)
-            results[f"{self.end_use} Duct Losses (W)"] = abs(self.delivered_heat) * (
-                1 - self.duct_dse
-            )
+        self.add_output(results, f"{self.end_use} Setpoint (C)", self.temp_setpoint)
 
-        if self.verbosity >= 7:
-            # add other results
-            results[f"{self.end_use} Main Power (kW)"] = main_power
-            results[f"{self.end_use} Fan Power (kW)"] = self.fan_power / 1000
-            if not self.is_heater:
-                results[f"{self.end_use} Latent Gains (W)"] = (
-                    self.latent_gain * self.space_fraction
-                )
-                results[f"{self.end_use} SHR (-)"] = (
-                    self.shr if on or self.show_eir_shr else 0
-                )
-            results[f"{self.end_use} Speed (-)"] = self.speed_idx
-            results[f"{self.end_use} Capacity (W)"] = self.capacity
-            results[f"{self.end_use} Max Capacity (W)"] = self.capacity_max
+        main_power = self.electric_kw + self.gas_therms_per_hour / kwh_to_therms - self.fan_power / 1000
+        if on and main_power != 0:
+            cop = self.capacity * self.space_fraction / main_power / 1000
+        elif self.show_eir_shr:
+            cop = 1 / self.eir
+        else:
+            cop = 0
+        self.add_output(results, f"{self.end_use} COP (-)", cop)
+
+        self.add_output(results, f"{self.end_use} Duct Losses (W)", abs(self.delivered_heat) * (1 - self.duct_dse))
+
+        self.add_output(results, f"{self.end_use} Main Power (kW)", main_power)
+
+        self.add_output(results, f"{self.end_use} Fan Power (kW)", self.fan_power / 1000)
+
+        if not self.is_heater:
+            self.add_output(results, f"{self.end_use} Latent Gains (W)", self.latent_gain * self.space_fraction)
+            self.add_output(results, f"{self.end_use} SHR (-)", self.shr if on or self.show_eir_shr else 0)
+
+        self.add_output(results, f"{self.end_use} Speed (-)", self.speed_idx)
+
+        self.add_output(results, f"{self.end_use} Capacity (W)", self.capacity)
+
+        self.add_output(results, f"{self.end_use} Max Capacity (W)", self.capacity_max)
 
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())
@@ -689,24 +651,15 @@ class HVAC(Equipment):
             1 - self.deadband_offset
         )  # "turn off" temperature
         min_temp = (
-            self.temp_setpoint
-            - self.hvac_mult * self.temp_deadband * self.deadband_offset
+            self.temp_setpoint - self.hvac_mult * self.temp_deadband * self.deadband_offset
         )  # "turn on" temperature
         return {
-            f"{self.end_use} EBM Energy (kWh)": total_capacitance
-            * (self.zone.temperature - ref_temp)
-            * self.hvac_mult,
-            f"{self.end_use} EBM Min Energy (kWh)": total_capacitance
-            * (min_temp - ref_temp)
-            * self.hvac_mult,
-            f"{self.end_use} EBM Max Energy (kWh)": total_capacitance
-            * (max_temp - ref_temp)
-            * self.hvac_mult,
+            f"{self.end_use} EBM Energy (kWh)": total_capacitance * (self.zone.temperature - ref_temp) * self.hvac_mult,
+            f"{self.end_use} EBM Min Energy (kWh)": total_capacitance * (min_temp - ref_temp) * self.hvac_mult,
+            f"{self.end_use} EBM Max Energy (kWh)": total_capacitance * (max_temp - ref_temp) * self.hvac_mult,
             f"{self.end_use} EBM Max Power (kW)": self.capacity_max * self.eir / 1000,
             f"{self.end_use} EBM Efficiency (-)": 1 / self.eir,
-            f"{self.end_use} EBM Baseline Power (kW)": self.capacity_ideal
-            if self.use_ideal_capacity
-            else None,
+            f"{self.end_use} EBM Baseline Power (kW)": self.capacity_ideal if self.use_ideal_capacity else None,
         }
 
 
@@ -768,15 +721,7 @@ class GasBoiler(Heater):
         if self.condensing:
             self.outlet_temp = 65.56  # outlet_water_temp [C] (150 F)
             self.efficiency_coeff = np.array(
-                [
-                    1.058343061,
-                    -0.052650153,
-                    -0.0087272,
-                    -0.001742217,
-                    0.00000333715,
-                    0.000513723,
-                ],
-                dtype=float,
+                [1.058343061, -0.052650153, -0.0087272, -0.001742217, 0.00000333715, 0.000513723], dtype=float
             )
         else:
             self.outlet_temp = 82.22  # self.outlet_water_temp [C] (180F)
@@ -806,18 +751,7 @@ class GasBoiler(Heater):
             eff_curve_output = np.dot(eff_var, self.efficiency_coeff)
         else:
             eff_var = np.array(
-                [
-                    1,
-                    plr,
-                    plr**2,
-                    t_out,
-                    t_out**2,
-                    plr * t_out,
-                    plr**3,
-                    t_out**3,
-                    plr**2 * t_out,
-                    plr * t_out**2,
-                ],
+                [1, plr, plr**2, t_out, t_out**2, plr * t_out, plr**3, t_out**3, plr**2 * t_out, plr * t_out**2],
                 dtype=float,
             )
             eff_curve_output = np.dot(eff_var, self.efficiency_coeff)
@@ -855,10 +789,7 @@ class DynamicHVAC(HVAC):
         self.time_in_speed = dt.timedelta(0)
         min_time_in_low = kwargs.get("Minimum Low Time (minutes)", 5)
         min_time_in_high = kwargs.get("Minimum High Time (minutes)", 5)
-        self.min_time_in_speed = [
-            dt.timedelta(minutes=min_time_in_low),
-            dt.timedelta(minutes=min_time_in_high),
-        ]
+        self.min_time_in_speed = [dt.timedelta(minutes=min_time_in_low), dt.timedelta(minutes=min_time_in_high)]
         self.datapoint_by_speed_htg = None
         self.datapoint_by_speed_clg = None
         self.detailed_performance_data_htg = kwargs.get(
@@ -1084,9 +1015,7 @@ class DynamicHVAC(HVAC):
         #   - Note: Can be used for ideal equipment (reduces max capacity) or dynamic equipment
         #   - Note: Disable Speeds will not reset back to original value
         for idx in range(self.n_speeds):
-            self.disable_speeds[idx] = bool(
-                control_signal.get(f"Disable Speed {idx + 1}")
-            )
+            self.disable_speeds[idx] = bool(control_signal.get(f"Disable Speed {idx + 1}"))
 
         return super().update_external_control(control_signal)
 
@@ -1117,9 +1046,7 @@ class DynamicHVAC(HVAC):
         #         speed_idx = 0
         elif self.control_type == "Setpoint":
             # Setpoint-based 2-speed HVAC control: High speed uses setpoint difference of deadband * deadband_offset (overlapping)
-            high_mode = super().run_thermostat_control(
-                self.temp_setpoint - self.hvac_mult * self.deadband_offset
-            )
+            high_mode = super().run_thermostat_control(self.temp_setpoint - self.hvac_mult * self.deadband_offset)
             if high_mode == "On":
                 speed = 2
             elif high_mode == "Off":
@@ -1133,9 +1060,7 @@ class DynamicHVAC(HVAC):
             else:
                 speed = 2
         else:
-            raise OCHREException(
-                "Unknown control type for {}: {}".format(self.name, self.control_type)
-            )
+            raise OCHREException("Unknown control type for {}: {}".format(self.name, self.control_type))
 
         # Enforce minimum on times for speed
         if self.time_in_speed < self.min_time_in_speed[prev_speed_idx - 1]:
@@ -1155,9 +1080,7 @@ class DynamicHVAC(HVAC):
 
     def run_thermostat_control(self, setpoint=None):
         if self.use_ideal_capacity:
-            raise OCHREException(
-                "Ideal capacity equipment should not be running a thermostat control."
-            )
+            raise OCHREException("Ideal capacity equipment should not be running a thermostat control.")
 
         if self.n_speeds == 1:
             # Run regular thermostat control
@@ -1165,9 +1088,7 @@ class DynamicHVAC(HVAC):
         elif self.n_speeds == 2:
             return self.run_two_speed_control()
         else:
-            raise OCHREException(
-                "Incompatible number of speeds for dynamic equipment:", self.n_speeds
-            )
+            raise OCHREException("Incompatible number of speeds for dynamic equipment:", self.n_speeds)
 
     def calculate_biquadratic_param(
         self, param, speed_idx, flow_fraction=1, part_load_ratio=1
@@ -1218,9 +1139,7 @@ class DynamicHVAC(HVAC):
             t_full = 20.0 * self.c_d + 0.4  ## time to full capacity, in minutes
             time_full_cap = dt.timedelta(minutes=t_full)
             if "HP" in self.mode:
-                if (
-                    "HP" not in self.mode_prev
-                ):  # from off, ER on, etc. to using a HP with capacity degradation
+                if "HP" not in self.mode_prev:  # from off, ER on, etc. to using a HP with capacity degradation
                     self.time_from_start = 0.5 * self.time_res
                 if self.time_from_start > time_full_cap:
                     return 1.0
@@ -1235,15 +1154,12 @@ class DynamicHVAC(HVAC):
     def update_capacity(self):
         # update max capacity using highest enabled speed
         max_speed = np.nonzero(~self.disable_speeds)[0][-1] + 1
-        self.capacity_max = self.calculate_biquadratic_param(
-            param="cap", speed_idx=max_speed
-        )
+        self.capacity_max = self.calculate_biquadratic_param(param="cap", speed_idx=max_speed)
 
         if self.use_ideal_capacity:
             # determine capacity for each speed, check that capacity_ratio increases with speed
             capacities = [
-                self.calculate_biquadratic_param(param="cap", speed_idx=speed)
-                for speed in range(self.n_speeds + 1)
+                self.calculate_biquadratic_param(param="cap", speed_idx=speed) for speed in range(self.n_speeds + 1)
             ]
             assert (np.diff(capacities) >= 0).all()
 
@@ -1270,9 +1186,7 @@ class DynamicHVAC(HVAC):
             return capacity
         else:
             # Update capacity using biquadratic model. speed_idx should already be set
-            capacity = self.calculate_biquadratic_param(
-                param="cap", speed_idx=self.speed_idx
-            )
+            capacity = self.calculate_biquadratic_param(param="cap", speed_idx=self.speed_idx)
             # update capacity for any startup degredation
             self.startup_cap_mult = self.calc_startup_capacity_degredation()
             capacity *= self.startup_cap_mult
@@ -1281,20 +1195,16 @@ class DynamicHVAC(HVAC):
     def update_eir(self):
         # Update eir and eir_max using biquadratic model
         max_speed = np.nonzero(~self.disable_speeds)[0][-1] + 1
-        self.eir_max = self.calculate_biquadratic_param(
-            param="eir", speed_idx=max_speed
-        )
+        self.eir_max = self.calculate_biquadratic_param(param="eir", speed_idx=max_speed)
 
         if isinstance(self.speed_idx, int):
-            eir = self.calculate_biquadratic_param(
-                param="eir", speed_idx=self.speed_idx
-            ) * (1 / self.startup_cap_mult)
+            eir = self.calculate_biquadratic_param(param="eir", speed_idx=self.speed_idx) * (1 / self.startup_cap_mult)
             return eir
         elif self.speed_idx < 1:
             # capacity is below lowest rated capacity, run at lowest speed with part load ratio
-            eir = self.calculate_biquadratic_param(
-                param="eir", speed_idx=1, part_load_ratio=self.speed_idx
-            ) * (1 / self.startup_cap_mult)
+            eir = self.calculate_biquadratic_param(param="eir", speed_idx=1, part_load_ratio=self.speed_idx) * (
+                1 / self.startup_cap_mult
+            )
             return eir
         else:
             # interpolate between the 2 closest speeds to get EIR
@@ -1302,9 +1212,7 @@ class DynamicHVAC(HVAC):
             frac_high = self.speed_idx % 1
             eir_low = self.calculate_biquadratic_param(param="eir", speed_idx=speed_low)
             if frac_high:
-                eir_high = self.calculate_biquadratic_param(
-                    param="eir", speed_idx=speed_low + 1
-                )
+                eir_high = self.calculate_biquadratic_param(param="eir", speed_idx=speed_low + 1)
                 eir = eir_low * (1 - frac_high) + eir_high * frac_high
             else:
                 eir = eir_low
@@ -1333,10 +1241,7 @@ class AirConditioner(DynamicHVAC, Cooler):
         # add crankcase power when AC is off and outdoor temp is below threshold
         # no impact on sensible heat for now
         if self.crankcase_kw:
-            if (
-                self.mode == "Off"
-                and self.current_schedule["Ambient Dry Bulb (C)"] < self.crankcase_temp
-            ):
+            if self.mode == "Off" and self.current_schedule["Ambient Dry Bulb (C)"] < self.crankcase_temp:
                 self.electric_kw += self.crankcase_kw * self.space_fraction
 
 
@@ -1546,8 +1451,7 @@ class ASHPHeater(HeatPumpHeater):
         if capacity is not None:
             if not self.use_ideal_capacity:
                 raise IOError(
-                    f"Cannot set {self.name} ER Capacity. "
-                    'Set `use_ideal_capacity` to True or control "ER Duty Cycle".'
+                    f'Cannot set {self.name} ER Capacity. Set `use_ideal_capacity` to True or control "ER Duty Cycle".'
                 )
             if f"{self.end_use} Capacity (W)" in self.current_schedule:
                 self.current_schedule[f"{self.end_use} Capacity (W)"] = capacity
@@ -1590,9 +1494,7 @@ class ASHPHeater(HeatPumpHeater):
         else:
             # get HP and ER modes separately
             hp_mode = super().update_internal_control()
-            hp_on = (
-                hp_mode in ["On", "HP On"] if hp_mode is not None else "HP" in self.mode
-            )
+            hp_on = hp_mode in ["On", "HP On"] if hp_mode is not None else "HP" in self.mode
             er_mode = self.run_er_thermostat_control()
             er_on = er_mode == "On" if er_mode is not None else "ER" in self.mode
 
@@ -1635,9 +1537,7 @@ class ASHPHeater(HeatPumpHeater):
                 # self.existing_stages = 0 # no staged
                 self.er_lockout_time += self.time_res
                 return "Off"
-            elif (self.er_lockout_time < self.er_soft_lockout_time) and (
-                temp_indoor >= self.temp_indoor_prev
-            ):
+            elif (self.er_lockout_time < self.er_soft_lockout_time) and (temp_indoor >= self.temp_indoor_prev):
                 # Soft lockout not met, and temperature is rising continue iterating
                 # self.existing_stages = 0 # no staged
                 self.er_lockout_time += self.time_res
@@ -1747,9 +1647,7 @@ class ASHPHeater(HeatPumpHeater):
             # EIR is a weighted average of HP and ER EIRs
             hp_eir = super().update_eir()
             hp_capacity = self.capacity - self.er_capacity
-            return (
-                hp_capacity * hp_eir + self.er_capacity * self.er_eir_rated
-            ) / self.capacity
+            return (hp_capacity * hp_eir + self.er_capacity * self.er_eir_rated) / self.capacity
         elif self.mode in ["HP On", "Off"]:
             return super().update_eir()
         elif self.mode == "ER On":
@@ -1767,11 +1665,11 @@ class ASHPHeater(HeatPumpHeater):
     def generate_results(self):
         results = super().generate_results()
 
-        if self.verbosity >= 7:
-            tot_power = self.capacity * self.eir * self.space_fraction / 1000
-            er_power = self.er_capacity * self.er_eir_rated * self.space_fraction / 1000
-            results[f"{self.end_use} Main Power (kW)"] = tot_power - er_power
-            results[f"{self.end_use} ER Power (kW)"] = er_power
+        tot_power = self.capacity * self.eir * self.space_fraction / 1000
+        er_power = self.er_capacity * self.er_eir_rated * self.space_fraction / 1000
+        self.add_output(results, f"{self.end_use} Main Power (kW)", tot_power - er_power)
+
+        self.add_output(results, f"{self.end_use} ER Power (kW)", er_power)
 
         return results
 

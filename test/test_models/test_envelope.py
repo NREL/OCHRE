@@ -1,635 +1,375 @@
 import unittest
 import datetime as dt
 import numpy as np
+import pandas as pd
 
-from ochre.Models import Envelope
+from ochre.Models.Envelope import Envelope, ExteriorZone
+from ochre.utils import OCHREException
 
-zone_init_args = {
-    'time_res': dt.timedelta(minutes=5),
-    'label': 'ATC',
-    'capacitance': 1,
-    'attic volume (m^3)': 10,
-    'attic infiltration method': 'ELA',
-    'attic ELA (cm^2)': 1,
-    'attic stack coefficient {(L/s)/(cm^4-K)}': 0.1,
-    'attic wind coefficient {(L/s)/(cm^4-(m/s))}': 0.1,
-}
 
-properties = {
-    'Exterior Emissivity': 0.9,
-    'Exterior Solar Absorptivity': 0.9,
-    'Interior Thermal Absorptivity': 0.9,
-    'Interior Solar Absorptivity': 0.9,
-}
-
-init_args = {
-    'time_res': dt.timedelta(minutes=5),
-    'R_EW_ext': 1.0,
-    'R_EW1': 1.0,
-    'C_EW1': 10,
-    'R_EW2': 1.0,
-    'C_EW2': 10,
-    'R_EW_int': 1.0,
-    'R_WD1': 1.0,
-    'C_WD1': 0,
-
-    'R_IW_ext': 1.0,
-    'R_IW1': 1.0,
-    'C_IW1': 10,
-    'R_IW2': 1.0,
-    'C_IW2': 10,
-    'R_IW3': 1.0,
-    'C_IW3': 10,
-    'R_IW_int': 1.0,
-
-    # attic
-    'R_CL_ext': 1.0,
-    'R_CL1': 1.0,
-    'C_CL1': 10,
-    'R_CL_int': 1.0,
-    'R_RG_ext': 1.0,
-    'R_RG1': 1.0,
-    'C_RG1': 10,
-    'R_RG_int': 1.0,
-    'R_RF_ext': 1.0,
-    'R_RF1': 1.0,
-    'C_RF1': 10,
-    'R_RF_int': 1.0,
-
-    # foundation
-    'R_FL_ext': 1.0,
-    'R_FL1': 1.0,
-    'C_FL1': 10,
-    'R_FL_int': 1.0,
-    'R_FW_ext': 0,
-    'R_FW1': 1.0,
-    'C_FW1': 10,
-    'R_FW_int': 1.0,
-    'R_CW_ext': 1.0,
-    'R_CW1': 1.0,
-    'C_CW1': 10,
-    'R_CW_int': 1.0,
-    'R_FF_ext': 0,
-    'R_FF1': 1.0,
-    'C_FF1': 10,
-    'R_FF2': 1.0,
-    'C_FF2': 10,
-    'R_FF_int': 1.0,
-
-    # garage
-    'R_AW_ext': 1.0,
-    'R_AW1': 1.0,
-    'C_AW1': 10,
-    'R_AW_int': 1.0,
-    'R_GW_ext': 1.0,
-    'R_GW1': 1.0,
-    'C_GW1': 10,
-    'R_GW_int': 1.0,
-    'R_GR_ext': 1.0,
-    'R_GR1': 1.0,
-    'C_GR1': 10,
-    'R_GR_int': 1.0,
-    'R_GF_ext': 1.0,
-    'R_GF1': 1.0,
-    'C_GF1': 10,
-    'R_GF_int': 1.0,
-
-    # zones
-    'C_LIV': 1000,
-    'C_ATC': 100,
-    'C_GAR': 100,
-    'C_FND': 100,
-
-    # 'building length (m)': 10,
-    # 'building width (m)': 10,
-    'finished floor area (m^2)': 100,
-    'num stories': 1,
-    'building volume (m^3)': 100,
-    'total wall area (m^2)': 10,
-    'front window area (m^2)': 1,
-    'back window area (m^2)': 1,
-    'right window area (m^2)': 1,
-    'left window area (m^2)': 1,
-    'interior wall area (m^2)': 10,
-
-    'attic floor area (m^2)': 100,
-    'attic volume (m^3)': 10,
-    'front roof area (m^2)': 10,
-    'back roof area (m^2)': 10,
-    'left gable wall area (m^2)': 10,
-    'right gable wall area (m^2)': 10,
-    'roof pitch': 0,
-
-    'basement floor area (m^2)': 100,
-    'basement wall area (m^2)': 10,
-    'crawlspace above grade wall area (m^2)': 10,
-    'crawlspace below grade wall area (m^2)': 10,
-    'crawlspace volume (m^3)': 10,
-
-    'garage attached wall area (m^2)': 10,
-    'garage front wall area (m^2)': 10,
-    'garage back wall area (m^2)': 0,
-    'garage right wall area (m^2)': 0,
-    'garage left wall area (m^2)': 0,
-    'garage floor area (m^2)': 10,
-    'garage volume (m^3)': 10,
-    'Garage Furniture surface area (m2)': 10,
-    'Indoor Furniture surface area (m2)': 100,
-
-    'number of occupants': 2,
-    'gain per occupant (W)': 1,
-    'occupants convective gainfrac': 0.3,
-    'occupants radiant gainfrac': 0.3,
-    'occupants latent gainfrac': 0.3,
-
-    'ventilation cfm': 1,
-    'ventilation type': 'balanced',
-    'erv sensible effectiveness': 0.713019174966,
-    'erv latent effectiveness': 0,
-
-    'infiltration method': 'ASHRAE',
-    'inf_f_t': 1,
-    'inf_C_i': 1000,
-    'inf_n_i': 1,
-    'inf_stack_coef': 0.001,
-    'inf_wind_coef': 0.001,
-    'ws_S_wo': 1,
-    'inf_Y_i': 0.1,
-    'inf_S_wflue': 1,
-
-    'attic infiltration method': 'ELA',
-    'attic ELA (cm^2)': 0.1,
-    'attic stack coefficient {(L/s)/(cm^4-K)}': 0.1,
-    'attic wind coefficient {(L/s)/(cm^4-(m/s))}': 0.1,
-
-    'foundation infiltration method': 'ACH',
-    'Air Changes (ACH):': 1,
-
-    'garage infiltration method': 'ELA',
-    'garage ELA (cm^2)': 100.0,
-    'garage stack coefficient {(L/s)/(cm^4-K)}': 0.000177467803711,
-    'garage wind coefficient {(L/s)/(cm^4-(m/s))}': 0.000166437954278,
-
-    'initial_temp_setpoint': 21,
-    'Exterior wall properties': properties,
-    'Window properties': {**properties, **{'SHGC (-)': 0.5, 'U-value (W/m^2-K)': 2}},
-    'Interior Wall properties': properties,
-    'Roof properties': properties,
-    'Ceiling roof properties': properties,
-    'Gable wall properties': properties,
-    'Floor properties': properties,
-    'Foundation floor properties': properties,
-    'Foundation wall properties': properties,
-    'Crawlspace wall properties': properties,
-    'Attached wall properties': properties,
-    'Garage wall properties': properties,
-    'Garage roof properties': properties,
-    'Garage floor properties': properties,
-    'Garage Furniture properties': {'R-value (m^2-K/W)': 1, 'Capacitance (kJ/m^2-K)': 10, **properties},
-    'Indoor Furniture properties': {'R-value (m^2-K/W)': 1, 'Capacitance (kJ/m^2-K)': 9, **properties},
-}
-
-update_args1 = {
-    'solar_EW': 0,
-    'solar_WD': 0,
-    'solar_RF': 0,
-    'solar_RG': 0,
-    'solar_CW': 0,
-    'solar_GW': 0,
-    'solar_GR': 0,
-    'occupants': 0,
-    'wind_speed': 1,
-    'ventilation_rate': 0,
-    'ambient_dry_bulb': 15,
-    'ambient_humidity': 0.007,
-    'ambient_pressure': 101,
-    'ground_temperature': 10,
-    'sky_temperature': 0,
-    'heating_setpoint': 20,
-    'cooling_setpoint': 21,
-}
-init_args['initial_schedule'] = update_args1.copy()
-
-update_args2 = {
-    'solar_EW': 1000,
-    'solar_WD': 100,
-    'solar_RF': 1000,
-    'solar_RG': 100,
-    'solar_CW': 100,
-    'solar_GW': 100,
-    'solar_GR': 100,
-    'occupants': 4,
-    'wind_speed': 5,
-    'ventilation_rate': 1,
-    'ambient_dry_bulb': 30,
-    'ambient_humidity': 0.007,
-    'ambient_pressure': 101,
-    'ground_temperature': 15,
-    'sky_temperature': 0,
-    'heating_setpoint': 20,
-    'cooling_setpoint': 21,
+# Common simulation parameters
+sim_params = {
+    "start_time": dt.datetime(2020, 1, 1),
+    "duration": dt.timedelta(hours=24),
+    "time_res": dt.timedelta(minutes=5),
+    "verbosity": 6,
+    "save_results": False,
 }
 
 
-class SurfaceTestCase(unittest.TestCase):
+def create_minimal_schedule(start_time, duration, time_res, ambient_temp=20):
+    """Create minimal schedule DataFrame for envelope testing"""
+    times = pd.date_range(start_time, start_time + duration, freq=time_res, inclusive="left")
+    return pd.DataFrame(
+        {
+            "Ambient Dry Bulb (C)": ambient_temp,
+            "HVAC Heating Setpoint (C)": 20,
+            "HVAC Cooling Setpoint (C)": 24,
+            "HVAC Heating Deadband (C)": 1,
+            "HVAC Cooling Deadband (C)": 1,
+            "Ambient Humidity Ratio (-)": 0.005,
+        },
+        index=times,
+    )
+
+
+def create_minimal_envelope(schedule=None, **kwargs):
+    """Create minimal single-zone envelope for testing"""
+    start_time = kwargs.get("start_time", sim_params["start_time"])
+    duration = kwargs.get("duration", sim_params["duration"])
+    time_res = kwargs.get("time_res", sim_params["time_res"])
+
+    if schedule is None:
+        schedule = create_minimal_schedule(start_time, duration, time_res)
+
+    envelope_args = {
+        "capacitances": {"LIV": 4e6},  # ~1 hour time constant
+        "resistances": {("EXT", "LIV"): 1e-3},  # 1kW per degree C
+        "zones": {"Indoor": {"Volume (m^3)": 600}},
+        "ext_zone_labels": ["EXT"],
+        "schedule": schedule,
+        "initial_schedule": schedule.iloc[0].to_dict(),
+        "initial_temp_setpoint": 22,
+        "external_radiation_method": None,
+        "internal_radiation_method": None,
+        "main_sim_name": "",
+        **sim_params,
+        **kwargs,
+    }
+    return Envelope(**envelope_args)
+
+
+class EnvelopeInitTestCase(unittest.TestCase):
+    """Tests for Envelope initialization"""
+
+    def test_init_minimal(self):
+        """Test minimal envelope initialization"""
+        envelope = create_minimal_envelope()
+        self.assertEqual(envelope.name, "Envelope")
+        self.assertIsNotNone(envelope.zones)
+        self.assertIn("Indoor", envelope.zones)
+        self.assertIsNotNone(envelope.indoor_zone)
+
+    def test_init_with_capacitances_resistances(self):
+        """Test initialization with direct capacitances and resistances"""
+        envelope = create_minimal_envelope()
+        # Check state and input names are created correctly
+        self.assertIn("T_LIV", envelope.state_names)
+        self.assertIn("T_EXT", envelope.input_names)
+        self.assertIn("H_LIV", envelope.input_names)
+
+    def test_init_zones(self):
+        """Test zone creation"""
+        envelope = create_minimal_envelope()
+        self.assertEqual(len(envelope.zones), 1)
+        indoor_zone = envelope.zones["Indoor"]
+        self.assertEqual(indoor_zone.name, "Indoor")
+        self.assertEqual(indoor_zone.label, "LIV")
+
+    def test_init_ext_zones(self):
+        """Test external zone creation"""
+        envelope = create_minimal_envelope()
+        self.assertIn("Outdoor", envelope.ext_zones)
+        outdoor = envelope.ext_zones["Outdoor"]
+        self.assertIsInstance(outdoor, ExteriorZone)
+        self.assertEqual(outdoor.label, "EXT")
+
+    def test_init_multiple_ext_zones(self):
+        """Test with multiple external zones"""
+        schedule = create_minimal_schedule(sim_params["start_time"], sim_params["duration"], sim_params["time_res"])
+        # Add ground temperature to schedule
+        schedule["Ground Temperature (C)"] = 15
+
+        envelope = Envelope(
+            capacitances={"LIV": 4e6, "FND": 1e6},
+            resistances={("EXT", "LIV"): 1e-3, ("GND", "FND"): 2e-3, ("LIV", "FND"): 5e-3},
+            zones={
+                "Indoor": {"Volume (m^3)": 600},
+                "Foundation": {"Volume (m^3)": 100},
+            },
+            ext_zone_labels=["EXT", "GND"],
+            schedule=schedule,
+            initial_schedule=schedule.iloc[0].to_dict(),
+            initial_temp_setpoint=22,
+            external_radiation_method=None,
+            internal_radiation_method=None,
+            main_sim_name="",
+            **sim_params,
+        )
+        self.assertIn("Outdoor", envelope.ext_zones)
+        self.assertIn("Ground", envelope.ext_zones)
+
+
+class EnvelopeZoneTestCase(unittest.TestCase):
+    """Tests for zone-related functionality"""
+
     def setUp(self):
-        self.env = Envelope(**init_args)
+        self.envelope = create_minimal_envelope()
 
-        self.rf_ext = [b for b in self.env.boundaries if b.name == 'Roof'][0].ext_surface
-        self.iw_ext = [b for b in self.env.boundaries if b.name == 'Interior Wall'][0].ext_surface
-        self.aw_ext = [b for b in self.env.boundaries if b.name == 'Attached wall'][0].ext_surface
-        self.aw_int = [b for b in self.env.boundaries if b.name == 'Attached wall'][0].int_surface
+    def test_get_zone_temperature_indoor(self):
+        """Test getting indoor zone temperature"""
+        temp = self.envelope.get_zone_temperature("Indoor")
+        self.assertIsInstance(temp, (int, float, np.floating))
+        # Should be close to initial setpoint
+        self.assertAlmostEqual(temp, 22, places=0)
 
-    def test_initialize(self):
-        self.assertEqual(self.rf_ext.boundary.label, 'RF')
-        self.assertEqual(self.rf_ext.zone_label, 'EXT')
-        self.assertEqual(self.rf_ext.area, 20)
-        self.assertEqual(self.rf_ext.node, 'RF1')
-        self.assertEqual(self.env.state_names[self.rf_ext.t_idx], 'T_RF1')
-        self.assertEqual(self.env.input_names[self.rf_ext.h_idx], 'H_RF1')
-        self.assertAlmostEqual(self.rf_ext.radiation_frac, 0.67, places=2)
-        self.assertAlmostEqual(self.rf_ext.radiation_res, 0.025 * 2 / 3)
-        self.assertAlmostEqual(self.rf_ext.temperature, 15, places=1)
-        self.assertEqual(self.rf_ext.emissivity, 0.9)
-        self.assertEqual(self.rf_ext.absorptivity, 0.9)
+    def test_get_zone_temperature_outdoor(self):
+        """Test getting outdoor zone temperature"""
+        # Need to run update first to get ambient temperature into ext zone
+        self.envelope.update_inputs()
+        temp = self.envelope.get_zone_temperature("Outdoor")
+        # Should match schedule ambient temperature
+        self.assertAlmostEqual(temp, 20, places=1)
 
-        self.assertEqual(self.iw_ext.zone_label, 'LIV')
-        self.assertEqual(self.iw_ext.area, 10)
-        self.assertEqual(self.iw_ext.is_exterior, False)
-        self.assertEqual(self.iw_ext.node, 'IW1')
-        self.assertEqual(self.env.state_names[self.iw_ext.t_idx], 'T_IW1')
-        self.assertEqual(self.env.input_names[self.iw_ext.h_idx], 'H_IW1')
-        self.assertAlmostEqual(self.iw_ext.radiation_frac, 0.67, places=2)
-        self.assertAlmostEqual(self.iw_ext.radiation_res, 0.05 * 2 / 3)
-        self.assertAlmostEqual(self.iw_ext.temperature, 21, places=1)
+    def test_get_zone_temperature_invalid(self):
+        """Test getting temperature for invalid zone"""
+        with self.assertRaises(OCHREException):
+            self.envelope.get_zone_temperature("NonexistentZone")
 
-        self.assertEqual(self.aw_ext.zone_label, 'GAR')
-        self.assertAlmostEqual(self.aw_ext.temperature, 15, places=0)
+    def test_indoor_zone_reference(self):
+        """Test indoor_zone reference is correct"""
+        self.assertEqual(self.envelope.indoor_zone, self.envelope.zones["Indoor"])
 
-        self.assertEqual(self.aw_int.zone_label, 'LIV')
-        self.assertAlmostEqual(self.aw_int.temperature, 21, places=1)
 
-    def test_calculate_external_radiation(self):
-        # equal temperatures
-        self.rf_ext.solar_gain = 0
-        self.rf_ext.t_boundary = 15
-        self.rf_ext.calculate_exterior_radiation(15, 0)
-        self.assertAlmostEqual(self.rf_ext.lwr_gain, 0, places=-1)
-        self.assertAlmostEqual(self.rf_ext.temperature, 15, places=-1)
+class EnvelopeUpdateTestCase(unittest.TestCase):
+    """Tests for envelope update cycle"""
 
-        # unequal temperatures
-        self.rf_ext.t_boundary = 18
-        self.rf_ext.calculate_exterior_radiation(15, 0)
-        self.rf_ext.calculate_exterior_radiation(15, 0)  # run twice to update temperature
-        self.assertAlmostEqual(self.rf_ext.lwr_gain, -70, places=-1)
-        self.assertAlmostEqual(self.rf_ext.temperature, 16, places=0)
+    def setUp(self):
+        self.envelope = create_minimal_envelope()
 
-        # with solar
-        self.rf_ext.solar_gain = 1000
-        self.rf_ext.temperature = 35
-        self.rf_ext.t_boundary = 35
-        self.rf_ext.calculate_exterior_radiation(30, 0)  # run twice to update temperature
-        self.rf_ext.calculate_exterior_radiation(30, 0)
-        self.assertAlmostEqual(self.rf_ext.lwr_gain, -804, places=-1)
-        self.assertAlmostEqual(self.rf_ext.temperature, 36.8, places=1)
+    def test_update_inputs(self):
+        """Test schedule input handling"""
+        schedule_inputs = {
+            "Ambient Dry Bulb (C)": 25,
+            "HVAC Heating Setpoint (C)": 20,
+            "HVAC Cooling Setpoint (C)": 24,
+        }
+        self.envelope.update_inputs(schedule_inputs)
+        # Check that external temperature is updated in ext_zones
+        # Note: inputs_init has the temperature, not inputs (which is set by update_model)
+        self.assertAlmostEqual(self.envelope.ext_zones["Outdoor"].temperature, 25)
 
-        # test multiple iterations
-        self.rf_ext.iterations = 3
-        self.rf_ext.temperature = 35
-        self.rf_ext.t_boundary = 35
-        self.rf_ext.calculate_exterior_radiation(30, 0)
-        self.assertAlmostEqual(self.rf_ext.lwr_gain, -796, places=-1)
-        self.assertAlmostEqual(self.rf_ext.temperature, 36.8, places=1)
+    def test_update_model(self):
+        """Test model state update"""
+        initial_temp = self.envelope.states[0]
+        # Update with warmer ambient
+        schedule_inputs = {
+            "Ambient Dry Bulb (C)": 30,
+            "HVAC Heating Setpoint (C)": 20,
+            "HVAC Cooling Setpoint (C)": 24,
+        }
+        self.envelope.update_inputs(schedule_inputs)
+        self.envelope.update_model()
+        # Verify external temperature was set correctly in inputs_init
+        ext_idx = self.envelope.input_names.index("T_EXT")
+        self.assertAlmostEqual(self.envelope.inputs_init[ext_idx], 30)
+        # next_states should show temperature increase (states updated in update_results)
+        self.assertGreater(self.envelope.next_states[0], initial_temp)
+
+    def test_update_results(self):
+        """Test result update cycle"""
+        self.envelope.update_inputs()
+        self.envelope.update_model()
+        results = self.envelope.update_results()
+        self.assertIsNotNone(results)
+
+    def test_state_transition(self):
+        """Test temperature changes over multiple steps"""
+        initial_temp = self.envelope.states[0]
+
+        # Run several update cycles with warm ambient
+        for _ in range(10):
+            self.envelope.update(schedule_inputs={"Ambient Dry Bulb (C)": 30})
+
+        final_temp = self.envelope.states[0]
+        # Temperature should have increased towards 30C
+        self.assertGreater(final_temp, initial_temp)
+        self.assertLess(final_temp, 30)
+
+
+class EnvelopeInfiltrationTestCase(unittest.TestCase):
+    """Tests for infiltration calculations"""
+
+    def test_no_infiltration(self):
+        """Test envelope with no infiltration"""
+        envelope = create_minimal_envelope()
+        # By default, minimal envelope has no infiltration method
+        self.assertIsNone(envelope.indoor_zone.infiltration_method)
+
+    def test_linearize_infiltration(self):
+        """Test linearized infiltration mode"""
+        envelope = create_minimal_envelope(linearize_infiltration=True)
+        self.assertTrue(envelope.linearize_infiltration)
+
+
+class EnvelopeRadiationTestCase(unittest.TestCase):
+    """Tests for radiation methods"""
+
+    def test_external_radiation_none(self):
+        """Test with external radiation disabled"""
+        envelope = create_minimal_envelope(external_radiation_method=None)
+        self.assertFalse(envelope.run_external_rad)
+
+    def test_internal_radiation_none(self):
+        """Test with internal radiation disabled"""
+        envelope = create_minimal_envelope(internal_radiation_method=None)
+        self.assertFalse(envelope.run_internal_rad)
+
+    def test_internal_radiation_linear(self):
+        """Test with linear internal radiation"""
+        envelope = create_minimal_envelope(internal_radiation_method="linear")
+        self.assertFalse(envelope.run_internal_rad)
+        self.assertTrue(envelope.linearize_int_radiation)
+
+
+class EnvelopeSolverTestCase(unittest.TestCase):
+    """Tests for solve_for_input (used by HVAC)"""
+
+    def setUp(self):
+        self.envelope = create_minimal_envelope()
+
+    def test_solve_for_input(self):
+        """Test solving for a single input to achieve desired state"""
+        current_temp = self.envelope.states[0]
+        # Solve for heat input to maintain current temperature
+        u_desired = self.envelope.solve_for_input("T_LIV", "H_LIV", current_temp)
+        self.assertIsInstance(u_desired, (int, float, np.floating))
+
+
+class EnvelopeResultsTestCase(unittest.TestCase):
+    """Tests for result generation at various verbosity levels"""
+
+    def test_generate_results_verbosity_3(self):
+        """Test results at verbosity 3"""
+        # main_sim_name=None required for Time to be in results
+        envelope = create_minimal_envelope(verbosity=3, main_sim_name=None)
+        results = envelope.generate_results()
+        self.assertIn("Time", results)
+        self.assertIn("Temperature - Indoor (C)", results)
+
+    def test_generate_results_verbosity_5(self):
+        """Test results at verbosity 5"""
+        envelope = create_minimal_envelope(verbosity=5)
+        results = envelope.generate_results()
+        self.assertIn("Temperature - Indoor (C)", results)
+
+    def test_generate_results_verbosity_6(self):
+        """Test results at verbosity 6"""
+        envelope = create_minimal_envelope(verbosity=6)
+        results = envelope.generate_results()
+        self.assertIn("Temperature - Indoor (C)", results)
+
+
+class EnvelopeHumidityTestCase(unittest.TestCase):
+    """Tests for humidity model integration"""
+
+    def test_humidity_enabled(self):
+        """Test envelope with humidity model enabled"""
+        schedule = create_minimal_schedule(sim_params["start_time"], sim_params["duration"], sim_params["time_res"])
+        schedule["Ambient Humidity Ratio (-)"] = 0.01
+
+        envelope = create_minimal_envelope(
+            schedule=schedule,
+            enable_humidity=True,
+        )
+        # Indoor zone should have a humidity model
+        self.assertIsNotNone(envelope.indoor_zone.humidity)
+
+    def test_humidity_disabled_via_zone(self):
+        """Test envelope with humidity model disabled via zone args"""
+        # Humidity is enabled by default for Indoor zones when humidity ratio is in schedule.
+        # To disable it, pass enable_humidity=False in the zone args.
+        envelope = create_minimal_envelope(
+            zones={"Indoor": {"Volume (m^3)": 600, "enable_humidity": False}},
+        )
+        self.assertIsNone(envelope.indoor_zone.humidity)
+
+
+class EnvelopeEBMTestCase(unittest.TestCase):
+    """Tests for equivalent battery model parameters"""
+
+    def test_get_ebm_parameters(self):
+        """Test EBM parameter generation - currently not implemented"""
+        envelope = create_minimal_envelope()
+        ebm = envelope.get_ebm_parameters()
+        # Note: get_ebm_parameters is not yet implemented (returns None)
+        self.assertIsNone(ebm)
+
+
+class EnvelopeSimulationTestCase(unittest.TestCase):
+    """Integration tests - run simulation"""
+
+    def test_simulate(self):
+        """Test running a short simulation"""
+        # main_sim_name=None is required for main_simulator=True
+        envelope = create_minimal_envelope(
+            duration=dt.timedelta(hours=1),
+            main_sim_name=None,
+        )
+        df = envelope.simulate()
+        self.assertIsNotNone(df)
+        assert df is not None  # For type checker
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertGreater(len(df), 0)
+
+    def test_simulate_with_humidity(self):
+        """Test simulation with humidity model"""
+        schedule = create_minimal_schedule(sim_params["start_time"], dt.timedelta(hours=1), sim_params["time_res"])
+        schedule["Ambient Humidity Ratio (-)"] = 0.01
+
+        envelope = create_minimal_envelope(
+            schedule=schedule,
+            duration=dt.timedelta(hours=1),
+            enable_humidity=True,
+            main_sim_name=None,
+        )
+        df = envelope.simulate()
+        self.assertIsNotNone(df)
+        assert df is not None
+        self.assertGreater(len(df), 0)
 
 
 class ZoneTestCase(unittest.TestCase):
-    def setUp(self):
-        self.env = Envelope(**init_args)
+    """Tests for Zone class"""
 
-        self.liv = self.env.indoor_zone
-        self.fnd = self.env.zones['FND']
-        self.gar = self.env.zones['GAR']
-
-    def test_initialize(self):
-        self.assertEqual(len(self.liv.surfaces), 7)
-        self.assertEqual(self.env.state_names[self.liv.t_idx], 'T_LIV')
-        self.assertEqual(self.env.input_names[self.liv.h_idx], 'H_LIV')
-        self.assertAlmostEqual(self.liv.capacitance, 1e6)
-        self.assertAlmostEqual(self.liv.volume, 100)
-        self.assertEqual(len(self.liv.infiltration_parameters), 6)
-        self.assertAlmostEqual(self.liv.max_flow_rate, 1 / 3)
-        self.assertEqual(self.liv.balanced_ventilation, 'balanced')
-
-        self.assertEqual(len(self.fnd.surfaces), 4)
-        self.assertEqual(self.env.state_names[self.fnd.t_idx], 'T_FND')
-        self.assertEqual(self.env.input_names[self.fnd.h_idx], 'H_FND')
-        self.assertAlmostEqual(self.fnd.capacitance, 1e5)
-        self.assertAlmostEqual(self.fnd.volume, 10)
-        self.assertEqual(len(self.fnd.infiltration_parameters), 2)
-        self.assertAlmostEqual(self.fnd.max_flow_rate, 1 / 30)
-        self.assertEqual(self.fnd.balanced_ventilation, None)
-
-        self.assertEqual(len(self.gar.surfaces), 5)
-        self.assertEqual(self.env.state_names[self.gar.t_idx], 'T_GAR')
-        self.assertEqual(self.env.input_names[self.gar.h_idx], 'H_GAR')
-        self.assertAlmostEqual(self.gar.capacitance, 1e5)
-        self.assertAlmostEqual(self.gar.volume, 10)
-        self.assertEqual(len(self.gar.infiltration_parameters), 4)
-        self.assertAlmostEqual(self.gar.max_flow_rate, 1 / 30)
-        self.assertEqual(self.gar.balanced_ventilation, None)
-
-    def test_update_infiltration(self):
-        # living space
-        self.liv.update_infiltration(update_args2, 20, 1000)
-        self.assertAlmostEqual(self.liv.inf_flow, 0.07, places=2)
-        self.assertAlmostEqual(self.liv.inf_heat, 760, places=-1)
-        self.assertAlmostEqual(self.liv.forced_vent_flow, 0.0005, places=4)
-        self.assertAlmostEqual(self.liv.air_changes, 2.4, places=-1)
-
-        # living space, exhaust ventilation
-        self.liv.ventilation_type = 'exhaust'
-        self.liv.sens_recovery_eff = 0
-        self.liv.balanced_ventilation = False
-        self.liv.update_infiltration(update_args2, 20, 1000)
-        self.assertAlmostEqual(self.liv.inf_flow, 0.07, places=2)
-        self.assertAlmostEqual(self.liv.inf_heat, 760, places=-1)
-        self.assertAlmostEqual(self.liv.forced_vent_flow, 0.0005, places=4)
-        self.assertAlmostEqual(self.liv.air_changes, 2.4, places=-1)
-
-        # foundation
-        self.fnd.update_infiltration(update_args2, 20, 1000)
-        self.assertAlmostEqual(self.fnd.inf_flow, 0.0028, places=4)
-        self.assertAlmostEqual(self.fnd.inf_heat, 32, places=0)
-
-        # garage, cold
-        self.gar.update_infiltration(update_args1, 17, 1000)
-        self.assertAlmostEqual(self.gar.inf_flow, 0.0023, places=4)
-        self.assertAlmostEqual(self.gar.inf_heat, -6, places=0)
-
-        # garage, warm
-        self.gar.update_infiltration(update_args2, 20, 1000)
-        self.assertAlmostEqual(self.gar.inf_flow, 0.0077, places=4)
-        self.assertAlmostEqual(self.gar.inf_heat, 89, places=0)
-
-        # garage with h_limit
-        self.gar.update_infiltration(update_args2, 20, 50)
-        self.assertAlmostEqual(self.gar.inf_flow, 0.0077, places=4)
-        self.assertAlmostEqual(self.gar.inf_heat, 50, places=0)
-
-    def test_calculate_interior_radiation(self):
-        # indoor radiation, cold EW
-        ew = [s for s in self.liv.surfaces if s.boundary.label == 'EW'][0]
-        ew.temperature = 19
-        for s in self.liv.surfaces:
-            s.t_boundary = 21
-        self.liv.calculate_interior_radiation(21)
-        # self.liv.calculate_interior_radiation(21, t_boundaries)  # run twice to update temperature
-        self.assertEqual(ew.solar_gain, 0)
-        self.assertAlmostEqual(ew.lwr_gain, 50, places=-1)
-        self.assertAlmostEqual(ew.temperature, 20, places=0)
-
-        # indoor radiation, colder indoor temp
-        ew.temperature = 23
-        self.liv.calculate_interior_radiation(19)
-        # self.liv.calculate_interior_radiation(21, t_boundaries)  # run twice to update temperature
-        self.assertAlmostEqual(ew.lwr_gain, -80, places=-1)
-        self.assertAlmostEqual(ew.temperature, 22, places=0)
-
-        # garage radiation, hot AW
-        aw = [s for s in self.gar.surfaces if s.boundary.label == 'AW'][0]
-        aw.temperature = 17
-        for s in self.gar.surfaces:
-            s.t_boundary = 14
-        self.gar.calculate_interior_radiation(14)
-        # self.gar.calculate_interior_radiation(14, t_boundaries)  # run twice to update temperature
-        self.assertAlmostEqual(aw.lwr_gain, -40, places=-1)
-        self.assertAlmostEqual(aw.temperature, 16, places=0)
-
-        # garage radiation, hot
-        aw = [s for s in self.gar.surfaces if s.boundary.label == 'AW'][0]
-        aw.temperature = 21
-        for s in self.gar.surfaces:
-            s.t_boundary = 27
-        self.gar.calculate_interior_radiation(25)
-        # self.gar.calculate_interior_radiation(25, t_boundaries)  # run twice to update temperature
-        self.assertAlmostEqual(aw.lwr_gain, -170, places=-1)
-        self.assertAlmostEqual(aw.temperature, 20, places=0)
+    def test_zone_creation(self):
+        """Test Zone is created correctly via Envelope"""
+        envelope = create_minimal_envelope()
+        zone = envelope.indoor_zone
+        self.assertEqual(zone.name, "Indoor")
+        self.assertEqual(zone.label, "LIV")
+        self.assertEqual(zone.volume, 600)
 
 
-class BoundaryTestCase(unittest.TestCase):
-    def setUp(self):
-        self.env = Envelope(**init_args)
+class ExteriorZoneTestCase(unittest.TestCase):
+    """Tests for ExteriorZone class"""
 
-        self.ew = [b for b in self.env.boundaries if b.name == 'Exterior wall'][0]
-        self.ff = [b for b in self.env.boundaries if b.name == 'Foundation floor'][0]
-        self.aw = [b for b in self.env.boundaries if b.name == 'Attached wall'][0]
-        self.iw = [b for b in self.env.boundaries if b.name == 'Interior Wall'][0]
-
-    def test_initialize(self):
-        self.assertAlmostEqual(self.ew.area, 10)
-        self.assertEqual(self.ew.is_int, True)
-        self.assertEqual(self.ew.n_nodes, 2)
-        self.assertEqual(len(self.ew.capacitors), 2)
-        self.assertAlmostEqual(self.ew.capacitors['C_EW1'], 1e5)
-        self.assertEqual(len(self.ew.resistors), 3)
-        self.assertAlmostEqual(self.ew.resistors['R_EXT_EW1'], 0.15)
-        self.assertEqual(self.ew.ext_surface.zone_label, 'EXT')
-        self.assertEqual(self.ew.int_surface.zone_label, 'LIV')
-
-        self.assertEqual(len(self.iw.capacitors), 2)
-        self.assertAlmostEqual(self.iw.capacitors['C_IW1'], 1e5)
-        self.assertEqual(len(self.iw.resistors), 2)
-        self.assertAlmostEqual(self.iw.resistors['R_LIV_IW1'], 0.15)
-        self.assertAlmostEqual(self.iw.resistors['R_IW1_IW2'], 0.1)
-        self.assertEqual(self.iw.ext_surface.zone_label, 'LIV')
-        self.assertEqual(self.iw.int_surface.zone_label, '')
-
-        self.assertEqual(len(self.aw.capacitors), 1)
-        self.assertAlmostEqual(self.aw.capacitors['C_AW1'], 1e5)
-        self.assertEqual(len(self.aw.resistors), 2)
-        self.assertAlmostEqual(self.aw.resistors['R_GAR_AW1'], 0.15)
-        self.assertAlmostEqual(self.aw.resistors['R_AW1_LIV'], 0.15)
-
-        self.assertEqual(self.ff.is_int, False)
-        self.assertEqual(self.aw.is_int, True)
-        self.assertEqual(self.iw.is_int, True)
-
-    # TODO: test linearization
-    # def test_initialize(self):
-    #     self.assertAlmostEqual(self.ew.area, 10)
-    #     self.assertEqual(self.ew.is_int, True)
-    #     self.assertEqual(self.ew.n_nodes, 2)
-    #     self.assertEqual(len(self.ew.capacitors), 2)
-    #     self.assertAlmostEqual(self.ew.capacitors['C_EW1'], 1e5)
-    #     self.assertEqual(len(self.ew.resistors), 5)
-    #     self.assertAlmostEqual(self.ew.resistors['R_EXT_EW-ext'], 0.1)
-    #     self.assertAlmostEqual(self.ew.resistors['R_EW-ext_EW1'], 0.05)
-    #     self.assertEqual(self.ew.ext_surface.zone, 'EXT')
-    #     self.assertEqual(self.ew.int_surface.zone, 'LIV')
-    #
-    #     self.assertEqual(len(self.iw.capacitors), 2)
-    #     self.assertAlmostEqual(self.iw.capacitors['C_IW1'], 1e5)
-    #     self.assertEqual(len(self.iw.resistors), 3)
-    #     self.assertAlmostEqual(self.iw.resistors['R_LIV_IW-ext'], 0.1)
-    #     self.assertAlmostEqual(self.iw.resistors['R_IW1_IW2'], 0.1)
-    #     self.assertEqual(self.iw.ext_surface.zone, 'LIV')
-    #     self.assertEqual(self.iw.int_surface.zone, '')
-    #
-    #     self.assertEqual(len(self.aw.capacitors), 1)
-    #     self.assertAlmostEqual(self.aw.capacitors['C_AW1'], 1e5)
-    #     self.assertEqual(len(self.aw.resistors), 4)
-    #     self.assertAlmostEqual(self.aw.resistors['R_GAR_AW-ext'], 0.1)
-    #     self.assertAlmostEqual(self.aw.resistors['R_AW1_AW-int'], 0.05)
-    #
-    #     self.assertEqual(self.ff.is_int, False)
-    #     self.assertEqual(self.aw.is_int, True)
-    #     self.assertEqual(self.iw.is_int, True)
-    #
-
-class EnvelopeTestCase(unittest.TestCase):
-    """
-    Test Case to test the Envelope Model class.
-    """
-
-    def setUp(self):
-        self.env = Envelope(**init_args)
-
-    def test_initialize(self):
-        # Zones and boundaries
-        self.assertEqual(len(self.env.zones), 4)
-        self.assertEqual(len(self.env.boundaries), 16)
-        self.assertEqual(len(self.env.ext_boundaries), 7)
-        self.assertEqual(len(self.env.int_boundaries), 7)
-        self.assertIsNotNone(self.env.indoor_zone)
-
-        # Furniture capacitance
-        self.assertAlmostEqual(self.env.indoor_zone.capacitance, 1e6)
-
-        # States and Inputs
-        self.assertIn('T_LIV', self.env.state_names)
-        self.assertIn('T_GW1', self.env.state_names)
-        self.assertIn('T_AW1', self.env.state_names)
-        self.assertIn('T_IW2', self.env.state_names)
-        self.assertIn('T_GM1', self.env.state_names)
-        self.assertIn('H_LIV', self.env.input_names)
-        self.assertIn('H_GW1', self.env.input_names)
-        self.assertNotIn('H_IW2', self.env.input_names)
-        self.assertIn('T_EXT', self.env.input_names)
-        self.assertEqual(len(self.env.states), 22)
-        self.assertEqual(len(self.env.inputs), 23)
-
-        liv_idx = self.env.indoor_zone.t_idx
-        self.assertAlmostEqual(self.env.states[liv_idx], 21)
-        self.assertLess(self.env.states.max(), 30)
-        self.assertGreater(self.env.states.min(), 10)
-
-        # Matrices
-        self.assertTrue(all(self.env.A.diagonal() < 1))
-        self.assertGreater(self.env.A[liv_idx, liv_idx], 0.5)
-
-        # Occupancy
-        self.assertEqual(self.env.occupancy_sensible_gain, 1.2)
-
-    def test_update_radiation(self):
-        liv_idx = self.env.indoor_zone.h_idx
-
-        # test with no solar radiation
-        self.env.update_radiation(update_args1)
-        self.assertAlmostEqual(self.env.inputs[liv_idx], -40, places=-1)
-
-        # test with solar + LWR
-        self.env.update_radiation(update_args2)
-        self.assertAlmostEqual(self.env.inputs[liv_idx], -70, places=-1)
-
-    def test_update_infiltration(self):
-        # cold update
-        self.env.update_infiltration(update_args1)
-        self.assertAlmostEqual(self.env.indoor_zone.inf_flow, 0.01, places=2)
-        self.assertAlmostEqual(self.env.indoor_zone.forced_vent_flow, 0, places=5)
-        self.assertAlmostEqual(self.env.indoor_zone.air_changes, 0.2, places=1)
-        self.assertAlmostEqual(self.env.indoor_zone.inf_heat, -40, places=-1)
-
-        # warm update
-        self.env.update_infiltration(update_args2)
-        self.assertAlmostEqual(self.env.indoor_zone.inf_flow, 0.07, places=2)
-        self.assertAlmostEqual(self.env.indoor_zone.inf_heat, 680, places=-1)
-
-    def test_reset_env_inputs(self):
-        self.env.inputs += 10
-        liv_idx = self.env.indoor_zone.h_idx
-
-        self.env.update_inputs(update_args1)
-        self.assertEqual(self.env.inputs[self.env.ext_zones['EXT'].t_idx], 15)
-        self.assertAlmostEqual(self.env.inputs[liv_idx], -80, places=-1)
-
-        self.env.update_inputs(update_args2)
-        self.assertEqual(self.env.inputs[self.env.ext_zones['EXT'].t_idx], 30)
-        self.assertAlmostEqual(self.env.inputs[liv_idx], 660, places=-1)
-
-    def test_update(self):
-        liv_idx = self.env.indoor_zone.t_idx
-
-        # Cold update
-        self.env.update_inputs(update_args1)
-        temp = self.env.states[liv_idx]
-        self.env.update(schedule=update_args1)
-        self.assertLess(self.env.states[liv_idx], temp)
-        self.assertEqual(self.env.states[liv_idx], self.env.indoor_zone.temperature)
-        self.assertEqual(self.env.states[liv_idx], self.env.zones['LIV'].temperature)
-
-        # Hot update
-        self.env.update_inputs(update_args2)
-        temp = self.env.states[liv_idx]
-        self.env.update(schedule=update_args2)
-        self.assertGreater(self.env.states[liv_idx], temp)
-
-        # Unmet loads
-        self.env.states[liv_idx] = 25
-        self.env.indoor_zone.temperature = 25
-        self.env.update_inputs(update_args2)
-        self.env.update(schedule=update_args2)
-        self.assertAlmostEqual(self.env.unmet_hvac_load, 3.3, places=1)
-
-    def test_linear_radiation(self):
-        self.env_linear = Envelope(use_linear_radiation=True, **init_args)
-
-        # check for same state/input names, but not same state values
-        self.assertListEqual(self.env.state_names, self.env_linear.state_names)
-        self.assertListEqual(self.env.input_names, self.env_linear.input_names)
-        self.assertFalse(np.equal(self.env.states, self.env_linear.states).all())
-
-        # check that indoor zone dynamics are similar but not the same
-        env_indoor_a = self.env.A[self.env.indoor_zone.t_idx, self.env.indoor_zone.t_idx]
-        env_linear_indoor_a = self.env_linear.A[self.env_linear.indoor_zone.t_idx, self.env_linear.indoor_zone.t_idx]
-        self.assertGreater(env_indoor_a, env_linear_indoor_a)
-        self.assertAlmostEqual(env_indoor_a - env_linear_indoor_a, 0.02, places=2)
-
-    def test_get_main_states(self):
-        result = self.env.get_zone_temperature()
-        self.assertEqual(len(result), 6)
-
-    def test_generate_results(self):
-        results = self.env.generate_results(1)
-        self.assertEqual(len(results), 9)
-        self.assertIn('Temperature - Indoor (C)', results)
-        self.assertEqual(results['Temperature - Indoor (C)'], self.env.indoor_zone.temperature)
-
-        results = self.env.generate_results(4)
-        self.assertEqual(len(results), 23)
-        self.assertIn('Relative Humidity - Indoor (-)', results)
-        self.assertEqual(results['Relative Humidity - Indoor (-)'], self.env.indoor_zone.humidity.rh)
-
-        results = self.env.generate_results(7)
-        self.assertEqual(len(results), 25)
-        self.assertIn('Indoor Air Density (kg/m^3)', results)
-
-        results = self.env.generate_results(8)
-        self.assertEqual(len(results), 129)
-        self.assertIn('T_LIV', results)
-        self.assertEqual(results['T_LIV'], self.env.indoor_zone.temperature)
-        self.assertIn('H_LIV', results)
-        self.assertEqual(results['H_LIV'], self.env.inputs[self.env.indoor_zone.h_idx])
+    def test_exterior_zone_init(self):
+        """Test ExteriorZone initialization"""
+        ext_zone = ExteriorZone("Outdoor", "EXT")
+        self.assertEqual(ext_zone.name, "Outdoor")
+        self.assertEqual(ext_zone.label, "EXT")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

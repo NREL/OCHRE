@@ -11,7 +11,7 @@ import ochre.utils.equipment as utils_equipment
 
 
 ZONE_NAME_OPTIONS = {
-    "Indoor": ["conditioned space"],
+    "Indoor": ["conditioned space", "living space"],
     "Foundation": [
         "crawlspace",
         "basement",
@@ -85,9 +85,7 @@ def parse_zone_name(hpxml_name):
     return None
 
 
-def get_boundaries_by_zones(
-    boundaries, default_int_zone="Indoor", default_ext_zone="Outdoor"
-):
+def get_boundaries_by_zones(boundaries, default_int_zone="Indoor", default_ext_zone="Outdoor"):
     bd_by_zones = {}
     for name, boundary in boundaries.items():
         interior = parse_zone_name(boundary.get("InteriorAdjacentTo"))
@@ -149,9 +147,7 @@ def parse_hpxml_surface(bd_name, bd_data):
         out["Azimuth (deg)"] = azimuth
 
     # Add R value if it exists
-    r_value = bd_data.get("Insulation", {}).get(
-        "AssemblyEffectiveRValue", bd_data.get("RValue")
-    )
+    r_value = bd_data.get("Insulation", {}).get("AssemblyEffectiveRValue", bd_data.get("RValue"))
     if r_value:
         out["Boundary R Value"] = r_value
 
@@ -178,9 +174,7 @@ def parse_hpxml_surface(bd_name, bd_data):
     elif "Floor" in bd_name and bd_data.get("Exterior Zone") == "Ground":
         out.update(
             {
-                "Insulation Details": utils_envelope.get_slab_insulation(
-                    bd_data, bd_name
-                ),
+                "Insulation Details": utils_envelope.get_slab_insulation(bd_data, bd_name),
             }
         )
     elif bd_name == "Foundation Wall":
@@ -217,9 +211,7 @@ def parse_hpxml_surface(bd_name, bd_data):
                     "UFactor",
                 ),
                 "SHGC (-)": bd_data.get("SHGC"),
-                "Shading Fraction (-)": bd_data.get("InteriorShading", {}).get(
-                    "SummerShadingCoefficient"
-                ),
+                "Shading Fraction (-)": bd_data.get("InteriorShading", {}).get("SummerShadingCoefficient"),
             }
         )
 
@@ -246,10 +238,7 @@ def parse_hpxml_boundary(bd_name, bd_data):
         areas, azs = out["Area (m^2)"], out["Azimuth (deg)"]
         az_unique = set(azs)
         if len(az_unique) < len(azs):
-            out["Area (m^2)"] = [
-                sum([area for area, az in zip(areas, azs) if az == az2])
-                for az2 in az_unique
-            ]
+            out["Area (m^2)"] = [sum([area for area, az in zip(areas, azs) if az == az2]) for az2 in az_unique]
             out["Azimuth (deg)"] = list(az_unique)
 
     return out
@@ -260,24 +249,14 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     construction = hpxml["BuildingSummary"]["BuildingConstruction"]
 
     # Get variables for calculating zone volumes, check geometry assumptions
-    conditioned_floor_area = convert(
-        construction["ConditionedFloorArea"], "ft^2", "m^2"
-    )  # indoor + foundation
-    conditioned_volume = convert(
-        construction["ConditionedBuildingVolume"], "ft^3", "m^3"
-    )
+    conditioned_floor_area = convert(construction["ConditionedFloorArea"], "ft^2", "m^2")  # indoor + foundation
+    conditioned_volume = convert(construction["ConditionedBuildingVolume"], "ft^3", "m^3")
     # aspect_ratio = kwargs.get('aspect ratio', 1.8)  # assumes length (sides of house) is shorter than width
     # house_length = (floor_area / aspect_ratio) ** 0.5
     # house_width = house_length * aspect_ratio
     ceiling_height = conditioned_volume / conditioned_floor_area
     if "AverageCeilingHeight" in construction:
-        assert (
-            abs(
-                convert(construction["AverageCeilingHeight"], "ft", "m")
-                - ceiling_height
-            )
-            < 0.1
-        )
+        assert abs(convert(construction["AverageCeilingHeight"], "ft", "m") - ceiling_height) < 0.1
 
     # Get number of bedrooms and bathrooms
     n_beds = construction["NumberofBedrooms"]
@@ -286,9 +265,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     # Get foundation type
     # TODO: if fnd wall insulation doesn't depend on foundation type, move this to parse_hpxml_zones
     total_floors = construction["NumberofConditionedFloors"]
-    indoor_floors = construction.get(
-        "NumberofConditionedFloorsAboveGrade", total_floors
-    )
+    indoor_floors = construction.get("NumberofConditionedFloorsAboveGrade", total_floors)
     assert indoor_floors >= 1
     foundations = list(enclosure.get("Foundations", {}).values())
     if not foundations:
@@ -332,6 +309,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     adj_walls = all_walls.pop(("Indoor", "Indoor"), {})
     adj_attic_walls = all_walls.pop(("Attic", "Attic"), {})
     adj_gar_walls = all_walls.pop(("Garage", "Garage"), {})
+    attic_gar_walls = all_walls.pop(("Garage", "Attic"), {})  # FIXME: What do we do with these walls?
     assert not all_walls  # verifies that all boundaries are accounted for
 
     # Get foundation walls
@@ -342,9 +320,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     assert not all_fnd_walls  # verifies that all boundaries are accounted for
 
     # Get ceilings and non-slab floors, i.e. FrameFloors
-    all_ceilings = get_boundaries_by_zones(
-        {**enclosure.get("Floors", {}), **enclosure.get("FrameFloors", {})}
-    )
+    all_ceilings = get_boundaries_by_zones({**enclosure.get("Floors", {}), **enclosure.get("FrameFloors", {})})
     ceilings = all_ceilings.pop(("Indoor", "Attic"), {})
     fnd_ceilings = all_ceilings.pop(("Indoor", "Foundation"), {})
     raised_floors = all_ceilings.pop(("Indoor", "Outdoor"), {})
@@ -354,18 +330,12 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
     assert not all_ceilings  # verifies that all boundaries are accounted for
 
     # Separate adjacent floors and ceilings (may have different insulation levels)
-    adj_floors = {
-        key: val
-        for key, val in adj_ceilings.items()
-        if val.get("FloorOrCeiling") == "floor"
-    }
+    adj_floors = {key: val for key, val in adj_ceilings.items() if val.get("FloorOrCeiling") == "floor"}
     for key in adj_floors:
         adj_ceilings.pop(key)
 
     # Get floors (slabs in HPXML)
-    all_slabs = get_boundaries_by_zones(
-        enclosure.get("Slabs", {}), default_ext_zone="Ground"
-    )
+    all_slabs = get_boundaries_by_zones(enclosure.get("Slabs", {}), default_ext_zone="Ground")
     floors = all_slabs.pop(("Indoor", "Ground"), {})
     fnd_floors = all_slabs.pop(("Foundation", "Ground"), {})
     garage_floors = all_slabs.pop(("Garage", "Ground"), {})
@@ -394,9 +364,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
 
     # Get doors (only accepts doors to indoor zone and garage), and subtract wall area
     all_doors = enclosure.get("Doors", {})
-    doors, gar_doors, attic_doors = get_boundaries_by_wall(
-        all_doors, ext_walls, gar_walls, attic_walls, adj_walls
-    )
+    doors, gar_doors, attic_doors = get_boundaries_by_wall(all_doors, ext_walls, gar_walls, attic_walls, adj_walls)
     assert not attic_doors
 
     boundaries = {
@@ -408,6 +376,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
         "Foundation Wall": fnd_walls,
         # 'Foundation Above-ground Wall': fnd_walls_above,
         "Adjacent Attic Wall": adj_attic_walls,
+        "Attic Garage Wall": attic_gar_walls,
         "Adjacent Garage Wall": adj_gar_walls,
         "Adjacent Foundation Wall": adj_fnd_wall,
         "Attic Floor": ceilings,
@@ -445,64 +414,46 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
 
         # Add siding to garage attached walls - taken from exterior walls
         if bd_name == "Garage Attached Wall":
-            boundaries[bd_name]["Finish Type"] = boundaries["Exterior Wall"][
-                "Finish Type"
-            ]
+            boundaries[bd_name]["Finish Type"] = boundaries["Exterior Wall"]["Finish Type"]
 
     # Get main floor area - should have only 1 main floor boundary option
     main_floor_options = ["Floor", "Foundation Floor", "Raised Floor", "Adjacent Floor"]
     main_floor_areas = [
-        area
-        for floor_option in main_floor_options
-        for area in boundaries.get(floor_option, {}).get("Area (m^2)", [])
+        area for floor_option in main_floor_options for area in boundaries.get(floor_option, {}).get("Area (m^2)", [])
     ]
     if len(main_floor_areas) == 1:
         first_floor_area = main_floor_areas[
             0
         ]  # area of first (lowest above grade) floor. Excludes garage
     else:
-        raise OCHREException(
-            f"Unable to parse multiple floor areas: {main_floor_areas}"
-        )
+        raise OCHREException(f"Unable to parse multiple floor areas: {main_floor_areas}")
 
     # Get attic and top floor area - should have only 1 attic floor boundary option (plus maybe 'Garage Ceiling')
     top_floor_options = ["Attic Floor", "Roof", "Adjacent Ceiling"]
     top_floor_areas = [
-        area
-        for floor_option in top_floor_options
-        for area in boundaries.get(floor_option, {}).get("Area (m^2)", [])
+        area for floor_option in top_floor_options for area in boundaries.get(floor_option, {}).get("Area (m^2)", [])
     ]
     if len(top_floor_areas) == 1:
         top_floor_area = top_floor_areas[
             0
         ]  # area of first (lowest above grade) floor. Excludes garage
     else:
-        raise OCHREException(
-            f"Unable to parse multiple attic floor areas: {top_floor_areas}"
-        )
-    attic_floor_area = top_floor_area + sum(
-        boundaries.get("Garage Ceiling", {}).get("Area (m^2)", [])
-    )
+        raise OCHREException(f"Unable to parse multiple attic floor areas: {top_floor_areas}")
+    attic_floor_area = top_floor_area + sum(boundaries.get("Garage Ceiling", {}).get("Area (m^2)", []))
 
     if "Garage Floor" in boundaries:
         # get garage area and wall height
         garage_floor_area = boundaries["Garage Floor"]["Area (m^2)"][0]
-        garage_wall_ar = boundaries["Garage Wall"]["Area (m^2)"] + boundaries.get(
-            "Adjacent Garage Wall", {}
-        ).get("Area (m^2)", [])
-        garage_wall_az = boundaries["Garage Wall"]["Azimuth (deg)"] + boundaries.get(
-            "Adjacent Garage Wall", {}
-        ).get("Azimuth (deg)", [])
+        garage_wall_ar = boundaries["Garage Wall"]["Area (m^2)"] + boundaries.get("Adjacent Garage Wall", {}).get(
+            "Area (m^2)", []
+        )
+        garage_wall_az = boundaries["Garage Wall"]["Azimuth (deg)"] + boundaries.get("Adjacent Garage Wall", {}).get(
+            "Azimuth (deg)", []
+        )
         garage_wall_az = [az % 180 for az in garage_wall_az]
         a1, a2 = tuple(
             [
-                max(
-                    [
-                        ar
-                        for ar, az in zip(garage_wall_ar, garage_wall_az)
-                        if az == azimuth
-                    ]
-                )
+                max([ar for ar, az in zip(garage_wall_ar, garage_wall_az) if az == azimuth])
                 for azimuth in set(garage_wall_az)
             ]
         )
@@ -518,31 +469,17 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
             garage_area_in_main = a1 * a2 / garage_wall_height**2
         elif n_walls == 3:
             # usually for 2-story home with protruding garage. 2 regular walls + 1 gable wall
-            attached_wall_azimuths = [
-                az % 180 for az in boundaries["Garage Attached Wall"]["Azimuth (deg)"]
-            ]
+            attached_wall_azimuths = [az % 180 for az in boundaries["Garage Attached Wall"]["Azimuth (deg)"]]
             a1, a2 = tuple(
                 [
-                    max(
-                        [
-                            ar
-                            for ar, az in zip(
-                                attached_wall_areas, attached_wall_azimuths
-                            )
-                            if az == azimuth
-                        ]
-                    )
+                    max([ar for ar, az in zip(attached_wall_areas, attached_wall_azimuths) if az == azimuth])
                     for azimuth in set(attached_wall_azimuths)
                 ]
             )
             garage_area_in_main = a1 * a2 / garage_wall_height**2
         else:
-            raise OCHREException(
-                "Invalid geometry. Cannot parse more than 3 garage walls."
-            )
-        assert (
-            0 <= garage_area_in_main / garage_floor_area < 1.001
-        )  # should be close to 50% for ResStock cases
+            raise OCHREException("Invalid geometry. Cannot parse more than 3 garage walls.")
+        assert 0 <= garage_area_in_main / garage_floor_area < 1.001  # should be close to 50% for ResStock cases
     else:
         garage_floor_area = 0
         garage_area_in_main = 0
@@ -561,8 +498,7 @@ def parse_hpxml_boundaries(hpxml, return_boundary_dicts=False, **kwargs):
             "First Floor Area (m^2)": first_floor_area,
             "Attic Floor Area (m^2)": attic_floor_area,
             "Garage Floor Area (m^2)": garage_floor_area,
-            "Garage Protruded Area (m^2)": garage_floor_area
-            - garage_area_in_main,  # area not in main rectangle
+            "Garage Protruded Area (m^2)": garage_floor_area - garage_area_in_main,  # area not in main rectangle
             "Indoor Floor Area (m^2)": indoor_floor_area,
         }
     )
@@ -578,21 +514,13 @@ def parse_indoor_infiltration(hpxml, construction, equipment):
     site = hpxml["BuildingSummary"]["Site"]
 
     # Check if house has a flue or chimney
-    has_flue_or_chimney = indoor_infiltration.get("extension", {}).get(
-        "HasFlueOrChimneyInConditionedSpace"
-    )
+    has_flue_or_chimney = indoor_infiltration.get("extension", {}).get("HasFlueOrChimneyInConditionedSpace")
     if has_flue_or_chimney is None:
         # TODO: equipment has to be in conditioned space (indoor or conditioned basement)
         heater = equipment.get("HVAC Heating", {})
-        gas_heater = (
-            heater.get("Fuel", "Electricity") != "Electricity"
-            and (1 / heater.get("EIR (-)", 1)) < 0.89
-        )
+        gas_heater = heater.get("Fuel", "Electricity") != "Electricity" and (1 / heater.get("EIR (-)", 1)) < 0.89
         wh = equipment.get("Water Heating", {})
-        gas_wh = (
-            wh.get("Fuel", "Electricity") != "Electricity"
-            and wh.get("Energy Factor (-)", 1) < 0.63
-        )
+        gas_wh = wh.get("Fuel", "Electricity") != "Electricity" and wh.get("Energy Factor (-)", 1) < 0.63
         has_flue_or_chimney = gas_heater or gas_wh
 
     return utils_envelope.calculate_ashrae_infiltration_params(
@@ -622,9 +550,7 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
 
     # Indoor ventilation parameters - Whole ventilation fans only
     # Note: Indoor infiltration parameters depend on equipment, added in add_indoor_infiltration
-    nat_ventilation_params = utils_envelope.calculate_ela_coefficients(
-        "Indoor", building_height
-    )
+    nat_ventilation_params = utils_envelope.calculate_ela_coefficients("Indoor", building_height)
     zones = {
         "Indoor": {
             "Zone Area (m^2)": indoor_floor_area,
@@ -632,23 +558,13 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
             **nat_ventilation_params,
         }
     }
-    vent_fans = (
-        hpxml["Systems"].get("MechanicalVentilation", {}).get("VentilationFans", {})
-    )
-    vent_fans = {
-        key: val
-        for key, val in vent_fans.items()
-        if val.get("UsedForWholeBuildingVentilation", False)
-    }
+    vent_fans = hpxml["Systems"].get("MechanicalVentilation", {}).get("VentilationFans", {})
+    vent_fans = {key: val for key, val in vent_fans.items() if val.get("UsedForWholeBuildingVentilation", False)}
     if vent_fans:
         assert len(vent_fans) == 1
         vent_fan = list(vent_fans.values())[0]
         fan_type = vent_fan["FanType"]
-        balanced = fan_type in [
-            "energy recovery ventilator",
-            "heat recovery ventilator",
-            "balanced",
-        ]
+        balanced = fan_type in ["energy recovery ventilator", "heat recovery ventilator", "balanced"]
         if "recovery ventilator" in fan_type:
             assert "SensibleRecoveryEfficiency" in vent_fan
         sensible_recovery = vent_fan.get("SensibleRecoveryEfficiency", 0)
@@ -673,25 +589,37 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
         attic = attics[0]
 
         # Get gable wall areas for attic and (possibly) garage
-        attic_wall_areas = boundaries.get("Attic Wall", {}).get(
-            "Area (m^2)", []
-        ) + boundaries.get("Adjacent Attic Wall", {}).get("Area (m^2)", [])
-        if len(attic_wall_areas) == 2:
-            # standard gable roof with attic
-            assert (
-                abs(attic_wall_areas[1] - attic_wall_areas[0]) < 0.2
-            )  # computational errors possible
-            attic_gable_area = attic_wall_areas[0]
-            third_gable_area = 0
-        elif has_garage and len(attic_wall_areas) == 3:
-            # 2 attic gables plus 1 garage gable, garage gable has area that is 'more different'
-            attic_gable_area = attic_wall_areas[1]
-            low, med, high = tuple(sorted(attic_wall_areas))
-            third_gable_area = low if med - low > high - med else high
-        else:
-            raise OCHREException(
-                "Unable to calculate attic area, likely an issue with gable walls."
+        if (
+            boundaries.get("Attic Garage Wall", {}).get("Area (m^2)") is not None
+        ):  # TODO: for now, if we see walls between attic and garage, calculated geometry differently. May be neglecting some heat transfer between garage/attic boundary
+            attic_wall_areas = (
+                boundaries.get("Attic Wall", {}).get("Area (m^2)", [])
+                + boundaries.get("Adjacent Attic Wall", {}).get("Area (m^2)", [])
+                + boundaries.get("Attic Garage Wall", {}).get("Area (m^2)", [])
             )
+            attic_gable_area = max(
+                attic_wall_areas[0], attic_wall_areas[1]
+            )  # Note: if garage in on the same end as gable wall, area[0] != area[1]
+            third_gable_area = 0
+
+            del boundaries["Attic Garage Wall"]  # FIXME: we need to be able to handle this at some point
+        else:
+            attic_wall_areas = boundaries.get("Attic Wall", {}).get("Area (m^2)", []) + boundaries.get(
+                "Adjacent Attic Wall", {}
+            ).get("Area (m^2)", [])
+
+            if len(attic_wall_areas) == 2:
+                # standard gable roof with attic
+                assert abs(attic_wall_areas[1] - attic_wall_areas[0]) < 0.2  # computational errors possible
+                attic_gable_area = attic_wall_areas[0]
+                third_gable_area = 0
+            elif has_garage and len(attic_wall_areas) == 3:
+                # 2 attic gables plus 1 garage gable, garage gable has area that is 'more different'
+                attic_gable_area = attic_wall_areas[1]
+                low, med, high = tuple(sorted(attic_wall_areas))
+                third_gable_area = low if med - low > high - med else high
+            else:
+                raise OCHREException("Unable to calculate attic area, likely an issue with gable walls.")
 
         # Get attic properties
         # tan(roof_tilt) = height / (width / 2)
@@ -732,16 +660,12 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
             )
         elif inf_units == "SLA":
             # Update ELA based on attic area
-            attic_ela = (
-                attic["VentilationRate"]["Value"] * attic_floor_area * 1e4
-            )  # m^2 to cm^2
+            attic_ela = attic["VentilationRate"]["Value"] * attic_floor_area * 1e4  # m^2 to cm^2
             zones["Attic"].update(
                 {
                     "Infiltration Method": "ELA",
                     "ELA (cm^2)": attic_ela,
-                    **utils_envelope.calculate_ela_coefficients(
-                        "Attic", attic_height, building_height
-                    ),
+                    **utils_envelope.calculate_ela_coefficients("Attic", attic_height, building_height),
                 }
             )
         elif not vented and inf_units is None:
@@ -752,9 +676,7 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
                 }
             )
         else:
-            raise OCHREException(
-                f"Cannot parse Attic infiltration rate from properties: {attic}"
-            )
+            raise OCHREException(f"Cannot parse Attic infiltration rate from properties: {attic}")
 
     # Add foundation zone
     if construction["Foundation Type"] is not None:
@@ -773,9 +695,7 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
 
         # Get foundation infiltration parameters (takes ACH or SLA)
         if construction["Foundation Type"] == "Crawlspace":
-            zones["Foundation"]["Vented"] = foundation.get("FoundationType")[
-                "Crawlspace"
-            ].get("Vented", True)
+            zones["Foundation"]["Vented"] = foundation.get("FoundationType")["Crawlspace"].get("Vented", True)
         else:
             zones["Foundation"]["Vented"] = False
 
@@ -794,9 +714,7 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
                 {
                     "Infiltration Method": "ELA",
                     "ELA (cm^2)": fnd_ela,
-                    **utils_envelope.calculate_ela_coefficients(
-                        "Foundation", foundation_height
-                    ),
+                    **utils_envelope.calculate_ela_coefficients("Foundation", foundation_height),
                 }
             )
         elif zones["Foundation"]["Vented"]:
@@ -818,9 +736,7 @@ def parse_hpxml_zones(hpxml, boundaries, construction):
     if has_garage:
         # Note: garage roof space is included in attic for 1-story homes
         # FUTURE: convert to ELA? Can use 1sqft at 4.9 SLA = 1.2854145 CFM50, will need to convert ACH50 to ACH
-        garage_volume = (
-            garage_floor_area * ceiling_height
-        )  # excluding garage attic space
+        garage_volume = garage_floor_area * ceiling_height  # excluding garage attic space
         garage_roof_areas = boundaries.get("Garage Roof", {}).get("Area (m^2)", [])
         if len(garage_roof_areas) > 0:
             # add garage roof space - should work for triangle roof or gable roof
@@ -846,10 +762,7 @@ def add_interior_boundaries(hpxml, boundaries, zones):
     if int_walls:
         # For now, require the defaults
         assert int_walls.get("AreaFraction", 1.0) == 1.0
-        assert (
-            int_walls.get("InteriorFinish", {}).get("Type", "gypsum board")
-            == "gypsum board"
-        )
+        assert int_walls.get("InteriorFinish", {}).get("Type", "gypsum board") == "gypsum board"
         assert int_walls.get("InteriorFinish", {}).get("Thickness", 0.5) == 0.5
     boundaries["Interior Wall"] = {
         "Area (m^2)": [zones["Indoor"]["Zone Area (m^2)"]],
@@ -1372,9 +1285,7 @@ def parse_hvac(hvac_type, hvac_all):
     heat_pump = hvac_all.get("HVACPlant", {}).get("HeatPump")
     # FIXME: Support dual-fuel heat pumps in the future, which would require both heating system and heat pump inputs to be provided.
     if system and heat_pump:
-        raise OCHREException(
-            f"HVAC {hvac_type} system and heat pump cannot both be specified."
-        )
+        raise OCHREException(f"HVAC {hvac_type} system and heat pump cannot both be specified.")
     elif not system and not heat_pump:
         return None
     has_heat_pump = bool(heat_pump)
@@ -1491,18 +1402,14 @@ def parse_hvac(hvac_type, hvac_all):
     if name == "Boiler":
         # Note: ResStock assumes 2080 hours/year, see hvac.rb line 1754 (get_default_boiler_eae)
         # see also ANSI/RESNET/ICC 301-2019 Equation 4.4-5
-        aux_power = (
-            hvac.get("ElectricAuxiliaryEnergy", 0) / 2080 * 1000
-        )  # converts kWh/year to W
+        aux_power = hvac.get("ElectricAuxiliaryEnergy", 0) / 2080 * 1000  # converts kWh/year to W
     elif "FanPowerWattsPerCFM" in hvac_ext:
         # Note: air flow rate is only used for non-dymanic HVAC models with fans, e.g., furnaces
         # airflow_cfm = hvac_ext.get(f'{hvac_type}AirflowCFM', 0)
         if design_airflow_cfm is None:
             design_airflow_cfm = utils_equipment.get_design_cfm_per_ton(name) * convert(capacity, "W", "refrigeration_ton")
         power_per_cfm = hvac_ext.get("FanPowerWattsPerCFM", 0)
-        aux_power = (
-            power_per_cfm * design_airflow_cfm
-        )
+        aux_power = power_per_cfm * design_airflow_cfm
     else:
         aux_power = hvac_ext.get("FanPowerWatts", 0)
 
@@ -1542,12 +1449,8 @@ def parse_hvac(hvac_type, hvac_all):
         weekend_setpoints = extension[f"WeekendSetpointTemps{hvac_type}Season"]
         out.update(
             {
-                "Weekday Setpoints (C)": convert(
-                    weekday_setpoints, "degF", "degC"
-                ).tolist(),
-                "Weekend Setpoints (C)": convert(
-                    weekend_setpoints, "degF", "degC"
-                ).tolist(),
+                "Weekday Setpoints (C)": convert(weekday_setpoints, "degF", "degC").tolist(),
+                "Weekend Setpoints (C)": convert(weekend_setpoints, "degF", "degC").tolist(),
             }
         )
     elif f"SetpointTemp{hvac_type}Season" in controls:
@@ -1555,10 +1458,8 @@ def parse_hvac(hvac_type, hvac_all):
         weekend_setpoint = controls[f"SetpointTemp{hvac_type}Season"]
         out.update(
             {
-                "Weekday Setpoints (C)": [convert(weekday_setpoint, "degF", "degC")]
-                * 24,
-                "Weekend Setpoints (C)": [convert(weekend_setpoint, "degF", "degC")]
-                * 24,
+                "Weekday Setpoints (C)": [convert(weekday_setpoint, "degF", "degC")] * 24,
+                "Weekend Setpoints (C)": [convert(weekend_setpoint, "degF", "degC")] * 24,
             }
         )
 
@@ -1582,9 +1483,7 @@ def parse_hvac(hvac_type, hvac_all):
         lct = er_lockout_temp if er_lockout_temp else hp_lockout_temp
         if backup_capacity:
             if backup_fuel != "electricity":
-                print(
-                    f"WARNING: Using electric resistance backup for ASHP instead of {backup_fuel} backup"
-                )
+                print(f"WARNING: Using electric resistance backup for ASHP instead of {backup_fuel} backup")
 
             out.update(
                 {
@@ -1664,14 +1563,13 @@ def parse_hvac(hvac_type, hvac_all):
     distribution_type = distribution.get("DistributionSystemType", {})
     air_distribution = distribution_type.get("AirDistribution", {})
     duct_leakage = air_distribution.get("DuctLeakageMeasurement")
-    ducts = [
-        d
-        for d in air_distribution.get("Ducts", {}).values()
-        if parse_zone_name(d.get("DuctLocation")) not in ["Indoor", None]
-    ]
+    ducts = air_distribution.get("Ducts", [])
+    if isinstance(ducts, dict):
+        ducts = list(ducts.values())
+    ducts = [d for d in ducts if parse_zone_name(d.get("DuctLocation")) not in ["Indoor", None]]
 
     if f"Annual{hvac_type}DistributionSystemEfficiency" in distribution:
-        # Note, ducts are assumed to be in ambient space, DSE l=osses aren't added to another zone
+        # Note, ducts are assumed to be in ambient space, DSE losses aren't added to another zone
         out["Ducts"] = {
             "DSE (-)": distribution[f"Annual{hvac_type}DistributionSystemEfficiency"],
             "Zone": None,
@@ -1684,23 +1582,14 @@ def parse_hvac(hvac_type, hvac_all):
         duct_location = ducts[0]["DuctLocation"]
         duct_zone = parse_zone_name(duct_location)
         duct_info = {}
-        for duct, duct_leakage, duct_type in zip(
-            ducts, duct_leakage, ["supply", "return"]
-        ):
+        for duct, duct_leakage, duct_type in zip(ducts, duct_leakage, ["supply", "return"]):
             assert duct["DuctType"] == duct_type
             assert duct_leakage["DuctType"] == duct_type
-            assert (
-                duct_leakage["DuctLeakage"]["Units"] == "Percent"
-                or duct_leakage["DuctLeakage"]["Value"] == 0
-            )
+            assert duct_leakage["DuctLeakage"]["Units"] == "Percent" or duct_leakage["DuctLeakage"]["Value"] == 0
             duct_info.update(
                 {
-                    f"{duct_type.capitalize()} Leakage (-)": duct_leakage[
-                        "DuctLeakage"
-                    ]["Value"],
-                    f"{duct_type.capitalize()} Area (ft^2)": duct[
-                        "DuctSurfaceArea"
-                    ],  # * duct['FractionDuctArea'],
+                    f"{duct_type.capitalize()} Leakage (-)": duct_leakage["DuctLeakage"]["Value"],
+                    f"{duct_type.capitalize()} Area (ft^2)": duct["DuctSurfaceArea"],  # * duct['FractionDuctArea'],
                     f"{duct_type.capitalize()} R Value": duct["DuctInsulationRValue"],
                 }
             )
@@ -1884,6 +1773,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     # Inputs from HPXML
     water_heater_type = water_heater["WaterHeaterType"]
     is_electric = water_heater["FuelType"] == "electricity"
+    t_set = convert(water_heater.get("HotWaterTemperature", 125), "degF", "degC")
     energy_factor = water_heater.get("EnergyFactor")
     uniform_energy_factor = water_heater.get("UniformEnergyFactor")
     n_beds = construction["Number of Bedrooms (-)"]
@@ -1895,11 +1785,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     heating_capacity = water_heater.get("HeatingCapacity")
     first_hour_rating = water_heater.get("FirstHourRating")
     recovery_efficiency = water_heater.get("RecoveryEfficiency")
-    tank_jacket_r = (
-        water_heater.get("WaterHeaterInsulation", {})
-        .get("Jacket", {})
-        .get("JacketRValue", 0)
-    )
+    tank_jacket_r = water_heater.get("WaterHeaterInsulation", {}).get("Jacket", {}).get("JacketRValue", 0)
 
     # calculate actual volume from rated volume
     if volume_gal is not None:
@@ -1912,9 +1798,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
         volume = None
 
     if energy_factor is None and uniform_energy_factor is None:
-        raise OCHREException(
-            "Energy Factor or Uniform Energy Factor input required for Water Heater."
-        )
+        raise OCHREException("Energy Factor or Uniform Energy Factor input required for Water Heater.")
 
     # calculate UA and eta_c for each water heater type
     if water_heater_type == "instantaneous water heater":
@@ -1966,16 +1850,14 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
         if not is_electric:
             if energy_factor is not None:
                 ua = (recovery_efficiency / energy_factor - 1.0) / (
-                    (t - t_env)
-                    * (24.0 / q_load - 1.0 / (heating_capacity * energy_factor))
+                    (t - t_env) * (24.0 / q_load - 1.0 / (heating_capacity * energy_factor))
                 )  # Btu/hr-F
                 eta_c = (
                     recovery_efficiency + ua * (t - t_env) / heating_capacity
                 )  # conversion efficiency is supposed to be calculated with initial tank ua
             else:
                 ua = ((recovery_efficiency / uniform_energy_factor) - 1.0) / (
-                    (t - t_env) * (24.0 / q_load)
-                    - ((t - t_env) / (heating_capacity * uniform_energy_factor))
+                    (t - t_env) * (24.0 / q_load) - ((t - t_env) / (heating_capacity * uniform_energy_factor))
                 )  # Btu/hr-F
                 eta_c = recovery_efficiency + (
                     (ua * (t - t_env)) / heating_capacity
@@ -1988,10 +1870,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
                 ua = (
                     q_load
                     * (1.0 / uniform_energy_factor - 1.0)
-                    / (
-                        (24.0 * (t - t_env))
-                        * (0.8 + 0.2 * ((t_in - t_env) / (t - t_env)))
-                    )
+                    / ((24.0 * (t - t_env)) * (0.8 + 0.2 * ((t_in - t_env) / (t - t_env))))
                 )
                 energy_factor = 2.4029 * uniform_energy_factor - 1.2844
             eta_c = 1.0
@@ -2003,20 +1882,15 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     if tank_jacket_r:
         jacket_insulation = 5.0  # R5, in F-ft2-hr/Btu
         jacket_thickness = 1 if is_electric and energy_factor < 0.7 else 2  # in inches
-        diameter = 2 * convert(
-            (volume / 1000 / height / math.pi) ** 0.5, "m", "ft"
-        )  # in ft
+        diameter = 2 * convert((volume / 1000 / height / math.pi) ** 0.5, "m", "ft")  # in ft
         a_side = math.pi * diameter * convert(height, "m", "ft")
-        u_pre_skin = 1.0 / (
-            jacket_thickness * jacket_insulation + 1.0 / 1.3 + 1.0 / 52.8
-        )
+        u_pre_skin = 1.0 / (jacket_thickness * jacket_insulation + 1.0 / 1.3 + 1.0 / 52.8)
         ua -= tank_jacket_r / (1.0 / u_pre_skin + tank_jacket_r) * u_pre_skin * a_side
     ua *= 1.0 - solar_fraction
 
     if ua < 0.0:
         raise OCHREException(
-            "A negative water heater standby loss coefficient (UA) was calculated."
-            " Double check water heater inputs."
+            "A negative water heater standby loss coefficient (UA) was calculated. Double check water heater inputs."
         )
     if eta_c > 1.0:
         raise OCHREException(
@@ -2028,9 +1902,8 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
         "Equipment Name": water_heater_type,
         "Fuel": water_heater["FuelType"].capitalize(),
         "Zone": parse_zone_name(water_heater["Location"]),
-        "Setpoint Temperature (C)": convert(
-            water_heater.get("HotWaterTemperature", 125), "degF", "degC"
-        ),
+        "Setpoint Temperature (C)": t_set,
+        "Tempering Valve Setpoint (C)": t_set,
         # 'Heat Transfer Coefficient (W/m^2/K)': u,
         "UA (W/K)": convert(ua, "Btu/hour/degR", "W/K"),
         "Efficiency (-)": eta_c,
@@ -2045,14 +1918,24 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
         # add HPWH COP, from ResStock, defaults to using UEF
         if uniform_energy_factor is None:
             uniform_energy_factor = (0.60522 + energy_factor) / 1.2101
-        cop = (
-            1.174536058 * uniform_energy_factor
-        )  # Based on simulation of the UEF test procedure at varying COPs
-        wh["HPWH COP (-)"] = cop
-    if (
-        water_heater_type == "instantaneous water heater"
-        and wh["Fuel"] != "Electricity"
-    ):
+
+        # Add/update parameters for low power HPWH
+        # FIXME: temporary flag for designating 120V HPWHs in panels branch of ResStock
+        if uniform_energy_factor == 4.9:
+            wh.update(
+                {
+                    "Low Power HPWH": True,
+                    "HPWH COP (-)": 4.2,
+                    "HPWH Capacity (W)": 1499.4,
+                    "Setpoint Temperature (C)": convert(140, "degF", "degC"),
+                    "Tempering Valve Setpoint (C)": convert(125, "degF", "degC"),
+                    "hp_only_mode": True,
+                }
+            )
+        else:
+            # Based on simulation of the UEF test procedure at varying COPs
+            wh["HPWH COP (-)"] = 1.174536058 * uniform_energy_factor
+    if water_heater_type == "instantaneous water heater" and wh["Fuel"] != "Electricity":
         on_time_frac = [0.0269, 0.0333, 0.0397, 0.0462, 0.0529][n_beds - 1]
         wh["Parasitic Power (W)"] = 5 + 60 * on_time_frac
 
@@ -2061,11 +1944,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     assert water_heater["FractionDHWLoadServed"] == 1
     extension = water.get("extension", {})
     fixture_usage_ref = 14.6 + 10.0 * n_beds_adj  # in gal/day
-    fixture_eff = (
-        0.95
-        if list(water.get("WaterFixture", {}).values())[0].get("LowFlow", False)
-        else 1.0
-    )
+    fixture_eff = 0.95 if list(water.get("WaterFixture", {}).values())[0].get("LowFlow", False) else 1.0
     fixture_multiplier = extension.get("WaterFixturesUsageMultiplier")
     fixture_gal_per_day = fixture_eff * fixture_usage_ref * fixture_multiplier
 
@@ -2079,31 +1958,18 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     distribution_type = distribution.get("SystemType", {})
     distribution_r = distribution.get("PipeInsulation", {}).get("PipeRValue", 0)
     if len(distribution_type) != 1:
-        raise OCHREException(
-            f"Cannot handle multiple water distribution types: {distribution_type}"
-        )
+        raise OCHREException(f"Cannot handle multiple water distribution types: {distribution_type}")
     elif "Standard" in distribution_type:
         distribution_factor = 0.9 if distribution_r >= 3 else 1.0
-        total_sqft = convert(
-            construction["Conditioned Floor Area (m^2)"], "m^2", "ft^2"
-        )
+        total_sqft = convert(construction["Conditioned Floor Area (m^2)"], "m^2", "ft^2")
         total_floors = construction["Total Floors"]
         has_unfin_bsmt = construction["Foundation Type"] == "Unfinished Basement"
-        default_length = (
-            2.0 * (total_sqft / total_floors) ** 0.5
-            + 10.0 * total_floors
-            + 5.0 * has_unfin_bsmt
-        )
-        p_ratio = (
-            distribution_type["Standard"].get("PipingLength", default_length)
-            / default_length
-        )
+        default_length = 2.0 * (total_sqft / total_floors) ** 0.5 + 10.0 * total_floors + 5.0 * has_unfin_bsmt
+        p_ratio = distribution_type["Standard"].get("PipingLength", default_length) / default_length
         wd_eff = 1.0
     elif "Recirculation" in distribution_type:
         distribution_factor = 1.0 if distribution_r >= 3 else 1.11
-        p_ratio = (
-            distribution_type["Recirculation"].get("BranchPipingLoopLength", 10) / 10
-        )
+        p_ratio = distribution_type["Recirculation"].get("BranchPipingLoopLength", 10) / 10
         wd_eff = 0.1
     else:
         print(f"Warning: Unknown water distribution type: {distribution_type}")
@@ -2119,9 +1985,7 @@ def parse_water_heater(water_heater, water, construction, solar_fraction=0):
     distribution_gal_per_day = mw_gpd * fixture_multiplier
 
     # Combine fixture and distribution water draws in schedule
-    wh["Fixture Average Water Draw (L/day)"] = convert(
-        fixture_gal_per_day + distribution_gal_per_day, "gallon/day", "L/day"
-    )
+    wh["Average Water Draw (L/day)"] = convert(fixture_gal_per_day + distribution_gal_per_day, "gallon/day", "L/day")
 
     return wh
 
@@ -2140,13 +2004,10 @@ def parse_clothes_washer(clothes_washer, n_bedrooms):
     elec_h20 = 0.0178  # (gal/cyc) per (kWh/y)
     lcy = usage * 52.0  # label cycles per year
     scy = 164.0 + n_bedrooms * 46.5
-    acy = scy * (
-        (3.0 * 2.08 + 1.59) / (capacity * 2.08 + 1.59)
-    )  # Annual Cycles per Year
-    cw_appl = (
-        gas_cost * gas_h20 / gas_rate
-        - (rated_annual_kwh * electric_rate) * elec_h20 / electric_rate
-    ) / (electric_rate * gas_h20 / gas_rate - elec_h20)
+    acy = scy * ((3.0 * 2.08 + 1.59) / (capacity * 2.08 + 1.59))  # Annual Cycles per Year
+    cw_appl = (gas_cost * gas_h20 / gas_rate - (rated_annual_kwh * electric_rate) * elec_h20 / electric_rate) / (
+        electric_rate * gas_h20 / gas_rate - elec_h20
+    )
     annual_kwh = cw_appl / lcy * acy
     annual_kwh *= multiplier
 
@@ -2178,9 +2039,7 @@ def parse_clothes_dryer(clothes_dryer, clothes_washer, n_bedrooms):
     if fuel_type in ["electricity", "natural gas"]:
         pass
     elif fuel_type in ["propane", "fuel oil"]:
-        print(
-            f"WARNING: Converting clothes dryer fuel from {fuel_type} to natural gas."
-        )
+        print(f"WARNING: Converting clothes dryer fuel from {fuel_type} to natural gas.")
     else:
         raise OCHREException(f"Invalid fuel type for clothes dryer: {fuel_type}")
     is_electric = fuel_type == "electricity"
@@ -2188,18 +2047,14 @@ def parse_clothes_dryer(clothes_dryer, clothes_washer, n_bedrooms):
     multiplier = clothes_dryer.get("extension", {}).get("UsageMultiplier", 1)
 
     washer_rated_annual_kwh = clothes_washer.get("RatedAnnualkWh", 400.0)
-    washer_imef = clothes_washer.get(
-        "IntegratedModifiedEnergyFactor", 1.0
-    )  # in ft^3 / (kWh/cyc)
+    washer_imef = clothes_washer.get("IntegratedModifiedEnergyFactor", 1.0)  # in ft^3 / (kWh/cyc)
     # modified_energy_factor = clothes_washer.get('ModifiedEnergyFactor', 0.503 + 0.95 * washer_imef)
     washer_capacity = clothes_washer.get("Capacity", 3.0)  # in ft^3
 
     rmc = (0.97 * (washer_capacity / washer_imef) - washer_rated_annual_kwh / 312.0) / (
         (2.0104 * washer_capacity + 1.4242) * 0.455
     ) + 0.04
-    acy = (164.0 + 46.5 * n_bedrooms) * (
-        (3.0 * 2.08 + 1.59) / (washer_capacity * 2.08 + 1.59)
-    )
+    acy = (164.0 + 46.5 * n_bedrooms) * ((3.0 * 2.08 + 1.59) / (washer_capacity * 2.08 + 1.59))
     annual_kwh = (((rmc - 0.04) * 100) / 55.5) * (8.45 / combined_energy_factor) * acy
     if is_electric:
         annual_therm = 0.0
@@ -2243,10 +2098,7 @@ def parse_dishwasher(dishwasher, n_bedrooms):
 
     usage = usage * 52.0  # in cycles/year?
     kwh_per_cyc = (
-        (
-            gas_cost * 0.5497 / gas_rate
-            - rated_annual_kwh * electric_rate * 0.02504 / electric_rate
-        )
+        (gas_cost * 0.5497 / gas_rate - rated_annual_kwh * electric_rate * 0.02504 / electric_rate)
         / (electric_rate * 0.5497 / gas_rate - 0.02504)
     ) / usage
     dwcpy = (88.4 + 34.9 * n_bedrooms) * (12.0 / capacity)
@@ -2343,9 +2195,7 @@ def parse_cooking_range(range_dict, oven_dict, n_bedrooms):
     if fuel_type in ["electricity", "natural gas"]:
         pass
     elif fuel_type in ["propane", "fuel oil"]:
-        print(
-            f"WARNING: Converting cooking range fuel from {fuel_type} to natural gas."
-        )
+        print(f"WARNING: Converting cooking range fuel from {fuel_type} to natural gas.")
     else:
         raise OCHREException(f"Invalid fuel type for cooking range: {fuel_type}")
     is_electric = fuel_type == "electricity"
@@ -2401,9 +2251,7 @@ def parse_lighting(location, df_lights, floor_area, extension=None):
 
     if "LightingType" in df_lights:
         # Fractions of each lighting type specified
-        fractions = df_lights.set_index("LightingType")[
-            "FractionofUnitsInLocation"
-        ].to_dict()
+        fractions = df_lights.set_index("LightingType")["FractionofUnitsInLocation"].to_dict()
 
         f_led = fractions["LightEmittingDiode"]
         f_flr = fractions["CompactFluorescent"] + fractions["FluorescentTube"]
@@ -2415,9 +2263,7 @@ def parse_lighting(location, df_lights, floor_area, extension=None):
 
         if location == "interior":
             int_adj = f_inc * e_inc + f_flr * e_flr + f_led * e_led
-            annual_kwh = (0.9 / 0.925 * (455.0 + 0.8 * area_ft2) * int_adj) + (
-                0.1 * (455.0 + 0.8 * area_ft2)
-            )
+            annual_kwh = (0.9 / 0.925 * (455.0 + 0.8 * area_ft2) * int_adj) + (0.1 * (455.0 + 0.8 * area_ft2))
         elif location == "exterior":
             ext_adj = f_inc * e_inc + f_flr * e_flr + f_led * e_led
             annual_kwh = (100.0 + 0.05 * area_ft2) * ext_adj
@@ -2435,8 +2281,7 @@ def parse_lighting(location, df_lights, floor_area, extension=None):
 
     # TODO: get default fractions/multipliers for lighting
     lights = {
-        "Annual Electric Energy (kWh)": annual_kwh
-        * extension.get(f"{location.capitalize()}UsageMultiplier"),
+        "Annual Electric Energy (kWh)": annual_kwh * extension.get(f"{location.capitalize()}UsageMultiplier"),
         "Convective Gain Fraction (-)": 1,
         "Radiative Gain Fraction (-)": 0,
         "Latent Gain Fraction (-)": 0,
@@ -2453,11 +2298,9 @@ def parse_mel(mel, load_name, is_gas=None):
     fuel_type = "Gas" if is_gas else "Electric"
     load_units = "therm" if is_gas else "kWh"
     if mel["Load"]["Units"] != f"{load_units}/year":
-        raise OCHREException(
-            f"Invalid load units for {load_name}:", mel["Load"]["Units"]
-        )
+        raise OCHREException(f"Invalid load units for {load_name}:", mel["Load"]["Units"])
     if is_gas and mel.get("FuelType", "natural gas") != "natural gas":
-        raise OCHREException(f"Invalid fuel type for MGL:", mel["FuelLoadType"])
+        raise OCHREException("Invalid fuel type for MGL:", mel["FuelLoadType"])
 
     # TODO: use default annual load values from OS-HPXML
     mel_load = mel["Load"]["Value"] * mel.get("extension", {}).get("UsageMultiplier", 1)
@@ -2480,9 +2323,7 @@ def parse_mel(mel, load_name, is_gas=None):
     load_units = "therms" if is_gas else "kWh"
     out = {
         f"Annual {fuel_type} Energy ({load_units})": mel_load,
-        "Convective Gain Fraction (-)": extension.get(
-            "FracSensible", sensible_gain_default
-        ),
+        "Convective Gain Fraction (-)": extension.get("FracSensible", sensible_gain_default),
         "Radiative Gain Fraction (-)": 0,
         "Latent Gain Fraction (-)": extension.get("FracLatent", latent_gain_default),
         **add_simple_schedule_params(extension),
@@ -2501,17 +2342,346 @@ def parse_mels(mel_dict, is_gas=False):
     return mels
 
 
-def parse_ev(ev):
-    # create EV equipment from MEL info
-    print("Creating EV equipment with a Level 2 charger from HPXML ")
+def parse_ev_from_mel(ev):
+    # create EV equipment from MEL (PlugLoad) info
+    # Legacy method: used when EV is specified as a PlugLoad with type 'electric vehicle charging'
+    print("Creating EV equipment from PlugLoad with a Level 2 charger from HPXML")
     ev_load = ev["Annual Electric Energy (kWh)"]
     return {
         "vehicle_type": "BEV",
         "charging_level": "Level 2",
-        "range": (
-            100 if ev_load < 1500 else 250
-        ),  # Splits the two EV size options from ResStock
+        "range": (100 if ev_load < 1500 else 250),  # Splits the two EV size options from ResStock
     }
+
+
+def parse_pv(pv_system, inverter_dict):
+    """
+    Parse PV system from HPXML Photovoltaics section.
+
+    Args:
+        pv_system: Dict containing PVSystem data from HPXML
+        inverter_dict: Dict of inverters keyed by SystemIdentifier id
+
+    Returns:
+        Dict with PV parameters for OCHRE (capacity, tilt, azimuth, inverter_efficiency, inverter_capacity)
+        or None if required data is missing
+    """
+    print("Creating PV equipment from Photovoltaics section in HPXML")
+
+    # Extract required parameters
+    max_power_output = pv_system.get("MaxPowerOutput")  # in W
+    if not max_power_output:
+        print("WARNING: PV system missing MaxPowerOutput, skipping PV parsing")
+        return None
+
+    capacity = max_power_output / 1000  # convert W to kW
+
+    # Extract tilt and azimuth (optional - OCHRE can calculate from roof if missing)
+    tilt = pv_system.get("ArrayTilt")
+    azimuth_hpxml = pv_system.get("ArrayAzimuth")
+
+    # Convert azimuth from HPXML convention to OCHRE convention
+    # HPXML: 0=north, 90=east, 180=south, 270=west
+    # OCHRE: 0=south, 90=west, 180=north, 270=east (west-of-south is positive)
+    # Conversion: ochre_azimuth = (hpxml_azimuth - 180) % 360
+    azimuth = None
+    if azimuth_hpxml is not None:
+        azimuth = (azimuth_hpxml - 180) % 360
+
+    # Get inverter information
+    inverter_efficiency = None
+    inverter_capacity = None
+
+    inverter_ref = pv_system.get("AttachedToInverter", {}).get("idref")
+    if inverter_ref and inverter_ref in inverter_dict:
+        inverter = inverter_dict[inverter_ref]
+        inv_eff = inverter.get("InverterEfficiency")
+        if inv_eff:
+            # Convert from fraction to percentage (0.96 -> 96)
+            inverter_efficiency = inv_eff * 100
+    else:
+        if inverter_ref:
+            print(f'WARNING: Could not find inverter with id "{inverter_ref}", using default efficiency (96%)')
+
+    result = {
+        "capacity": capacity,  # kW (DC)
+    }
+
+    # Add optional parameters if available
+    if tilt is not None:
+        result["tilt"] = tilt
+    if azimuth is not None:
+        result["azimuth"] = azimuth
+    if inverter_efficiency is not None:
+        result["inverter_efficiency"] = inverter_efficiency
+    if inverter_capacity is not None:
+        result["inverter_capacity"] = inverter_capacity
+
+    return result
+
+
+def parse_ev_from_vehicle(vehicle, charger_dict):
+    """
+    Parse EV equipment from HPXML Vehicle and ElectricVehicleCharger sections.
+
+    Args:
+        vehicle: Dict containing Vehicle data from HPXML
+        charger_dict: Dict of chargers keyed by SystemIdentifier id
+
+    Returns:
+        Dict with EV parameters for OCHRE (vehicle_type, charging_level, range, capacity, max_power)
+        or None if required data is missing
+    """
+    print("Creating EV equipment from Vehicle section in HPXML")
+
+    # Determine vehicle type (BEV vs PHEV)
+    vehicle_type_data = vehicle.get("VehicleType", {})
+    if "BatteryElectricVehicle" in vehicle_type_data:
+        vehicle_type = "BEV"
+        vehicle_data = vehicle_type_data["BatteryElectricVehicle"]
+    elif "PlugInHybridElectricVehicle" in vehicle_type_data:
+        vehicle_type = "PHEV"
+        vehicle_data = vehicle_type_data["PlugInHybridElectricVehicle"]
+    else:
+        print("WARNING: Unknown vehicle type, defaulting to BEV")
+        vehicle_type = "BEV"
+        vehicle_data = {}
+
+    # Extract battery capacity (kWh)
+    battery = vehicle_data.get("Battery", {})
+    capacity = None
+    if "UsableCapacity" in battery:
+        capacity = battery["UsableCapacity"].get("Value")
+    elif "NominalCapacity" in battery:
+        capacity = battery["NominalCapacity"].get("Value")
+        if capacity:
+            print("WARNING: Using NominalCapacity instead of UsableCapacity for EV battery")
+
+    # Calculate or extract vehicle range
+    range_miles = None
+    fuel_economy = vehicle.get("FuelEconomyCombined", {}).get("Value")  # kWh/mile
+
+    if capacity is not None:
+        # Use capacity to calculate range (default: 325 Wh/mile efficiency = 1/325 miles/Wh)
+        range_miles = capacity * 1000 / 325  # convert kWh to Wh, then to miles
+    elif fuel_economy and "MilesDrivenPerYear" in vehicle:
+        # Alternative: use fuel economy and annual miles
+        annual_miles = vehicle["MilesDrivenPerYear"]
+        annual_kwh = annual_miles * fuel_economy
+        # Estimate capacity assuming 250 charges per year
+        capacity = annual_kwh / 250
+        range_miles = capacity * 1000 / 325
+
+    # Classify vehicle size for OCHRE
+    if range_miles:
+        if vehicle_type == "PHEV":
+            range_ochre = 20 if range_miles < 35 else 50
+        else:  # BEV
+            range_ochre = 100 if range_miles < 175 else 250
+    else:
+        print("WARNING: Could not determine EV range, defaulting to 250 miles for BEV")
+        range_ochre = 250
+        range_miles = 250
+
+    # Get charging information
+    charging_level = "Level 2"  # default
+    max_power = None
+
+    # Find connected charger
+    charger_ref = vehicle_data.get("ConnectedCharger", {}).get("idref")
+    if charger_ref and charger_ref in charger_dict:
+        charger = charger_dict[charger_ref]
+        charging_level_num = charger.get("ChargingLevel", 2)
+        charging_level = f"Level {charging_level_num}"
+
+        # Get charging power (convert W to kW)
+        charging_power_w = charger.get("ChargingPower")
+        if charging_power_w:
+            max_power = charging_power_w / 1000  # convert W to kW
+    else:
+        if charger_ref:
+            print(f'WARNING: Could not find charger with id "{charger_ref}", using Level 2 defaults')
+        else:
+            print("WARNING: No charger connected to vehicle, using Level 2 defaults")
+
+    result = {
+        "vehicle_type": vehicle_type,
+        "charging_level": charging_level,
+        "range": range_ochre,
+    }
+
+    # Add optional parameters if available
+    if capacity:
+        result["capacity"] = capacity
+    if max_power:
+        result["max_power"] = max_power
+
+    return result
+
+
+def parse_pv(pv_system, inverter_dict):
+    """
+    Parse PV system from HPXML Photovoltaics section.
+
+    Args:
+        pv_system: Dict containing PVSystem data from HPXML
+        inverter_dict: Dict of inverters keyed by SystemIdentifier id
+
+    Returns:
+        Dict with PV parameters for OCHRE (capacity, tilt, azimuth, inverter_efficiency, inverter_capacity)
+        or None if required data is missing
+    """
+    print("Creating PV equipment from Photovoltaics section in HPXML")
+
+    # Extract required parameters
+    max_power_output = pv_system.get("MaxPowerOutput")  # in W
+    if not max_power_output:
+        print("WARNING: PV system missing MaxPowerOutput, skipping PV parsing")
+        return None
+
+    capacity = max_power_output / 1000  # convert W to kW
+
+    # Extract tilt and azimuth (optional - OCHRE can calculate from roof if missing)
+    tilt = pv_system.get("ArrayTilt")
+    azimuth_hpxml = pv_system.get("ArrayAzimuth")
+
+    # Convert azimuth from HPXML convention to OCHRE convention
+    # HPXML: 0=north, 90=east, 180=south, 270=west
+    # OCHRE: 0=south, 90=west, 180=north, 270=east (west-of-south is positive)
+    # Conversion: ochre_azimuth = (hpxml_azimuth - 180) % 360
+    azimuth = None
+    if azimuth_hpxml is not None:
+        azimuth = (azimuth_hpxml - 180) % 360
+
+    # Get inverter information
+    inverter_efficiency = None
+    inverter_capacity = None
+
+    inverter_ref = pv_system.get("AttachedToInverter", {}).get("idref")
+    if inverter_ref and inverter_ref in inverter_dict:
+        inverter = inverter_dict[inverter_ref]
+        inv_eff = inverter.get("InverterEfficiency")
+        if inv_eff:
+            # Convert from fraction to percentage (0.96 -> 96)
+            inverter_efficiency = inv_eff * 100
+    else:
+        if inverter_ref:
+            print(f'WARNING: Could not find inverter with id "{inverter_ref}", using default efficiency (96%)')
+
+    result = {
+        "capacity": capacity,  # kW (DC)
+    }
+
+    # Add optional parameters if available
+    if tilt is not None:
+        result["tilt"] = tilt
+    if azimuth is not None:
+        result["azimuth"] = azimuth
+    if inverter_efficiency is not None:
+        result["inverter_efficiency"] = inverter_efficiency
+    if inverter_capacity is not None:
+        result["inverter_capacity"] = inverter_capacity
+
+    return result
+
+
+def parse_ev_from_vehicle(vehicle, charger_dict):
+    """
+    Parse EV equipment from HPXML Vehicle and ElectricVehicleCharger sections.
+
+    Args:
+        vehicle: Dict containing Vehicle data from HPXML
+        charger_dict: Dict of chargers keyed by SystemIdentifier id
+
+    Returns:
+        Dict with EV parameters for OCHRE (vehicle_type, charging_level, range, capacity, max_power)
+        or None if required data is missing
+    """
+    print("Creating EV equipment from Vehicle section in HPXML")
+
+    # Determine vehicle type (BEV vs PHEV)
+    vehicle_type_data = vehicle.get("VehicleType", {})
+    if "BatteryElectricVehicle" in vehicle_type_data:
+        vehicle_type = "BEV"
+        vehicle_data = vehicle_type_data["BatteryElectricVehicle"]
+    elif "PlugInHybridElectricVehicle" in vehicle_type_data:
+        vehicle_type = "PHEV"
+        vehicle_data = vehicle_type_data["PlugInHybridElectricVehicle"]
+    else:
+        print("WARNING: Unknown vehicle type, defaulting to BEV")
+        vehicle_type = "BEV"
+        vehicle_data = {}
+
+    # Extract battery capacity (kWh)
+    battery = vehicle_data.get("Battery", {})
+    capacity = None
+    if "UsableCapacity" in battery:
+        capacity = battery["UsableCapacity"].get("Value")
+    elif "NominalCapacity" in battery:
+        capacity = battery["NominalCapacity"].get("Value")
+        if capacity:
+            print("WARNING: Using NominalCapacity instead of UsableCapacity for EV battery")
+
+    # Calculate or extract vehicle range
+    range_miles = None
+    fuel_economy = vehicle.get("FuelEconomyCombined", {}).get("Value")  # kWh/mile
+
+    if capacity is not None:
+        # Use capacity to calculate range (default: 325 Wh/mile efficiency = 1/325 miles/Wh)
+        range_miles = capacity * 1000 / 325  # convert kWh to Wh, then to miles
+    elif fuel_economy and "MilesDrivenPerYear" in vehicle:
+        # Alternative: use fuel economy and annual miles
+        annual_miles = vehicle["MilesDrivenPerYear"]
+        annual_kwh = annual_miles * fuel_economy
+        # Estimate capacity assuming 250 charges per year
+        capacity = annual_kwh / 250
+        range_miles = capacity * 1000 / 325
+
+    # Classify vehicle size for OCHRE
+    if range_miles:
+        if vehicle_type == "PHEV":
+            range_ochre = 20 if range_miles < 35 else 50
+        else:  # BEV
+            range_ochre = 100 if range_miles < 175 else 250
+    else:
+        print("WARNING: Could not determine EV range, defaulting to 250 miles for BEV")
+        range_ochre = 250
+        range_miles = 250
+
+    # Get charging information
+    charging_level = "Level 2"  # default
+    max_power = None
+
+    # Find connected charger
+    charger_ref = vehicle_data.get("ConnectedCharger", {}).get("idref")
+    if charger_ref and charger_ref in charger_dict:
+        charger = charger_dict[charger_ref]
+        charging_level_num = charger.get("ChargingLevel", 2)
+        charging_level = f"Level {charging_level_num}"
+
+        # Get charging power (convert W to kW)
+        charging_power_w = charger.get("ChargingPower")
+        if charging_power_w:
+            max_power = charging_power_w / 1000  # convert W to kW
+    else:
+        if charger_ref:
+            print(f'WARNING: Could not find charger with id "{charger_ref}", using Level 2 defaults')
+        else:
+            print("WARNING: No charger connected to vehicle, using Level 2 defaults")
+
+    result = {
+        "vehicle_type": vehicle_type,
+        "charging_level": charging_level,
+        "range": range_ochre,
+    }
+
+    # Add optional parameters if available
+    if capacity:
+        result["capacity"] = capacity
+    if max_power:
+        result["max_power"] = max_power
+
+    return result
 
 
 def parse_pool_equipment(hpxml):
@@ -2524,15 +2694,11 @@ def parse_pool_equipment(hpxml):
 
         pump = list(pool_list[0]["Pumps"].values())[0]
         heater = pool_list[0]["Heater"]
-        assert (
-            len(pool_list) == 1 and isinstance(pump, dict) and isinstance(heater, dict)
-        )
+        assert len(pool_list) == 1 and isinstance(pump, dict) and isinstance(heater, dict)
         if "Load" in pump and pump.get("Type", "none") != "none":
             pool_equipment[f"{hpxml_name} Pump"] = parse_mel(pump, f"{hpxml_name} Pump")
         if "Load" in heater and heater.get("Type", "none") != "none":
-            pool_equipment[f"{hpxml_name} Heater"] = parse_mel(
-                heater, f"{hpxml_name} Heater"
-            )
+            pool_equipment[f"{hpxml_name} Heater"] = parse_mel(heater, f"{hpxml_name} Heater")
 
     return pool_equipment
 
@@ -2589,9 +2755,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     n_bedrooms = construction["Number of Bedrooms, Adjusted (-)"]
     # appliances = {re.sub(r"(\w)([A-Z])", r"\1 \2", name): val for name, val in appliances.items()}
     if "ClothesWasher" in appliances:
-        equipment["Clothes Washer"] = parse_clothes_washer(
-            appliances["ClothesWasher"], n_bedrooms
-        )
+        equipment["Clothes Washer"] = parse_clothes_washer(appliances["ClothesWasher"], n_bedrooms)
     if "ClothesDryer" in appliances:
         equipment["Clothes Dryer"] = parse_clothes_dryer(
             appliances["ClothesDryer"], appliances["ClothesWasher"], n_bedrooms
@@ -2599,9 +2763,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     if "Dishwasher" in appliances:
         equipment["Dishwasher"] = parse_dishwasher(appliances["Dishwasher"], n_bedrooms)
     if "Refrigerator" in appliances:
-        equipment["Refrigerator"] = parse_refrigerator(
-            appliances["Refrigerator"], n_bedrooms
-        )
+        equipment["Refrigerator"] = parse_refrigerator(appliances["Refrigerator"], n_bedrooms)
     if "Freezer" in appliances:
         equipment["Freezer"] = parse_freezer(appliances["Freezer"], n_bedrooms)
     # TODO: add dehumidifier
@@ -2623,10 +2785,7 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
                 )
                 if construction["Foundation Type"] == "Finished Basement":
                     equipment["Basement Lighting"] = parse_lighting(
-                        loc,
-                        df_lights,
-                        construction["First Floor Area (m^2)"],
-                        extension,
+                        loc, df_lights, construction["First Floor Area (m^2)"], extension
                     )
             elif loc == "exterior":
                 equipment["Exterior Lighting"] = parse_lighting(
@@ -2635,15 +2794,10 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
             elif loc == "garage":
                 if construction["Garage Floor Area (m^2)"] > 0:
                     equipment["Garage Lighting"] = parse_lighting(
-                        loc,
-                        df_lights,
-                        construction["Garage Floor Area (m^2)"],
-                        extension,
+                        loc, df_lights, construction["Garage Floor Area (m^2)"], extension
                     )
                 else:
-                    print(
-                        "WARNING: Skipping garage lighting, since no garage is modeled."
-                    )
+                    print("WARNING: Skipping garage lighting, since no garage is modeled.")
             else:
                 raise OCHREException(f"Unknown lighting location: {loc}")
 
@@ -2660,11 +2814,10 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
         mel_dict = {key: val for key, val in misc_loads.items() if "PlugLoad" in key}
         mgl_dict = {key: val for key, val in misc_loads.items() if "FuelLoad" in key}
 
-    # Add MELs: TV, other MELs, well pump, EV
+    # Add MELs: TV, other MELs, well pump
+    # Note: EV is parsed separately from Vehicles section (preferred) or MEL fallback
     mels = parse_mels(mel_dict)
-    if "Electric Vehicle" in mels:
-        ev = mels.pop("Electric Vehicle")
-        equipment["Electric Vehicle"] = parse_ev(ev)
+    ev_mel_data = mels.pop("Electric Vehicle", None)
     equipment.update(mels)
 
     # Add MGLs: Grill, Fireplace, and Lighting
@@ -2676,29 +2829,75 @@ def parse_hpxml_equipment(hpxml, occupancy, construction):
     pool_equipment = parse_pool_equipment(hpxml)
     equipment.update(pool_equipment)
 
+    # Add EV: Prefer Vehicles section, fall back to MEL-derived EV
+    systems = hpxml.get("Systems", {})
+    vehicles = systems.get("Vehicles", {})
+    if vehicles:
+        vehicle_list = vehicles.get("Vehicle", {})
+        # Handle single vs multiple vehicles
+        if "SystemIdentifier" in vehicle_list:
+            vehicle_list = {"Vehicle1": vehicle_list}
+
+        if len(vehicle_list) > 1:
+            print(f"WARNING: Found {len(vehicle_list)} vehicles. Only parsing the first one.")
+
+        # Get chargers
+        chargers = systems.get("ElectricVehicleChargers", {})
+        charger_list = chargers.get("ElectricVehicleCharger", {})
+        if "SystemIdentifier" in charger_list:
+            charger_list = {"EVCharger1": charger_list}
+        charger_dict = {ch.get("SystemIdentifier", {}).get("id"): ch for ch in charger_list.values()}
+
+        # Parse first vehicle
+        vehicle = list(vehicle_list.values())[0]
+        ev_equipment = parse_ev_from_vehicle(vehicle, charger_dict)
+        if ev_equipment is not None:
+            equipment["Electric Vehicle"] = ev_equipment
+    elif ev_mel_data is not None:
+        # Fallback: derive EV from MEL PlugLoad data (legacy HPXML format)
+        equipment["Electric Vehicle"] = parse_ev_from_mel(ev_mel_data)
+
+    # Add PV system: Parse from Photovoltaics section
+    photovoltaics = systems.get("Photovoltaics", {})
+    if photovoltaics:
+        pv_systems = photovoltaics.get("PVSystem", {})
+        inverters = photovoltaics.get("Inverter", {})
+
+        # Handle single vs multiple systems
+        if "SystemIdentifier" in pv_systems:
+            # Single PV system
+            pv_systems = {"PVSystem1": pv_systems}
+
+        # Create inverter lookup dict
+        if "SystemIdentifier" in inverters:
+            inverters = {"Inverter1": inverters}
+        inverter_dict = {inv.get("SystemIdentifier", {}).get("id"): inv for inv in inverters.values()}
+
+        if len(pv_systems) > 1:
+            print(f"WARNING: Found {len(pv_systems)} PV systems. Only parsing the first one.")
+
+        # Parse first PV system
+        pv_system = list(pv_systems.values())[0]
+        pv_equipment = parse_pv(pv_system, inverter_dict)
+        if pv_equipment is not None:
+            equipment["PV"] = pv_equipment
+
     # Add ceiling fan
     ceiling_fan = lighting.get("CeilingFan")
     if ceiling_fan:
         # From ResStock (ANSI 301-2019), flow rate = 3000 cfm, operation time = 10.5 hours per day
         n_fans = ceiling_fan.get("Count", n_bedrooms + 1)
-        efficiency = ceiling_fan.get("Airflow", {}).get(
-            "Efficiency", 3000 / 42.6
-        )  # in cfm/W
-        fan_annual_kwh = (
-            n_fans * 3000 / efficiency * 10.5 * 365.0 / 1000
-        )  # in kWh/year (assumes 10.5 hr/day)
+        efficiency = ceiling_fan.get("Airflow", {}).get("Efficiency", 3000 / 42.6)  # in cfm/W
+        fan_annual_kwh = n_fans * 3000 / efficiency * 10.5 * 365.0 / 1000  # in kWh/year (assumes 10.5 hr/day)
         ceiling_fan["Load"] = {"Units": "kWh/year", "Value": fan_annual_kwh}
         equipment["Ceiling Fan"] = parse_mel(ceiling_fan, "CeilingFan")
 
     # Add Ventilation Fan
-    vent_fans = (
-        hpxml["Systems"].get("MechanicalVentilation", {}).get("VentilationFans", {})
-    )
+    vent_fans = hpxml["Systems"].get("MechanicalVentilation", {}).get("VentilationFans", {})
     vent_fans = {
         key: val
         for key, val in vent_fans.items()
-        if val.get("UsedForWholeBuildingVentilation", False)
-        or val.get("UsedForSeasonalCoolingLoadReduction", False)
+        if val.get("UsedForWholeBuildingVentilation", False) or val.get("UsedForSeasonalCoolingLoadReduction", False)
     }
     if vent_fans:
         assert len(vent_fans) == 1
@@ -2720,9 +2919,7 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
         occupancy = nested_update(occupancy, house_args.pop("Occupancy"))
 
     # Parse envelope properties and merge with house_args
-    boundaries, zones, construction = parse_hpxml_envelope(
-        hpxml, occupancy, **house_args
-    )
+    boundaries, zones, construction = parse_hpxml_envelope(hpxml, occupancy, **house_args)
     envelope = house_args.get("Envelope", {})
     if "boundaries" in envelope:
         boundaries = nested_update(boundaries, house_args["Envelope"].pop("boundaries"))
@@ -2736,9 +2933,7 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
 
     # update indoor zone infiltration (depends on equipment)
     # TODO: move to Envelope.init to get weather information (for air density)
-    zones["Indoor"].update(
-        parse_indoor_infiltration(hpxml, construction, equipment_dict)
-    )
+    zones["Indoor"].update(parse_indoor_infiltration(hpxml, construction, equipment_dict))
 
     # combine all HPXML properties
     properties = {
@@ -2751,9 +2946,7 @@ def load_hpxml(modify_hpxml_dict=None, **house_args):
     }
 
     # Get weather station
-    weather_station = (
-        hpxml.get("ClimateandRiskZones", {}).get("WeatherStation", {}).get("Name")
-    )
+    weather_station = hpxml.get("ClimateandRiskZones", {}).get("WeatherStation", {}).get("Name")
     weather_station = weather_station.strip("./")
 
     return properties, weather_station

@@ -57,9 +57,7 @@ class ElectricVehicle(EventBasedLoad):
         # get charging level and set option for part load setpoints
         charging_level = charging_level.replace(" ", "")
         if str(charging_level) not in ["Level0", "Level1", "Level2"]:
-            raise OCHREException(
-                "Unknown vehicle type for {}: {}".format(self.name, charging_level)
-            )
+            raise OCHREException("Unknown vehicle type for {}: {}".format(self.name, charging_level))
         self.charging_level = str(charging_level)
 
         # get vehicle number (1-4) based on type and range. Used for choosing event file
@@ -179,9 +177,7 @@ class ElectricVehicle(EventBasedLoad):
         if not df_events:
             self.warn("No charging events, adding event on first day")
             df = event_data.loc[event_data.index == day_ids[0]].reset_index()
-            df["start_time"] = temps_by_day.index[0] + pd.to_timedelta(
-                df["start_time"], unit="minute"
-            )
+            df["start_time"] = temps_by_day.index[0] + pd.to_timedelta(df["start_time"], unit="minute")
             df_events.append(df)
         df_events = pd.concat(df_events)
         df_events = df_events.reset_index(drop=True)
@@ -191,17 +187,13 @@ class ElectricVehicle(EventBasedLoad):
 
         # fix overlaps - if gap betwen 2 events < 1 hour, then move the end time of first event earlier
         new_day_event = df_events["day_id"] != df_events["day_id"].shift(-1)
-        overlap_time = (
-            df_events["end_time"] + dt.timedelta(hours=1) - df_events["start_time"].shift(-1)
-        )
+        overlap_time = df_events["end_time"] + dt.timedelta(hours=1) - df_events["start_time"].shift(-1)
         bad_events = new_day_event & (overlap_time > dt.timedelta(0))
         if bad_events.any():
             df_events.loc[bad_events, "end_time"] -= overlap_time
 
             # remove updated events if they last for less than 1 hour
-            short_events = bad_events & (
-                df_events["end_time"] - df_events["start_time"] < dt.timedelta(hours=1)
-            )
+            short_events = bad_events & (df_events["end_time"] - df_events["start_time"] < dt.timedelta(hours=1))
             df_events = df_events.loc[~short_events]
 
         df_events = df_events.reset_index(drop=True)
@@ -212,9 +204,7 @@ class ElectricVehicle(EventBasedLoad):
 
         # set maximum ending SOC
         hours = self.all_events["duration"].dt.total_seconds() / 3600
-        max_soc = (
-            self.all_events["start_soc"] + self.max_power * EV_EFFICIENCY * hours / self.capacity
-        )
+        max_soc = self.all_events["start_soc"] + self.max_power * EV_EFFICIENCY * hours / self.capacity
         self.all_events["end_soc"] = max_soc.clip(upper=1)
 
         return ts_schedule
@@ -291,10 +281,10 @@ class ElectricVehicle(EventBasedLoad):
             self.soc_max_ctrl = self.current_schedule["EV Max SOC (-)"]
 
         mode = super().update_internal_control()
-        
+
         # set power setpoint
         self.p_setpoint = self.max_power_ctrl if self.in_event else 0
-        
+
         return mode
 
     def calculate_power_and_heat(self):
@@ -344,20 +334,21 @@ class ElectricVehicle(EventBasedLoad):
     def generate_results(self):
         results = super().generate_results()
 
-        if self.verbosity >= 3:
-            results[f"{self.end_use} SOC (-)"] = self.soc
-            results[f"{self.end_use} Unmet Load (kWh)"] = self.unmet_load
-        if self.verbosity >= 4:
-            results[f"{self.end_use} Parked"] = self.in_event
-        if self.verbosity >= 7:
-            # results[f'{self.end_use} Setpoint Power (kW)'] = self.setpoint_power or 0
-            results[f"{self.end_use} Start Time"] = self.event_start
-            results[f"{self.end_use} End Time"] = self.event_end
-        if self.verbosity >= 7:
-            remaining_charge_minutes = (
-                (1 - self.soc) * self.capacity / (self.max_power_ctrl * EV_EFFICIENCY) * 60
-            )
-            results[f"{self.end_use} Remaining Charge Time (min)"] = remaining_charge_minutes
+        self.add_output(results, f"{self.end_use} SOC (-)", self.soc)
+
+        self.add_output(results, f"{self.end_use} Unmet Load (kWh)", self.unmet_load)
+
+        self.add_output(results, f"{self.end_use} Parked", self.in_event)
+
+        self.add_output(results, f"{self.end_use} Start Time", self.event_start)
+
+        self.add_output(results, f"{self.end_use} End Time", self.event_end)
+
+        self.add_output(
+            results,
+            f"{self.end_use} Remaining Charge Time (min)",
+            lambda: (1 - self.soc) * self.capacity / (self.max_power_ctrl * EV_EFFICIENCY) * 60,
+        )
 
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())

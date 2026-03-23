@@ -8,6 +8,7 @@ import hashlib
 from ochre import __version__
 from ochre.utils import load_csv, OCHREException
 import ochre.utils.schedule as utils_schedule
+from ochre.utils.output_control import get_enabled_outputs
 
 
 class Simulator:
@@ -15,9 +16,25 @@ class Simulator:
     required_inputs = []
     optional_inputs = []
 
-    def __init__(self, start_time, time_res, duration, name=None, main_sim_name=None, seed=None,
-                 verbosity=3, save_results=None, save_status=None, output_path=None, output_to_parquet=False,
-                 initialization_time=None, export_res=None, **kwargs):
+    def __init__(
+        self,
+        start_time,
+        time_res,
+        duration,
+        name=None,
+        main_sim_name=None,
+        seed=None,
+        verbosity=3,
+        save_results=None,
+        save_status=None,
+        output_path=None,
+        output_to_parquet=False,
+        initialization_time=None,
+        export_res=None,
+        output_format="ochre",
+        **kwargs,
+    ):
+        self.output_format = output_format
         if name is not None:
             self.name = name
         self.main_sim_name = main_sim_name
@@ -30,16 +47,19 @@ class Simulator:
         self.time_res = time_res
         self.duration = duration
         if self.duration < self.time_res:
-            raise OCHREException(f'Duration ({duration}) must be longer than time resolution ({time_res}).')
+            raise OCHREException(f"Duration ({duration}) must be longer than time resolution ({time_res}).")
         self.initialization_time = initialization_time
-        self.sim_times = pd.date_range(self.start_time, self.start_time + self.duration, freq=self.time_res,
-                                       inclusive='left')
-                                       
+        self.sim_times = pd.date_range(
+            self.start_time, self.start_time + self.duration, freq=self.time_res, inclusive="left"
+        )
+
         # Results parameters
         self.results = []
         self.verbosity = verbosity
+        self._enabled_outputs = None
+        self._enabled_outputs_key = None
         if self.main_simulator and self.verbosity >= 3:
-            self.print(f'Initializing {self.name} (OCHRE v{__version__})')
+            self.print(f"Initializing {self.name} (OCHRE v{__version__})")
 
         # Output file parameters
         if save_results is None:
@@ -61,7 +81,7 @@ class Simulator:
                 seed = self.output_path
             if seed is not None:
                 if isinstance(seed, str):
-                    seed = int(hashlib.md5(seed.encode()).hexdigest(), 16) % 2 ** 32
+                    seed = int(hashlib.md5(seed.encode()).hexdigest(), 16) % 2**32
                 np.random.seed(seed)
 
         # Define model schedule and time resolution
@@ -76,40 +96,38 @@ class Simulator:
             if hpxml_file is not None:
                 self.output_path = os.path.dirname(hpxml_file)
             else:
-                raise OCHREException('Must specify output_path, or set save_results=False.')
+                raise OCHREException("Must specify output_path, or set save_results=False.")
         if not os.path.isabs(self.output_path):
             self.output_path = os.path.abspath(self.output_path)
         os.makedirs(self.output_path, exist_ok=True)
 
-        # save result file path 
-        file_name = self.name if not self.main_sim_name else f'{self.name}_{self.main_sim_name}'
-        extn = '.parquet' if self.output_to_parquet else '.csv'
+        # save result file path
+        file_name = self.name if not self.main_sim_name else f"{self.name}_{self.main_sim_name}"
+        extn = ".parquet" if self.output_to_parquet else ".csv"
         self.results_file = os.path.join(self.output_path, file_name + extn)
 
         # Remove existing results files
         for f in os.listdir(self.output_path):
-            if f == f'{file_name}.csv' or (self.name in f and '.parquet' in f):
-                self.print('Removing previous results file:', os.path.join(self.output_path, f))
+            if f == f"{file_name}.csv" or (self.name in f and ".parquet" in f):
+                self.print("Removing previous results file:", os.path.join(self.output_path, f))
                 os.remove(os.path.join(self.output_path, f))
 
-
         # remove existing status files
-        statuses = ['failed', 'complete']
+        statuses = ["failed", "complete"]
         for status in statuses:
-            file_name = os.path.join(self.output_path, f'{self.name}_{status}')
+            file_name = os.path.join(self.output_path, f"{self.name}_{status}")
             if os.path.exists(file_name):
                 os.remove(file_name)
 
-            
     def initialize(self, extra_hours=None):
         # run for initialization time, then reset time. don't generate results
         if self.verbosity >= 3:
-            self.print('Running initialization for', self.initialization_time)
+            self.print("Running initialization for", self.initialization_time)
         tmp = self.verbosity
         self.verbosity = 0
 
         end_time = self.start_time + self.initialization_time
-        init_times = pd.date_range(self.start_time, end_time, freq=self.time_res, inclusive='left')
+        init_times = pd.date_range(self.start_time, end_time, freq=self.time_res, inclusive="left")
         for _ in init_times:
             self.update()
         self.reset_time()
@@ -123,7 +141,9 @@ class Simulator:
         # reset verbosity
         self.verbosity = tmp
 
-    def initialize_schedule(self, schedule=None, schedule_file=None, required_inputs=None, optional_inputs=None, **kwargs):
+    def initialize_schedule(
+        self, schedule=None, schedule_file=None, required_inputs=None, optional_inputs=None, **kwargs
+    ):
         # Saves schedule as a DataFrame with required and optional columns
         if required_inputs is None:
             required_inputs = self.required_inputs
@@ -138,22 +158,24 @@ class Simulator:
         elif schedule_file is not None:
             sub_folder = self.end_use if hasattr(self, "end_use") else self.name
             schedule = load_csv(schedule_file, sub_folder=sub_folder)
-            if 'Time' in schedule.columns:
-                schedule = schedule.set_index('Time')
+            if "Time" in schedule.columns:
+                schedule = schedule.set_index("Time")
                 schedule.index = pd.to_datetime(schedule.index)
 
         if schedule is None:
             schedule = pd.DataFrame(index=self.sim_times)
 
         if not isinstance(schedule.index, pd.DatetimeIndex):
-            raise OCHREException(f'{self.name} schedule index must be a DateTime index, not {type(schedule.index)}.'
-                            f' If loading schedule from a file, try setting index column to "Time".')
+            raise OCHREException(
+                f"{self.name} schedule index must be a DateTime index, not {type(schedule.index)}."
+                f' If loading schedule from a file, try setting index column to "Time".'
+            )
 
         # Print warning if all required inputs are not in schedule
         missing_inputs = [name for name in required_inputs if name not in schedule.columns]
         if missing_inputs:
-            self.warn(f'Schedule is missing required inputs: {missing_inputs}')
-         
+            self.warn(f"Schedule is missing required inputs: {missing_inputs}")
+
         # Only keep specified inputs
         schedule_cols = [name for name in self.all_schedule_inputs if name in schedule.columns]
         schedule = schedule.loc[:, schedule_cols]
@@ -211,25 +233,25 @@ class Simulator:
         current_results = {}
 
         if self.save_results or (self.main_simulator and self.verbosity > 0):
-            current_results['Time'] = self.current_time
+            current_results["Time"] = self.current_time
 
         return current_results
 
     def export_results(self):
-        df = pd.DataFrame(self.results).set_index('Time') if self.results else None
-        
+        df = pd.DataFrame(self.results).set_index("Time") if self.results else None
+
         if not self.save_results or df is None:
             # Do nothing if not saving results to file or there are no results to save
             pass
         elif self.output_to_parquet:
             # create a new parquet file with timestamp
-            time_str = self.current_time.strftime('%Y%m%d-%H%M%S')
-            file_name = self.results_file.replace('.parquet', f'_{time_str}.parquet')
+            time_str = self.current_time.strftime("%Y%m%d-%H%M%S")
+            file_name = self.results_file.replace(".parquet", f"_{time_str}.parquet")
             df.to_parquet(file_name)
         else:
             # if a csv, append to existing results or create a new file
             if os.path.exists(self.results_file):
-                df.reset_index().to_csv(self.results_file, index=False, header=False, mode='a')
+                df.reset_index().to_csv(self.results_file, index=False, header=False, mode="a")
             else:
                 df.reset_index().to_csv(self.results_file, index=False)
 
@@ -237,7 +259,7 @@ class Simulator:
         self.results.clear()
 
         return df
-        
+
     def update_results(self):
         current_results = self.generate_results()
 
@@ -266,15 +288,37 @@ class Simulator:
 
     def update(self, control_signal=None, schedule_inputs=None):
         # Function to update Simulator by one time step. Splits the update into 3 sections
-        #  - update_inputs(): prepares model update, should only get called once per time step 
+        #  - update_inputs(): prepares model update, should only get called once per time step
         #  - update_model(): runs the model update, can get called multiple times for co-optimization
         #  - update_results(): collects all results and updates the time, should only get called once per time step
-        
+
         self.update_inputs(schedule_inputs)
 
         self.update_model(control_signal)
 
         return self.update_results()
+
+    @property
+    def enabled_outputs(self):
+        """Enabled output names for current output format and verbosity.
+
+        Cached; recomputes only when output_format or verbosity changes.
+        """
+        key = (self.output_format, self.verbosity)
+        if self._enabled_outputs_key != key:
+            self._enabled_outputs = get_enabled_outputs(*key)
+            self._enabled_outputs_key = key
+        return self._enabled_outputs
+
+    def add_output(self, results, name, value):
+        """Add output to results if enabled by current verbosity level.
+
+        Checks the output registry before adding. If value is callable,
+        it is only invoked when the output is enabled (use for expensive
+        computations like numpy aggregations).
+        """
+        if name in self.enabled_outputs:
+            results[name] = value() if callable(value) else value
 
     def reset_time(self, start_time=None, remove_results=True, **kwargs):
         if start_time is None:
@@ -287,8 +331,8 @@ class Simulator:
 
         # reset schedule_iterable
         if not self.schedule.empty:
-            schedule = self.schedule.loc[self.current_time:]
-            self.schedule_iterable = iter(schedule.to_dict('records'))
+            schedule = self.schedule.loc[self.current_time :]
+            self.schedule_iterable = iter(schedule.to_dict("records"))
 
         for sub in self.sub_simulators:
             sub.reset_time(start_time=start_time, remove_results=remove_results, **kwargs)
@@ -297,18 +341,21 @@ class Simulator:
         # load all results and save to files
         if not self.save_results:
             if self.results:
-                df = pd.DataFrame(self.results).set_index('Time')
+                df = pd.DataFrame(self.results).set_index("Time")
                 self.results.clear()
             else:
                 df = None
 
         elif self.output_to_parquet:
-            output_files = [os.path.join(self.output_path, f) for f in os.listdir(self.output_path)
-                            if re.match(f'{self.name}.*\\.parquet', f) and '_schedule.parquet' not in f]
+            output_files = [
+                os.path.join(self.output_path, f)
+                for f in os.listdir(self.output_path)
+                if re.match(f"{self.name}.*\\.parquet", f) and "_schedule.parquet" not in f
+            ]
             dfs = [pd.read_parquet(f) for f in sorted(output_files)]
             if self.results:
                 # add recent results that haven't been saved to a parquet file
-                dfs.append(pd.DataFrame(self.results).set_index('Time'))
+                dfs.append(pd.DataFrame(self.results).set_index("Time"))
                 self.results.clear()
             df = pd.concat(dfs) if dfs else None
 
@@ -322,23 +369,23 @@ class Simulator:
             # using csv results files
             dfs = []
             if os.path.exists(self.results_file):
-                dfs = [pd.read_csv(self.results_file, index_col='Time', parse_dates=True)]
+                dfs = [pd.read_csv(self.results_file, index_col="Time", parse_dates=True)]
             dfs.append(self.export_results())
             df = pd.concat(dfs) if any([df is not None for df in dfs]) else None
 
         # Print status and save to file
-        status = 'failed' if failed else 'complete'
+        status = "failed" if failed else "complete"
         if self.main_simulator and self.verbosity >= 3:
             if df is None:
-                results = 'no results'
+                results = "no results"
             elif self.save_results:
-                results = f'time series results saved to: {self.results_file}'
+                results = f"time series results saved to: {self.results_file}"
             else:
-                results = 'time series results saved in memory (not to a file)'
-            self.print(f'Simulation {status}, {results}')
+                results = "time series results saved in memory (not to a file)"
+            self.print(f"Simulation {status}, {results}")
         if self.save_status:
-            status_file = os.path.join(self.output_path, f'{self.name}_{status}')
-            with open(status_file, 'a'):
+            status_file = os.path.join(self.output_path, f"{self.name}_{status}")
+            with open(status_file, "a"):
                 pass
 
         # finalize sub_simulators (only used if sub.save_results is True). Don't return sub results
@@ -359,22 +406,23 @@ class Simulator:
 
         # determine simulation run times
         if self.verbosity >= 3:
-            self.print('Running Simulation for', self.duration)
-        self.sim_times = pd.date_range(self.start_time, self.start_time + self.duration, freq=self.time_res,
-                                       inclusive='left')
+            self.print("Running Simulation for", self.duration)
+        self.sim_times = pd.date_range(
+            self.start_time, self.start_time + self.duration, freq=self.time_res, inclusive="left"
+        )
         try:
             for _ in self.sim_times:
                 self.update()
 
         except Exception as e:
-            self.print('****** ERROR ******')
+            self.print("****** ERROR ******")
             self.finalize(failed=True)
             raise e
 
         return self.finalize()
 
     def print(self, *msg):
-        print(f'{dt.datetime.now()} - {self.name} at {self.current_time}:', *msg)
+        print(f"{dt.datetime.now()} - {self.name} at {self.current_time}:", *msg)
 
     def warn(self, *msg):
-        self.print('WARNING:', *msg)
+        self.print("WARNING:", *msg)

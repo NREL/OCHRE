@@ -37,12 +37,17 @@ def create_dwelling(
     time_res=60,
     duration=365,
     initialization_time=1,
+    export_res=None,
+    output_format="ochre",
+    seed=None,
 ):
     # Update input file paths
     if not os.path.isabs(hpxml_file):
         hpxml_file = os.path.join(input_path, hpxml_file)
     if not os.path.isabs(hpxml_schedule_file):
         hpxml_schedule_file = os.path.join(input_path, hpxml_schedule_file)
+    if not os.path.isfile(hpxml_schedule_file):
+        hpxml_schedule_file = None
 
     output_path = update_output_path(output_path, input_path)
 
@@ -59,6 +64,9 @@ def create_dwelling(
         else:
             raise IOError(f"Cannot parse weather input: {weather_file_or_path}")
 
+    # Convert export_res to timedelta if specified
+    export_res_td = dt.timedelta(days=export_res) if export_res is not None else None
+
     # Initialize
     dwelling = Dwelling(
         name=name,
@@ -66,10 +74,13 @@ def create_dwelling(
         time_res=dt.timedelta(minutes=time_res),
         duration=dt.timedelta(days=duration),
         initialization_time=dt.timedelta(days=initialization_time),
+        export_res=export_res_td,
         hpxml_file=hpxml_file,
         hpxml_schedule_file=hpxml_schedule_file,
         output_path=output_path,
         verbosity=verbosity,
+        output_format=output_format,
+        seed=seed,
         **weather_args,
     )
 
@@ -109,9 +120,7 @@ def limit_input_paths(input_paths, n_max=None, overwrite=False, **kwargs):
     # limits input paths based on n_max and overwrite
     if not overwrite:
         # remove folders that already have ochre_complete
-        input_paths = [
-            p for p in input_paths if not os.path.exists(os.path.join(p, "ochre_complete"))
-        ]
+        input_paths = [p for p in input_paths if not os.path.exists(os.path.join(p, "ochre_complete"))]
 
     # limit total number of runs
     if n_max is not None and len(input_paths) > n_max:
@@ -215,9 +224,7 @@ def common_options(f):
     options = [
         click.option("--name", default="ochre", help="Simulation name (for output files)"),
         click.option("--hpxml_file", default="home.xml", help="Name of HPXML file"),
-        click.option(
-            "--hpxml_schedule_file", default="in.schedules.csv", help="Name of HPXML schedule file"
-        ),
+        click.option("--hpxml_schedule_file", default="in.schedules.csv", help="Name of HPXML schedule file"),
         click.option(
             "--weather_file_or_path",
             type=click.Path(exists=True),
@@ -231,6 +238,19 @@ def common_options(f):
         click.option("--time_res", default=60, help="Time resolution, in minutes"),
         click.option("--duration", default=365, help="Simulation duration, in days"),
         click.option("--initialization_time", default=1, help="Initialization duration, in days"),
+        click.option(
+            "--export_res",
+            type=int,
+            help="Export interval in days (exports results periodically to reduce memory). "
+            "Recommended: 30 days for 1-minute resolution, 60 days for 5-minute resolution",
+        ),
+        click.option(
+            "--output_format",
+            default="ochre",
+            type=click.Choice(["ochre", "resstock"]),
+            help="Output format: 'ochre' (default) or 'resstock' (ResStock-compatible CSV)",
+        ),
+        click.option("--seed", type=int, default=None, help="Random seed for reproducibility"),
     ]
     return functools.reduce(lambda x, opt: opt(x), options[::-1], f)
 

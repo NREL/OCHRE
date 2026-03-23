@@ -1,5 +1,6 @@
 *.pyc
 *.log
+*.rej
 .DS_Store
 
 .idea/
@@ -12,5 +13,10 @@ dist/
 docs/_build
 *.egg-info/
 *.code-workspace
-
+.history
 ochre/defaults/Input Files/OCHRE*
+test/outputs/
+test/resstock_golden/ochre_result/bldg*/
+test/resstock_golden/ochre_result/ochre_annual_result_new.csv
+test_run/
+uv.lock

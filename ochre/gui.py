@@ -11,9 +11,7 @@ def gui_basic():
     root = tk.Tk()
     root.withdraw()
 
-    input_path = filedialog.askdirectory(
-        title="Select OCHRE Simulation Folder"
-    )
+    input_path = filedialog.askdirectory(title="Select OCHRE Simulation Folder")
 
     if not input_path:
         print("No simulation folder chosen, exiting.")
@@ -58,6 +56,7 @@ def gui_detailed():
     # add prompts for each input
     global row
     row = 0
+
     def make_input(label, default="", width=None, is_file=False, is_folder=False):
         global row
         label = tk.Label(root, text=label)
@@ -113,7 +112,6 @@ def gui_detailed():
 
         dwelling = create_dwelling(**input_values)
         dwelling.simulate()
-        
 
     submit_button = tk.Button(root, text="Run OCHRE", command=get_inputs_and_run)
     submit_button.grid(row=row, column=0, columnspan=2)
@@ -130,6 +128,7 @@ def gui_detailed():
     root.columnconfigure((0, 1, 2), weight=1)
 
     root.mainloop()
+
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:

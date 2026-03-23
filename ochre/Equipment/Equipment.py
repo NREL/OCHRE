@@ -102,9 +102,7 @@ class Equipment(Simulator):
         self.duty_cycle_by_mode = {mode: 0 for mode in self.modes}
         self.duty_cycle_by_mode["Off"] = 1
 
-    def initialize_parameters(
-        self, parameter_file=None, name_col="Name", value_col="Value", **kwargs
-    ):
+    def initialize_parameters(self, parameter_file=None, name_col="Name", value_col="Value", **kwargs):
         if parameter_file is None:
             return {}
 
@@ -142,9 +140,7 @@ class Equipment(Simulator):
         :return: list of mode names in order of priority
         """
         if self.ext_time_res is None:
-            raise OCHREException(
-                "External control time resolution is not defined for {}.".format(self.name)
-            )
+            raise OCHREException("External control time resolution is not defined for {}.".format(self.name))
         if duty_cycles:
             self.update_duty_cycles(*duty_cycles)
 
@@ -167,8 +163,9 @@ class Equipment(Simulator):
 
         if not len(modes_with_time):
             self.warn(
-                "No available modes, keeping the current mode. "
-                "Duty cycles: {}; Time per mode: {}".format(duty_cycles, self.ext_mode_counters)
+                "No available modes, keeping the current mode. Duty cycles: {}; Time per mode: {}".format(
+                    duty_cycles, self.ext_mode_counters
+                )
             )
             modes_with_time.append(self.mode)
 
@@ -187,9 +184,7 @@ class Equipment(Simulator):
         # Note: only updates heat gains
         #  - need to calculate power in child classes
         if self.zone is not None:
-            total_power_w = (
-                self.electric_kw + self.gas_therms_per_hour / kwh_to_therms
-            ) * 1000  # in W
+            total_power_w = (self.electric_kw + self.gas_therms_per_hour / kwh_to_therms) * 1000  # in W
             self.sensible_gain = total_power_w * self.sensible_gain_fraction
             self.latent_gain = total_power_w * self.latent_gain_fraction
 
@@ -240,11 +235,7 @@ class Equipment(Simulator):
             self.time_in_mode += self.time_res
         else:
             if mode not in self.modes:
-                raise OCHREException(
-                    "Can't set {} mode to {}. Valid modes are: {}".format(
-                        self.name, mode, self.modes
-                    )
-                )
+                raise OCHREException("Can't set {} mode to {}. Valid modes are: {}".format(self.name, mode, self.modes))
             self.mode = mode
             self.time_in_mode = self.time_res
             self.mode_cycles[self.mode] += 1
@@ -297,16 +288,22 @@ class Equipment(Simulator):
 
         # Note: end use power is included in Dwelling.generate_results
         # Note: individual equipment powers are included in ScheduledLoad.generate_results
-        if self.main_simulator or (self.verbosity >= 6 and self.name != self.end_use):
-            if self.is_electric:
-                results[f"{self.results_name} Electric Power (kW)"] = self.electric_kw
-                if self.verbosity >= 8:
-                    results[f"{self.results_name} Reactive Power (kVAR)"] = self.reactive_kvar
-            if self.is_gas:
-                results[f"{self.results_name} Gas Power (therms/hour)"] = self.gas_therms_per_hour
+        # main_simulator check ensures standalone equipment always outputs its power
+        if self.is_electric:
+            electric_power_name = f"{self.results_name} Electric Power (kW)"
+            if self.main_simulator:
+                results[electric_power_name] = self.electric_kw
+            else:
+                self.add_output(results, electric_power_name, self.electric_kw)
+            self.add_output(results, f"{self.results_name} Reactive Power (kVAR)", self.reactive_kvar)
+        if self.is_gas:
+            gas_power_name = f"{self.results_name} Gas Power (therms/hour)"
+            if self.main_simulator:
+                results[gas_power_name] = self.gas_therms_per_hour
+            else:
+                self.add_output(results, gas_power_name, self.gas_therms_per_hour)
 
-        if self.verbosity >= 7:
-            results[f"{self.results_name} Mode"] = self.mode
+        self.add_output(results, f"{self.results_name} Mode", self.mode)
 
         return results
 

@@ -71,18 +71,12 @@ def get_duct_info(ducts, zones, boundaries, construction, location, **kwargs):
     # Get zone type from duct_zone and zone info
     duct_zone = ducts["Zone"]
     fnd_type = zones.get("Foundation", {}).get("Zone Type")
-    fnd_wall_ins = boundaries.get("Foundation Wall", {}).get(
-        "Insulation Details", "Uninsulated"
-    )
+    fnd_wall_ins = boundaries.get("Foundation Wall", {}).get("Insulation Details", "Uninsulated")
     fnd_ceil_ins = boundaries.get("Foundation Ceiling", {}).get("Boundary R Value", 0)
 
     if duct_zone == "Attic":
         vented = "vented" if zones["Attic"]["Vented"] else "unvented"
-        radiant_barrier = (
-            "_radiant_barrier"
-            if boundaries.get("Attic Roof", {}).get("Radiant Barrier", False)
-            else ""
-        )
+        radiant_barrier = "_radiant_barrier" if boundaries.get("Attic Roof", {}).get("Radiant Barrier", False) else ""
         zone_type = f"attic_{vented}{radiant_barrier}"
     elif duct_zone == "Garage":
         zone_type = "garage"
@@ -107,17 +101,13 @@ def get_duct_info(ducts, zones, boundaries, construction, location, **kwargs):
 
     return {
         "Zone Type": zone_type,
-        "House Volume (ft^3)": convert(
-            construction["Conditioned Volume (m^3)"], "m^3", "ft^3"
-        ),
+        "House Volume (ft^3)": convert(construction["Conditioned Volume (m^3)"], "m^3", "ft^3"),
         "Latitude": location["latitude"],
         "Longitude": location["longitude"],
     }
 
 
-def update_equipment_properties(
-    properties, schedule, zip_parameters_file="ZIP Parameters.csv", **kwargs
-):
+def update_equipment_properties(properties, schedule, zip_parameters_file="ZIP Parameters.csv", **kwargs):
     all_equipment = properties["equipment"]
 
     # add location properties to PV if it exists
@@ -125,10 +115,7 @@ def update_equipment_properties(
         all_equipment["PV"]["location"] = properties["location"]
 
     # split heat pump equipment into heater and cooler
-    for heat_pump_name, short_name in [
-        ("Air Source Heat Pump", "ASHP"),
-        ("Minisplit Heat Pump", "MSHP"),
-    ]:
+    for heat_pump_name, short_name in [("Air Source Heat Pump", "ASHP"), ("Minisplit Heat Pump", "MSHP")]:
         if heat_pump_name in all_equipment:
             hvac_dict = all_equipment.pop(heat_pump_name)
             all_equipment[f"{short_name} Heater"] = hvac_dict
@@ -158,9 +145,7 @@ def update_equipment_properties(
             eq_fuel = "Natural gas"
         generic_name = names_by_type.get((eq_type, eq_fuel))
         if generic_name is None and eq_type is not None:
-            raise OCHREException(
-                f"Unknown {end_use} type ({eq_type}) and fuel ({eq_fuel}) combo."
-            )
+            raise OCHREException(f"Unknown {end_use} type ({eq_type}) and fuel ({eq_fuel}) combo.")
 
         # compare names from generic and named dicts
         if generic_name is None and eq_name is None:
@@ -169,9 +154,7 @@ def update_equipment_properties(
         elif eq_name is None:
             eq_name = generic_name
         elif generic_name is None:
-            print(
-                f"Using a {eq_name} for {end_use}, but no equipment specified in HPXML file"
-            )
+            print(f"Using a {eq_name} for {end_use}, but no equipment specified in HPXML file")
         elif generic_name != eq_name:
             # if generic and named names are different, print a note
             print(f"Using a {eq_name} for {end_use} instead of a {generic_name}")
@@ -202,11 +185,7 @@ def update_equipment_properties(
 
 
 def calculate_duct_dse(
-    hvac,
-    ducts,
-    climate_file="ASHRAE152_climate_data.csv",
-    zone_temp_file="ASHRAE152_zone_temperatures.csv",
-    **kwargs,
+    hvac, ducts, climate_file="ASHRAE152_climate_data.csv", zone_temp_file="ASHRAE152_zone_temperatures.csv", **kwargs
 ):
     # Inputs from HPXML
     zone_type = ducts["Zone Type"]
@@ -250,9 +229,7 @@ def calculate_duct_dse(
         capacity = convert(hvac.capacity_list[4], "W", "Btu/hour")
         fan_flow = convert(hvac.flow_rate_list[4], "m^3/s", "cubic_feet/min")
     else:
-        raise OCHREException(
-            f"Unknown number of speeds for {hvac.name}: {hvac.n_speeds}"
-        )
+        raise OCHREException(f"Unknown number of speeds for {hvac.name}: {hvac.n_speeds}")
 
     # Other inputs
     ambient_temp = 68 if hvac.is_heater else 78
@@ -268,26 +245,18 @@ def calculate_duct_dse(
     longit = df_climate["Longitude"].values
     dlat = np.radians(lat) - np.radians(latitude)
     dlon = np.radians(longit) - np.radians(longitude)
-    a = np.sin(dlat / 2) * np.sin(dlat / 2) + np.cos(np.radians(latitude)) * np.cos(
-        np.radians(lat)
-    ) * np.sin(dlon / 2) * np.sin(dlon / 2)
+    a = np.sin(dlat / 2) * np.sin(dlat / 2) + np.cos(np.radians(latitude)) * np.cos(np.radians(lat)) * np.sin(
+        dlon / 2
+    ) * np.sin(dlon / 2)
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
     df_climate["Distance"] = 6373.0 * c
     location_index = df_climate["Distance"].argmin() + 1
     climate_data = df_climate.loc[location_index].to_dict()
 
-    heating_des_init = float(
-        climate_data["Heating Design Temp"]
-    )  # required for evaluating zone temp file
-    cooling_des_init = float(
-        climate_data["Cooling Design Temp"]
-    )  # required for evaluating zone temp file
-    heating_seas_init = float(
-        climate_data["Heating Seasonal Temp"]
-    )  # required for evaluating zone temp file
-    cooling_seas_init = float(
-        climate_data["Cooling Seasonal Temp"]
-    )  # required for evaluating zone temp file
+    heating_des_init = float(climate_data["Heating Design Temp"])  # noqa: F841 - required for evaluating zone temp file
+    cooling_des_init = float(climate_data["Cooling Design Temp"])  # noqa: F841 - required for evaluating zone temp file
+    heating_seas_init = float(climate_data["Heating Seasonal Temp"])  # required for evaluating zone temp file
+    cooling_seas_init = float(climate_data["Cooling Seasonal Temp"])  # required for evaluating zone temp file
     # des_HR = float(climate_data['Wdesign'])
     # des_in_HR = float(climate_data['Windesign'])
     seas_HR = float(climate_data["Wseasonal"])
@@ -296,7 +265,7 @@ def calculate_duct_dse(
     # des_in_enthalpy = float(climate_data['Design hin'])
     seas_enthalpy = float(climate_data["Seasonal hout"])
     seas_in_enthalpy = float(climate_data["Seasonal hin"])
-    ground_temp = (heating_des_init + cooling_des_init) / 2
+    ground_temp = (heating_des_init + cooling_des_init) / 2  # noqa: F841
 
     # Load zone temperature file
     df_zone_temps = load_csv(zone_temp_file, index_col="Zone Type")
@@ -311,9 +280,7 @@ def calculate_duct_dse(
     seas_temp = zone_type_data[f"{hvac_type.lower()}_seas_temp"]
     seas_supply_zone_temp = seas_temp
     # des_supply_zone_enthalpy = des_supply_zone_temp * 0.24 + des_HR * (1061 + 0.444 * des_supply_zone_temp)
-    seas_supply_zone_enthalpy = seas_supply_zone_temp * 0.24 + seas_HR * (
-        1061 + 0.444 * seas_supply_zone_temp
-    )
+    seas_supply_zone_enthalpy = seas_supply_zone_temp * 0.24 + seas_HR * (1061 + 0.444 * seas_supply_zone_temp)
     supply_regain = zone_type_data["supply_duct_thermal_regain"]
 
     # Note: hvac_mult = -1 for cooling. Sign will flip for cooling
@@ -323,15 +290,11 @@ def calculate_duct_dse(
     #     des_return_zone_temp = des_supply_zone_temp
     if hvac.is_heater:
         seas_return_zone_temp = (
-            (heating_seas_init + seas_supply_zone_temp) / 2
-            if seas_temp > ambient_temp
-            else seas_supply_zone_temp
+            (heating_seas_init + seas_supply_zone_temp) / 2 if seas_temp > ambient_temp else seas_supply_zone_temp
         )
     else:
         seas_return_zone_temp = (
-            (cooling_seas_init + seas_supply_zone_temp) / 2
-            if seas_temp < ambient_temp
-            else seas_supply_zone_temp
+            (cooling_seas_init + seas_supply_zone_temp) / 2 if seas_temp < ambient_temp else seas_supply_zone_temp
         )
     # else:
     # TODO: not using the 3 lines above, since (heating_seas_temp == seas_supply_zone_temp)
@@ -402,21 +365,13 @@ def calculate_duct_dse(
         if hvac.n_speeds == 1:
             seas_uncorr_de = (
                 as_high * Bs_high
-                - as_high
-                * Bs_high
-                * (1 - Br_high * ar_high)
-                * seas_return_temp_diff
-                / dTe_high
+                - as_high * Bs_high * (1 - Br_high * ar_high) * seas_return_temp_diff / dTe_high
                 - as_high * (1 - Bs_high) * seas_supply_temp_diff / dTe_high
             )
         else:
             seas_uncorr_de = (
                 as_low * Bs_low
-                - as_low
-                * Bs_low
-                * (1 - Br_low * ar_low)
-                * seas_return_temp_diff
-                / dTe_low
+                - as_low * Bs_low * (1 - Br_low * ar_low) * seas_return_temp_diff / dTe_low
                 - as_low * (1 - Bs_low) * seas_supply_temp_diff / dTe_low
             )
     else:
@@ -435,10 +390,7 @@ def calculate_duct_dse(
                 * (
                     -capacity / fan_flow / (0.075 * 60)
                     + (1 - ar_high) * (seas_return_zone_enthalpy - seas_in_enthalpy)
-                    + 0.24
-                    * ar_high
-                    * (Br_high - 1)
-                    * (ambient_temp - seas_return_zone_temp)
+                    + 0.24 * ar_high * (Br_high - 1) * (ambient_temp - seas_return_zone_temp)
                     + 0.24 * (Bs_high - 1) * (55 - seas_supply_zone_temp)
                 )
             )
@@ -452,10 +404,7 @@ def calculate_duct_dse(
                 * (
                     -capacity_low / fan_flow_low / (60 * 0.075)
                     + (1 - ar_low) * (seas_return_zone_enthalpy - seas_in_enthalpy)
-                    + 0.24
-                    * ar_low
-                    * (Br_low - 1)
-                    * (ambient_temp - seas_return_zone_temp)
+                    + 0.24 * ar_low * (Br_low - 1) * (ambient_temp - seas_return_zone_temp)
                     + 0.24 * (Bs_low - 1) * (55 - seas_supply_zone_temp)
                 )
             )
@@ -466,13 +415,7 @@ def calculate_duct_dse(
         #     infil - infil_fan_off)) / des_uncorr_de / capacity
         seas_load_factor = (
             1
-            - (
-                60
-                * 0.075
-                * 0.24
-                * (ambient_temp - heating_seas_init)
-                * (infil - infil_fan_off)
-            )
+            - (60 * 0.075 * 0.24 * (ambient_temp - heating_seas_init) * (infil - infil_fan_off))
             / seas_uncorr_de
             / capacity
         )
@@ -480,15 +423,7 @@ def calculate_duct_dse(
         # des_load_factor = 1 - (60 * 0.075 * (infil - infil_fan_off) * (
         #     des_in_enthalpy - des_enthalpy)) / -capacity / des_uncorr_de
         seas_load_factor = (
-            1
-            - (
-                60
-                * 0.075
-                * (infil - infil_fan_off)
-                * (seas_in_enthalpy - seas_enthalpy)
-            )
-            / -capacity
-            / seas_uncorr_de
+            1 - (60 * 0.075 * (infil - infil_fan_off) * (seas_in_enthalpy - seas_enthalpy)) / -capacity / seas_uncorr_de
         )
 
     if hvac.is_heater:
@@ -506,11 +441,7 @@ def calculate_duct_dse(
         #     des_equip_factor = 0.65 + 0.35 * fan_flow / manu_fan_flow
         if hvac.n_speeds == 1:
             if cooling_control == "TXV":
-                seas_equip_factor = (
-                    1.62
-                    - 0.62 * fan_flow / manu_fan_flow
-                    + 0.647 * math.log(fan_flow / manu_fan_flow)
-                )
+                seas_equip_factor = 1.62 - 0.62 * fan_flow / manu_fan_flow + 0.647 * math.log(fan_flow / manu_fan_flow)
             else:
                 seas_equip_factor = 0.65 + 0.35 * fan_flow / manu_fan_flow
         else:
@@ -519,9 +450,7 @@ def calculate_duct_dse(
                     1.62 - 0.62 * fan_flow / manu_fan_flow
                 ) + 0.647 * math.log(fan_flow / manu_fan_flow)
             else:
-                seas_equip_factor = (0.82 + 0.18 * seas_uncorr_de) * (
-                    0.65 + 0.35 * fan_flow / manu_fan_flow
-                )
+                seas_equip_factor = (0.82 + 0.18 * seas_uncorr_de) * (0.65 + 0.35 * fan_flow / manu_fan_flow)
 
     # ---------- Low Speed ---------- (not used)
     # if hvac.n_speeds > 1:
@@ -543,11 +472,7 @@ def calculate_duct_dse(
     seas_de = (
         seas_uncorr_de
         + supply_regain * (1 - seas_uncorr_de)
-        - (
-            supply_regain
-            - return_regain
-            - Br_high * (ar_high * supply_regain - return_regain)
-        )
+        - (supply_regain - return_regain - Br_high * (ar_high * supply_regain - return_regain))
         * seas_return_temp_diff
         / dTe_high
     )
@@ -718,9 +643,7 @@ def iterate(x0, f0, x1, f1, x2, f2, icount, TolRel=1e-5, small=1e-9):
                     # round-off, use linear fit
                     mode = 2
                 else:
-                    D = (
-                        b**2 - 4.0 * a * c
-                    )  # calculate discriminant to check for real roots
+                    D = b**2 - 4.0 * a * c  # calculate discriminant to check for real roots
                     if D < 0.0:  # if no real roots, use linear fit
                         mode = 2
                     else:
@@ -1122,9 +1045,8 @@ def calculate_shr(DBin, Win, P, Q, flow, Ao):
         # error = H_ADP - h_fT_w_SI(T_ADP, W_ADP)
         error = H_ADP - psychrolib.GetMoistAirEnthalpy(T_ADP, W_ADP)
 
-        T_ADP, cvg, T_ADP_1, error1, T_ADP_2, error2 = iterate(
-            T_ADP, error, T_ADP_1, error1, T_ADP_2, error2, i
-        )
+        T_ADP, cvg, T_ADP_1, error1, T_ADP_2, error2 = \
+            iterate(T_ADP, error, T_ADP_1, error1, T_ADP_2, error2, i)
 
         if cvg:
             break

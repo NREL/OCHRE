@@ -14,7 +14,7 @@ dependencies = [
     "pvlib >= 0.10, <1.0",
     "nrel-pysam >= 5.1, <7.0",
     "psychrolib ~= 2.5",
-    "numba ~= 0.61",  # required for psychrolib
+    "numba ~= 0.61", # required for psychrolib
     "xmltodict >= 0.13, <1.0",
     "pyarrow >= 15.0",
     "fastparquet >= 2024.0",
@@ -24,10 +24,11 @@ dependencies = [
     "click ~= 8.1",
     "boto3 ~= 1.36",
 ]
-requires-python = ">=3.9, <3.13"
+requires-python = ">=3.10, <3.13"
 authors = [
   { name="Jeff Maguire", email="Jeff.Maguire@nrel.gov" },
   { name="Michael Blonsky", email="Michael.Blonsky@nrel.gov" },
+  { name="Rajendra Adhikari", email="Rajendra.Adhikari@nlr.gov" },
 ]
 description = "An energy modeling tool designed to model residential end-use loads and DERs"
 readme = "README.md"
@@ -58,8 +59,27 @@ ochre = "ochre:cli"
 ochre-gui-basic = "ochre:gui_basic"
 ochre-gui-detailed = "ochre:gui_detailed"
 
+[project.optional-dependencies]
+dev = [
+    "ruff==0.14.14",
+    "pytest-xdist>=3.8.0",
+]
+
 [tool.hatch.version]
 path = "ochre/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["ochre"]
+
+
+[tool.pytest.ini_options]
+markers = [
+    "golden: ResStock golden test suite (requires golden test data in test/resstock_golden/)",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.format]
+quote-style = "double"

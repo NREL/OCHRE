@@ -1,0 +1,66 @@
+Building,State,Building Type,Vintage,Floor Area,Clothes Dryer,Dryer Usage Level,OCHRE,EPlus,%Diff
+bldg0000935,MA,Single-Family Attached,2000s,2500-2999,Electric,80% Usage,1.5080,1.5150,-0.5%
+bldg0008984,LA,Single-Family Attached,1970s,1500-1999,Electric,100% Usage,2.4060,2.5220,-4.6%
+bldg0020895,CA,Single-Family Attached,1990s,1500-1999,Electric,100% Usage,2.4060,2.5220,-4.6%
+bldg0021070,MI,Single-Family Detached,1990s,1000-1499,Electric,80% Usage,0.7530,0.7950,-5.3%
+bldg0027147,CA,Multi-Family with 5+ Units,2000s,1000-1499,None,120% Usage,NA,0.0000,NA
+bldg0027808,CA,Single-Family Attached,1990s,4000+,Gas,80% Usage,0.1720,0.1800,-4.4%
+bldg0028885,HI,Single-Family Detached,1940s,4000+,Electric,100% Usage,2.6030,2.5220,+3.2%
+bldg0034729,VA,Single-Family Attached,1970s,1000-1499,None,80% Usage,NA,0.0000,NA
+bldg0035052,WA,Multi-Family with 5+ Units,1970s,750-999,None,100% Usage,NA,0.0000,NA
+bldg0064657,CA,Single-Family Attached,1990s,1500-1999,Gas,120% Usage,0.1350,0.1400,-3.6%
+bldg0066501,AK,Single-Family Detached,1990s,1500-1999,Electric,120% Usage,FAILED,3.0270,FAILED
+bldg0085067,NV,Single-Family Detached,1970s,2500-2999,Electric,120% Usage,6.0360,5.2870,+14.2%
+bldg0094522,AK,Single-Family Attached,1980s,4000+,None,100% Usage,FAILED,0.0000,FAILED
+bldg0099159,WY,Single-Family Attached,2010s,1000-1499,Electric,100% Usage,1.5360,1.6530,-7.1%
+bldg0103939,CT,Single-Family Detached,1960s,1000-1499,Electric,100% Usage,1.3650,1.3230,+3.2%
+bldg0104117,NY,Multi-Family with 5+ Units,<1940,750-999,None,100% Usage,NA,0.0000,NA
+bldg0108019,RI,Single-Family Detached,<1940,1000-1499,Electric,100% Usage,2.6030,2.5220,+3.2%
+bldg0111149,CA,Single-Family Detached,1970s,3000-3999,Electric,80% Usage,3.1290,2.6400,+18.5%
+bldg0112572,NY,Multi-Family with 2 - 4 Units,1940s,500-749,None,100% Usage,NA,0.0000,NA
+bldg0116109,AK,Single-Family Detached,1970s,1500-1999,Electric,80% Usage,FAILED,1.5150,FAILED
+bldg0117900,OH,Mobile Home,2000s,1000-1499,Electric,100% Usage,1.7900,1.6530,+8.3%
+bldg0120120,TX,Single-Family Detached,1950s,1000-1499,Electric,120% Usage,1.1290,1.1920,-5.3%
+bldg0125496,NY,Multi-Family with 5+ Units,1970s,750-999,None,100% Usage,NA,0.0000,NA
+bldg0126235,MI,Single-Family Detached,1990s,2500-2999,Electric,100% Usage,FAILED,3.7780,FAILED
+bldg0134115,FL,Multi-Family with 5+ Units,1970s,0-499,None,80% Usage,NA,0.0000,NA
+bldg0145426,AK,Single-Family Detached,1970s,1000-1499,Gas,120% Usage,FAILED,0.2130,FAILED
+bldg0149742,WA,Single-Family Attached,2000s,2500-2999,Electric,120% Usage,1.8430,1.9830,-7.1%
+bldg0172208,CA,Multi-Family with 5+ Units,1940s,750-999,None,80% Usage,NA,0.0000,NA
+bldg0180324,AZ,Multi-Family with 5+ Units,1970s,750-999,Electric,100% Usage,2.4060,2.5220,-4.6%
+bldg0189657,AK,Multi-Family with 2 - 4 Units,2010s,1000-1499,None,80% Usage,NA,0.0000,NA
+bldg0208851,SD,Single-Family Detached,2000s,4000+,Electric,100% Usage,3.4120,3.1500,+8.3%
+bldg0208877,NM,Multi-Family with 5+ Units,<1940,500-749,None,100% Usage,NA,0.0000,NA
+bldg0224395,FL,Single-Family Attached,1980s,2000-2499,Electric,80% Usage,1.9250,2.0180,-4.6%
+bldg0229989,MD,Single-Family Attached,1990s,1500-1999,Electric,100% Usage,2.0840,2.3110,-9.8%
+bldg0234075,IL,Multi-Family with 5+ Units,<1940,500-749,Electric,120% Usage,2.2620,2.2730,-0.5%
+bldg0236990,TX,Multi-Family with 5+ Units,1980s,500-749,None,80% Usage,NA,0.0000,NA
+bldg0240393,GA,Single-Family Attached,1980s,1000-1499,Electric,100% Usage,1.5360,1.6530,-7.1%
+bldg0245787,OH,Multi-Family with 5+ Units,2000s,0-499,None,120% Usage,NA,0.0000,NA
+bldg0250585,FL,Single-Family Attached,1980s,2500-2999,Electric,100% Usage,1.2620,1.3230,-4.6%
+bldg0259582,CA,Single-Family Detached,<1940,500-749,Electric,100% Usage,0.9410,0.9940,-5.3%
+bldg0274778,OK,Single-Family Detached,1990s,3000-3999,Electric,80% Usage,3.4690,2.9030,+19.5%
+bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,Electric,120% Usage,2.8880,3.0270,-4.6%
+bldg0276627,AK,Single-Family Detached,2000s,2000-2499,Electric,120% Usage,FAILED,3.0270,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,Gas,120% Usage,FAILED,0.3380,FAILED
+bldg0294702,NM,Single-Family Detached,2000s,4000+,Electric,80% Usage,3.3770,3.0230,+11.7%
+bldg0336334,CA,Single-Family Attached,1990s,2500-2999,Electric,120% Usage,3.5140,3.7800,-7.0%
+bldg0338190,KY,Single-Family Detached,2000s,1500-1999,Electric,100% Usage,1.7940,1.8940,-5.3%
+bldg0353300,CA,Multi-Family with 5+ Units,2010s,0-499,None,120% Usage,NA,0.0000,NA
+bldg0353418,CA,Single-Family Detached,2000s,4000+,Electric,100% Usage,1.7900,1.6530,+8.3%
+bldg0355977,OH,Multi-Family with 5+ Units,1970s,750-999,None,100% Usage,NA,0.0000,NA
+bldg0372624,HI,Single-Family Detached,1980s,2000-2499,Gas,80% Usage,0.3600,0.3150,+14.3%
+bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,None,80% Usage,NA,0.0000,NA
+bldg0437452,CA,Single-Family Attached,1960s,750-999,Electric,80% Usage,1.5080,1.5150,-0.5%
+bldg0445042,CA,Single-Family Attached,1980s,1500-1999,Gas,120% Usage,0.1350,0.1420,-4.9%
+bldg0449322,CA,Single-Family Attached,1970s,1000-1499,None,80% Usage,NA,0.0000,NA
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,None,120% Usage,FAILED,0.0000,FAILED
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,Electric,80% Usage,FAILED,6.5390,FAILED
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,Gas,100% Usage,FAILED,0.2820,FAILED
+bldg0483730,CA,Single-Family Detached,1950s,4000+,Gas,120% Usage,0.1920,0.1770,+8.5%
+bldg0486267,ME,Single-Family Detached,1990s,1000-1499,None,120% Usage,NA,0.0000,NA
+bldg0487739,WY,Mobile Home,1970s,750-999,None,120% Usage,NA,0.0000,NA
+bldg0499827,CA,Single-Family Detached,1990s,2000-2499,Propane,100% Usage,FAILED,0.1180,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,Gas,80% Usage,FAILED,0.4050,FAILED
+bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,Electric,120% Usage,2.2620,2.2730,-0.5%
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,Electric,80% Usage,FAILED,6.5390,FAILED

@@ -24,8 +24,7 @@ class BatteryThermalModel(OneNodeRCModel):
 
     def generate_results(self):
         results = super().generate_results()
-        if self.verbosity >= 7:
-            results[f"{self.name} (C)"] = self.states[0]
+        self.add_output(results, f"{self.name} (C)", self.states[0])
 
         return results
 
@@ -80,33 +79,23 @@ class Battery(Generator):
         self.discharge_rate = convert(
             self.parameters["discharge_pct"], "percent/day", "unitless/hour"
         )  # Self-discharge rate (1/hour)
-        self.efficiency_inverter = self.parameters[
-            "efficiency_inverter"
-        ]  # Inverter efficiency, unitless
+        self.efficiency_inverter = self.parameters["efficiency_inverter"]  # Inverter efficiency, unitless
         self.time_res_hours = self.time_res.total_seconds() / 3600
 
         # Pack efficiency depends on pack internal resistance
         self.efficiency_internal = 1  # varies with power output, unitless
         if self.efficiency_type == "advanced":
             # voltage and resistance depends on # of cells in parallel/series
-            capacity_cell = (
-                self.parameters["ah_cell"] * self.parameters["v_cell"] / 1000
-            )  # in kWh per cell
+            capacity_cell = self.parameters["ah_cell"] * self.parameters["v_cell"] / 1000  # in kWh per cell
             n_cells_tot = self.capacity_kwh / capacity_cell  # not necessarily an integer
 
             # usually 14 cells in series to achieve typical 50.6V pack voltage
             # TODO: update with data from https://github.com/NREL/PyChargeModel/blob/main/ElectricVehicles.py
-            n_series_by_voltage = (
-                self.parameters.get("initial_voltage", 50.4) / self.parameters["v_cell"]
-            )
-            self.n_series = self.parameters.get(
-                "n_series", n_series_by_voltage
-            )  # Number of cells in series
+            n_series_by_voltage = self.parameters.get("initial_voltage", 50.4) / self.parameters["v_cell"]
+            self.n_series = self.parameters.get("n_series", n_series_by_voltage)  # Number of cells in series
             n_parallel = n_cells_tot / self.n_series
 
-            self.r_internal = (
-                self.parameters["r_cell"] * self.n_series / n_parallel
-            )  # internal resistance, in ohms
+            self.r_internal = self.parameters["r_cell"] * self.n_series / n_parallel  # internal resistance, in ohms
         else:
             self.n_series = None
             self.r_internal = None
@@ -130,18 +119,14 @@ class Battery(Generator):
             self.thermal_model = None
 
         # Degradation model
-        self.capacity_kwh_nominal = (
-            self.capacity_rated
-        )  # starts at rated capacity, reduces from degradation
+        self.capacity_kwh_nominal = self.capacity_rated  # starts at rated capacity, reduces from degradation
         self.degradation_data = []
         if enable_degradation:
             self.degradation_states = (0, 0, 0)
 
         # Curves for degradation and efficiency using internal resistance
         # TODO: update with data from https://github.com/NREL/PyChargeModel/blob/main/ElectricVehicles.py
-        df_curves = self.initialize_parameters(
-            "degradation_curves.csv", name_col="SOC", value_col=None
-        )
+        df_curves = self.initialize_parameters("degradation_curves.csv", name_col="SOC", value_col=None)
         self.voc_curve = interp1d(
             df_curves.index,
             df_curves["V_oc"],
@@ -164,9 +149,7 @@ class Battery(Generator):
     def update_inputs(self, schedule_inputs=None):
         # Add zone temperature to schedule inputs for water tank
         if not self.main_simulator and self.thermal_model:
-            schedule_inputs["Zone Temperture (C)"] = schedule_inputs[
-                f"{self.zone_name} Temperature (C)"
-            ]
+            schedule_inputs["Zone Temperture (C)"] = schedule_inputs[f"{self.zone_name} Temperature (C)"]
 
         super().update_inputs(schedule_inputs)
 
@@ -284,17 +267,13 @@ class Battery(Generator):
         # update max charge based on charging efficiency
         max_charge_kwh = self.get_kwh_remaining(discharge=False, include_efficiency=False)
         max_charge_dc = max_charge_kwh / self.time_res_hours  # in kW
-        efficiency = self.calculate_efficiency(
-            min(max_charge_dc, max_charge), is_output_power=False
-        )
+        efficiency = self.calculate_efficiency(min(max_charge_dc, max_charge), is_output_power=False)
         max_charge = min(max_charge_dc / efficiency, max_charge)
 
         # update max discharge based on discharging efficiency
         max_discharge_kwh = self.get_kwh_remaining(discharge=True, include_efficiency=False)
         max_discharge_dc = max_discharge_kwh / self.time_res_hours  # in kW
-        efficiency = self.calculate_efficiency(
-            -min(max_discharge_dc, -max_discharge * 1.1), is_output_power=False
-        )
+        efficiency = self.calculate_efficiency(-min(max_discharge_dc, -max_discharge * 1.1), is_output_power=False)
         max_discharge = -min(max_discharge_dc * efficiency, -max_discharge)
 
         return max_discharge, max_charge
@@ -309,13 +288,9 @@ class Battery(Generator):
             voc = float(self.voc_curve(self.soc)) * self.n_series
             if is_output_power:
                 electric_kw *= self.efficiency_inverter
-                v = voc / 2 + np.sqrt(
-                    (voc / 2) ** 2 + (electric_kw * 1000) * self.r_internal
-                )  # V = V_oc + P*R/V
+                v = voc / 2 + np.sqrt((voc / 2) ** 2 + (electric_kw * 1000) * self.r_internal)  # V = V_oc + P*R/V
             else:
-                v = (
-                    voc + (electric_kw * 1000 / voc) * self.r_internal
-                )  # V = V_oc + I*R = V_oc + P/V_oc * R
+                v = voc + (electric_kw * 1000 / voc) * self.r_internal  # V = V_oc + I*R = V_oc + P/V_oc * R
 
             if electric_kw <= 0:
                 # discharging - efficiency is p_out / p_in = v_out / v_in
@@ -346,9 +321,7 @@ class Battery(Generator):
         e_ad2 = 9.752e6  # J / mol
         if self.thermal_model is not None:
             t_batt = self.thermal_model.states[self.t_idx] + degC_to_K
-            d0 = d0_ref * np.exp(
-                -e_ad1 / R * (1 / t_batt - 1 / t_ref) + -e_ad2 / R * (1 / t_batt - 1 / t_ref) ** 2
-            )
+            d0 = d0_ref * np.exp(-e_ad1 / R * (1 / t_batt - 1 / t_ref) + -e_ad2 / R * (1 / t_batt - 1 / t_ref) ** 2)
             self.capacity_kwh = self.capacity_kwh_nominal * d0
         else:
             self.capacity_kwh = self.capacity_kwh_nominal
@@ -358,9 +331,7 @@ class Battery(Generator):
         # update SOC for next time step
         # FUTURE: non-zero self-discharge could cause SOC limit issues
         self_discharge = self.discharge_rate * self.time_res_hours
-        self.next_soc = (
-            self.soc + self.power_input * self.time_res_hours / self.capacity_kwh - self_discharge
-        )
+        self.next_soc = self.soc + self.power_input * self.time_res_hours / self.capacity_kwh - self_discharge
 
         # check with upper and lower bound of usable SOC, small computational errors possible
         assert self.soc_max + 0.001 >= self.next_soc >= self.soc_min - 0.001
@@ -420,12 +391,8 @@ class Battery(Generator):
         df["temp"] = df["temp"] + degC_to_K
         cycles = rainflow.extract_cycles(df["soc"])
         cycles = pd.DataFrame(cycles, columns=["dsoc", "avg_soc", "ncycle", "start", "end"])
-        cycles["avg_temp"] = [
-            df["temp"].iloc[start:end].mean() for start, end in zip(cycles["start"], cycles["end"])
-        ]
-        deg_time = (
-            len(df) * self.time_res.total_seconds() / 3600 / 24
-        )  # days since last degradation update
+        cycles["avg_temp"] = [df["temp"].iloc[start:end].mean() for start, end in zip(cycles["start"], cycles["end"])]
+        deg_time = len(df) * self.time_res.total_seconds() / 3600 / 24  # days since last degradation update
         max_dod = cycles["dsoc"].max()
 
         # interpolate SOC to get v_oc and u_neg
@@ -444,11 +411,7 @@ class Battery(Generator):
 
         # degradation rates
         b1 = b1_ref * ((b1_tfl * b1_arr).mean() * np.exp(gamma_b1 * max_dod**beta_b1))
-        b2 = (
-            b2_ref * ((b2_arr * cycles["ncycle"]) ** 2).sum() ** 0.5 / deg_time
-            if max_dod > 0
-            else 0
-        )
+        b2 = b2_ref * ((b2_arr * cycles["ncycle"]) ** 2).sum() ** 0.5 / deg_time if max_dod > 0 else 0
         b3 = b3_ref * (b3_tfl * b3_arr).mean() * (1 - theta * max_dod)
 
         # update degradation states
@@ -474,16 +437,18 @@ class Battery(Generator):
 
     def generate_results(self):
         results = super().generate_results()
-        if self.verbosity >= 3:
-            results[f"{self.end_use} SOC (-)"] = self.soc
-        if self.verbosity >= 7:
-            results[f"{self.end_use} Energy to Discharge (kWh)"] = self.get_kwh_remaining()
-            if self.degradation_states is not None:
-                results[f"{self.end_use} Nominal Capacity (kWh)"] = self.capacity_kwh_nominal
-                results[f"{self.end_use} Actual Capacity (kWh)"] = self.capacity_kwh
-                results[f"{self.end_use} Degradation State Q1"] = self.degradation_states[0]
-                results[f"{self.end_use} Degradation State Q2"] = self.degradation_states[1]
-                results[f"{self.end_use} Degradation State Q3"] = self.degradation_states[2]
+
+        self.add_output(results, f"{self.end_use} SOC (-)", self.soc)
+
+        self.add_output(results, f"{self.end_use} Energy to Discharge (kWh)", self.get_kwh_remaining())
+
+        if self.degradation_states is not None:
+            self.add_output(results, f"{self.end_use} Nominal Capacity (kWh)", self.capacity_kwh_nominal)
+            self.add_output(results, f"{self.end_use} Actual Capacity (kWh)", self.capacity_kwh)
+            self.add_output(results, f"{self.end_use} Degradation State Q1", self.degradation_states[0])
+            self.add_output(results, f"{self.end_use} Degradation State Q2", self.degradation_states[1])
+            self.add_output(results, f"{self.end_use} Degradation State Q3", self.degradation_states[2])
+
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())
 
