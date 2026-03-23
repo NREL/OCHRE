@@ -138,6 +138,7 @@ class Dwelling(Simulator):
         # Create all equipment
         self.equipment = {}
         for equipment_name, equipment_args in equipment_dict.items():
+            print(equipment_name)
             cls = equipment_args.pop("equipment_class", EQUIPMENT_BY_NAME.get(equipment_name))
             equipment_args = {**sim_args, **equipment_args}
             eq = cls(name=equipment_name, **equipment_args)

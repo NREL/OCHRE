@@ -1484,6 +1484,9 @@ def parse_hvac(hvac_type, hvac_all):
                 qm17full = 0.69  # NEEP database
             capacity17f = qm17full * capacity
 
+    # Get design air flow rates
+    design_airflow_cfm = hvac_ext.get(f"{hvac_type}AirflowCFM", None)
+
     # Get auxiliary power (fans, pumps, etc.) air flow rate
     if name == "Boiler":
         # Note: ResStock assumes 2080 hours/year, see hvac.rb line 1754 (get_default_boiler_eae)
@@ -1494,13 +1497,15 @@ def parse_hvac(hvac_type, hvac_all):
     elif "FanPowerWattsPerCFM" in hvac_ext:
         # Note: air flow rate is only used for non-dymanic HVAC models with fans, e.g., furnaces
         # airflow_cfm = hvac_ext.get(f'{hvac_type}AirflowCFM', 0)
-        cfm_per_ton = utils_equipment.get_rated_cfm_per_ton(name)
+        if design_airflow_cfm is None:
+            design_airflow_cfm = utils_equipment.get_design_cfm_per_ton(name) * convert(capacity, "W", "refrigeration_ton")
         power_per_cfm = hvac_ext.get("FanPowerWattsPerCFM", 0)
         aux_power = (
-            power_per_cfm * cfm_per_ton * convert(capacity, "W", "refrigeration_ton")
+            power_per_cfm * design_airflow_cfm
         )
     else:
         aux_power = hvac_ext.get("FanPowerWatts", 0)
+
     if "FanMotorType" in hvac_ext:
         fan_motor_type = hvac_ext.get("FanMotorType")
     elif name in detailed_performance_sys_types:
@@ -1521,6 +1526,7 @@ def parse_hvac(hvac_type, hvac_all):
         "Number of Speeds (-)": number_of_speeds,
         "Rated Auxiliary Power (W)": aux_power,
         "Fan Motor Type": fan_motor_type,
+        "Design Airflow (CFM)": design_airflow_cfm,
     }
 
     # Add startup capacity degradation factor for AC and heat pumps

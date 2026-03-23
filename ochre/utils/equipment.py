@@ -664,7 +664,7 @@ def calculate_mass_flow_rate(DBin, Win, P, flow):
     mfr = flow * rho_in
     return mfr
 
-def process_detailed_performance_data(detailed_performance_data, mode, nominal_capacity, rated_cfm_per_ton, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted):
+def process_detailed_performance_data(detailed_performance_data, mode, nominal_capacity, rated_airflow, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted):
     datapoints_by_speed = {}
     for outtemp, speed_data in detailed_performance_data.items():
       for speed_description, datapoints in speed_data.items():
@@ -677,7 +677,7 @@ def process_detailed_performance_data(detailed_performance_data, mode, nominal_c
         dp['net_capacity'] = datapoints['capacity']
         dp['net_COP'] = datapoints['COP']
         datapoints_by_speed[speed_description].append(dp)
-    datapoints_by_speed = convert_datapoint_net_to_gross(datapoints_by_speed, mode, nominal_capacity, rated_cfm_per_ton, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted)
+    datapoints_by_speed = convert_datapoint_net_to_gross(datapoints_by_speed, mode, nominal_capacity, rated_airflow, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted)
     #extrapolate_datapoints(datapoints_by_speed mode, hp_min_temp, weather_temp)
     datapoints_by_speed = correct_ft_cap_eir(datapoints_by_speed, mode)
     print(datapoints_by_speed)
@@ -690,19 +690,54 @@ def calculate_biquadratic(x, y, c):
     z = c[0] + c[1] * x + c[2] * x**2 + c[3] * y + c[4] * y**2 + c[5] * y * x
     return z
 
+def get_ft_cap_eir_correction_factors(mode, indoor_temp_c, outdoor_temp_c):
+    if mode == "Cooling":
+        rated_t_i = AIR_SOURCE_COOL_RATED_IWB
+        # Cutler curve used for introducing indoor temperature dependence to capacity and EIR.
+        cap_ft_spec_ss = [3.717717741, -0.09918866, 0.000964488, 0.005887776, -0.000012808, -0.000132822]
+        eir_ft_spec_ss = [-3.400341169, 0.135184783, -0.001037932, -0.007852322, 0.000183438, -0.000142548]
+        # Cooling variations held constant for Todb less than 75°F
+        curve_t_o = max(outdoor_temp_c, convert(75.0, 'degF', 'degC'))
+    else:
+        rated_t_i = AIR_SOURCE_HEAT_RATED_IDB
+        # Cutler curve used for introducing indoor temperature dependence to capacity and EIR.
+        cap_ft_spec_ss = [0.568706266, -0.000747282, -0.0000103432, 0.00945408, 0.000050812, -0.00000677828]
+        eir_ft_spec_ss = [0.722917608, 0.003520184, 0.000143097, -0.005760341, 0.000141736, -0.000216676]
+        curve_t_o = outdoor_temp_c
+
+    cap_ft_curve_output = calculate_biquadratic(
+        convert(indoor_temp_c, 'degC', 'degF'),
+        convert(curve_t_o, 'degC', 'degF'),
+        cap_ft_spec_ss,
+    )
+    cap_ft_curve_output_rated = calculate_biquadratic(
+        convert(rated_t_i, 'degC', 'degF'),
+        convert(curve_t_o, 'degC', 'degF'),
+        cap_ft_spec_ss,
+    )
+    cap_correction_factor = cap_ft_curve_output / cap_ft_curve_output_rated
+
+    eir_ft_curve_output = calculate_biquadratic(
+        convert(indoor_temp_c, 'degC', 'degF'),
+        convert(curve_t_o, 'degC', 'degF'),
+        eir_ft_spec_ss,
+    )
+    eir_ft_curve_output_rated = calculate_biquadratic(
+        convert(rated_t_i, 'degC', 'degF'),
+        convert(curve_t_o, 'degC', 'degF'),
+        eir_ft_spec_ss,
+    )
+    eir_correction_factor = eir_ft_curve_output / eir_ft_curve_output_rated
+
+    return cap_correction_factor, eir_correction_factor
+
 def correct_ft_cap_eir(datapoints_by_speed, mode):
     if mode == "Cooling":
         rated_t_i = AIR_SOURCE_COOL_RATED_IWB
         indoor_t = [convert(57.0, 'degF', 'degC'), rated_t_i, convert(72.0, 'degF', 'degC')]
-        # Cutler curve used for introducing indoor temperature dependence to capacity and EIR.
-        cap_ft_spec_ss = [3.717717741, -0.09918866, 0.000964488, 0.005887776, -0.000012808, -0.000132822]
-        eir_ft_spec_ss = [-3.400341169, 0.135184783, -0.001037932, -0.007852322, 0.000183438, -0.000142548]
     else:
         rated_t_i = AIR_SOURCE_HEAT_RATED_IDB
         indoor_t = [convert(60.0, 'degF', 'degC'), rated_t_i, convert(80.0, 'degF', 'degC')]
-        # Cutler curve used for introducing indoor temperature dependence to capacity and EIR.
-        cap_ft_spec_ss = [0.568706266, -0.000747282, -0.0000103432, 0.00945408, 0.000050812, -0.00000677828]
-        eir_ft_spec_ss = [0.722917608, 0.003520184, 0.000143097, -0.005760341, 0.000141736, -0.000216676]
 
     for speed_description, datapoints in datapoints_by_speed.items():
         for dp in datapoints:
@@ -722,20 +757,15 @@ def correct_ft_cap_eir(datapoints_by_speed, mode):
                 dp_new = dp.copy()
                 if mode == "Cooling":
                     dp_new['indoor_wetbulb'] = t_i
-                    # Cooling variations shall be held constant for Tiwb less than 57°F and greater than 72°F, and for Todb less than 75°F
-                    curve_t_o = max(dp_new['outdoor_temperature'], convert(75.0, 'degF', 'degC'))
                 else:
                     dp_new['indoor_temperature'] = t_i
-                    curve_t_o = dp_new['outdoor_temperature']
-                cap_ft_curve_output = calculate_biquadratic(convert(t_i, 'degC', 'degF'), convert(curve_t_o, 'degC', 'degF'), cap_ft_spec_ss)
-                cap_ft_curve_output_rated = calculate_biquadratic(convert(rated_t_i, 'degC', 'degF'), convert(curve_t_o, 'degC', 'degF'), cap_ft_spec_ss)
-                cap_correction_factor = cap_ft_curve_output / cap_ft_curve_output_rated
+                cap_correction_factor, eir_correction_factor = get_ft_cap_eir_correction_factors(
+                    mode,
+                    t_i,
+                    dp_new['outdoor_temperature'],
+                )
                 # corrected capacity hash, with two temperature independent variables
                 dp_new['gross_capacity'] *= cap_correction_factor
-                # EIR FT curve output
-                eir_ft_curve_output = calculate_biquadratic(convert(t_i, 'degC', 'degF'), convert(curve_t_o, 'degC', 'degF'), eir_ft_spec_ss)
-                eir_ft_curve_output_rated = calculate_biquadratic(convert(rated_t_i, 'degC', 'degF'), convert(curve_t_o, 'degC', 'degF'), eir_ft_spec_ss)
-                eir_correction_factor = eir_ft_curve_output / eir_ft_curve_output_rated
                 dp_new['gross_COP'] /= eir_correction_factor
                 data_tmp.append(dp_new)
             array_tmp.append(data_tmp)
@@ -743,28 +773,25 @@ def correct_ft_cap_eir(datapoints_by_speed, mode):
             datapoints.extend(new_data)
     return datapoints_by_speed
 
-def convert_datapoint_net_to_gross(datapoints_by_speed, mode, nominal_capacity, rated_cfm_per_ton, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted):
+def convert_datapoint_net_to_gross(datapoints_by_speed, mode, nominal_capacity, rated_airflow, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted):
     speed_index = {
         HPXML_SPEED_DESCRIPTION_MINIMUM: 1,
         HPXML_SPEED_DESCRIPTION_NOMINAL: 2,
         HPXML_SPEED_DESCRIPTION_MAXIMUM: 3
     } # add 1 to speed index to include off speed in capacity list
-    # Calculate rated cfm based on cooling per AHRI
-    rated_cfm = calc_rated_airflow(nominal_capacity, rated_cfm_per_ton, 'cubic_feet/min')
     print(f'Nominal capacity: {nominal_capacity} W, {convert(nominal_capacity, "W", "refrigeration_ton")} tons')
-    print(f'Rated CFM based on nominal capacity and system type: {rated_cfm} cfm')
-    if rated_cfm < 3: # Resort to heating if we get a HP w/ only heating
-        raise OCHREException(f'Rated CFM is too low ({rated_cfm} cfm). Check if the nominal capacity and system type are correct.')
+    print(f'Rated airflow based on nominal capacity and system type: {convert(rated_airflow, "m^3/s", "cubic_feet/min")} cfm')
+    if convert(rated_airflow, 'm^3/s', 'cubic_feet/min') < 3: # Resort to heating if we get a HP w/ only heating
+        raise OCHREException(f'Rated CFM is too low ({convert(rated_airflow, "m^3/s", "cubic_feet/min")} cfm). Check if the nominal capacity and system type are correct.')
 
     # data structure: datapoints_by_speed[speed_description][outtemp]['net_capacity'] = 1000
     for speed_description, datapoints in datapoints_by_speed.items():
         for dp in datapoints:
-            fan_cfm = rated_cfm * (capacity_list[speed_index[speed_description]] / nominal_capacity)
-            fan_ratio = fan_cfm / rated_cfm # equal to capacity ratio in this case, OS-HPXML could be different since the rated_cfm 
-            watts_per_cfm = convert(fan_power_per_flow_rate, 'W/(m^3/s)', 'W/(cubic_feet/min)')
-            fan_power = calculate_fan_power(watts_per_cfm * rated_cfm, fan_ratio, fan_motor_type, is_ducted)
+            fan_airflow = rated_airflow * (capacity_list[speed_index[speed_description]] / nominal_capacity)
+            fan_ratio = fan_airflow / rated_airflow # equal to capacity ratio in this case, OS-HPXML could be different since the rated_cfm 
+            fan_power = calculate_fan_power(fan_power_per_flow_rate * rated_airflow, fan_ratio, fan_motor_type, is_ducted)
             dp['gross_capacity'], dp['gross_COP'] = convert_net_to_gross_capacity_cop(mode, dp['net_capacity'], fan_power, dp['net_COP'])
-            dp['input_power'] = dp['net_capacity'] / dp['net_COP'] # W
+            dp['net_input_power'] = dp['net_capacity'] / dp['net_COP'] # W
             dp['gross_input_power'] = dp['gross_capacity'] / dp['gross_COP'] # W
     return datapoints_by_speed
 
@@ -803,6 +830,12 @@ def get_rated_cfm_per_ton(system_type):
         return 312
     else:
         return 400
+
+def get_design_cfm_per_ton(system_type):
+    if system_type == 'Furnace' or system_type == 'Boiler':
+        return 240
+    else:
+        return 360
 
 def calculate_shr(DBin, Win, P, Q, flow, Ao):
     """
