@@ -680,7 +680,6 @@ def process_detailed_performance_data(detailed_performance_data, mode, nominal_c
     datapoints_by_speed = convert_datapoint_net_to_gross(datapoints_by_speed, mode, nominal_capacity, rated_airflow, capacity_list, fan_power_per_flow_rate, fan_motor_type, is_ducted)
     #extrapolate_datapoints(datapoints_by_speed mode, hp_min_temp, weather_temp)
     datapoints_by_speed = correct_ft_cap_eir(datapoints_by_speed, mode)
-    print(datapoints_by_speed)
     return datapoints_by_speed
 
 def calculate_biquadratic(x, y, c):
@@ -779,8 +778,6 @@ def convert_datapoint_net_to_gross(datapoints_by_speed, mode, nominal_capacity, 
         HPXML_SPEED_DESCRIPTION_NOMINAL: 2,
         HPXML_SPEED_DESCRIPTION_MAXIMUM: 3
     } # add 1 to speed index to include off speed in capacity list
-    print(f'Nominal capacity: {nominal_capacity} W, {convert(nominal_capacity, "W", "refrigeration_ton")} tons')
-    print(f'Rated airflow based on nominal capacity and system type: {convert(rated_airflow, "m^3/s", "cubic_feet/min")} cfm')
     if convert(rated_airflow, 'm^3/s', 'cubic_feet/min') < 3: # Resort to heating if we get a HP w/ only heating
         raise OCHREException(f'Rated CFM is too low ({convert(rated_airflow, "m^3/s", "cubic_feet/min")} cfm). Check if the nominal capacity and system type are correct.')
 

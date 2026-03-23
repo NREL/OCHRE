@@ -745,7 +745,6 @@ class DynamicHVAC(HVAC):
 
         super().__init__(**kwargs)
 
-        print(self.capacity_list)
         if self.detailed_performance_data_htg:
             self.datapoint_by_speed_htg = utils_equipment.process_detailed_performance_data(self.detailed_performance_data_htg, 'Heating', self.capacity_nominal, self.rated_flow_rate, self.capacity_list, self.fan_power_per_flow_rate, self.fan_motor_type, self.is_ducted)
             for index, eir_t_curve in enumerate(self.eir_t):
@@ -1649,12 +1648,12 @@ class PerformanceCurve:
             if self.coefficients is None:
                 raise OCHREException('quadratic curve coefficients are not set')
             a, b, c = self.coefficients
-            y = a * x1**2 + b * x1 + c
+            y = a + b * x1 + c * x1**2
         elif self.curve_type == 'cubic':
             if self.coefficients is None:
                 raise OCHREException('cubic curve coefficients are not set')
             a, b, c, d = self.coefficients
-            y = a * x1**3 + b * x1**2 + c * x1 + d
+            y = a + b * x1 + c * x1**2 + d * x1**3
         elif self.curve_type == 'biquadratic':
             if x2 is None:
                 raise OCHREException('biquadratic evaluation requires x1 and x2')
