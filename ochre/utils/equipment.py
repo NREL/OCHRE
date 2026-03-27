@@ -125,11 +125,7 @@ def update_equipment_properties(properties, schedule, zip_parameters_file="ZIP P
     for end_use, names_by_type in EQUIPMENT_NAMES_BY_TYPE.items():
         # Get equipment properties using either generic or named key or both
         generic = all_equipment.pop(end_use, {})
-        named = {
-            key: val
-            for key, val in all_equipment.items()
-            if key in names_by_type.values()
-        }
+        named = {key: val for key, val in all_equipment.items() if key in names_by_type.values()}
         if len(named) > 1:
             eq_names = list(named.keys())
             raise OCHREException(
@@ -647,9 +643,7 @@ def iterate(x0, f0, x1, f1, x2, f2, icount, TolRel=1e-5, small=1e-9):
                     if D < 0.0:  # if no real roots, use linear fit
                         mode = 2
                     else:
-                        if (
-                            D > 0.0
-                        ):  # if real unequal roots, use nearest root to recent guess
+                        if D > 0.0:  # if real unequal roots, use nearest root to recent guess
                             x_new = (-b + math.sqrt(D)) / (2 * c)
                             x_other = -x_new - b / c
                             if abs(x_new - x0) > abs(x_other - x0):
@@ -657,9 +651,7 @@ def iterate(x0, f0, x1, f1, x2, f2, icount, TolRel=1e-5, small=1e-9):
                         else:  # If real equal roots, use that root
                             x_new = -b / (2 * c)
 
-                        if (
-                            f1 * f0 > 0 and f2 * f0 > 0
-                        ):  # If the previous two f(x) were the same sign as the new
+                        if f1 * f0 > 0 and f2 * f0 > 0:  # If the previous two f(x) were the same sign as the new
                             if abs(f2) > abs(f1):
                                 x2 = x1
                                 f2 = f1
@@ -764,9 +756,7 @@ def process_detailed_performance_data(
 
 def calculate_biquadratic(x, y, c):
     if len(c) != 6:
-        raise OCHREException(
-            "Error: There must be 6 coefficients in a biquadratic polynomial"
-        )
+        raise OCHREException("Error: There must be 6 coefficients in a biquadratic polynomial")
 
     z = c[0] + c[1] * x + c[2] * x**2 + c[3] * y + c[4] * y**2 + c[5] * y * x
     return z
@@ -878,12 +868,10 @@ def correct_ft_cap_eir(datapoints_by_speed, mode):
                     dp_new["indoor_wetbulb"] = t_i
                 else:
                     dp_new["indoor_temperature"] = t_i
-                cap_correction_factor, eir_correction_factor = (
-                    get_ft_cap_eir_correction_factors(
-                        mode,
-                        t_i,
-                        dp_new["outdoor_temperature"],
-                    )
+                cap_correction_factor, eir_correction_factor = get_ft_cap_eir_correction_factors(
+                    mode,
+                    t_i,
+                    dp_new["outdoor_temperature"],
                 )
                 # corrected capacity hash, with two temperature independent variables
                 dp_new["gross_capacity"] *= cap_correction_factor
@@ -910,9 +898,7 @@ def convert_datapoint_net_to_gross(
         HPXML_SPEED_DESCRIPTION_NOMINAL: 2,
         HPXML_SPEED_DESCRIPTION_MAXIMUM: 3,
     }  # add 1 to speed index to include off speed in capacity list
-    if (
-        convert(rated_airflow, "m^3/s", "cubic_feet/min") < 3
-    ):  # Resort to heating if we get a HP w/ only heating
+    if convert(rated_airflow, "m^3/s", "cubic_feet/min") < 3:  # Resort to heating if we get a HP w/ only heating
         raise OCHREException(
             f"Rated CFM is too low ({convert(rated_airflow, 'm^3/s', 'cubic_feet/min')} cfm). Check if the nominal capacity and system type are correct."
         )
@@ -920,9 +906,7 @@ def convert_datapoint_net_to_gross(
     # data structure: datapoints_by_speed[speed_description][outtemp]['net_capacity'] = 1000
     for speed_description, datapoints in datapoints_by_speed.items():
         for dp in datapoints:
-            fan_airflow = rated_airflow * (
-                capacity_list[speed_index[speed_description]] / nominal_capacity
-            )
+            fan_airflow = rated_airflow * (capacity_list[speed_index[speed_description]] / nominal_capacity)
             fan_ratio = (
                 fan_airflow / rated_airflow
             )  # equal to capacity ratio in this case, OS-HPXML could be different since the rated_cfm
@@ -963,9 +947,7 @@ def calculate_fan_power(max_fan_power, fan_ratio, fan_motor_type, is_ducted):
     if fan_motor_type is None:
         # For system types that fan_motor_type is not specified, the fan_ratio should be 1
         if fan_ratio != 1.0 and max_fan_power != 0.0:
-            raise IOError(
-                "Missing fan motor type for systems where more than one speed is modeled"
-            )
+            raise IOError("Missing fan motor type for systems where more than one speed is modeled")
 
         return max_fan_power
     else:
@@ -1045,8 +1027,7 @@ def calculate_shr(DBin, Win, P, Q, flow, Ao):
         # error = H_ADP - h_fT_w_SI(T_ADP, W_ADP)
         error = H_ADP - psychrolib.GetMoistAirEnthalpy(T_ADP, W_ADP)
 
-        T_ADP, cvg, T_ADP_1, error1, T_ADP_2, error2 = \
-            iterate(T_ADP, error, T_ADP_1, error1, T_ADP_2, error2, i)
+        T_ADP, cvg, T_ADP_1, error1, T_ADP_2, error2 = iterate(T_ADP, error, T_ADP_1, error1, T_ADP_2, error2, i)
 
         if cvg:
             break
@@ -1133,9 +1114,7 @@ def coil_bypass_factor(DBin, Win, P, Qdot, flow, shr):
     Tout = psychrolib.GetTDryBulbFromEnthalpyAndHumRatio(Hout, Wout)
     RH_out = psychrolib.GetRelHumFromHumRatio(Tout, Wout, P * 1000)
 
-    T_ADP = psychrolib.GetTDewPointFromHumRatio(
-        Tout, Wout, P * 1000
-    )  # Initial guess for iteration
+    T_ADP = psychrolib.GetTDewPointFromHumRatio(Tout, Wout, P * 1000)  # Initial guess for iteration
 
     if shr == 1:
         W_ADP = psychrolib.GetHumRatioFromTWetBulb(T_ADP, T_ADP, P * 1000)
