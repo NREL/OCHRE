@@ -451,9 +451,12 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
             self.hp_capacity_nominal = kwargs["HPWH Capacity (W)"]  # max heating capacity, in W
         else:
             hp_power_nominal = kwargs.get("HPWH Power (W)", 500)  # in W
-            self.hp_capacity_nominal = hp_power_nominal * self.hp_cop  # in W
+            self.hp_capacity_nominal = hp_power_nominal * self.cop_nominal  # in W
+        self.hp_cop = self.cop_nominal
+        self.hp_capacity = self.hp_capacity_nominal  # in W
         self.parasitic_power = kwargs.get("HPWH Parasitics (W)", 1)  # Standby power in W
         self.fan_power = kwargs.get("HPWH Fan Power (W)", 35)  # in W
+
 
         # Dynamic capacity coefficients
         # curve format: [1, t_in_wet, t_in_wet ** 2, t_lower, t_lower ** 2, t_lower * t_in_wet]
@@ -470,9 +473,6 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         else:
             self.hp_capacity_coeff = np.array([0.563, 0.0437, 0.000039, 0.0055, -0.000148, -0.000145])
             self.cop_coeff = np.array([1.0132, 0.0436, 0.0000117, -0.01113, 0.00003688, -0.000498])
-
-        self.hp_cop = self.cop_nominal
-        self.hp_capacity = self.hp_capacity_nominal  # in W
 
         # Sensible and latent heat parameters
         self.shr_nominal = kwargs.get("HPWH SHR (-)", 0.88)  # unitless
