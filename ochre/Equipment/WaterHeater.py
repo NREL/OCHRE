@@ -424,7 +424,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         self.deadband_temp = kwargs.get('Deadband Temperature (C)', 8.17)  # different default than ERWH
 
         # Nominal COP based on simulation of the UEF test procedure at varying COPs
-        self.low_power_hpwh = kwargs.get('Low Power HPWH', False)
+        self.low_power_hpwh = kwargs.get('Low Power HPWH', True) #set HPWH to 120V
         self.cop_nominal = kwargs['HPWH COP (-)']
         self.hp_cop = self.cop_nominal
         if self.cop_nominal < 2:
