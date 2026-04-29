@@ -1,3 +1,4 @@
+import math
 import datetime as dt
 import numpy as np
 import psychrolib
@@ -267,7 +268,7 @@ class HVAC(Equipment):
         elif load_fraction != 1:
             raise OCHREException(f"{self.name} can't handle non-integer load fractions")
 
-        if any(["Duty Cycle" in key for key in control_signal]):
+        if any("Duty Cycle" in key for key in control_signal):
             if self.use_ideal_capacity:
                 raise IOError(
                     f'Cannot set {self.name} Duty Cycle. Set `use_ideal_capacity` to False or use "Capacity" control.'
@@ -680,15 +681,13 @@ class GasBoiler(Heater):
         plr = self.speed_idx  # part-load-ratio
         t_in = self.zone.temperature
         t_out = self.outlet_temp
+        c = self.efficiency_coeff
         if self.condensing:
-            eff_var = np.array([1, plr, plr**2, t_in, t_in**2, plr * t_in], dtype=float)
-            eff_curve_output = np.dot(eff_var, self.efficiency_coeff)
+            eff_curve_output = c[0] + c[1] * plr + c[2] * plr**2 + c[3] * t_in + c[4] * t_in**2 + c[5] * plr * t_in
         else:
-            eff_var = np.array(
-                [1, plr, plr**2, t_out, t_out**2, plr * t_out, plr**3, t_out**3, plr**2 * t_out, plr * t_out**2],
-                dtype=float,
-            )
-            eff_curve_output = np.dot(eff_var, self.efficiency_coeff)
+            eff_curve_output = (c[0] + c[1] * plr + c[2] * plr**2 + c[3] * t_out + c[4] * t_out**2
+                                + c[5] * plr * t_out + c[6] * plr**3 + c[7] * t_out**3
+                                + c[8] * plr**2 * t_out + c[9] * plr * t_out**2)
         return self.eir_max / eff_curve_output
 
 
@@ -712,6 +711,9 @@ class DynamicHVAC(HVAC):
         # 2-speed control type and timing variables
         self.control_type = control_type  # 'Time', 'Time2', or 'Setpoint'
         self.disable_speeds = np.zeros(self.n_speeds, dtype=bool)  # if True, disable that speed
+        # Cached from np.nonzero(~disable_speeds). Must be recomputed in
+        # update_external_control whenever disable_speeds changes.
+        self._max_enabled_speed = self.n_speeds
         self.time_in_speed = dt.timedelta(0)
         min_time_in_low = kwargs.get("Minimum Low Time (minutes)", 5)
         min_time_in_high = kwargs.get("Minimum High Time (minutes)", 5)
@@ -809,6 +811,7 @@ class DynamicHVAC(HVAC):
         #   - Note: Disable Speeds will not reset back to original value
         for idx in range(self.n_speeds):
             self.disable_speeds[idx] = bool(control_signal.get(f"Disable Speed {idx + 1}"))
+        self._max_enabled_speed = int(np.nonzero(~self.disable_speeds)[0][-1]) + 1
 
         return super().update_external_control(control_signal)
 
@@ -862,7 +865,7 @@ class DynamicHVAC(HVAC):
         # enforce speed disabling from external control
         if self.disable_speeds[speed - 1]:
             # set to highest allowed speed
-            speed = np.nonzero(~self.disable_speeds)[0][-1] + 1
+            speed = self._max_enabled_speed
 
         if speed != prev_speed_idx or self.mode == "Off":
             self.time_in_speed = self.time_res
@@ -910,15 +913,15 @@ class DynamicHVAC(HVAC):
         t_ext_db = min(max(t_ext_db, params["min_Tdb"]), params["max_Tdb"])
         flow_fraction = min(max(flow_fraction, params["min_ff"]), params["max_ff"])
 
-        # create vectors based on temperature, flow fraction, and plr
-        t_list = np.array([1, t_in, t_in**2, t_ext_db, t_ext_db**2, t_in * t_ext_db], dtype=float)
-        t_ratio = np.dot(t_list, params[param + "_t"])
+        # Coefficient order must match the arrays in initialize_biquad_params().
+        ct = params[param + "_t"]
+        t_ratio = ct[0] + ct[1] * t_in + ct[2] * t_in**2 + ct[3] * t_ext_db + ct[4] * t_ext_db**2 + ct[5] * t_in * t_ext_db
 
-        ff_list = np.array([1, flow_fraction, flow_fraction**2], dtype=float)
-        ff_ratio = np.dot(ff_list, params[param + "_ff"])
+        cf = params[param + "_ff"]
+        ff_ratio = cf[0] + cf[1] * flow_fraction + cf[2] * flow_fraction**2
 
-        plf_list = np.array([1, part_load_ratio, part_load_ratio**2], dtype=float)
-        plf_ratio = np.dot(plf_list, params[param + "_plr"])
+        cp = params[param + "_plr"]
+        plf_ratio = cp[0] + cp[1] * part_load_ratio + cp[2] * part_load_ratio**2
         plf_ratio = min(max(plf_ratio, params["min_plf"]), params["max_plf"])
 
         return rated * t_ratio * ff_ratio / plf_ratio
@@ -936,7 +939,7 @@ class DynamicHVAC(HVAC):
                     return 1.0
                 else:
                     exp_term = -3.79936 * (self.time_from_start / time_full_cap)
-                    capacity_mult = max(0, min(1.0, -1.025 * np.exp(exp_term) + 1.025))
+                    capacity_mult = max(0, min(1.0, -1.025 * math.exp(exp_term) + 1.025))
                     self.time_from_start += self.time_res
                     return capacity_mult
             else:
@@ -944,7 +947,7 @@ class DynamicHVAC(HVAC):
 
     def update_capacity(self):
         # update max capacity using highest enabled speed
-        max_speed = np.nonzero(~self.disable_speeds)[0][-1] + 1
+        max_speed = self._max_enabled_speed
         self.capacity_max = self.calculate_biquadratic_param(param="cap", speed_idx=max_speed)
 
         if self.use_ideal_capacity:
@@ -983,7 +986,7 @@ class DynamicHVAC(HVAC):
 
     def update_eir(self):
         # Update eir and eir_max using biquadratic model
-        max_speed = np.nonzero(~self.disable_speeds)[0][-1] + 1
+        max_speed = self._max_enabled_speed
         self.eir_max = self.calculate_biquadratic_param(param="eir", speed_idx=max_speed)
 
         if isinstance(self.speed_idx, int):

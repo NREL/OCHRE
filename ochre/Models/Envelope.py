@@ -9,6 +9,12 @@ from ochre.Models import RCModel, HumidityModel, ModelException
 cp_air = 1.006  # kJ/kg-K
 rho_air = 1.2041  # kg/m^3, used for determining capacitance only
 
+# Hoisted out of update_infiltration; convert() parses unit strings via pint
+# on every call, so these must stay at module scope.
+_T_BASE_C = convert(73, "degF", "degC")
+_M2_TO_CM2 = convert(1, "m^2", "cm^2")
+_M3HR_TO_M3S = convert(1, "m^3/hr", "m^3/s")
+
 
 class BoundarySurface:
     """
@@ -437,13 +443,13 @@ class Zone:
             # TODO: add occupancy logic (only on if occupancy > 0)
             max_oa_hr = 0.0115  # From BA HSP
             if t_base is None:
-                t_base = convert(73, "degF", "degC")
+                t_base = _T_BASE_C
             # max_oa_rh = 0.7 # Note: removing check for max RH
             run_nat_vent = (w_amb < max_oa_hr) and (t_zone > t_ext) and (t_zone > t_base)
             if run_nat_vent and self.open_window_area is not None:
                 area = self.open_window_area * 0.6
-                nat_vent_area = convert(area, "ft^2", "cm^2")
-                max_nat_flow = convert(20 * self.volume, "m^3/hr", "m^3/s")  # max 20 ACH
+                nat_vent_area = area * _M2_TO_CM2
+                max_nat_flow = 20 * self.volume * _M3HR_TO_M3S  # max 20 ACH
                 adj = (t_zone - t_base) / (t_zone - t_ext)
                 adj = max(min(adj, 1), 0)
                 nat_vent_data = (self.nat_vent_stack_coeff * abs(delta_t)) + self.nat_vent_wind_coeff * (wind_speed**2)
@@ -505,12 +511,14 @@ class Zone:
 
     def calculate_interior_radiation(self, t_zone):
         # calculate all internal surface temperatures and LWR radiation
-        t_boundaries = np.array([s.t_boundary for s in self.surfaces])
+        t_boundaries = self._t_boundaries_buf
+        for i, s in enumerate(self.surfaces):
+            t_boundaries[i] = s.t_boundary
 
         # excludes radiation
         t_surf_no_rad = self.s_rad_fractions * t_boundaries + (1 - self.s_rad_fractions) * t_zone
-        t_surf_min = min(t_surf_no_rad)
-        t_surf_max = max(t_surf_no_rad)
+        t_surf_min = t_surf_no_rad.min()
+        t_surf_max = t_surf_no_rad.max()
 
         # TODO: try setting temperatures to weighted average of t_surf_no_rad
         # t_surfaces = np.ones(len(self.surfaces)) * t_surf_no_rad.dot(self.s_view_factors)
@@ -519,8 +527,11 @@ class Zone:
         # Option 1: Use previous time step surface temperatures to calculate LWR, then recalculate surface temperatures
         #  - running multiple times per time step for longer time steps
         #  - adding heavy ball convergence to reduce instability in determining the temperature
-        t_surfaces = np.array([s.temperature for s in self.surfaces])
-        t_surfaces_prev = np.array([s.t_prev for s in self.surfaces])
+        t_surfaces = self._t_surfaces_buf
+        t_surfaces_prev = self._t_surfaces_prev_buf
+        for i, s in enumerate(self.surfaces):
+            t_surfaces[i] = s.temperature
+            t_surfaces_prev[i] = s.t_prev
         max_error = None
         for _ in range(self.iterations):
             # get total LWR heat from each surface and to each surface, based on current surface temperatures
@@ -652,7 +663,7 @@ class Envelope(RCModel):
         required_inputs = ["Ambient Dry Bulb (C)"]
         if "Ground" in self.ext_zones:
             required_inputs.append("Ground Temperature (C)")
-        if any([zone.infiltration_method == "ASHRAE" for zone in self.zones.values()]):
+        if any(zone.infiltration_method == "ASHRAE" for zone in self.zones.values()):
             required_inputs.append("Wind Speed (m/s)")
         required_inputs.extend(
             [f"{bd.name} Irradiance (W)" for bd in self.ext_boundaries if bd.name not in ["Raised Floor"]]
@@ -726,6 +737,21 @@ class Envelope(RCModel):
         self.cooling_setpoint = None
         self.cooling_deadband = None
         self.unmet_hvac_load = 0  # units are C, equivalent to C * self.time_res
+
+        # Reusable buffers -- .fill(0) before each use. If an early return ever
+        # skips the .fill(0), stale values from the previous step will leak through.
+        self._inputs_init_buf = np.zeros(self.nu)
+        self._equip_gains_buf = np.zeros(self.nu, dtype=float)
+
+        for zone in self.zones.values():
+            n_surf = len(zone.surfaces)
+            if n_surf > 0:
+                zone._t_boundaries_buf = np.empty(n_surf)
+                zone._t_surfaces_buf = np.empty(n_surf)
+                zone._t_surfaces_prev_buf = np.empty(n_surf)
+
+        for boundary in self.ext_boundaries:
+            boundary._irradiance_key = f"{boundary.name} Irradiance (W)"
 
     def load_rc_data(self, **kwargs):
         # combine rc data from all boundaries
@@ -888,7 +914,7 @@ class Envelope(RCModel):
         # Calculate external radiation (solar and LWR) by boundary
         for boundary in self.ext_boundaries:
             surface = boundary.ext_surface
-            solar_gain = self.current_schedule.get(f"{boundary.name} Irradiance (W)", 0)
+            solar_gain = self.current_schedule.get(boundary._irradiance_key, 0)
 
             # get surface absorbed solar gain
             surface.solar_gain = solar_gain * surface.absorptivity
@@ -1000,7 +1026,8 @@ class Envelope(RCModel):
         super().update_inputs(schedule_inputs)
 
         # reset all inputs to defaults, including latent gains
-        self.inputs_init = np.zeros(self.nu)
+        self._inputs_init_buf.fill(0)
+        self.inputs_init = self._inputs_init_buf
         for zone in self.zones.values():
             if zone.humidity is not None:
                 zone.humidity.latent_gains_init = 0
@@ -1043,7 +1070,8 @@ class Envelope(RCModel):
         assert not control_signal  # no Envelope controls allowed, will get overwritten
 
         # Add zone and surface sensible gains to envelope inputs
-        equipment_sens_gains = np.zeros(self.nu, dtype=float)
+        self._equip_gains_buf.fill(0)
+        equipment_sens_gains = self._equip_gains_buf
         for zone in self.zones.values():
             equipment_sens_gains[zone.h_idx] += zone.internal_sens_gain + zone.hvac_sens_gain
             for surface in zone.surfaces:

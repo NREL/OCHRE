@@ -10,11 +10,13 @@ from scipy.interpolate import interp1d
 from ochre.utils import OCHREException
 from ochre.utils.units import kwh_to_therms
 from ochre.Equipment import Equipment
+from ochre.Simulator import KIND_EQUIPMENT, KIND_GENERATOR
 
 
 class Generator(Equipment):
     allow_consumption = False
     is_gas = False
+    _kind = KIND_EQUIPMENT | KIND_GENERATOR
     zone_name = None
     optional_inputs = ["net_power"]
 
@@ -42,6 +44,7 @@ class Generator(Equipment):
         self.capacity_min = self.parameters.get("capacity_min")  # in kW
         # max output power ramp rate, generation only
         self.ramp_rate = self.parameters.get("ramp_rate")  # in kW/min
+        self._ramp_minutes = self._dt_minutes if self.ramp_rate is not None else None
 
         # Efficiency parameters
         self.efficiency = None  # variable efficiency, unitless
@@ -125,8 +128,7 @@ class Generator(Equipment):
         min_power = -self.capacity
         if self.ramp_rate is not None and self.electric_kw <= 0:
             # ramp rate only impacts generating power
-            minutes = self.time_res.total_seconds() / 60
-            min_power = max(min_power, self.electric_kw - self.ramp_rate * minutes)
+            min_power = max(min_power, self.electric_kw - self.ramp_rate * self._ramp_minutes)
 
         # Maximum (usually consuming) output power limit based on capacity. Generators may have a min operating power
         if self.allow_consumption:

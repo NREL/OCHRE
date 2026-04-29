@@ -181,7 +181,7 @@ class ScheduledEVTestCase(unittest.TestCase):
         # ScheduledEV is a ScheduledLoad - check for Power (kW) column
         self.assertEqual(self.ev.name, "EV")
         self.assertIn("Power (kW)", self.ev.schedule.columns)
-        self.assertIsNotNone(self.ev.schedule_iterable)
+        self.assertTrue(self.ev._has_schedule)
 
 
 if __name__ == "__main__":

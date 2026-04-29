@@ -2,6 +2,7 @@ import datetime as dt
 import numpy as np
 
 from ochre import Simulator
+from ochre.Simulator import KIND_EQUIPMENT
 from ochre.utils import OCHREException, load_csv
 from ochre.utils.units import kwh_to_therms
 
@@ -11,6 +12,7 @@ class Equipment(Simulator):
     end_use = "Other"
     is_electric = True
     is_gas = False
+    _kind = KIND_EQUIPMENT
     modes = ["On", "Off"]  # On and Off assumed as default modes
     zone_name = "Indoor"
 

@@ -64,6 +64,8 @@ class StateSpaceModel(Simulator):
         else:
             self.inputs = np.zeros(self.nu, dtype=float)
         self.input_names = list(inputs)
+        self._input_index = {name: i for i, name in enumerate(self.input_names)}
+        assert len(self._input_index) == len(self.input_names), "Duplicate input names"
         self.use_schedule_for_inputs = all([col in self.input_names for col in self.schedule.columns])
         self.inputs_init = self.inputs  # for saving values from update_inputs step
 
@@ -75,6 +77,10 @@ class StateSpaceModel(Simulator):
             self.ny = len(outputs)
             self.output_names = outputs
         self.outputs = np.zeros(self.ny, dtype=float)
+        self._output_index = {name: i for i, name in enumerate(self.output_names)}
+        assert len(self._output_index) == len(self.output_names), "Duplicate output names"
+        self._state_index = {name: i for i, name in enumerate(self.state_names)}
+        assert len(self._state_index) == len(self.state_names), "Duplicate state names"
         self.next_outputs = self.outputs  # for saving outputs of next time step
 
         # Define continuous-time matrices
@@ -223,6 +229,7 @@ class StateSpaceModel(Simulator):
 
         # update states and state names - default state names are ['x1', 'x2', ...]
         self.state_names = new_state_names
+        self._state_index = {name: i for i, name in enumerate(self.state_names)}
         self.states = x_t[:reduced_states]
         self.nx = len(self.states)
 
@@ -270,8 +277,8 @@ class StateSpaceModel(Simulator):
             for input_name, new_val in self.current_schedule.items():
                 if isinstance(input_name, int):
                     input_idx = input_name
-                elif input_name in self.input_names:
-                    input_idx = self.input_names.index(input_name)
+                elif input_name in self._input_index:
+                    input_idx = self._input_index[input_name]
                 else:
                     raise ModelException(f"Unknown input name {input_name} for {self.name}")
                 self.inputs_init[input_idx] = new_val
@@ -291,16 +298,20 @@ class StateSpaceModel(Simulator):
         # :return: numpy.ndarray of updated model outputs
         # """
 
-        self.inputs = self.inputs_init.copy()
+        # The ndarray branch aliases control_signal directly (no copy). This is safe
+        # only because current callers always pass a fresh temporary (e.g. inputs_init + gains).
+        # If a caller ever passes a long-lived array, it will be mutated by B.dot(self.inputs).
         if control_signal is None:
-            pass
-        elif isinstance(control_signal, (list, np.ndarray)) and len(control_signal) == self.nu:
-            # For speed, if all inputs are provided as a list, do not check input names
+            self.inputs = self.inputs_init.copy()
+        elif isinstance(control_signal, np.ndarray) and control_signal.shape == (self.nu,):
+            self.inputs = control_signal
+        elif isinstance(control_signal, list) and len(control_signal) == self.nu:
+            self.inputs = self.inputs_init
             self.inputs[:] = control_signal
         else:
-            # update inputs from control signal dictionary (keys can be input_name or index)
+            self.inputs = self.inputs_init.copy()
             for input_name, new_val in control_signal.items():
-                input_idx = self.input_names.index(input_name) if not isinstance(input_name, int) else input_name
+                input_idx = self._input_index[input_name] if not isinstance(input_name, int) else input_name
                 self.inputs[input_idx] = new_val
 
         # Calculate new states and outputs
@@ -346,11 +357,11 @@ class StateSpaceModel(Simulator):
 
     def get_value(self, name):
         # return value of input, output, or state name
-        if name in self.input_names:
-            return self.inputs[self.input_names.index(name)]
-        elif name in self.output_names:
-            return self.outputs[self.output_names.index(name)]
-        elif name in self.state_names:
-            return self.states[self.state_names.index(name)]
+        if name in self._input_index:
+            return self.inputs[self._input_index[name]]
+        elif name in self._output_index:
+            return self.outputs[self._output_index[name]]
+        elif name in self._state_index:
+            return self.states[self._state_index[name]]
         else:
             raise ModelException(f"Unknown variable {name}, not in {self.name} model.")

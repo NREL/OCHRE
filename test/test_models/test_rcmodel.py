@@ -88,6 +88,46 @@ class RCModelTestCase(unittest.TestCase):
         self.assertAlmostEqual(self.model.states[0], x0_1)
 
 
+class ScalarFastPathTestCase(unittest.TestCase):
+    """Tests that the scalar fast path in solve_for_input matches the generic path."""
+
+    def setUp(self):
+        self.model = RCModel(
+            capacitances1, resistances1, external_nodes1, time_res=dt.timedelta(seconds=2), **sim_params
+        )
+        self.model.states[:] = [x0_1]
+        self.model.inputs[:] = u_defaults1
+
+    def _generic_solve(self, y_idx, u_idx, x_desired, solve_as_output):
+        return self.model.solve_for_inputs(y_idx, [u_idx], x_desired, solve_as_output=solve_as_output)
+
+    def test_scalar_vs_generic_solve_as_output(self):
+        y_idx = 0
+        u_idx = 1
+        scalar = self.model.solve_for_input(y_idx, u_idx, x0_1, solve_as_output=True)
+        generic = self._generic_solve(y_idx, u_idx, x0_1, solve_as_output=True)
+        self.assertAlmostEqual(scalar, generic, places=12)
+
+    def test_scalar_vs_generic_solve_as_state(self):
+        y_idx = 0
+        u_idx = 1
+        scalar = self.model.solve_for_input(y_idx, u_idx, x0_1, solve_as_output=False)
+        generic = self._generic_solve(y_idx, u_idx, x0_1, solve_as_output=False)
+        self.assertAlmostEqual(scalar, generic, places=12)
+
+    def test_near_zero_u_factor(self):
+        import numpy as np
+        self.model.B[0, 0] = 1e-30
+        self.model.D[0, 0] = 0.0
+        self.model.C[0, 0] = 0.0
+        scalar = self.model.solve_for_input(0, 0, 100.0, solve_as_output=True)
+        generic = self._generic_solve(0, 0, 100.0, solve_as_output=True)
+        if np.isfinite(scalar):
+            self.assertAlmostEqual(scalar, generic, places=5)
+        else:
+            self.assertEqual(np.isinf(scalar), np.isinf(generic))
+
+
 class LargeRCModelTestCase(unittest.TestCase):
     """
     Test Case to test the RCModel class.

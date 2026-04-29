@@ -11,10 +11,20 @@ import ochre.utils.schedule as utils_schedule
 from ochre.utils.output_control import get_enabled_outputs
 
 
+# Bit flags for fast isinstance-free type checks in the per-timestep hot path.
+# Each Equipment subclass sets _kind as a union of its roles (e.g. Battery sets
+# KIND_EQUIPMENT | KIND_GENERATOR | KIND_BATTERY). Test with `sub._kind & KIND_X`.
+# New equipment roles should use the next power-of-two (0x08, 0x10, ...).
+KIND_EQUIPMENT = 0x01
+KIND_GENERATOR = 0x02
+KIND_BATTERY = 0x04
+
+
 class Simulator:
     name = "ochre"
     required_inputs = []
     optional_inputs = []
+    _kind = 0
 
     def __init__(
         self,
@@ -45,6 +55,9 @@ class Simulator:
         self.start_time = start_time  # Note: may be updated later with time zone
         self.current_time = start_time
         self.time_res = time_res
+        self._dt_seconds = self.time_res.total_seconds()
+        self._dt_hours = self._dt_seconds / 3600.0
+        self._dt_minutes = self._dt_seconds / 60.0
         self.duration = duration
         if self.duration < self.time_res:
             raise OCHREException(f"Duration ({duration}) must be longer than time resolution ({time_res}).")
@@ -87,8 +100,11 @@ class Simulator:
         # Define model schedule and time resolution
         self.all_schedule_inputs = None
         self.schedule = self.initialize_schedule(**kwargs)
-        self.current_schedule = self.schedule.iloc[0].to_dict()
-        self.schedule_iterable = None
+        self._has_schedule = not self.schedule.empty
+        self.current_schedule = self.schedule.iloc[0].to_dict() if len(self.schedule.index) else {}
+        self._sched_columns = None
+        self._sched_step = 0
+        self._same_resolution = False
         self.reset_time()
 
     def set_up_results_files(self, hpxml_file=None, **kwargs):
@@ -150,7 +166,8 @@ class Simulator:
         if optional_inputs is None:
             optional_inputs = self.optional_inputs
         self.all_schedule_inputs = required_inputs + optional_inputs
-        assert len(self.all_schedule_inputs) == len(set(self.all_schedule_inputs))  # columns should be unique
+        self._all_schedule_inputs_set = frozenset(self.all_schedule_inputs)
+        assert len(self.all_schedule_inputs) == len(self._all_schedule_inputs_set)  # columns should be unique
 
         # Load schedule from file if necessary
         if schedule is not None:
@@ -193,22 +210,31 @@ class Simulator:
 
     def update_inputs(self, schedule_inputs=None):
         # Update schedule at current time
-        if not self.schedule.empty:
-            self.current_schedule = next(self.schedule_iterable)
+        cs = self.current_schedule
+        if self._has_schedule:
+            i = self._sched_step
+            cs.clear()
+            for col, arr in self._sched_columns.items():
+                cs[col] = arr[i]
+            self._sched_step = i + 1
         else:
-            self.current_schedule = {}
+            cs.clear()
 
         # Update schedule with external schedule inputs
         if isinstance(schedule_inputs, dict):
             for key, val in schedule_inputs.items():
-                if key in self.all_schedule_inputs:
-                    self.current_schedule[key] = val
+                if key in self._all_schedule_inputs_set:
+                    cs[key] = val
 
         # Update inputs for all sub simulators
-        for sub in self.sub_simulators:
-            assert sub.current_time >= self.current_time
-            if sub.current_time == self.current_time:
+        if self._same_resolution:
+            for sub in self.sub_simulators:
                 sub.update_inputs(schedule_inputs)
+        else:
+            for sub in self.sub_simulators:
+                assert sub.current_time >= self.current_time
+                if sub.current_time == self.current_time:
+                    sub.update_inputs(schedule_inputs)
 
     def start_sub_update(self, sub, control_signal):
         # Used to update main simulator before sub simulator update_model starts
@@ -223,11 +249,17 @@ class Simulator:
 
     def update_model(self, control_signal=None):
         # update models for all sub simulators
-        for sub in self.sub_simulators:
-            sub_control_signal = self.start_sub_update(sub, control_signal)
-            if sub.current_time == self.current_time:
+        if self._same_resolution:
+            for sub in self.sub_simulators:
+                sub_control_signal = self.start_sub_update(sub, control_signal)
                 sub.update_model(sub_control_signal)
-            self.finish_sub_update(sub)
+                self.finish_sub_update(sub)
+        else:
+            for sub in self.sub_simulators:
+                sub_control_signal = self.start_sub_update(sub, control_signal)
+                if sub.current_time == self.current_time:
+                    sub.update_model(sub_control_signal)
+                self.finish_sub_update(sub)
 
     def generate_results(self):
         current_results = {}
@@ -264,9 +296,8 @@ class Simulator:
         current_results = self.generate_results()
 
         # Update sub simulators and get sub results (keep separate or add to main results)
-        for sub in self.sub_simulators:
-            if sub.current_time == self.current_time:
-                # Note: if sub runs slower than main, sub results won't be added for every time step
+        if self._same_resolution:
+            for sub in self.sub_simulators:
                 sub_results = sub.update_results()
                 if not sub_results:
                     pass
@@ -274,6 +305,17 @@ class Simulator:
                     sub.results.append(sub_results)
                 else:
                     current_results.update(sub_results)
+        else:
+            for sub in self.sub_simulators:
+                if sub.current_time == self.current_time:
+                    # Note: if sub runs slower than main, sub results won't be added for every time step
+                    sub_results = sub.update_results()
+                    if not sub_results:
+                        pass
+                    elif sub.save_results:
+                        sub.results.append(sub_results)
+                    else:
+                        current_results.update(sub_results)
 
         if current_results and self.main_simulator:
             self.results.append(current_results)
@@ -329,13 +371,19 @@ class Simulator:
 
         self.current_time = start_time
 
-        # reset schedule_iterable
-        if not self.schedule.empty:
-            schedule = self.schedule.loc[self.current_time :]
-            self.schedule_iterable = iter(schedule.to_dict("records"))
+        # reset schedule arrays
+        schedule = self.schedule.loc[self.current_time :]
+        self._has_schedule = not schedule.empty
+        if self._has_schedule:
+            self._sched_columns = {col: schedule[col].to_numpy() for col in schedule.columns}
+            self._sched_step = 0
 
         for sub in self.sub_simulators:
             sub.reset_time(start_time=start_time, remove_results=remove_results, **kwargs)
+
+        self._same_resolution = bool(self.sub_simulators) and all(
+            sub.time_res == self.time_res for sub in self.sub_simulators
+        )
 
     def finalize(self, failed=False):
         # load all results and save to files
@@ -371,7 +419,7 @@ class Simulator:
             if os.path.exists(self.results_file):
                 dfs = [pd.read_csv(self.results_file, index_col="Time", parse_dates=True)]
             dfs.append(self.export_results())
-            df = pd.concat(dfs) if any([df is not None for df in dfs]) else None
+            df = pd.concat(dfs) if any(df is not None for df in dfs) else None
 
         # Print status and save to file
         status = "failed" if failed else "complete"

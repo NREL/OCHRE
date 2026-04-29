@@ -15,6 +15,11 @@ docs/_build
 *.code-workspace
 .history
 ochre/defaults/Input Files/OCHRE*
+.history
+
+test/outputs/*
+!test/outputs/benchmark_golden.parquet
+!test/outputs/benchmark_baseline.pstats
 test/outputs/
 test/resstock_golden/ochre_result/bldg*/
 test/resstock_golden/ochre_result/ochre_annual_result_new.csv
