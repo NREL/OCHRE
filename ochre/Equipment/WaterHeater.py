@@ -302,14 +302,16 @@ class WaterHeater(Equipment):
     def generate_results(self):
         results = super().generate_results()
 
-        if self.verbosity >= 4:
-            cop = self.delivered_heat / (self.electric_kw * 1000) if self.electric_kw > 0 else 0
-            results[f"{self.end_use} Delivered (W)"] = self.delivered_heat
-            results[f"{self.end_use} COP (-)"] = cop
-        if self.verbosity >= 7:
-            results[f"{self.end_use} Total Sensible Heat Gain (W)"] = self.sensible_gain
-            results[f"{self.end_use} Deadband Upper Limit (C)"] = self.setpoint_temp
-            results[f"{self.end_use} Deadband Lower Limit (C)"] = self.setpoint_temp - self.deadband_temp
+        self.add_output(results, f"{self.end_use} Delivered (W)", self.delivered_heat)
+
+        cop = self.delivered_heat / (self.electric_kw * 1000) if self.electric_kw > 0 else 0
+        self.add_output(results, f"{self.end_use} COP (-)", cop)
+
+        self.add_output(results, f"{self.end_use} Total Sensible Heat Gain (W)", self.sensible_gain)
+
+        self.add_output(results, f"{self.end_use} Deadband Upper Limit (C)", self.setpoint_temp)
+
+        self.add_output(results, f"{self.end_use} Deadband Lower Limit (C)", self.setpoint_temp - self.deadband_temp)
 
         if self.save_ebm_results:
             results.update(self.make_equivalent_battery_model())
@@ -453,9 +455,12 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
             self.hp_capacity_nominal = kwargs["HPWH Capacity (W)"]  # max heating capacity, in W
         else:
             hp_power_nominal = kwargs.get("HPWH Power (W)", 500)  # in W
-            self.hp_capacity_nominal = hp_power_nominal * self.hp_cop  # in W
+            self.hp_capacity_nominal = hp_power_nominal * self.cop_nominal  # in W
+        self.hp_cop = self.cop_nominal
+        self.hp_capacity = self.hp_capacity_nominal  # in W
         self.parasitic_power = kwargs.get("HPWH Parasitics (W)", 1)  # Standby power in W
         self.fan_power = kwargs.get("HPWH Fan Power (W)", 35)  # in W
+
 
         # Dynamic capacity coefficients
         # curve format: [1, t_in_wet, t_in_wet ** 2, t_lower, t_lower ** 2, t_lower * t_in_wet]
@@ -472,9 +477,6 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         else:
             self.hp_capacity_coeff = np.array([0.563, 0.0437, 0.000039, 0.0055, -0.000148, -0.000145])
             self.cop_coeff = np.array([1.0132, 0.0436, 0.0000117, -0.01113, 0.00003688, -0.000498])
-
-        self.hp_cop = self.cop_nominal
-        self.hp_capacity = self.hp_capacity_nominal  # in W
 
         # Sensible and latent heat parameters
         self.shr_nominal = kwargs.get("HPWH SHR (-)", 0.88)  # unitless
@@ -691,14 +693,17 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
 
     def generate_results(self):
         results = super().generate_results()
-        if self.verbosity >= 7:
-            if self.use_ideal_capacity:
-                hp_on_frac = self.duty_cycle_by_mode["Heat Pump On"]
-            else:
-                hp_on_frac = 1 if "Heat Pump" in self.mode else 0
-            results[f"{self.end_use} Heat Pump Max Capacity (W)"] = self.hp_capacity
-            results[f"{self.end_use} Heat Pump On Fraction (-)"] = hp_on_frac
-            results[f"{self.end_use} Heat Pump COP (-)"] = self.hp_cop
+
+        self.add_output(results, f"{self.end_use} Heat Pump Max Capacity (W)", self.hp_capacity)
+
+        if self.use_ideal_capacity:
+            hp_on_frac = self.duty_cycle_by_mode["Heat Pump On"]
+        else:
+            hp_on_frac = 1 if "Heat Pump" in self.mode else 0
+        self.add_output(results, f"{self.end_use} Heat Pump On Fraction (-)", hp_on_frac)
+
+        self.add_output(results, f"{self.end_use} Heat Pump COP (-)", self.hp_cop)
+
         return results
 
 

@@ -12,6 +12,7 @@ from ochre.utils import (
     nested_update,
     update_equipment_properties,
     save_json,
+    ResStockOutput,
 )
 from ochre.Models import Envelope
 from ochre.Equipment import (
@@ -73,10 +74,17 @@ class Dwelling(Simulator):
                 ochre_schedule_file = os.path.join(self.output_path, self.name + "_schedule" + extn)
             else:
                 ochre_schedule_file = None
+
+            # ResStock output format: encapsulated in ResStockOutput
+            if self.output_format == "resstock":
+                self._resstock_output = ResStockOutput(self.output_path, self.time_res)
+            else:
+                self._resstock_output = None
         else:
             self.metrics_file = None
             self.hourly_output_file = None
             ochre_schedule_file = None
+            self._resstock_output = None
 
         # Load properties from HPXML file
         properties, weather_station = load_hpxml(**house_args)
@@ -297,42 +305,56 @@ class Dwelling(Simulator):
         # See docs for list of results and verbosity levels
         results = super().generate_results()
 
-        if self.verbosity >= 0:
-            results.update(
-                {
-                    "Total Electric Power (kW)": self.total_p_kw,
-                    "Total Reactive Power (kVAR)": self.total_q_kvar,
-                    "Total Gas Power (therms/hour)": self.total_gas_therms_per_hour,
-                }
-            )
+        self.add_output(results, "Total Electric Power (kW)", self.total_p_kw)
+        self.add_output(results, "Total Reactive Power (kVAR)", self.total_q_kvar)
+        self.add_output(results, "Total Gas Power (therms/hour)", self.total_gas_therms_per_hour)
 
-        if self.verbosity >= 6:
-            hours_per_step = self.time_res / dt.timedelta(hours=1)
-            results.update(
-                {
-                    "Total Electric Energy (kWh)": self.total_p_kw * hours_per_step,
-                    "Total Reactive Energy (kVARh)": self.total_q_kvar * hours_per_step,
-                    "Total Gas Energy (therms)": self.total_gas_therms_per_hour * hours_per_step,
-                }
-            )
+        hours_per_step = self.time_res / dt.timedelta(hours=1)
+        self.add_output(results, "Total Electric Energy (kWh)", self.total_p_kw * hours_per_step)
+        self.add_output(results, "Total Reactive Energy (kVARh)", self.total_q_kvar * hours_per_step)
+        self.add_output(results, "Total Gas Energy (therms)", self.total_gas_therms_per_hour * hours_per_step)
 
-        if self.verbosity >= 2:
-            for end_use, equipment in self.equipment_by_end_use.items():
-                if equipment and any(e.is_electric for e in equipment):
-                    results[end_use + " Electric Power (kW)"] = sum(e.electric_kw for e in equipment)
-            for end_use, equipment in self.equipment_by_end_use.items():
-                if equipment and any(e.is_gas for e in equipment):
-                    results[end_use + " Gas Power (therms/hour)"] = sum(e.gas_therms_per_hour for e in equipment)
-        if self.verbosity >= 8:
-            for end_use, equipment in self.equipment_by_end_use.items():
-                if equipment and any(e.is_electric for e in equipment):
-                    results[end_use + " Reactive Power (kVAR)"] = sum(e.reactive_kvar for e in equipment)
-            results["Grid Voltage (-)"] = self.voltage
+        # End-use level power aggregation
+        for end_use, equipment in self.equipment_by_end_use.items():
+            if equipment and any(e.is_electric for e in equipment):
+                self.add_output(results, end_use + " Electric Power (kW)", sum([e.electric_kw for e in equipment]))
+        for end_use, equipment in self.equipment_by_end_use.items():
+            if equipment and any(e.is_gas for e in equipment):
+                self.add_output(
+                    results, end_use + " Gas Power (therms/hour)", sum([e.gas_therms_per_hour for e in equipment])
+                )
+        for end_use, equipment in self.equipment_by_end_use.items():
+            if equipment and any(e.is_electric for e in equipment):
+                self.add_output(results, end_use + " Reactive Power (kVAR)", sum([e.reactive_kvar for e in equipment]))
+        self.add_output(results, "Grid Voltage (-)", self.voltage)
 
         return results
 
+    def export_results(self):
+        """
+        Export results to file. For ResStock format, converts and writes to
+        results_timeseries.csv instead of ochre.csv.
+        """
+        if self.output_format != "resstock":
+            return super().export_results()
+
+        df = pd.DataFrame(self.results).set_index("Time") if self.results else None
+        self.results.clear()
+
+        if not self.save_results or df is None or self._resstock_output is None:
+            return df
+
+        self._resstock_output.export_chunk(df)
+        return df
+
     def finalize(self, failed=False):
-        # save final results
+        # For ResStock format, we need custom finalization
+        if self._resstock_output:
+            df = pd.DataFrame(self.results).set_index("Time") if self.results else None
+            self.results.clear()
+            return self._resstock_output.finalize(df=df, failed=failed)
+
+        # Standard OCHRE format
         df = super().finalize(failed)
 
         if df is not None:

@@ -1,0 +1,66 @@
+Building,State,Building Type,Vintage,Floor Area,Clothes Washer,Washer Usage Level,OCHRE,EPlus,%Diff
+bldg0000935,MA,Single-Family Attached,2000s,2500-2999,Standard,80% Usage,0.0560,0.0570,-1.8%
+bldg0008984,LA,Single-Family Attached,1970s,1500-1999,Standard,100% Usage,0.0900,0.0940,-4.3%
+bldg0020895,CA,Single-Family Attached,1990s,1500-1999,Standard,100% Usage,0.0900,0.0940,-4.3%
+bldg0021070,MI,Single-Family Detached,1990s,1000-1499,EnergyStar,80% Usage,0.0440,0.0460,-4.3%
+bldg0027147,CA,Multi-Family with 5+ Units,2000s,1000-1499,None,120% Usage,NA,0.0000,NA
+bldg0027808,CA,Single-Family Attached,1990s,4000+,Standard,80% Usage,0.0720,0.0760,-5.3%
+bldg0028885,HI,Single-Family Detached,1940s,4000+,Standard,100% Usage,0.0970,0.0940,+3.2%
+bldg0034729,VA,Single-Family Attached,1970s,1000-1499,None,80% Usage,NA,0.0000,NA
+bldg0035052,WA,Multi-Family with 5+ Units,1970s,750-999,None,100% Usage,NA,0.0000,NA
+bldg0064657,CA,Single-Family Attached,1990s,1500-1999,EnergyStar,120% Usage,0.0880,0.0930,-5.4%
+bldg0066501,AK,Single-Family Detached,1990s,1500-1999,Standard,120% Usage,FAILED,0.1130,FAILED
+bldg0085067,NV,Single-Family Detached,1970s,2500-2999,Standard,120% Usage,0.2260,0.1980,+14.1%
+bldg0094522,AK,Single-Family Attached,1980s,4000+,Standard,100% Usage,FAILED,0.1410,FAILED
+bldg0099159,WY,Single-Family Attached,2010s,1000-1499,EnergyStar,100% Usage,0.0900,0.0970,-7.2%
+bldg0103939,CT,Single-Family Detached,1960s,1000-1499,EnergyStar,100% Usage,0.0800,0.0770,+3.9%
+bldg0104117,NY,Multi-Family with 5+ Units,<1940,750-999,None,100% Usage,NA,0.0000,NA
+bldg0108019,RI,Single-Family Detached,<1940,1000-1499,Standard,100% Usage,0.0970,0.0940,+3.2%
+bldg0111149,CA,Single-Family Detached,1970s,3000-3999,EnergyStar,80% Usage,0.1830,0.1540,+18.8%
+bldg0112572,NY,Multi-Family with 2 - 4 Units,1940s,500-749,None,100% Usage,NA,0.0000,NA
+bldg0116109,AK,Single-Family Detached,1970s,1500-1999,Standard,80% Usage,FAILED,0.0570,FAILED
+bldg0117900,OH,Mobile Home,2000s,1000-1499,EnergyStar,100% Usage,0.1050,0.0970,+8.2%
+bldg0120120,TX,Single-Family Detached,1950s,1000-1499,EnergyStar,120% Usage,0.0660,0.0700,-5.7%
+bldg0125496,NY,Multi-Family with 5+ Units,1970s,750-999,None,100% Usage,NA,0.0000,NA
+bldg0126235,MI,Single-Family Detached,1990s,2500-2999,Standard,100% Usage,FAILED,0.1410,FAILED
+bldg0134115,FL,Multi-Family with 5+ Units,1970s,0-499,None,80% Usage,NA,0.0000,NA
+bldg0145426,AK,Single-Family Detached,1970s,1000-1499,EnergyStar,120% Usage,FAILED,0.1390,FAILED
+bldg0149742,WA,Single-Family Attached,2000s,2500-2999,EnergyStar,120% Usage,0.1080,0.1160,-6.9%
+bldg0172208,CA,Multi-Family with 5+ Units,1940s,750-999,None,80% Usage,NA,0.0000,NA
+bldg0180324,AZ,Multi-Family with 5+ Units,1970s,750-999,Standard,100% Usage,0.0900,0.0940,-4.3%
+bldg0189657,AK,Multi-Family with 2 - 4 Units,2010s,1000-1499,None,80% Usage,NA,0.0000,NA
+bldg0208851,SD,Single-Family Detached,2000s,4000+,Standard,100% Usage,0.1280,0.1180,+8.5%
+bldg0208877,NM,Multi-Family with 5+ Units,<1940,500-749,None,100% Usage,NA,0.0000,NA
+bldg0224395,FL,Single-Family Attached,1980s,2000-2499,Standard,80% Usage,0.0720,0.0760,-5.3%
+bldg0229989,MD,Single-Family Attached,1990s,1500-1999,EnergyStar,100% Usage,0.1220,0.1350,-9.6%
+bldg0234075,IL,Multi-Family with 5+ Units,<1940,500-749,Standard,120% Usage,0.0850,0.0850,+0.0%
+bldg0236990,TX,Multi-Family with 5+ Units,1980s,500-749,None,80% Usage,NA,0.0000,NA
+bldg0240393,GA,Single-Family Attached,1980s,1000-1499,EnergyStar,100% Usage,0.0900,0.0970,-7.2%
+bldg0245787,OH,Multi-Family with 5+ Units,2000s,0-499,None,120% Usage,NA,0.0000,NA
+bldg0250585,FL,Single-Family Attached,1980s,2500-2999,EnergyStar,100% Usage,0.0740,0.0770,-3.9%
+bldg0259582,CA,Single-Family Detached,<1940,500-749,EnergyStar,100% Usage,0.0550,0.0580,-5.2%
+bldg0274778,OK,Single-Family Detached,1990s,3000-3999,EnergyStar,80% Usage,0.2030,0.1700,+19.4%
+bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,Standard,120% Usage,0.1080,0.1130,-4.4%
+bldg0276627,AK,Single-Family Detached,2000s,2000-2499,Standard,120% Usage,FAILED,0.1130,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,Standard,120% Usage,FAILED,0.1420,FAILED
+bldg0294702,NM,Single-Family Detached,2000s,4000+,Standard,80% Usage,0.1260,0.1130,+11.5%
+bldg0336334,CA,Single-Family Attached,1990s,2500-2999,Standard,120% Usage,0.1320,0.1420,-7.0%
+bldg0338190,KY,Single-Family Detached,2000s,1500-1999,Standard,100% Usage,0.0670,0.0710,-5.6%
+bldg0353300,CA,Multi-Family with 5+ Units,2010s,0-499,None,120% Usage,NA,0.0000,NA
+bldg0353418,CA,Single-Family Detached,2000s,4000+,EnergyStar,100% Usage,0.1050,0.0970,+8.2%
+bldg0355977,OH,Multi-Family with 5+ Units,1970s,750-999,None,100% Usage,NA,0.0000,NA
+bldg0372624,HI,Single-Family Detached,1980s,2000-2499,Standard,80% Usage,0.1510,0.1320,+14.4%
+bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,None,80% Usage,NA,0.0000,NA
+bldg0437452,CA,Single-Family Attached,1960s,750-999,Standard,80% Usage,0.0560,0.0570,-1.8%
+bldg0445042,CA,Single-Family Attached,1980s,1500-1999,EnergyStar,120% Usage,0.0880,0.0930,-5.4%
+bldg0449322,CA,Single-Family Attached,1970s,1000-1499,None,80% Usage,NA,0.0000,NA
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,None,120% Usage,FAILED,0.0000,FAILED
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,Standard,80% Usage,FAILED,0.2450,FAILED
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,Standard,100% Usage,FAILED,0.1180,FAILED
+bldg0483730,CA,Single-Family Detached,1950s,4000+,EnergyStar,120% Usage,0.1250,0.1160,+7.8%
+bldg0486267,ME,Single-Family Detached,1990s,1000-1499,None,120% Usage,NA,0.0000,NA
+bldg0487739,WY,Mobile Home,1970s,750-999,None,120% Usage,NA,0.0000,NA
+bldg0499827,CA,Single-Family Detached,1990s,2000-2499,EnergyStar,100% Usage,FAILED,0.0770,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,Standard,80% Usage,FAILED,0.1700,FAILED
+bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,Standard,120% Usage,0.0850,0.0850,+0.0%
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,Standard,80% Usage,FAILED,0.2450,FAILED

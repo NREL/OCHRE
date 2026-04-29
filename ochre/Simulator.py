@@ -8,6 +8,7 @@ import hashlib
 from ochre import __version__
 from ochre.utils import load_csv, OCHREException
 import ochre.utils.schedule as utils_schedule
+from ochre.utils.output_control import get_enabled_outputs
 
 
 # Bit flags for fast isinstance-free type checks in the per-timestep hot path.
@@ -40,8 +41,10 @@ class Simulator:
         output_to_parquet=False,
         initialization_time=None,
         export_res=None,
+        output_format="ochre",
         **kwargs,
     ):
+        self.output_format = output_format
         if name is not None:
             self.name = name
         self.main_sim_name = main_sim_name
@@ -66,6 +69,8 @@ class Simulator:
         # Results parameters
         self.results = []
         self.verbosity = verbosity
+        self._enabled_outputs = None
+        self._enabled_outputs_key = None
         if self.main_simulator and self.verbosity >= 3:
             self.print(f"Initializing {self.name} (OCHRE v{__version__})")
 
@@ -334,6 +339,28 @@ class Simulator:
         self.update_model(control_signal)
 
         return self.update_results()
+
+    @property
+    def enabled_outputs(self):
+        """Enabled output names for current output format and verbosity.
+
+        Cached; recomputes only when output_format or verbosity changes.
+        """
+        key = (self.output_format, self.verbosity)
+        if self._enabled_outputs_key != key:
+            self._enabled_outputs = get_enabled_outputs(*key)
+            self._enabled_outputs_key = key
+        return self._enabled_outputs
+
+    def add_output(self, results, name, value):
+        """Add output to results if enabled by current verbosity level.
+
+        Checks the output registry before adding. If value is callable,
+        it is only invoked when the output is enabled (use for expensive
+        computations like numpy aggregations).
+        """
+        if name in self.enabled_outputs:
+            results[name] = value() if callable(value) else value
 
     def reset_time(self, start_time=None, remove_results=True, **kwargs):
         if start_time is None:

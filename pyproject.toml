@@ -23,7 +23,6 @@ dependencies = [
     "python-dateutil ~= 2.9",
     "click ~= 8.1",
     "boto3 ~= 1.36",
-    "ruff>=0.14.14",
 ]
 requires-python = ">=3.10, <3.13"
 authors = [
@@ -60,14 +59,27 @@ ochre = "ochre:cli"
 ochre-gui-basic = "ochre:gui_basic"
 ochre-gui-detailed = "ochre:gui_detailed"
 
+[project.optional-dependencies]
+dev = [
+    "ruff==0.14.14",
+    "pytest-xdist>=3.8.0",
+]
+
 [tool.hatch.version]
 path = "ochre/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["ochre"]
 
+
+[tool.pytest.ini_options]
+markers = [
+    "golden: ResStock golden test suite (requires golden test data in test/resstock_golden/)",
+]
+
 [tool.ruff]
 line-length = 120
+target-version = "py311"
 
 [tool.ruff.format]
 quote-style = "double"

@@ -1,0 +1,66 @@
+Building,State,Building Type,Vintage,Floor Area,Dishwasher,Dishwasher Usage Level,OCHRE,EPlus,%Diff
+bldg0000935,MA,Single-Family Attached,2000s,2500-2999,318 Rated kWh,80% Usage,0.1760,0.2080,-15.4%
+bldg0008984,LA,Single-Family Attached,1970s,1500-1999,318 Rated kWh,100% Usage,0.3020,0.3240,-6.8%
+bldg0020895,CA,Single-Family Attached,1990s,1500-1999,290 Rated kWh,100% Usage,0.2820,0.3030,-6.9%
+bldg0021070,MI,Single-Family Detached,1990s,1000-1499,318 Rated kWh,80% Usage,0.1650,0.2080,-20.7%
+bldg0027147,CA,Multi-Family with 5+ Units,2000s,1000-1499,318 Rated kWh,120% Usage,0.4610,0.4670,-1.3%
+bldg0027808,CA,Single-Family Attached,1990s,4000+,318 Rated kWh,80% Usage,0.2420,0.2590,-6.6%
+bldg0028885,HI,Single-Family Detached,1940s,4000+,318 Rated kWh,100% Usage,0.3330,0.3240,+2.8%
+bldg0034729,VA,Single-Family Attached,1970s,1000-1499,None,80% Usage,NA,0.0000,NA
+bldg0035052,WA,Multi-Family with 5+ Units,1970s,750-999,None,100% Usage,NA,0.0000,NA
+bldg0064657,CA,Single-Family Attached,1990s,1500-1999,290 Rated kWh,120% Usage,0.3390,0.3630,-6.6%
+bldg0066501,AK,Single-Family Detached,1990s,1500-1999,290 Rated kWh,120% Usage,FAILED,0.3630,FAILED
+bldg0085067,NV,Single-Family Detached,1970s,2500-2999,318 Rated kWh,120% Usage,0.8560,0.6210,+37.8%
+bldg0094522,AK,Single-Family Attached,1980s,4000+,318 Rated kWh,100% Usage,FAILED,0.4530,FAILED
+bldg0099159,WY,Single-Family Attached,2010s,1000-1499,318 Rated kWh,100% Usage,0.3840,0.3890,-1.3%
+bldg0103939,CT,Single-Family Detached,1960s,1000-1499,318 Rated kWh,100% Usage,0.3330,0.3240,+2.8%
+bldg0104117,NY,Multi-Family with 5+ Units,<1940,750-999,None,100% Usage,NA,0.0000,NA
+bldg0108019,RI,Single-Family Detached,<1940,1000-1499,290 Rated kWh,100% Usage,0.3110,0.3030,+2.6%
+bldg0111149,CA,Single-Family Detached,1970s,3000-3999,290 Rated kWh,80% Usage,0.8170,0.5310,+53.9%
+bldg0112572,NY,Multi-Family with 2 - 4 Units,1940s,500-749,None,100% Usage,NA,0.0000,NA
+bldg0116109,AK,Single-Family Detached,1970s,1500-1999,318 Rated kWh,80% Usage,FAILED,0.2080,FAILED
+bldg0117900,OH,Mobile Home,2000s,1000-1499,None,100% Usage,NA,0.0000,NA
+bldg0120120,TX,Single-Family Detached,1950s,1000-1499,290 Rated kWh,120% Usage,0.2310,0.2910,-20.6%
+bldg0125496,NY,Multi-Family with 5+ Units,1970s,750-999,318 Rated kWh,100% Usage,0.6290,0.5820,+8.1%
+bldg0126235,MI,Single-Family Detached,1990s,2500-2999,290 Rated kWh,100% Usage,FAILED,0.4230,FAILED
+bldg0134115,FL,Multi-Family with 5+ Units,1970s,0-499,318 Rated kWh,80% Usage,0.1760,0.2080,-15.4%
+bldg0145426,AK,Single-Family Detached,1970s,1000-1499,318 Rated kWh,120% Usage,FAILED,0.5440,FAILED
+bldg0149742,WA,Single-Family Attached,2000s,2500-2999,318 Rated kWh,120% Usage,0.4610,0.4670,-1.3%
+bldg0172208,CA,Multi-Family with 5+ Units,1940s,750-999,318 Rated kWh,80% Usage,0.3070,0.3110,-1.3%
+bldg0180324,AZ,Multi-Family with 5+ Units,1970s,750-999,None,100% Usage,NA,0.0000,NA
+bldg0189657,AK,Multi-Family with 2 - 4 Units,2010s,1000-1499,318 Rated kWh,80% Usage,0.4380,0.4140,+5.8%
+bldg0208851,SD,Single-Family Detached,2000s,4000+,318 Rated kWh,100% Usage,0.4600,0.3890,+18.3%
+bldg0208877,NM,Multi-Family with 5+ Units,<1940,500-749,None,100% Usage,NA,0.0000,NA
+bldg0224395,FL,Single-Family Attached,1980s,2000-2499,318 Rated kWh,80% Usage,0.2420,0.2590,-6.6%
+bldg0229989,MD,Single-Family Attached,1990s,1500-1999,290 Rated kWh,100% Usage,0.5110,0.4830,+5.8%
+bldg0234075,IL,Multi-Family with 5+ Units,<1940,500-749,None,120% Usage,NA,0.0000,NA
+bldg0236990,TX,Multi-Family with 5+ Units,1980s,500-749,290 Rated kWh,80% Usage,0.0000,0.0000,+0.0%
+bldg0240393,GA,Single-Family Attached,1980s,1000-1499,290 Rated kWh,100% Usage,0.3590,0.3630,-1.1%
+bldg0245787,OH,Multi-Family with 5+ Units,2000s,0-499,318 Rated kWh,120% Usage,0.2650,0.3120,-15.1%
+bldg0250585,FL,Single-Family Attached,1980s,2500-2999,290 Rated kWh,100% Usage,0.2820,0.3030,-6.9%
+bldg0259582,CA,Single-Family Detached,<1940,500-749,None,100% Usage,NA,0.0000,NA
+bldg0274778,OK,Single-Family Detached,1990s,3000-3999,None,80% Usage,NA,0.0000,NA
+bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,None,120% Usage,NA,0.0000,NA
+bldg0276627,AK,Single-Family Detached,2000s,2000-2499,318 Rated kWh,120% Usage,FAILED,0.3890,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,318 Rated kWh,120% Usage,FAILED,0.4670,FAILED
+bldg0294702,NM,Single-Family Detached,2000s,4000+,290 Rated kWh,80% Usage,0.4380,0.3390,+29.2%
+bldg0336334,CA,Single-Family Attached,1990s,2500-2999,318 Rated kWh,120% Usage,0.4610,0.4670,-1.3%
+bldg0338190,KY,Single-Family Detached,2000s,1500-1999,290 Rated kWh,100% Usage,0.1930,0.2430,-20.6%
+bldg0353300,CA,Multi-Family with 5+ Units,2010s,0-499,318 Rated kWh,120% Usage,0.4610,0.4670,-1.3%
+bldg0353418,CA,Single-Family Detached,2000s,4000+,318 Rated kWh,100% Usage,0.4600,0.3890,+18.3%
+bldg0355977,OH,Multi-Family with 5+ Units,1970s,750-999,None,100% Usage,NA,0.0000,NA
+bldg0372624,HI,Single-Family Detached,1980s,2000-2499,318 Rated kWh,80% Usage,0.5700,0.4140,+37.7%
+bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,318 Rated kWh,80% Usage,0.1760,0.2080,-15.4%
+bldg0437452,CA,Single-Family Attached,1960s,750-999,318 Rated kWh,80% Usage,0.1760,0.2080,-15.4%
+bldg0445042,CA,Single-Family Attached,1980s,1500-1999,318 Rated kWh,120% Usage,0.3630,0.3890,-6.7%
+bldg0449322,CA,Single-Family Attached,1970s,1000-1499,None,80% Usage,NA,0.0000,NA
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,318 Rated kWh,120% Usage,FAILED,0.3890,FAILED
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,290 Rated kWh,80% Usage,FAILED,0.6760,FAILED
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,318 Rated kWh,100% Usage,FAILED,0.3890,FAILED
+bldg0483730,CA,Single-Family Detached,1950s,4000+,318 Rated kWh,120% Usage,0.5520,0.4670,+18.2%
+bldg0486267,ME,Single-Family Detached,1990s,1000-1499,None,120% Usage,NA,0.0000,NA
+bldg0487739,WY,Mobile Home,1970s,750-999,318 Rated kWh,120% Usage,0.4000,0.3890,+2.8%
+bldg0499827,CA,Single-Family Detached,1990s,2000-2499,290 Rated kWh,100% Usage,FAILED,0.3030,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,318 Rated kWh,80% Usage,FAILED,0.5170,FAILED
+bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,318 Rated kWh,120% Usage,0.2650,0.3120,-15.1%
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,318 Rated kWh,80% Usage,FAILED,0.7230,FAILED

@@ -1160,92 +1160,99 @@ class Envelope(RCModel):
         # Note: most results are included in Dwelling/HVAC. Only inputs and states are saved to self.results
         results = super().generate_results()
 
-        if self.verbosity >= 3:
-            # Indoor temperature and unmet loads
-            results["Temperature - Indoor (C)"] = self.indoor_zone.temperature
-            results["Unmet HVAC Load (C)"] = self.unmet_hvac_load
+        # Indoor temperature and unmet loads (verbosity 3)
+        self.add_output(results, "Temperature - Indoor (C)", self.indoor_zone.temperature)
+        self.add_output(results, "Unmet HVAC Load (C)", self.unmet_hvac_load)
 
-        if self.verbosity >= 5:
-            # All zone temperatures
-            results.update({f"Temperature - {name} (C)": zone.temperature for name, zone in self.zones.items()})
-            results.update({f"Temperature - {name} (C)": zone.temperature for name, zone in self.ext_zones.items()})
+        # All zone temperatures (verbosity 5)
+        for name, zone in self.zones.items():
+            self.add_output(results, f"Temperature - {name} (C)", zone.temperature)
+        for name, zone in self.ext_zones.items():
+            self.add_output(results, f"Temperature - {name} (C)", zone.temperature)
 
-            # All component loads (for indoor zone) and net load
-            # Net sensible gains =  occupancy + HVAC + equipment
-            #                     + infiltration + forced ventilation + natural ventilation
-            #                     + absorbed ext. radiation (windows) + transmitted window gains + interior radiation
-            results.update(
-                {f"Net Sensible Heat Gain - {name} (W)": self.inputs[zone.h_idx] for name, zone in self.zones.items()}
-            )
-            if not self.linearize_infiltration:
-                results["Infiltration Heat Gain - Indoor (W)"] = self.indoor_zone.inf_heat
-            results["Forced Ventilation Heat Gain - Indoor (W)"] = self.indoor_zone.forced_vent_heat
-            results["Natural Ventilation Heat Gain - Indoor (W)"] = self.indoor_zone.nat_vent_heat
-            occupant_gain = self.current_schedule.get("Occupancy (Persons)", 0) * self.occupancy_sensible_gain
-            # internal gains = occupancy + non-HVAC equipment only
-            results["Internal Heat Gain - Indoor (W)"] = occupant_gain + self.indoor_zone.internal_sens_gain
+        # All component loads (for indoor zone) and net load (verbosity 5)
+        # Net sensible gains =  occupancy + HVAC + equipment
+        #                     + infiltration + forced ventilation + natural ventilation
+        #                     + absorbed ext. radiation (windows) + transmitted window gains + interior radiation
+        for name, zone in self.zones.items():
+            self.add_output(results, f"Net Sensible Heat Gain - {name} (W)", self.inputs[zone.h_idx])
 
-            # Add window transmittance (note, gains go to indoor zone and to interior boundaries)
+        if not self.linearize_infiltration:
+            self.add_output(results, "Infiltration Heat Gain - Indoor (W)", self.indoor_zone.inf_heat)
+        self.add_output(results, "Forced Ventilation Heat Gain - Indoor (W)", self.indoor_zone.forced_vent_heat)
+        self.add_output(results, "Natural Ventilation Heat Gain - Indoor (W)", self.indoor_zone.nat_vent_heat)
+
+        # internal gains = occupancy + non-HVAC equipment only
+        occupant_gain = self.current_schedule.get("Occupancy (Persons)", 0) * self.occupancy_sensible_gain
+        self.add_output(results, "Internal Heat Gain - Indoor (W)", occupant_gain + self.indoor_zone.internal_sens_gain)
+
+        # Add window transmittance (note, gains go to indoor zone and to interior boundaries)
+        if "Window Transmitted Solar Gain (W)" in self.enabled_outputs:
             windows = [bd for bd in self.ext_boundaries if bd.name == "Window"]
             if windows:
-                window_gain = windows[0].ext_surface.transmitted_gain
-                results["Window Transmitted Solar Gain (W)"] = window_gain
+                self.add_output(results, "Window Transmitted Solar Gain (W)", windows[0].ext_surface.transmitted_gain)
 
-            # add other component loads
-            if not self.reduced:
-                results.update(self.add_component_loads())
+        # add other component loads
+        if not self.reduced:
+            for bd in utils.COMPONENT_LOAD_CATEGORIES:
+                if f"{bd} Heat Gain - Indoor (W)" in self.enabled_outputs:
+                    # Only compute component loads if at least one is enabled
+                    results.update(self.add_component_loads())
+                    break
 
-        if self.verbosity >= 8:
-            results["Occupancy (Persons)"] = self.current_schedule.get("Occupancy (Persons)", 0)
-            # Add detailed heat gain results for each zone
-            for name, zone in self.zones.items():
-                if not self.linearize_infiltration:
-                    results[f"Infiltration Flow Rate - {name} (m^3/s)"] = zone.inf_flow
-                    results[f"Infiltration Heat Gain - {name} (W)"] = zone.inf_heat
+        # Detailed zone data (verbosity 8)
+        self.add_output(results, "Occupancy (Persons)", self.current_schedule.get("Occupancy (Persons)", 0))
 
-                if name == "Indoor":
-                    results[f"Forced Ventilation Flow Rate - {name} (m^3/s)"] = zone.forced_vent_flow
-                    results[f"Natural Ventilation Flow Rate - {name} (m^3/s)"] = zone.nat_vent_flow
-                    air_changes = (zone.inf_flow + zone.forced_vent_flow + zone.nat_vent_flow) / zone.volume * 3600
-                    results[f"Air Changes per Hour - {name} (1/hour)"] = air_changes
+        # Add detailed heat gain results for each zone
+        for name, zone in self.zones.items():
+            if not self.linearize_infiltration:
+                self.add_output(results, f"Infiltration Flow Rate - {name} (m^3/s)", zone.inf_flow)
+                self.add_output(results, f"Infiltration Heat Gain - {name} (W)", zone.inf_heat)
 
-                    occupant_gain = self.current_schedule.get("Occupancy (Persons)", 0) * self.occupancy_sensible_gain
-                    results[f"Occupancy Heat Gain - {name} (W)"] = occupant_gain
-                else:
-                    if zone.internal_sens_gain > 0:
-                        # occupancy=0 for non-Indoor zones
-                        # Only includes non-HVAC equipment
-                        results[f"Internal Heat Gain - {name} (W)"] = zone.internal_sens_gain
+            if name == "Indoor":
+                self.add_output(results, f"Forced Ventilation Flow Rate - {name} (m^3/s)", zone.forced_vent_flow)
+                self.add_output(results, f"Natural Ventilation Flow Rate - {name} (m^3/s)", zone.nat_vent_flow)
+                air_changes = (zone.inf_flow + zone.forced_vent_flow + zone.nat_vent_flow) / zone.volume * 3600
+                self.add_output(results, f"Air Changes per Hour - {name} (1/hour)", air_changes)
 
-                # add radiation gain from windows and internal radiation, in W
-                if self.run_internal_rad:
-                    results[f"Radiation Heat Gain - {name} (W)"] = zone.radiation_heat
+                occupant_gain = self.current_schedule.get("Occupancy (Persons)", 0) * self.occupancy_sensible_gain
+                self.add_output(results, f"Occupancy Heat Gain - {name} (W)", occupant_gain)
+            else:
+                if zone.internal_sens_gain > 0:
+                    # occupancy=0 for non-Indoor zones
+                    # Only includes non-HVAC equipment
+                    self.add_output(results, f"Internal Heat Gain - {name} (W)", zone.internal_sens_gain)
 
-                if zone.humidity is not None:
-                    # Indoor is the only zone with humidity or ventilation (for now)
-                    results[f"Relative Humidity - {name} (-)"] = zone.humidity.rh
-                    results[f"Wet Bulb - {name} (C)"] = zone.humidity.wet_bulb
-                    results[f"Humidity Ratio - {name} (-)"] = zone.humidity.w
-                    results[f"Net Latent Heat Gain - {name} (W)"] = zone.humidity.latent_gains
-                    results[f"Air Density - {name} (kg/m^3)"] = zone.humidity.density
-
-        if self.verbosity >= 9:
-            if self.run_external_rad:
-                # add surface temperature, solar and LWR gains for each exterior surface
-                for bd in self.ext_boundaries:
-                    surface = bd.ext_surface
-                    results[f"{bd.name} Ext. Solar Gain (W)"] = surface.solar_gain
-                    results[f"{bd.name} Ext. LWR Gain (W)"] = surface.lwr_gain
-                    results[f"{bd.name} Ext. Surface Temperature (C)"] = surface.temperature
-                    results[f"{bd.name} Ext. Film Coefficient (m^2-K/W)"] = surface.res_film
-
+            # add radiation gain from windows and internal radiation, in W
             if self.run_internal_rad:
-                # add surface temperature and LWR gains for each interior surface, by zone
-                for name, zone in self.zones.items():
-                    for surface in zone.surfaces:
-                        bd_name = surface.boundary_name
-                        results[f"{bd_name} {name} LWR Gain (W)"] = surface.lwr_gain
-                        results[f"{bd_name} {name} Surface Temperature (C)"] = surface.temperature
-                        results[f"{bd_name} {name} Film Coefficient (m^2-K/W)"] = surface.res_film
+                self.add_output(results, f"Radiation Heat Gain - {name} (W)", zone.radiation_heat)
+
+            if zone.humidity is not None:
+                # Indoor is the only zone with humidity or ventilation (for now)
+                self.add_output(results, f"Relative Humidity - {name} (-)", zone.humidity.rh)
+                self.add_output(results, f"Wet Bulb - {name} (C)", zone.humidity.wet_bulb)
+                self.add_output(results, f"Humidity Ratio - {name} (-)", zone.humidity.w)
+                self.add_output(results, f"Net Latent Heat Gain - {name} (W)", zone.humidity.latent_gains)
+                self.add_output(results, f"Air Density - {name} (kg/m^3)", zone.humidity.density)
+
+        # Exterior surface radiation details (verbosity 9)
+        if self.run_external_rad:
+            # add surface temperature, solar and LWR gains for each exterior surface
+            for bd in self.ext_boundaries:
+                surface = bd.ext_surface
+                self.add_output(results, f"{bd.name} Ext. Solar Gain (W)", surface.solar_gain)
+                self.add_output(results, f"{bd.name} Ext. LWR Gain (W)", surface.lwr_gain)
+                self.add_output(results, f"{bd.name} Ext. Surface Temperature (C)", surface.temperature)
+                self.add_output(results, f"{bd.name} Ext. Film Coefficient (m^2-K/W)", surface.res_film)
+
+        # Interior surface radiation details (verbosity 9)
+        if self.run_internal_rad:
+            # add surface temperature and LWR gains for each interior surface, by zone
+            for name, zone in self.zones.items():
+                for surface in zone.surfaces:
+                    bd_name = surface.boundary_name
+                    self.add_output(results, f"{bd_name} {name} LWR Gain (W)", surface.lwr_gain)
+                    self.add_output(results, f"{bd_name} {name} Surface Temperature (C)", surface.temperature)
+                    self.add_output(results, f"{bd_name} {name} Film Coefficient (m^2-K/W)", surface.res_film)
 
         return results
