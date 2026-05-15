@@ -10,6 +10,8 @@ from ochre import HeatPumpWaterHeater
 MIN_IN_DAY = 1440
 GAL_IN_L = 3.78541
 
+#Run 120V simulation for n simulation days
+
 #GLOBAL PARAMS
 # Define equipment and simulation parameters
 setpoint_default = 48.9 #Assumed 120 degree setpoing
@@ -22,7 +24,7 @@ altitude = 24.5 #in M
 two_weeks = 20160
 
 run_range = False#runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 1 #172 #220
+simulation_days = 360 #172 #220
 simulation_duration = simulation_days * MIN_IN_DAY
 
 sites = [1]
@@ -48,6 +50,7 @@ for site_number in sites:
         "UA (W/K)": 2.17,
         "HPWH COP (-)": 2.98,
         "save_matrices":False,
+        "Low Power HPWH":True,
         "water_nodes": water_nodes
     }
 
@@ -124,7 +127,7 @@ for site_number in sites:
 
     to_save["Hot Water Delivered (kW)"] =   pd.Series(hot_water_delivered_kW, index=to_save.index)
 
-    to_save["Draw Data"] = pd.Series(withdraw_rate[0], index=to_save.index)
+    to_save["Draw Data"] = pd.Series(withdraw_rate, index=to_save.index)
     to_save["Setpoint"] = pd.Series(setpoint_default, index=to_save.index)
 
     to_save = to_save[1:]
