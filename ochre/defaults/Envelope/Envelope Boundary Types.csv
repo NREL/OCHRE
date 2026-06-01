@@ -271,6 +271,14 @@ Garage Roof,"slate or tile shingles, Unfinished, Uninsulated, Pitched",slate or 
 Garage Roof,"slate or tile shingles, Unfinished, Uninsulated, Pitched, Radiant Barrier",slate or tile shingles,"Pitched, Radiant Barrier","Unfinished, Uninsulated",Copied from Attic Roof,1.389695656
 Garage Roof,"wood shingles or shakes, Unfinished, Uninsulated, Pitched",wood shingles or shakes,Pitched,"Unfinished, Uninsulated",Copied from Attic Roof,1.38963372
 Garage Roof,"wood shingles or shakes, Unfinished, Uninsulated, Pitched, Radiant Barrier",wood shingles or shakes,"Pitched, Radiant Barrier","Unfinished, Uninsulated",Copied from Attic Roof,1.389638876
+Garage Roof,"asphalt or fiberglass shingles, Unfinished, Uninsulated, Flat",asphalt or fiberglass shingles,Flat,"Unfinished, Uninsulated",Copied from Attic Roof,1.38963372
+Garage Roof,"asphalt or fiberglass shingles, Unfinished, Uninsulated, Flat, Radiant Barrier",asphalt or fiberglass shingles,"Flat, Radiant Barrier","Unfinished, Uninsulated",test files bldg0288066,1.389638876
+Garage Roof,"metal surfacing, Unfinished, Uninsulated, Flat",metal surfacing,Flat,"Unfinished, Uninsulated",test files bldg0288066,1.389464516
+Garage Roof,"metal surfacing, Unfinished, Uninsulated, Flat, Radiant Barrier",metal surfacing,"Flat, Radiant Barrier","Unfinished, Uninsulated",test files bldg0288066,1.389469671
+Garage Roof,"slate or tile shingles, Unfinished, Uninsulated, Flat",slate or tile shingles,Flat,"Unfinished, Uninsulated",test files bldg0288066,1.3896905
+Garage Roof,"slate or tile shingles, Unfinished, Uninsulated, Flat, Radiant Barrier",slate or tile shingles,"Flat, Radiant Barrier","Unfinished, Uninsulated",test files bldg0288066,1.389695656
+Garage Roof,"wood shingles or shakes, Unfinished, Uninsulated, Flat",wood shingles or shakes,Flat,"Unfinished, Uninsulated",test files bldg0288066,1.38963372
+Garage Roof,"wood shingles or shakes, Unfinished, Uninsulated, Flat, Radiant Barrier",wood shingles or shakes,"Flat, Radiant Barrier","Unfinished, Uninsulated",test files bldg0288066,1.389638876
 Garage Wall,"ConcreteMasonryUnit, asbestos siding",asbestos siding,ConcreteMasonryUnit,,MF_300 - bldg0000036,3.123212321
 Garage Wall,"ConcreteMasonryUnit, brick veneer",brick veneer,ConcreteMasonryUnit,,MF_300 - bldg0000189,3.123212321
 Garage Wall,"ConcreteMasonryUnit, none",none,ConcreteMasonryUnit,,res3.1_national_300 - bldg0000094,3.123212321
