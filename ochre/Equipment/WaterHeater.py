@@ -457,7 +457,6 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
         self.parasitic_power = kwargs.get("HPWH Parasitics (W)", 1)  # Standby power in W
         self.fan_power = kwargs.get("HPWH Fan Power (W)", 35)  # in W
 
-
         # Dynamic capacity coefficients
         # curve format: [1, t_in_wet, t_in_wet ** 2, t_lower, t_lower ** 2, t_lower * t_in_wet]
         if self.low_power_hpwh:
