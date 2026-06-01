@@ -7,34 +7,44 @@ from ochre import Dwelling
 #from ochre.utils import default_input_path  # for using sample files
 from ochre import HeatPumpWaterHeater
 
+#READ ME
+# Input files located in ~\ochre\defaults\Input Files\Temperature Values
+# Output is created in home directory under output_site_1_48.9_12.csv
+# Output columns: Hot Water Outlet Temperature (C),Hot Water Delivered (W),Water Heating Electric Power (kW),T_AMB,Hot Water Delivered (kW),Draw Data,Setpoint
+
+#GLOBAL PARAMS
 MIN_IN_DAY = 1440
 GAL_IN_L = 3.78541
+UA_VALUES = {40: 2.638889,
+             50: 2.375,
+             65: 2.955556,
+             80: 3.008333}
+
 
 #Run 120V simulation for n simulation days
 
-#GLOBAL PARAMS
 # Define equipment and simulation parameters
 setpoint_default = 48.9 #Assumed 120 degree setpoing
 deadband_default = 5.56  # in C
 max_setpoint = 60
 min_setpoint = 49
 water_nodes = 12
-capacity = 50 * GAL_IN_L #Gallons to L
+gallons = 50
+
+#------------------------------------------------------------#
+capacity = gallons * GAL_IN_L #Gallons to L
 altitude = 24.5 #in M
 two_weeks = 20160
-
-run_range = False#runs simulation for a variety of setpoints specified in setpoint_range
-simulation_days = 360 #172 #220
+simulation_days = 360 
 simulation_duration = simulation_days * MIN_IN_DAY
 
 sites = [1]
-for site_number in sites: 
-    
+for site_number in sites: #runs simulations for specified site number
     #Data values
+    
+    #temperature input values
     temp_data = pd.read_csv(f'ochre\\defaults\\Input Files\\Temperature Values\\120V_temperatures_{site_number}.csv')
-      
-
-    start_date = dt.datetime(2023, 11, 3, 0, 0) #site_1
+    start_date = dt.datetime(2022, 11, 3, 4, 0) #site_1 at 4am
 
     print("Simulating Setpoint: ", setpoint_default)
     equipment_args = {
@@ -47,8 +57,8 @@ for site_number in sites:
         "Setpoint Temperature (C)": setpoint_default,
         "Tank Volume (L)": capacity,
         "Tank Height (m)": 1.22, #double check if these are accurate
-        "UA (W/K)": 2.17,
-        "HPWH COP (-)": 2.98,
+        "UA (W/K)": UA_VALUES[gallons],
+        "HPWH COP (-)": 4.5,
         "save_matrices":False,
         "Low Power HPWH":True,
         "water_nodes": water_nodes
@@ -67,7 +77,8 @@ for site_number in sites:
     wet = temp_data['wet_bulb_C'].values[0: simulation_duration] # Required for HPWH
     mains = temp_data['inlet_cold_water_temp_C'].values[0: simulation_duration]
 
-    #Initizlie Schedule
+    #Initialize Schedule
+    #should capacity be added to our schedule?
     schedule = pd.DataFrame(
         {
             "Water Heating (L/min)": withdraw_rate,
@@ -90,7 +101,7 @@ for site_number in sites:
     control_signal = {}
     setpoints = []
 
-    #Simulate at each time
+    #Simulate at each timestep
     for t in hpwh.sim_times:
         setpoints.append(setpoint_default)
         _ = hpwh.update(control_signal=control_signal)
@@ -122,7 +133,6 @@ for site_number in sites:
     # Convert to kW per minute
     hot_water_delivered_kW = df['Hot Water Delivered (W)'] / 1000 
 
-
     to_save = df.loc[:, cols_to_save]
 
     to_save["Hot Water Delivered (kW)"] =   pd.Series(hot_water_delivered_kW, index=to_save.index)
@@ -136,4 +146,4 @@ for site_number in sites:
 
     #plt.show()
 
-    print("Simulation Copmleted: ", f'output_site_{site_number}_{setpoint_default}_{water_nodes}.csv')
+    print("Simulation Completed: ", f'output_site_{site_number}_{setpoint_default}_{water_nodes}.csv')
