@@ -42,7 +42,7 @@ bldg0259582,CA,Single-Family Detached,<1940,500-749,94%,100%,Medium,3.9710,3.971
 bldg0274778,OK,Single-Family Detached,1990s,3000-3999,113%,50%,Low,7.8180,7.8180,+0.0%
 bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,89%,200%,High,6.3010,6.3010,+0.0%
 bldg0276627,AK,Single-Family Detached,2000s,2000-2499,94%,200%,High,FAILED,12.7630,FAILED
-bldg0288066,CA,Single-Family Detached,2000s,2500-2999,94%,200%,High,FAILED,15.3700,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,94%,200%,High,15.3700,15.3700,+0.0%
 bldg0294702,NM,Single-Family Detached,2000s,4000+,84%,50%,Low,5.1560,5.1560,+0.0%
 bldg0336334,CA,Single-Family Attached,1990s,2500-2999,96%,200%,High,12.0130,12.0130,+0.0%
 bldg0338190,KY,Single-Family Detached,2000s,1500-1999,110%,100%,Medium,5.9640,5.9640,+0.0%
@@ -54,13 +54,13 @@ bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,105%,50%,Low,1.6860,1.68
 bldg0437452,CA,Single-Family Attached,1960s,750-999,96%,50%,Low,1.7110,1.7110,+0.0%
 bldg0445042,CA,Single-Family Attached,1980s,1500-1999,96%,200%,High,9.3050,9.3050,+0.0%
 bldg0449322,CA,Single-Family Attached,1970s,1000-1499,96%,50%,Low,2.5020,2.5020,+0.0%
-bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,123%,200%,High,FAILED,9.1540,FAILED
-bldg0464288,WA,Single-Family Detached,1950s,2000-2499,94%,50%,Low,FAILED,6.6810,FAILED
-bldg0475650,CA,Single-Family Detached,2000s,1000-1499,94%,100%,Medium,FAILED,6.1500,FAILED
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,123%,200%,High,9.1540,9.1540,+0.0%
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,94%,50%,Low,6.6810,6.6810,+0.0%
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,94%,100%,Medium,6.1500,6.1500,+0.0%
 bldg0483730,CA,Single-Family Detached,1950s,4000+,94%,200%,High,21.5280,21.5280,+0.0%
 bldg0486267,ME,Single-Family Detached,1990s,1000-1499,99%,200%,High,11.3210,11.3210,+0.0%
 bldg0487739,WY,Mobile Home,1970s,750-999,95%,200%,High,11.6380,11.6380,+0.0%
 bldg0499827,CA,Single-Family Detached,1990s,2000-2499,94%,100%,Medium,FAILED,6.3810,FAILED
-bldg0501306,CA,Single-Family Detached,1960s,2500-2999,94%,50%,Low,FAILED,5.3940,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,94%,50%,Low,5.3940,5.3940,+0.0%
 bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,94%,200%,High,6.2200,6.2200,+0.0%
-bldg9064288,WA,Single-Family Detached,1950s,2000-2499,94%,50%,Low,FAILED,6.6810,FAILED
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,94%,50%,Low,6.6810,6.6810,+0.0%

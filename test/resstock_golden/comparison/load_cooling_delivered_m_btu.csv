@@ -42,7 +42,7 @@ bldg0259582,CA,Single-Family Detached,<1940,500-749,None,"Fuel Furnace, 80% AFUE
 bldg0274778,OK,Single-Family Detached,1990s,3000-3999,Ducted Heat Pump,"ASHP, SEER 15, 8.5 HSPF",37.8200,73.6770,-48.7%
 bldg0275797,NJ,Multi-Family with 5+ Units,<1940,0-499,"Room AC, EER 10.7",Shared Heating,4.5400,5.6710,-19.9%
 bldg0276627,AK,Single-Family Detached,2000s,2000-2499,None,"Fuel Boiler, 90% AFUE",FAILED,0.0000,FAILED
-bldg0288066,CA,Single-Family Detached,2000s,2500-2999,"AC, SEER 13","Fuel Furnace, 80% AFUE",FAILED,102.2270,FAILED
+bldg0288066,CA,Single-Family Detached,2000s,2500-2999,"AC, SEER 13","Fuel Furnace, 80% AFUE",41.1460,102.2270,-59.8%
 bldg0294702,NM,Single-Family Detached,2000s,4000+,"AC, SEER 10","Fuel Boiler, 80% AFUE",6.6920,76.6380,-91.3%
 bldg0336334,CA,Single-Family Attached,1990s,2500-2999,Ducted Heat Pump,"ASHP, SEER 10, 6.2 HSPF",39.7280,48.9090,-18.8%
 bldg0338190,KY,Single-Family Detached,2000s,1500-1999,"AC, SEER 13","Electric Furnace, 100% AFUE",22.6210,42.5790,-46.9%
@@ -54,13 +54,13 @@ bldg0422846,CO,Multi-Family with 5+ Units,<1940,750-999,"Room AC, EER 10.7",Shar
 bldg0437452,CA,Single-Family Attached,1960s,750-999,None,"Electric Furnace, 100% AFUE",NA,0.0000,NA
 bldg0445042,CA,Single-Family Attached,1980s,1500-1999,"AC, SEER 15","Fuel Furnace, 80% AFUE",26.3410,45.4490,-42.0%
 bldg0449322,CA,Single-Family Attached,1970s,1000-1499,"Room AC, EER 10.7","Electric Baseboard, 100% Efficiency",14.8400,19.6710,-24.6%
-bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,Shared Cooling,Shared Heating,FAILED,28.0350,FAILED
-bldg0464288,WA,Single-Family Detached,1950s,2000-2499,Ducted Heat Pump,"ASHP, SEER 13, 7.7 HSPF",FAILED,27.9390,FAILED
-bldg0475650,CA,Single-Family Detached,2000s,1000-1499,None,"Fuel Furnace, 92.5% AFUE",FAILED,0.0000,FAILED
+bldg0451855,AL,Multi-Family with 5+ Units,1990s,750-999,Shared Cooling,Shared Heating,28.8810,28.0350,+3.0%
+bldg0464288,WA,Single-Family Detached,1950s,2000-2499,Ducted Heat Pump,"ASHP, SEER 13, 7.7 HSPF",10.3680,27.9390,-62.9%
+bldg0475650,CA,Single-Family Detached,2000s,1000-1499,None,"Fuel Furnace, 92.5% AFUE",NA,0.0000,NA
 bldg0483730,CA,Single-Family Detached,1950s,4000+,"AC, SEER 13","Fuel Furnace, 92.5% AFUE",15.8540,31.4290,-49.6%
 bldg0486267,ME,Single-Family Detached,1990s,1000-1499,"AC, SEER 15","Fuel Boiler, 90% AFUE",8.0810,14.0620,-42.5%
 bldg0487739,WY,Mobile Home,1970s,750-999,"Room AC, EER 12.0","Fuel Furnace, 76% AFUE",2.8920,7.4000,-60.9%
 bldg0499827,CA,Single-Family Detached,1990s,2000-2499,"AC, SEER 13","Fuel Wall/Floor Furnace, 68% AFUE",FAILED,7.8350,FAILED
-bldg0501306,CA,Single-Family Detached,1960s,2500-2999,"AC, SEER 13","Fuel Furnace, 80% AFUE",FAILED,10.9840,FAILED
+bldg0501306,CA,Single-Family Detached,1960s,2500-2999,"AC, SEER 13","Fuel Furnace, 80% AFUE",1.6930,10.9840,-84.6%
 bldg0522592,MA,Multi-Family with 5+ Units,2010s,1000-1499,Non-Ducted Heat Pump,"MSHP, SEER 14.5, 8.2 HSPF",5.8920,7.1560,-17.7%
-bldg9064288,WA,Single-Family Detached,1950s,2000-2499,Ducted Heat Pump,"ASHP, SEER 13, 7.7 HSPF",FAILED,27.2000,FAILED
+bldg9064288,WA,Single-Family Detached,1950s,2000-2499,Ducted Heat Pump,"ASHP, SEER 13, 7.7 HSPF",9.8940,27.2000,-63.6%
