@@ -8,7 +8,7 @@ from ochre import Dwelling
 from ochre import HeatPumpWaterHeater
 
 #READ ME
-# Input files located in ~\ochre\defaults\Input Files\Temperature Values
+# Input files located in ~\ochre\defaults\Input Files\Temperature Values (temp and flow data fr/ 4am for n days)
 # Output is created in home directory under output_site_1_48.9_12.csv
 # Output columns: Hot Water Outlet Temperature (C),Hot Water Delivered (W),Water Heating Electric Power (kW),T_AMB,Hot Water Delivered (kW),Draw Data,Setpoint
 
@@ -19,6 +19,10 @@ UA_VALUES = {40: 2.638889,
              50: 2.375,
              65: 2.955556,
              80: 3.008333}
+
+SITE_CAPACITIES = {50: [1, 4, 22, 25, 26, 30],
+                   65: [2, 7, 10, 13, 14, 16, 19, 21, 23, 24, 29, 28, 27],
+                   80: [3, 5, 6, 8, 9, 11, 12, 15, 18]} #Taken from NBI dataset
 
 
 #Run 120V simulation for n simulation days
@@ -58,7 +62,7 @@ for site_number in sites: #runs simulations for specified site number
         "Tank Volume (L)": capacity,
         "Tank Height (m)": 1.22, #double check if these are accurate
         "UA (W/K)": UA_VALUES[gallons],
-        "HPWH COP (-)": 4.5,
+        "HPWH COP (-)": 4.2,
         "save_matrices":False,
         "Low Power HPWH":True,
         "water_nodes": water_nodes
@@ -125,7 +129,7 @@ for site_number in sites: #runs simulations for specified site number
         "Hot Water Outlet Temperature (C)",
         'Hot Water Delivered (W)',
         "Water Heating Electric Power (kW)",
-        "T_AMB",
+        "Water Heating Mode",
     ]
 
     # Ensure datetime index at 1-minute frequency

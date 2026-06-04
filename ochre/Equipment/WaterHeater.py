@@ -421,7 +421,7 @@ class ElectricResistanceWaterHeater(WaterHeater):
 
 class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
     name = "Heat Pump Water Heater"
-    modes = ["Heat Pump On", "Lower On", "Upper On", "Off"]
+    modes = ["Heat Pump On", "Upper On", "Lower On", "Off"]
     optional_inputs = WaterHeater.optional_inputs + ["Zone Wet Bulb Temperature (C)"]
 
     def __init__(self, hp_only_mode=False, water_nodes=12, **kwargs):
@@ -515,7 +515,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
             # Add HP duty cycle to ERWH control
             duty_cycles = [
                 control_signal.get("HP Duty Cycle", 0),
-                control_signal.get("ER Duty Cycle", 0) if not self.hp_only_mode else 0,
+                0,
             ]
             # TODO: update schedule, not control signal
             control_signal["Duty Cycle"] = duty_cycles
@@ -551,7 +551,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
                 )
                 / self.time_res.total_seconds()
             )
-            d_upper = min(max(h_upper / self.capacity_rated, 0), 1)
+            d_upper = 0#min(max(h_upper / self.capacity_rated, 0), 1)
 
             # force HP on for the rest of the time
             d_hp = 1 - d_upper
@@ -572,7 +572,7 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
 
         self.duty_cycle_by_mode = {
             "Heat Pump On": d_hp,
-            "Upper On": d_upper,
+            "Upper On": 0, #d_upper,
             "Lower On": 0,
             "Off": 1 - d_upper - d_hp,
         }
@@ -605,16 +605,16 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
     def update_internal_control(self):
         # operate as ERWH when ambient temperatures are out of bounds
         t_amb = self.current_schedule["Zone Temperature (C)"]
-        if self.low_power_hpwh:
-            t_low = 2.778
-            t_high = 62.778
-        else:
-            t_low = 7.222
-            t_high = 43.333
-        if t_amb < t_low or t_amb > t_high:
-            self.er_only_mode = True
-        else:
-            self.er_only_mode = False
+        # if self.low_power_hpwh:
+        #     t_low = 2.778
+        #     t_high = 62.778
+        # else:
+        #     t_low = 7.222
+        #     t_high = 43.333
+        # if t_amb < t_low or t_amb > t_high:
+        #     self.er_only_mode = True
+        # else:
+        #     self.er_only_mode = False
 
         return super().update_internal_control()
 
