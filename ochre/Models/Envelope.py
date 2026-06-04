@@ -442,7 +442,7 @@ class Zone:
             run_nat_vent = (w_amb < max_oa_hr) and (t_zone > t_ext) and (t_zone > t_base)
             if run_nat_vent and self.open_window_area is not None:
                 area = self.open_window_area * 0.6
-                nat_vent_area = convert(area, "ft^2", "cm^2")
+                nat_vent_area = convert(area, "m^2", "cm^2")
                 max_nat_flow = convert(20 * self.volume, "m^3/hr", "m^3/s")  # max 20 ACH
                 adj = (t_zone - t_base) / (t_zone - t_ext)
                 adj = max(min(adj, 1), 0)
