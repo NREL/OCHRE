@@ -20,7 +20,13 @@ If you use OCHRE for your research or other projects, please fill out our [user 
 
 ## Installation
 
-OCHRE can be installed using `pip` from the command line:
+OCHRE can be installed from PyPI. Using [uv](https://docs.astral.sh/uv/):
+
+```
+uv add ochre-nrel
+```
+
+Or with `pip`:
 
 ```
 pip install ochre-nrel
@@ -29,10 +35,12 @@ pip install ochre-nrel
 Alternatively, you can install a specific branch, for example:
 
 ```
+uv add "ochre-nrel @ git+https://github.com/NREL/OCHRE@dev"
+# or
 pip install git+https://github.com/NREL/OCHRE@dev
 ```
 
-Note that OCHRE requires Python version >=3.9 and <3.13.
+Note that OCHRE requires Python version >=3.10 and <3.13.
 
 ## Usage
 
@@ -74,3 +82,54 @@ For more examples, see:
   * Run [multiple dwellings](https://github.com/NREL/OCHRE/blob/main/bin/run_multiple.py)
   * Run a [OCHRE with an external controller](https://github.com/NREL/OCHRE/blob/main/bin/run_external_control.py)
   * Run a [OCHRE in co-simulation using HELICS](https://github.com/NREL/OCHRE/blob/main/bin/run_cosimulation.py)
+
+## Development
+
+OCHRE uses [uv](https://docs.astral.sh/uv/) to manage the development
+environment. After [installing uv](https://docs.astral.sh/uv/getting-started/installation/),
+clone the repository and sync the environment:
+
+```
+git clone https://github.com/NREL/OCHRE.git
+cd OCHRE
+uv sync
+```
+
+`uv sync` creates a virtual environment in `.venv/`, installs OCHRE in editable
+mode, and installs the development tools defined in the `dev` dependency group
+(ruff, pytest, pytest-cov, pytest-xdist). The resolved versions are pinned in
+`uv.lock` for reproducible installs.
+
+Run any command in the project environment by prefixing it with `uv run` (no
+need to activate the virtual environment manually):
+
+```
+# Run the test suite (in parallel via pytest-xdist)
+uv run pytest -n auto
+
+# Run only the ResStock golden test suite
+uv run pytest -m golden
+
+# Run everything except the golden tests
+uv run pytest -m "not golden"
+```
+
+### Linting and formatting
+
+OCHRE uses [ruff](https://docs.astral.sh/ruff/) for both linting and code
+formatting. To automatically fix lint issues and reformat the code:
+
+```
+# Apply auto-fixable lint issues (e.g. unused/unsorted imports)
+uv run ruff check . --fix
+
+# Reformat all code in place
+uv run ruff format .
+```
+
+To check without modifying any files (this is what CI runs):
+
+```
+uv run ruff check .
+uv run ruff format . --check
+```

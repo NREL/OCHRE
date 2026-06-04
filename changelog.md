@@ -7,6 +7,7 @@
 - Added CLI options for `--output_format` and `--export_res`
 - Added EV and PV parsing from dedicated HPXML sections (Vehicles, Photovoltaics)
 - Narrowed Python version requirement
+- Allow flat garage roofs
 
 ### OCHRE v0.9.3
 - Allow 120V (aka low power) heat pump water heaters

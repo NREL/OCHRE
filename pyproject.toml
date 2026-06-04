@@ -59,9 +59,11 @@ ochre = "ochre:cli"
 ochre-gui-basic = "ochre:gui_basic"
 ochre-gui-detailed = "ochre:gui_detailed"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "ruff==0.14.14",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
     "pytest-xdist>=3.8.0",
 ]
 
