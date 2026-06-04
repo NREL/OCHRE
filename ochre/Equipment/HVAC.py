@@ -2,7 +2,7 @@ import datetime as dt
 import numpy as np
 import psychrolib
 
-from ochre.utils import OCHREException, convert, load_csv
+from ochre.utils import OCHREException, convert
 from ochre.utils.units import kwh_to_therms
 import ochre.utils.equipment as utils_equipment
 from ochre.Equipment import Equipment
@@ -10,7 +10,7 @@ from ochre.Equipment import Equipment
 SPEED_TYPES = {
     1: "Single",
     2: "Double",
-    4: "Variable",
+    3: "Variable",
     # 10: 'Mini-split Variable',  # Note: MSHP model uses 4 speeds, not 10
 }
 
@@ -54,10 +54,17 @@ class HVAC(Equipment):
             self.capacity_list = [0] + kwargs["Capacity (W)"]  # rated capacities by speed, in W
         else:
             self.capacity_list = [0, kwargs["Capacity (W)"]]
-        assert (np.diff(self.capacity_list) > 0).all()
+        # Nominal and max can be the same from NEEP database
+        assert (np.diff(self.capacity_list) >= 0).all()
         self.capacity = self.capacity_list[self.speed_idx]
         self.capacity_ideal = self.capacity  # capacity to maintain setpoint, for ideal equipment, in W
         self.capacity_max = self.capacity_list[-1]  # varies for dynamic equipment, in W
+        self.nominal_index = {
+            1: 1,  # single speed equipment only has one speed, [0, capacity]
+            2: 2,  # for two speed equipment, nominal capacity is at high speed, [0, low_capacity, high_capacity]
+            3: 2,  # for variable speed equipment, nominal capacity is at middle speed, [0, low_capacity, middle_capacity, high_capacity]
+        }[len(self.capacity_list) - 1]  # subtract 1 because capacity_list includes 0 for off speed
+        self.capacity_nominal = self.capacity_list[self.nominal_index]  # varies for dynamic equipment, in W
         self.capacity_min = kwargs.get("Minimum Capacity (W)", 0)  # for ideal equipment, in W
         self.space_fraction = kwargs.get("Conditioned Space Fraction (-)", 1.0)
         self.delivered_heat = 0  # in W, total sensible heat gain, excluding duct losses
@@ -82,32 +89,43 @@ class HVAC(Equipment):
         self.shr = shr_list[self.speed_idx]
 
         # Air flow parameters
-        if isinstance(self, DynamicHVAC):
-            # calculate flow rates based on capacity and supply air temperature
-            if self.is_heater:
-                # temp_setpoint = min(max(kwargs['Min Setpoint (C)'], 15), 24)
-                temp_setpoint = 20  # in degC, from ASHRAE Standard 152, 6.3.1 Indoor Air Conditions
-                delta_t = convert(105, "degF", "degC") - temp_setpoint
-            else:
-                # interpolate to get cooling supply temp based on rated SHR, must be between 54-58 F
-                # temp_setpoint = min(max(kwargs['Max Setpoint (C)'], 18), 27)
-                temp_setpoint = 25.5  # from ASHRAE Standard 152, 6.3.1 Indoor Air Conditions
-                cool_supply_temp = np.clip(54 + (58 - 54) * (shr_list[-1] - 0.8) / (0.85 - 0.80), 54, 58)
-                delta_t = temp_setpoint - convert(cool_supply_temp, "degF", "degC")
-            self.flow_rate_list = [cap / 1000 / rho_air / cp_air / delta_t for cap in self.capacity_list]  # in m^3/s
+        self.fan_motor_type = kwargs.get("Fan Motor Type")  # 'PSC' or 'BPM'
+        self.rated_cfm_per_ton = utils_equipment.get_rated_cfm_per_ton(self.name)
+        if kwargs["Design Airflow (CFM)"] is not None:
+            self.design_airflow = convert(kwargs["Design Airflow (CFM)"], "cubic_feet/min", "m^3/s")  # in m^3/s
+            self.design_cfm_per_ton = kwargs["Design Airflow (CFM)"] / convert(
+                self.capacity_nominal, "W", "refrigeration_ton"
+            )
         else:
-            # Use nominal flow rates, values taken from ResStock (see hvac.rb line 2623)
-            cfm_per_ton = 350 if self.is_heater else 312
-            ratio = convert(cfm_per_ton, "cubic_feet/min/refrigeration_ton", "m^3/s/W")
-            self.flow_rate_list = [ratio * capacity for capacity in self.capacity_list]  # in m^3/s
-        rated_flow_rate = max(self.flow_rate_list)
+            self.design_cfm_per_ton = utils_equipment.get_design_cfm_per_ton(self.name)
+            self.design_airflow = convert(
+                self.design_cfm_per_ton * convert(self.capacity_nominal, "W", "refrigeration_ton"),
+                "cubic_feet/min",
+                "m^3/s",
+            )  # in m^3/s
+
+        self.flow_rate_list = [
+            self.design_airflow * capacity / self.capacity_nominal for capacity in self.capacity_list
+        ]  # in m^3/s
+        self.rated_flow_rate = utils_equipment.calc_rated_airflow(
+            self.capacity_nominal, self.rated_cfm_per_ton, "m^3/s"
+        )  # in m^3/s
 
         # Fan power parameters
-        rated_fan_power = kwargs["Rated Auxiliary Power (W)"]
-        self.fan_power_per_flow_rate = rated_fan_power / rated_flow_rate
-        self.fan_power_list = [self.fan_power_per_flow_rate * rate for rate in self.flow_rate_list]  # in W
+        self.fan_power_rated = kwargs["Rated Auxiliary Power (W)"]
+        self.is_ducted = kwargs.get("Ducted") is not None
+        self.fan_power_per_flow_rate = self.fan_power_rated / self.design_airflow  # in W per m^3/s
+        self.fan_power_max = self.fan_power_per_flow_rate * self.flow_rate_list[-1]
+        self.fan_power_list = [
+            utils_equipment.calculate_fan_power(
+                self.fan_power_max,
+                rate / self.design_airflow,
+                self.fan_motor_type,
+                self.is_ducted,
+            )
+            for rate in self.flow_rate_list
+        ]  # in W
         self.fan_power = 0  # in W
-        self.fan_power_max = max(self.fan_power_list)
         self.fan_power_ratio = self.fan_power_max / (self.capacity_max * self.eir_max)  # For ideal capacity equipment
         initial_setpoint = kwargs["initial_schedule"][f"{self.end_use} Setpoint (C)"]
         self.coil_input_db = initial_setpoint  # Dry bulb temperature after increase from fan power
@@ -158,8 +176,8 @@ class HVAC(Equipment):
         if self.is_heater:
             self.Ao_list = None
         elif isinstance(self, DynamicHVAC):
-            rated_dry_bulb = convert(80, "degF", "degC")  # in degrees C
-            rated_wet_bulb = convert(67, "degF", "degC")  # in degrees C
+            rated_dry_bulb = utils_equipment.AIR_SOURCE_COOL_RATED_IDB  # in degrees C
+            rated_wet_bulb = utils_equipment.AIR_SOURCE_COOL_RATED_IWB  # in degrees C
             rated_pressure = 101.3  # in kPa
             rated_w = psychrolib.GetHumRatioFromTWetBulb(rated_dry_bulb, rated_wet_bulb, rated_pressure * 1000)
             ao_data = zip(self.capacity_list[1:], self.flow_rate_list[1:], shr_list[1:])
@@ -706,6 +724,12 @@ class DynamicHVAC(HVAC):
      Section 2.2.1, Equations 7-8 and 11-13
     """
 
+    SPEED_INDEX_MAP = {
+        1: utils_equipment.HPXML_SPEED_DESCRIPTION_MINIMUM,
+        2: utils_equipment.HPXML_SPEED_DESCRIPTION_NOMINAL,
+        3: utils_equipment.HPXML_SPEED_DESCRIPTION_MAXIMUM,
+    }  # add 1 to speed index to include off speed in capacity list
+
     def __init__(self, control_type="Time", **kwargs):
         # Get number of speeds
         self.n_speeds = kwargs.get("Number of Speeds (-)", 1)
@@ -716,91 +740,161 @@ class DynamicHVAC(HVAC):
         min_time_in_low = kwargs.get("Minimum Low Time (minutes)", 5)
         min_time_in_high = kwargs.get("Minimum High Time (minutes)", 5)
         self.min_time_in_speed = [dt.timedelta(minutes=min_time_in_low), dt.timedelta(minutes=min_time_in_high)]
+        self.datapoint_by_speed_htg = None
+        self.datapoint_by_speed_clg = None
+        self.detailed_performance_data_htg = kwargs.get("HeatingDetailedPerformance", None)
+        self.detailed_performance_data_clg = kwargs.get("CoolingDetailedPerformance", None)
 
         # startup capacity degradation parameters
         self.startup_cap_mult = 1.0  # multiplier, unitless
         self.c_d = kwargs.get("Startup Capacity Degradation (-)", 0.0)  # degradation factor, unitless
-
-        # Load biquadratic parameters from file - only keep those with the correct speed type
-        if not kwargs.get("Disable HVAC Biquadratics", False):
-            self.biquad_params = self.initialize_biquad_params(**kwargs)
+        if kwargs.get("Disable HVAC Biquadratics", False):
+            self.eir_t = None
+            self.eir_ff = None
+            self.eir_plr = None
+            self.cap_t = None
+            self.cap_ff = None
         else:
-            self.biquad_params = None
+            # Adding 1 for off speed in capacity list, but biquadratic curves only apply to on speeds
+            self.eir_t = [PerformanceCurve("biquadratic", "temperature") for _ in range(self.n_speeds + 1)]
+            self.eir_ff = [PerformanceCurve("quadratic", "fraction") for _ in range(self.n_speeds + 1)]
+            self.eir_plr = [PerformanceCurve("quadratic", "fraction") for _ in range(self.n_speeds + 1)]
+            self.cap_t = [PerformanceCurve("biquadratic", "temperature") for _ in range(self.n_speeds + 1)]
+            self.cap_ff = [PerformanceCurve("quadratic", "fraction") for _ in range(self.n_speeds + 1)]
 
-        # Load multispeed parameters from file
-        if self.n_speeds > 1:
-            rated_efficiency = kwargs.get("Rated Efficiency", "(Unknown Efficiency)")
-            multispeed_file = kwargs.get("multispeed_file", "HVAC Multispeed Parameters.csv")
-            df_speed = load_csv(multispeed_file)
-            speed_params = df_speed.loc[
-                (df_speed["HVAC Name"] == self.name)
-                & (df_speed["HVAC Efficiency"] == rated_efficiency)
-                & (df_speed["Number of Speeds"] == self.n_speeds)
-            ]
-            if not len(speed_params):
+        if self.detailed_performance_data_htg:
+            # TODO: implement detailed performance curves
+            rated_dp = kwargs["HeatingDetailedPerformance"][utils_equipment.AIR_SOURCE_HEAT_RATED_ODB]
+            kwargs["Capacity (W)"] = [speed_data["capacity"] for speed_data in rated_dp.values()]
+            kwargs["EIR (-)"] = [1 / speed_data["COP"] for speed_data in rated_dp.values()]
+            kwargs["SHR (-)"] = [0.708] * len(kwargs["Capacity (W)"])
+        elif self.detailed_performance_data_clg:
+            rated_dp = kwargs["CoolingDetailedPerformance"][utils_equipment.AIR_SOURCE_COOL_RATED_ODB]
+            kwargs["Capacity (W)"] = [speed_data["capacity"] for speed_data in rated_dp.values()]
+            kwargs["EIR (-)"] = [1 / speed_data["COP"] for speed_data in rated_dp.values()]
+            kwargs["SHR (-)"] = [0.708] * len(kwargs["Capacity (W)"])
+        elif not kwargs.get("Disable HVAC Biquadratics", False):
+            if self.name != "Room AC":
                 raise OCHREException(
-                    f"Cannot find multispeed parameters for {self.n_speeds}-speed {rated_efficiency} {self.name}"
+                    "Detailed performance data is required for dynamic HVAC equipment other than Room AC."
                 )
-            assert len(speed_params) == 1
-            speed_params = speed_params.iloc[0].to_dict()
-
-            # update multispeed arguments (capacity ratios, air flow ratio, EIR, SHR)
-            kwargs["Capacity (W)"] = [
-                kwargs["Capacity (W)"] * speed_params[f"Capacity Ratio {i + 1}"] for i in range(self.n_speeds)
-            ]
-            kwargs["EIR (-)"] = [1 / speed_params[f"COP {i + 1}"] for i in range(self.n_speeds)]
-            kwargs["SHR (-)"] = [speed_params[f"SHR {i + 1}"] for i in range(self.n_speeds)]
-            kwargs["SHR (-)"] = [shr if not np.isnan(shr) else 1 for shr in kwargs["SHR (-)"]]
+            else:
+                # replace with Cutler curves, SI units
+                self.eir_t[1].set(
+                    coefficients=np.array(
+                        [
+                            -0.350447695,
+                            0.116809893,
+                            -0.00339950844,
+                            -0.001226088,
+                            0.0006008094,
+                            -0.000466884,
+                        ],
+                        dtype=float,
+                    )
+                )
+                self.eir_ff[1].set(coefficients=np.array([1.0, 0.0, 0.0], dtype=float))
+                self.eir_plr[1].set(
+                    coefficients=np.array([0.78, 0.22, 0], dtype=float),
+                    min_y=0.7,
+                    max_y=1.0,
+                )
+                self.cap_t[1].set(
+                    coefficients=np.array(
+                        [
+                            1.557359706,
+                            -0.0744481692,
+                            0.00309859668,
+                            0.0014595786,
+                            -0.000041148,
+                            -0.00042671448,
+                        ],
+                        dtype=float,
+                    )
+                )
+                self.cap_ff[1].set(coefficients=np.array([1.0, 0.0, 0.0], dtype=float))
 
         super().__init__(**kwargs)
+
+        if self.detailed_performance_data_htg:
+            self.datapoint_by_speed_htg = utils_equipment.process_detailed_performance_data(
+                self.detailed_performance_data_htg,
+                "Heating",
+                self.capacity_nominal,
+                self.rated_flow_rate,
+                self.capacity_list,
+                self.fan_power_per_flow_rate,
+                self.fan_motor_type,
+                self.is_ducted,
+            )
+            for index, eir_t_curve in enumerate(self.eir_t):
+                if index == 0:
+                    continue  # skip off speed
+                eir_t_curve.set(
+                    datapoints=self.datapoint_by_speed_htg[self.SPEED_INDEX_MAP[index]],
+                    rated_value=self.eir_list[index],
+                    output_key="gross_EIR",
+                    hvac_mode="Heating",
+                )
+            for index, cap_t_curve in enumerate(self.cap_t):
+                if index == 0:
+                    continue  # skip off speed
+                cap_t_curve.set(
+                    datapoints=self.datapoint_by_speed_htg[self.SPEED_INDEX_MAP[index]],
+                    rated_value=self.capacity_list[index],
+                    output_key="gross_capacity",
+                    hvac_mode="Heating",
+                )
+            for cap_ff in self.cap_ff:
+                cap_ff.set(coefficients=np.array([0.694045465, 0.474207981, -0.168253446], dtype=float))
+            for eir_ff in self.eir_ff:
+                eir_ff.set(coefficients=np.array([2.185418751, -1.942827919, 0.757409168], dtype=float))
+            for eir_plr in self.eir_plr:
+                eir_plr.set(coefficients=np.array([(1.0 - self.c_d), self.c_d, 0.0], dtype=float))
+        if self.detailed_performance_data_clg:
+            self.datapoint_by_speed_clg = utils_equipment.process_detailed_performance_data(
+                self.detailed_performance_data_clg,
+                "Cooling",
+                self.capacity_nominal,
+                self.rated_flow_rate,
+                self.capacity_list,
+                self.fan_power_per_flow_rate,
+                self.fan_motor_type,
+                self.is_ducted,
+            )
+            for index, eir_t_curve in enumerate(self.eir_t):
+                if index == 0:
+                    continue  # skip off speed
+                eir_t_curve.set(
+                    datapoints=self.datapoint_by_speed_clg[self.SPEED_INDEX_MAP[index]],
+                    rated_value=self.eir_list[index],
+                    output_key="gross_EIR",
+                    hvac_mode="Cooling",
+                )
+            for index, cap_t_curve in enumerate(self.cap_t):
+                if index == 0:
+                    continue  # skip off speed
+                cap_t_curve.set(
+                    datapoints=self.datapoint_by_speed_clg[self.SPEED_INDEX_MAP[index]],
+                    rated_value=self.capacity_list[index],
+                    output_key="gross_capacity",
+                    hvac_mode="Cooling",
+                )
+            for cap_ff in self.cap_ff:
+                cap_ff.set(coefficients=np.array([0.718664047, 0.41797409, -0.136638137], dtype=float))
+            for eir_ff in self.eir_ff:
+                eir_ff.set(coefficients=np.array([1.143487507, -0.13943972, -0.004047787], dtype=float))
+            for eir_plr in self.eir_plr:
+                eir_plr.set(coefficients=np.array([(1.0 - self.c_d), self.c_d, 0.0], dtype=float))
 
         # Check EIR and print warning if too low
         if self.eir_max > 0.5:
             self.warn("Low EIR:", self.eir_max, "(at full capacity)")
 
-    def initialize_biquad_params(self, **kwargs):
-        if self.n_speeds not in SPEED_TYPES:
-            raise OCHREException(
-                "Unknown number of speeds ({}). Should be one of: {}".format(self.n_speeds, SPEED_TYPES)
-            )
-        speed_type = SPEED_TYPES[self.n_speeds]
-
-        biquadratic_file = kwargs.get("biquadratic_file", f"Biquadratic {self.name}.csv")
-        biquad_params = self.initialize_parameters(biquadratic_file, value_col=None, **kwargs)
-        biquad_params = biquad_params.loc[:, [col for col in biquad_params if speed_type == col.split("_")[0]]]
-        if len(biquad_params.columns) != self.n_speeds:
-            raise OCHREException(
-                f"Number of speeds ({self.n_speeds}) does not match number of biquadratic "
-                f"equations ({len(biquad_params.columns)})"
-            )
-        biquad_params = {
-            idx + 1: {
-                "eir_t": np.array([val[f"{x}_eir_t"] for x in "abcdef"], dtype=float),
-                "eir_ff": np.array([val[f"{x}_eir_ff"] for x in "abc"], dtype=float),
-                "eir_plr": np.array([val[f"{x}_eir_plr"] for x in "abc"], dtype=float),
-                "cap_t": np.array([val[f"{x}_cap_t"] for x in "abcdef"], dtype=float),
-                "cap_ff": np.array([val[f"{x}_cap_ff"] for x in "abc"], dtype=float),
-                "cap_plr": np.array([1, 0, 0], dtype=float),
-                "min_Twb": val.get("min_Twb", -100),
-                "max_Twb": val.get("max_Twb", 100),
-                "min_Tdb": val.get("min_Tdb", -100),
-                "max_Tdb": val.get("max_Tdb", 100),
-                "min_ff": val.get("min_ff", 0),
-                "max_ff": val.get("max_ff", 1),
-                "min_plf": val.get("min_plf", 0.7),
-                "max_plf": val.get("max_plf", 1),
-            }
-            for idx, (col, val) in enumerate(biquad_params.items())
-        }
-        if not biquad_params:
-            raise OCHREException(f"Biquadratic parameters not found for {speed_type} speed {self.name}.")
-
         if kwargs.get("Disable HVAC Part Load Factor", False):
             # for minimal tests, disable PLF
-            for key in biquad_params:
-                biquad_params[key]["eir_plr"] = np.array([1, 0, 0], dtype=float)
-
-        return biquad_params
+            for eir_plr_curve in self.eir_plr:
+                eir_plr_curve.set(coefficients=np.array([1, 0, 0], dtype=float), datapoints=None)
 
     def update_external_control(self, control_signal):
         # Options for external control signals:
@@ -890,36 +984,36 @@ class DynamicHVAC(HVAC):
         # get rated value based on speed
         if param == "cap":
             rated = self.capacity_list[speed_idx]
+            if self.cap_t is None:
+                return rated
+            else:
+                curve_t = self.cap_t[speed_idx]
+                curve_ff = self.cap_ff[speed_idx]
         elif param == "eir":
             rated = self.eir_list[speed_idx]
+            if self.eir_t is None:
+                return rated
+            else:
+                curve_t = self.eir_t[speed_idx]
+                curve_ff = self.eir_ff[speed_idx]
+                curve_plr = self.eir_plr[speed_idx]
         else:
             raise OCHREException("Unknown biquadratic parameter:", param)
 
-        if speed_idx == 0 or self.biquad_params is None:
+        if speed_idx == 0:
             return rated
-
-        # get biquadratic parameters for current speed
-        params = self.biquad_params[speed_idx]
 
         # use coil input wet bulb for cooling, dry bulb for heating; ambient dry bulb for both
         t_in = self.coil_input_db if self.is_heater else self.coil_input_wb
         t_ext_db = self.current_schedule["Ambient Dry Bulb (C)"]
 
-        # clip temperatures, flow fraction, part load ratio to stay within bounds
-        t_in = min(max(t_in, params["min_Twb"]), params["max_Twb"])
-        t_ext_db = min(max(t_ext_db, params["min_Tdb"]), params["max_Tdb"])
-        flow_fraction = min(max(flow_fraction, params["min_ff"]), params["max_ff"])
-
         # create vectors based on temperature, flow fraction, and plr
-        t_list = np.array([1, t_in, t_in**2, t_ext_db, t_ext_db**2, t_in * t_ext_db], dtype=float)
-        t_ratio = np.dot(t_list, params[param + "_t"])
+        t_ratio = curve_t.evaluate(t_in, t_ext_db)
+        ff_ratio = curve_ff.evaluate(flow_fraction)
+        plf_ratio = 1.0
 
-        ff_list = np.array([1, flow_fraction, flow_fraction**2], dtype=float)
-        ff_ratio = np.dot(ff_list, params[param + "_ff"])
-
-        plf_list = np.array([1, part_load_ratio, part_load_ratio**2], dtype=float)
-        plf_ratio = np.dot(plf_list, params[param + "_plr"])
-        plf_ratio = min(max(plf_ratio, params["min_plf"]), params["max_plf"])
+        if param == "eir":
+            plf_ratio = curve_plr.evaluate(part_load_ratio)
 
         return rated * t_ratio * ff_ratio / plf_ratio
 
@@ -952,7 +1046,7 @@ class DynamicHVAC(HVAC):
             capacities = [
                 self.calculate_biquadratic_param(param="cap", speed_idx=speed) for speed in range(self.n_speeds + 1)
             ]
-            assert (np.diff(capacities) > 0).all()
+            assert (np.diff(capacities) >= 0).all()
 
             # determine ideal capacity
             capacity = super().update_capacity()
@@ -1019,8 +1113,8 @@ class AirConditioner(DynamicHVAC, Cooler):
 
         # Update PLF parameters for low efficiency equipment
         seer = convert(1 / self.eir, "W", "Btu/hour")
-        if self.n_speeds == 1 and seer < 13 and self.biquad_params is not None:
-            self.biquad_params[1]["eir_plf"] = np.array([0.8, 0.2, 0])
+        if self.n_speeds == 1 and seer < 13 and self.eir_plr is not None:
+            self.eir_plr[1].set(coefficients=np.array([0.8, 0.2, 0], dtype=float), min_y=0.7, max_y=1.0)
 
     def calculate_power_and_heat(self):
         super().calculate_power_and_heat()
@@ -1077,8 +1171,12 @@ class HeatPumpHeater(DynamicHVAC, Heater):
 
         # Update PLF parameters for low efficiency equipment
         hspf = convert(1 / self.eir, "W", "Btu/hour")
-        if self.biquad_params is not None and self.n_speeds == 1 and hspf >= 7:
-            self.biquad_params[1]["eir_plf"] = np.array([0.89, 0.11, 0])
+        if self.eir_plr is not None and self.n_speeds == 1 and hspf >= 7:
+            self.eir_plr[1].set(
+                coefficients=np.array([0.89, 0.11, 0], dtype=float),
+                min_y=0.7,
+                max_y=1.0,
+            )
 
     def update_capacity(self):
         # Update capacity if defrost is required
@@ -1228,7 +1326,12 @@ class ASHPHeater(HeatPumpHeater):
             hp_duty_cycle -= combo_duty_cycle
             duty_cycles = [hp_duty_cycle, combo_duty_cycle, er_duty_cycle, 0]
         else:
-            duty_cycles = [hp_duty_cycle, 0, er_duty_cycle, 1 - er_duty_cycle - hp_duty_cycle]
+            duty_cycles = [
+                hp_duty_cycle,
+                0,
+                er_duty_cycle,
+                1 - er_duty_cycle - hp_duty_cycle,
+            ]
         assert sum(duty_cycles) == 1
         return duty_cycles
 
@@ -1355,7 +1458,10 @@ class ASHPHeater(HeatPumpHeater):
             else:
                 # use total ideal capacity - calculated in HVAC.update_capacity
                 er_capacity = self.capacity_ideal - hp_capacity
-                er_capacity = min(max(er_capacity, 0), self.er_capacity_rated * self.er_ext_capacity_frac)
+                er_capacity = min(
+                    max(er_capacity, 0),
+                    self.er_capacity_rated * self.er_ext_capacity_frac,
+                )
         else:
             er_capacity = self.er_capacity_rated
 
@@ -1450,3 +1556,274 @@ class MinisplitAHSPHeater(MinisplitHVAC, ASHPHeater):
         self.pan_heater_on = self.pan_heater_kw > 0 and t_ext < self.pan_heater_temp
         if self.pan_heater_on:
             self.electric_kw += self.pan_heater_kw * self.space_fraction
+
+
+class PerformanceCurve:
+    REQUIRED_COEFFS = {
+        "quadratic": 3,
+        "cubic": 4,
+        "biquadratic": 6,
+    }
+
+    def __init__(self, curve_type, variable_type):
+        self.curve_type = curve_type
+        self.variable_type = variable_type
+        self.coefficients = None
+        self.datapoints = None
+        self.rated_value = None
+        self.output_key = None
+        self.hvac_mode = None
+        self.use_outdoor_base_interpolation = False
+        self.base_outdoor_axis = None
+        self.base_net_capacity = None
+        self.base_net_input_power = None
+        self.base_fan_power = None
+        self.interp_method_x1 = "linear"
+        self.interp_method_x2 = "linear"
+        self.extrapolation_x1 = "constant"  # options: constant, linear
+        self.extrapolation_x2 = "constant"  # options: constant, linear
+        self.allow_extrapolation_x1 = True
+        self.allow_extrapolation_x2 = True
+        if variable_type == "temperature":
+            self.min_x1 = -100.0
+            self.max_x1 = 100.0
+            self.min_x2 = -100.0
+            self.max_x2 = 100.0
+        elif variable_type == "fraction":
+            self.min_x1 = 0.0
+            self.max_x1 = 1.0
+        else:
+            raise OCHREException(f"Unsupported Performance Curve variable_type: {variable_type}")
+        self.min_y = None
+        self.max_y = None
+
+    def _fit_outdoor_base_model(self):
+        if self.output_key not in ["gross_capacity", "gross_EIR"]:
+            raise OCHREException(f"Outdoor-base interpolation does not support output_key: {self.output_key}")
+
+        required_fields = [
+            "outdoor_temperature",
+            "net_capacity",
+            "net_COP",
+            "gross_capacity",
+        ]
+        missing = [idx for idx, dp in enumerate(self.datapoints) if any(field not in dp for field in required_fields)]
+        if missing:
+            raise OCHREException(
+                f"Datapoints missing required net/gross fields {required_fields}. First missing index: {missing[0]}"
+            )
+
+        # Internal checking
+        if any("net_input_power" not in dp for dp in self.datapoints):
+            raise OCHREException("Datapoint missing net_input_power. Ensure preprocessing adds net_input_power.")
+
+        if self.hvac_mode is None:
+            if any("indoor_wetbulb" in dp for dp in self.datapoints):
+                self.hvac_mode = "Cooling"
+            else:
+                self.hvac_mode = "Heating"
+
+        rated_indoor = (
+            utils_equipment.AIR_SOURCE_COOL_RATED_IWB
+            if self.hvac_mode == "Cooling"
+            else utils_equipment.AIR_SOURCE_HEAT_RATED_IDB
+        )
+        indoor_key = "indoor_wetbulb" if self.hvac_mode == "Cooling" else "indoor_temperature"
+
+        rated_rows = [
+            dp
+            for dp in self.datapoints
+            if indoor_key in dp and abs(float(dp[indoor_key]) - rated_indoor) < 1e-6 and "outdoor_temperature" in dp
+        ]
+        if len(rated_rows) < 2:
+            raise OCHREException("Need at least 2 rated-indoor rows to fit outdoor-base interpolation model")
+
+        by_outdoor = {}
+        for dp in rated_rows:
+            by_outdoor[float(dp["outdoor_temperature"])] = dp
+
+        outdoor_axis = np.array(sorted(by_outdoor.keys()), dtype=float)
+        if outdoor_axis.size < 2:
+            raise OCHREException("Need at least 2 unique outdoor temperatures to fit outdoor-base interpolation model")
+
+        net_capacity = []
+        net_input_power = []
+        fan_power_values = []
+
+        for t_out in outdoor_axis:
+            dp = by_outdoor[t_out]
+            net_cap = float(dp["net_capacity"])
+            net_power = float(dp["net_input_power"])
+            gross_cap = float(dp["gross_capacity"])
+
+            if gross_cap is not None:
+                if self.hvac_mode == "Cooling":
+                    fan_power_values.append(gross_cap - net_cap)
+                else:
+                    fan_power_values.append(net_cap - gross_cap)
+
+            net_capacity.append(net_cap)
+            net_input_power.append(net_power)
+
+        if not fan_power_values:
+            raise OCHREException("Unable to infer fan power from datapoints for outdoor-base interpolation model")
+
+        self.base_outdoor_axis = outdoor_axis
+        self.base_net_capacity = np.array(net_capacity, dtype=float)
+        self.base_net_input_power = np.array(net_input_power, dtype=float)
+        self.base_fan_power = float(np.median(np.array(fan_power_values, dtype=float)))
+
+        self.coefficients = None
+
+    def _fit_biquadratic_from_datapoints(self):
+        # Step 0: Ensure we only process table lookup data for biquadratic temperature curves.
+        if self.curve_type != "biquadratic" or not self.datapoints:
+            return
+
+        # Step 1: Set/validate the rated normalization value.
+        if self.rated_value is None or self.rated_value <= 0:
+            raise OCHREException("rated_value must be positive when setting datapoints for biquadratic curves")
+
+        self._fit_outdoor_base_model()
+        return
+
+    def set(self, **kwargs):
+        for key, value in kwargs.items():
+            if not hasattr(self, key):
+                raise OCHREException(f"Unknown attribute: {key}")
+
+            if key == "coefficients":
+                required = self.REQUIRED_COEFFS.get(self.curve_type)
+                if required is not None and len(value) != required:
+                    raise OCHREException(f"{self.curve_type} curve requires {required} coefficients")
+            if key in ["interp_method_x1", "interp_method_x2"] and value != "linear":
+                raise OCHREException(f"Only linear interpolation is currently supported for {key}")
+            if key in ["extrapolation_x1", "extrapolation_x2"] and value not in [
+                "constant",
+                "linear",
+            ]:
+                raise OCHREException(f"{key} must be either 'constant' or 'linear'")
+
+            setattr(self, key, value)
+
+        # Auto-detect outdoor-base interpolation for biquadratic curves with datapoints
+        if self.datapoints is not None and self.curve_type == "biquadratic":
+            self.use_outdoor_base_interpolation = True
+
+        if self.datapoints is not None:
+            self._fit_biquadratic_from_datapoints()
+
+    def _interpolate_1d(
+        self,
+        x_axis,
+        y_axis,
+        x_value,
+        extrapolation="constant",
+        allow_extrapolation=True,
+    ):
+        # x_axis is assumed sorted ascending
+        if len(x_axis) == 0:
+            raise OCHREException("Cannot interpolate with empty axis")
+        if len(x_axis) == 1:
+            return float(y_axis[0])
+
+        x_min = x_axis[0]
+        x_max = x_axis[-1]
+
+        if x_min <= x_value <= x_max:
+            return float(np.interp(x_value, x_axis, y_axis))
+
+        if not allow_extrapolation:
+            raise OCHREException(f"Extrapolation not allowed for value {x_value}. Valid range is [{x_min}, {x_max}]")
+
+        if extrapolation == "constant":
+            return float(y_axis[0] if x_value < x_min else y_axis[-1])
+        elif extrapolation == "linear":
+            if x_value < x_min:
+                slope = (y_axis[1] - y_axis[0]) / (x_axis[1] - x_axis[0])
+                return float(y_axis[0] + slope * (x_value - x_axis[0]))
+            else:
+                slope = (y_axis[-1] - y_axis[-2]) / (x_axis[-1] - x_axis[-2])
+                return float(y_axis[-1] + slope * (x_value - x_axis[-1]))
+        else:
+            raise OCHREException(f"Unknown extrapolation mode: {extrapolation}")
+
+    def _clip(self, value, low, high):
+        if low is not None:
+            value = max(value, low)
+        if high is not None:
+            value = min(value, high)
+        return value
+
+    def evaluate(self, x1, x2=None):
+        x1 = self._clip(x1, self.min_x1, self.max_x1)
+
+        if self.curve_type == "quadratic":
+            if self.coefficients is None:
+                raise OCHREException("quadratic curve coefficients are not set")
+            a, b, c = self.coefficients
+            y = a + b * x1 + c * x1**2
+        elif self.curve_type == "cubic":
+            if self.coefficients is None:
+                raise OCHREException("cubic curve coefficients are not set")
+            a, b, c, d = self.coefficients
+            y = a + b * x1 + c * x1**2 + d * x1**3
+        elif self.curve_type == "biquadratic":
+            if x2 is None:
+                raise OCHREException("biquadratic evaluation requires x1 and x2")
+            x2 = self._clip(x2, self.min_x2, self.max_x2)
+
+            if self.base_outdoor_axis is not None:
+                net_capacity = self._interpolate_1d(
+                    self.base_outdoor_axis,
+                    self.base_net_capacity,
+                    x2,
+                    extrapolation=self.extrapolation_x2,
+                    allow_extrapolation=self.allow_extrapolation_x2,
+                )
+                net_input_power = self._interpolate_1d(
+                    self.base_outdoor_axis,
+                    self.base_net_input_power,
+                    x2,
+                    extrapolation=self.extrapolation_x2,
+                    allow_extrapolation=self.allow_extrapolation_x2,
+                )
+
+                if self.hvac_mode == "Cooling":
+                    gross_capacity = net_capacity + self.base_fan_power
+                else:
+                    gross_capacity = net_capacity - self.base_fan_power
+                gross_input_power = net_input_power - self.base_fan_power
+
+                if gross_capacity <= 0 or gross_input_power <= 0:
+                    raise OCHREException(
+                        f"Invalid gross values during curve evaluation: capacity={gross_capacity}, power={gross_input_power}"
+                    )
+
+                gross_eir = gross_input_power / gross_capacity
+                cap_corr, eir_corr = utils_equipment.get_ft_cap_eir_correction_factors(self.hvac_mode, x1, x2)
+
+                if self.output_key == "gross_capacity":
+                    y = (gross_capacity * cap_corr) / self.rated_value
+                elif self.output_key == "gross_EIR":
+                    y = (gross_eir * eir_corr) / self.rated_value
+                else:
+                    raise OCHREException(f"Unsupported output_key for outdoor base interpolation: {self.output_key}")
+            elif self.datapoints is not None:
+                raise OCHREException(
+                    "Datapoint-based biquadratic curves must use outdoor-base interpolation with net fields; "
+                    "regular-grid fallback is disabled."
+                )
+            else:
+                if self.coefficients is None:
+                    raise OCHREException("biquadratic curve requires coefficients or datapoints")
+                a, b, c, d, e, f = self.coefficients
+                y = a + b * x1 + c * x1**2 + d * x2 + e * x2**2 + f * x1 * x2
+        else:
+            raise OCHREException("Unknown curve type: {}".format(self.curve_type))
+
+        if self.min_y is not None:
+            y = max(y, self.min_y)
+        if self.max_y is not None:
+            y = min(y, self.max_y)
+        return y
