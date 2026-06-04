@@ -38,7 +38,7 @@ class StratifiedWaterModel(RCModel):
 
     name = "Water Tank"
     optional_inputs = [
-        "Water Heating (L/min)",
+        "Water Fixtures (L/min)",
         "Clothes Washer (L/min)",
         "Dishwasher (L/min)",
         "Mains Temperature (C)",
@@ -136,7 +136,7 @@ class StratifiedWaterModel(RCModel):
         self.outlet_temp = self.states[self.t_1_idx]  # initial outlet temp, for estimating draw volume
 
         # Note: removing target draw temperature for clothes washers, not implemented in ResStock
-        draw_tempered = self.current_schedule.get("Water Heating (L/min)", 0)
+        draw_tempered = self.current_schedule.get("Water Fixtures (L/min)", 0)
         draw_hot = self.current_schedule.get("Clothes Washer (L/min)", 0) + self.current_schedule.get(
             "Dishwasher (L/min)", 0
         )
