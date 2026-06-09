@@ -3,7 +3,9 @@ import datetime as dt
 import pandas as pd
 import numpy as np
 
-from ochre import Dwelling
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 #from ochre.utils import default_input_path  # for using sample files
 from ochre import HeatPumpWaterHeater
 
@@ -33,22 +35,25 @@ deadband_default = 5.56  # in C
 max_setpoint = 60
 min_setpoint = 49
 water_nodes = 12
-gallons = 50
 
+
+#Testing Parameters- edit me
 #------------------------------------------------------------#
+gallons = 50
 capacity = gallons * GAL_IN_L #Gallons to L
-altitude = 24.5 #in M
-two_weeks = 20160
-simulation_days = 360 
-simulation_duration = simulation_days * MIN_IN_DAY
+simulation_days = 380 
 
-sites = [1]
+simulation_duration = simulation_days * MIN_IN_DAY
+sites=[4]
+
+#sites = SITE_CAPACITIES[gallons]
+
 for site_number in sites: #runs simulations for specified site number
     #Data values
     
     #temperature input values
     temp_data = pd.read_csv(f'ochre\\defaults\\Input Files\\Temperature Values\\120V_temperatures_{site_number}.csv')
-    start_date = dt.datetime(2022, 11, 3, 4, 0) #site_1 at 4am
+    start_date = dt.datetime(2022, 9, 28, 4, 0) #site_1 at 4am
 
     print("Simulating Setpoint: ", setpoint_default)
     equipment_args = {
@@ -65,7 +70,8 @@ for site_number in sites: #runs simulations for specified site number
         "HPWH COP (-)": 4.2,
         "save_matrices":False,
         "Low Power HPWH":True,
-        "water_nodes": water_nodes
+        "water_nodes": water_nodes,
+        "HPWH Capacity (W)": 1495 
     }
 
     # Create water draw schedule
