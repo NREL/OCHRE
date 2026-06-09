@@ -467,11 +467,10 @@ class HeatPumpWaterHeater(ElectricResistanceWaterHeater):
                 self.cop_coeff = np.array([1.1798, 0.03012, 0.00020632, -0.01935, 0.0001341, 0.0003026])
             else:
                 self.hp_capacity_coeff = np.array([0.813, 0.0160, 0.000537, 0.0020319, -0.0000860, -0.0000686])
-                self.cop_coeff = np.array([1.1332, 0.063, -0.0000979, -0.00972, -0.0000214, -0.000686])
-
+                self.cop_coeff = np.array([1.0132, 0.0436, 0.0000117, -0.01113, 0.00003688, -0.000498])
         else:
             self.hp_capacity_coeff = np.array([0.563, 0.0437, 0.000039, 0.0055, -0.000148, -0.000145])
-            self.cop_coeff = np.array([1.0132, 0.0436, 0.0000117, -0.01113, 0.00003688, -0.000498])
+            self.cop_coeff = np.array([1.1332, 0.063, -0.0000979, -0.00972, -0.0000214, -0.000686])
 
         # Sensible and latent heat parameters
         self.shr_nominal = kwargs.get("HPWH SHR (-)", 0.88)  # unitless
