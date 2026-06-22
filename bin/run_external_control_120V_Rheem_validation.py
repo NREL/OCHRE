@@ -13,7 +13,9 @@ from ochre import HeatPumpWaterHeater
 # Input files located in ~\ochre\defaults\Input Files\Temperature Values (temp and flow data fr/ 4am for n days)
 # Output is created in home directory under output_site_RHEEM_48.9_12.csv
 # Output columns: Hot Water Outlet Temperature (C),Hot Water Delivered (W),Water Heating Electric Power (kW),T_AMB,Hot Water Delivered (kW),Draw Data,Setpoint
-
+# Simulation Steps
+# Compute wetbulb temperature
+# Input mains temp, T_plenum
 #GLOBAL PARAMS
 MIN_IN_DAY = 1440
 GAL_IN_L = 3.78541
@@ -25,7 +27,7 @@ UA_VALUES = {40: 2.638889,
 #Run 120V simulation for n simulation days
 
 # Define equipment and simulation parameters
-setpoint_default = 51.67 #Assumed 125 degree setpoing
+setpoint_default = 60 #Assumed 125 degree setpoing
 deadband_default = 5.56  # in C
 max_setpoint = 60
 min_setpoint = 49
@@ -36,22 +38,22 @@ water_nodes = 12
 #------------------------------------------------------------#
 gallons = 50
 capacity = gallons * GAL_IN_L #Gallons to L
-simulation_days = 300
-
-simulation_duration = 60 * 20
+ambient_temp = 95
 
 
 
 #sites = SITE_CAPACITIES[gallons]
 
-temp_data = pd.read_csv(f'ochre\\defaults\\Input Files\\Temperature Values\\Rheem_24hr_clean.csv')
-start_date = dt.datetime(2022, 9, 28, 4, 0) #site_1 at 4am
+temp_data = pd.read_csv(f'ochre\\defaults\\Input Files\\Temperature Values\\{ambient_temp}F_140_shared.csv')
+start_date = dt.datetime(2022, 1, 1, 00, 00) #site_1 at 4am
+
+simulation_duration = len(temp_data)
 
 print("Simulating Setpoint: ", setpoint_default)
 equipment_args = {
     "start_time": start_date,  # year, month, day, hour, minute
     "time_res": dt.timedelta(minutes=1),
-    "duration": dt.timedelta(hours = 20),
+    "duration": dt.timedelta(minutes= simulation_duration),
     "verbosity": 9,  # required to get setpoint and deadband in results
     "save_results": False,  # if True, must specify output_path
     #"output_path": os.getcwd(),        # Equipment parameters
@@ -74,8 +76,8 @@ times = pd.date_range(
     inclusive="left",
 )
 
-withdraw_rate = temp_data['flow'].values[0: simulation_duration]
-ambient =  temp_data['T_out_air'].values[0: simulation_duration]
+withdraw_rate = temp_data['flow_out_gpm'].values[0: simulation_duration] * GAL_IN_L
+ambient =  temp_data['T_Plenum_In'].values[0: simulation_duration]
 wet = temp_data['T_wetbulb'].values[0: simulation_duration] # Required for HPWH
 mains = temp_data['T_In_water'].values[0: simulation_duration]
 
@@ -96,6 +98,11 @@ schedule = pd.DataFrame(
 # Initialize equipment
 hpwh = HeatPumpWaterHeater(schedule=schedule, **equipment_args)
 
+
+hpwh.model.states[:] = np.array([58.6, 58.8, 59.1, 59.05, 59.0, 58.65, 58.3, 56.8, 55.3, 54.4, 53.6, 53.6]) # 50F_24hour_shared
+hpwh.model.states[:] = np.array([59.7, 59.7, 59.7, 59.65, 59.6, 59.3, 59.0, 58.3, 57.7, 56.75, 55.8, 55.8]) # 50F_140_shared
+hpwh.model.states[:] = np.array([59.4, 59.45, 59.5, 59.35, 59.2, 59.25, 58.3, 56.4, 54.5, 53.0, 50.6, 50.6]) # 68F_140_shared
+hpwh.model.states[:] = np.array([59.4, 59.45, 	59.5, 59.36, 	59.2, 58.5,	57.8, 55.2,	52.6, 50.95,	49.3, 49.3]) # 95F_140_shared
 # Simulate
 data = pd.DataFrame()
 
@@ -128,6 +135,8 @@ cols_to_save = [
     'Hot Water Delivered (W)',
     "Water Heating Electric Power (kW)",
     "Water Heating Mode",
+    "T_WH1",
+    "T_WH12"
 ]
 
 # Ensure datetime index at 1-minute frequency
@@ -144,8 +153,8 @@ to_save["Setpoint"] = pd.Series(setpoint_default, index=to_save.index)
 
 to_save = to_save[1:]
 show_header = True
-to_save.to_csv(f'output_site_RHEEM_{setpoint_default}_{water_nodes}.csv', mode='a', header=show_header, index=False)
+to_save.to_csv(f'output_site_RHEEM_{ambient_temp}_{setpoint_default}.csv', header=show_header, index=True)
 
 #plt.show()
 
-print("Simulation Completed: ", f'output_site_RHEEM_{setpoint_default}_{water_nodes}.csv')
+print("Simulation Completed: ", f'output_site_RHEEM_{ambient_temp}_{setpoint_default}.csv')

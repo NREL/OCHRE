@@ -23,8 +23,9 @@ UA_VALUES = {40: 2.638889,
              65: 2.955556,
              80: 3.008333}
 
-SITE_CAPACITIES = {50: [1],#, 4, 22, 25, 26, 30], #
-                   65: [2, 10, 21,  29, 28, 27, 19], #,  error with 7, 16
+SITE_CAPACITIES = {  
+                    50: [1, 4, 22, 25, 30], #
+                   65: [2, 10, 21,  29, 28, 27, 19, 23, 24], #,  error with 7, 16
                    80: [3, 5, 8, 9, 11, 12, 15, 18]} #Taken from NBI dataset 
 
 #Sites 23 and 24 are problematic, run at 125 and 140 setpoint respectively
@@ -35,7 +36,7 @@ SITE_CAPACITIES = {50: [1],#, 4, 22, 25, 26, 30], #
 setpoint_default = 48.9 #Assumed 120 degree setpoint
 #setpoint_default = 51.67 #125
 # setpoint_default = 60 #140
-deadband_default = 5.56  # in C
+deadband_default = 8.17 # in C
 max_setpoint = 60
 min_setpoint = 49
 water_nodes = 12
@@ -43,14 +44,14 @@ water_nodes = 12
 
 #Testing Parameters- edit me
 #------------------------------------------------------------#
-gallons_array = [50]
+gallons_array = [50, 65, 80]
 
 for gallons in gallons_array:
     capacity = gallons * GAL_IN_L #Gallons to L
     simulation_days = 350
 
 
-
+    setpoint_default = 48.9 #Assumed 120 degree setpoint
     sites = SITE_CAPACITIES[gallons]
 
     for site_number in sites: #runs simulations for specified site number
@@ -58,6 +59,9 @@ for gallons in gallons_array:
         #temperature input values
         temp_data = pd.read_csv(f'ochre\\defaults\\Input Files\\Temperature Values\\120V_temperatures_{site_number}.csv')
         start_date = dt.datetime(2022, 12, 14, 4, 0) #site_1 at 4am
+
+        if site_number == 23 or site_number == 24:
+            setpoint_default = 51.67 if site_number == 23 else 60
 
         simulation_days = min(350, (len(temp_data) // MIN_IN_DAY) - 1)
         print(f"Simulating Site {site_number} for {simulation_days} days")
@@ -75,11 +79,12 @@ for gallons in gallons_array:
             "Tank Volume (L)": capacity,
             "Tank Height (m)": 1.22, #double check if these are accurate
             "UA (W/K)": UA_VALUES[gallons],
-            "HPWH COP (-)": 4.2 * 0.88, #reduce by 12 percent?
+            "HPWH COP (-)": 4.2,
             "save_matrices":False,
             "Low Power HPWH":True,
             "water_nodes": water_nodes,
-            "HPWH Capacity (W)": 1495 
+            "HPWH Capacity (W)": 1495,
+            "Deadband Temperature (C)": deadband_default
         }
 
         # Create water draw schedule
@@ -160,7 +165,7 @@ for gallons in gallons_array:
 
         to_save = to_save[1:]
         show_header = True
-        to_save.to_csv(f'output_site_120V_{site_number}_(L)_{setpoint_default}.csv', mode='a', header=show_header, index=False)
+        to_save.to_csv(f'output_site_120V_{site_number}_(L)_{setpoint_default}.csv', header=show_header, index=False)
 
         #plt.show()
 
