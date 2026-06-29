@@ -24,7 +24,7 @@ UA_VALUES = {40: 2.638889,
              80: 3.008333}
 
 SITE_CAPACITIES = {  
-                    50: [ 22, 25], #1, 4, 30
+                    50: [1, 4, 22, 25, 30], #1, 4, 30
                    65: [29, 28, 27, 19, 23, 24], #, 2, 10,  error with 7, 16, 21
                    80: [3, 5, 8, 9, 11, 12, 15, 18]} #Taken from NBI dataset 
 
@@ -44,7 +44,7 @@ water_nodes = 12
 
 #Testing Parameters- edit me
 #------------------------------------------------------------#
-gallons_array = [50]
+gallons_array = [ 65, 80]
 
 for gallons in gallons_array:
     capacity = gallons * GAL_IN_L #Gallons to L
@@ -57,7 +57,7 @@ for gallons in gallons_array:
     for site_number in sites: #runs simulations for specified site number
         #Data values
         #temperature input values
-        temp_data = pd.read_csv(f'ochre\\defaults\\Input Files\\Temperature Values\\net_data_{site_number}_120V_times.csv')
+        temp_data = pd.read_csv(f'ochre\\defaults\\Input Files\\Temperature Values\\120V_temperatures_{site_number}.csv')
         #temp_data = pd.read_csv(f'ochre\\defaults\\Input Files\\Temperature Values\\120V_temperatures_{site_number}.csv')
         start_date = dt.datetime(2022, 12, 14, 4, 0) #site_1 at 4am
 
@@ -97,10 +97,10 @@ for gallons in gallons_array:
         )
 
 
-        withdraw_rate = temp_data['L_per_min'].values[0: simulation_duration]
-        ambient =  temp_data['temp'].values[0: simulation_duration]
+        withdraw_rate = temp_data['flow_L_per_min'].values[0: simulation_duration]
+        ambient =  temp_data['inlet_air_temp_C'].values[0: simulation_duration]
         wet = temp_data['wet_bulb_C'].values[0: simulation_duration] # Required for HPWH
-        mains = temp_data['tempCold'].values[0: simulation_duration]
+        mains = temp_data['inlet_cold_water_temp_C'].values[0: simulation_duration]
 
         #Initialize Schedule
         #should capacity be added to our schedule?
