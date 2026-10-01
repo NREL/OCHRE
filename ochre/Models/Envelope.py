@@ -1066,21 +1066,22 @@ class Envelope(RCModel):
             self.warn(f"Extreme indoor temperature ({t_liv}) C")
 
         # check that all temperatures are within reasonable range
+        # Note: states of a reduced model are not node temperatures
         if not self.reduced:
             n = self.n_internal_nodes
             t_state_min = self.next_states[:n].min()
             t_state_max = self.next_states[:n].max()
 
-        if (t_state_min < -55) or (t_state_max > 130):
-            bad_temps = {
-                name: t for name, t in zip(self.state_names[:n], self.next_states[:n]) if (t < -55) or (t > 130)
-            }
-            raise ModelException(f"Extreme envelope temperatures: {bad_temps}")
-        elif (t_state_min < -40) or (t_state_max > 110):
-            bad_temps = {
-                name: t for name, t in zip(self.state_names[:n], self.next_states[:n]) if (t < -40) or (t > 110)
-            }
-            self.warn(f"Extreme envelope temperatures: {bad_temps}")
+            if (t_state_min < -55) or (t_state_max > 130):
+                bad_temps = {
+                    name: t for name, t in zip(self.state_names[:n], self.next_states[:n]) if (t < -55) or (t > 130)
+                }
+                raise ModelException(f"Extreme envelope temperatures: {bad_temps}")
+            elif (t_state_min < -40) or (t_state_max > 110):
+                bad_temps = {
+                    name: t for name, t in zip(self.state_names[:n], self.next_states[:n]) if (t < -40) or (t > 110)
+                }
+                self.warn(f"Extreme envelope temperatures: {bad_temps}")
 
         current_results = super().update_results()
 

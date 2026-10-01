@@ -7,6 +7,7 @@
 - Added CLI options for `--output_format` and `--export_res`
 - Added EV and PV parsing from dedicated HPXML sections (Vehicles, Photovoltaics)
 - Narrowed Python version requirement
+- Fixed `UnboundLocalError` in `Envelope.update_results` for reduced order models (`reduced_states`)
 - Allow flat garage roofs
 
 ### OCHRE v0.9.3

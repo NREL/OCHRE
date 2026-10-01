@@ -256,6 +256,30 @@ class EnvelopeSolverTestCase(unittest.TestCase):
         self.assertIsInstance(u_desired, (int, float, np.floating))
 
 
+class EnvelopeReducedTestCase(unittest.TestCase):
+    """Tests for a reduced order envelope model"""
+
+    def setUp(self):
+        self.envelope = create_minimal_envelope(
+            capacitances={"LIV": 4e6, "M1": 2e7, "M2": 2e7},
+            resistances={("EXT", "M1"): 2e-3, ("M1", "M2"): 2e-3, ("M2", "LIV"): 2e-3, ("EXT", "LIV"): 1e-2},
+            reduced_states=2,
+        )
+
+    def test_reduced_states(self):
+        self.assertTrue(self.envelope.reduced)
+        self.assertEqual(self.envelope.state_names, ["x1", "x2"])
+
+    def test_update(self):
+        temps = []
+        for _ in range(36):  # 3 hours with warm ambient
+            self.envelope.update(schedule_inputs={"Ambient Dry Bulb (C)": 30})
+            temps.append(self.envelope.indoor_zone.temperature)
+        self.assertTrue(np.isfinite(temps).all())
+        self.assertGreater(temps[-1], temps[0])
+        self.assertLess(temps[-1], 30)
+
+
 class EnvelopeResultsTestCase(unittest.TestCase):
     """Tests for result generation at various verbosity levels"""
 
