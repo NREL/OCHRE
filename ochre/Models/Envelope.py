@@ -575,8 +575,18 @@ class Envelope(RCModel):
         linearize_infiltration=False,
         external_radiation_method="full",
         internal_radiation_method="full",
+        indoor_temperature_limits=(-20, 50),
         **kwargs,
     ):
+        # Indoor temperature range (degC), outside of which update_results raises a ModelException.
+        # None disables the exception; temperatures outside of (-20, 50) degC always print a warning.
+        if indoor_temperature_limits is None:
+            indoor_temperature_limits = (-np.inf, np.inf)
+        t_min, t_max = indoor_temperature_limits
+        if not t_min < t_max:
+            raise OCHREException(f"Invalid indoor_temperature_limits: {indoor_temperature_limits}")
+        self.indoor_temperature_limits = (t_min, t_max)
+
         # Options for radiation methods: full, linear, none
         self.run_external_rad = external_radiation_method == "full"
         linearize_ext_radiation = external_radiation_method == "linear"
@@ -1060,9 +1070,14 @@ class Envelope(RCModel):
     def update_results(self):
         # check that indoor temperature is within reasonable range
         t_liv = self.next_outputs[self.indoor_zone.t_idx]
-        if not (-20 < t_liv < 50):
+        t_min, t_max = self.indoor_temperature_limits
+        if not (t_min < t_liv < t_max):
             raise ModelException(f"Extreme indoor temperature ({t_liv}) C")
-        elif (self.cooling_setpoint is not None and t_liv > 30) or (self.heating_setpoint is not None and t_liv < 10):
+        elif (
+            not (-20 < t_liv < 50)
+            or (self.cooling_setpoint is not None and t_liv > 30)
+            or (self.heating_setpoint is not None and t_liv < 10)
+        ):
             self.warn(f"Extreme indoor temperature ({t_liv}) C")
 
         # check that all temperatures are within reasonable range

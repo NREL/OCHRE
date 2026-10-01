@@ -1,9 +1,11 @@
 import unittest
+from unittest.mock import patch
 import datetime as dt
 import numpy as np
 import pandas as pd
 
 from ochre.Models.Envelope import Envelope, ExteriorZone
+from ochre.Models.StateSpaceModel import ModelException
 from ochre.utils import OCHREException
 
 
@@ -240,6 +242,40 @@ class EnvelopeRadiationTestCase(unittest.TestCase):
         envelope = create_minimal_envelope(internal_radiation_method="linear")
         self.assertFalse(envelope.run_internal_rad)
         self.assertTrue(envelope.linearize_int_radiation)
+
+
+class EnvelopeTemperatureLimitsTestCase(unittest.TestCase):
+    """Tests for the extreme indoor temperature check"""
+
+    @staticmethod
+    def run_hot_envelope(**kwargs):
+        # free-floating zone driven towards 60 C ambient (1 kW/K, ~1 hour time constant)
+        schedule = create_minimal_schedule(
+            sim_params["start_time"], sim_params["duration"], sim_params["time_res"], ambient_temp=60
+        )
+        envelope = create_minimal_envelope(schedule=schedule, **kwargs)
+        with patch.object(envelope, "warn") as warn:
+            for _ in range(60):  # 5 hours
+                envelope.update(schedule_inputs={"Ambient Dry Bulb (C)": 60})
+        return envelope, warn
+
+    def test_default_limits_raise(self):
+        with self.assertRaises(ModelException):
+            self.run_hot_envelope()
+
+    def test_wider_limits_warn(self):
+        envelope, warn = self.run_hot_envelope(indoor_temperature_limits=(-20, 70))
+        self.assertGreater(envelope.indoor_zone.temperature, 50)
+        self.assertTrue(any("Extreme indoor temperature" in str(c.args[0]) for c in warn.call_args_list))
+
+    def test_no_limits_warn(self):
+        envelope, warn = self.run_hot_envelope(indoor_temperature_limits=None)
+        self.assertGreater(envelope.indoor_zone.temperature, 50)
+        self.assertTrue(warn.called)
+
+    def test_invalid_limits(self):
+        with self.assertRaises(OCHREException):
+            create_minimal_envelope(indoor_temperature_limits=(50, -20))
 
 
 class EnvelopeSolverTestCase(unittest.TestCase):

@@ -223,6 +223,8 @@ the ``Envelope`` dictionary.
 +-------------------------------+------------------------+-----------------------------------------+------------------------------------------------------------------------------------------+
 | ``internal_radiation_method`` | string                 | full                                    | Calculation method for internal boundary radiation [#]_                                  |
 +-------------------------------+------------------------+-----------------------------------------+------------------------------------------------------------------------------------------+
+| ``indoor_temperature_limits`` | tuple of two numbers   | (-20, 50)                               | Stops the simulation with an error outside this indoor range (degC); None only warns     |
++-------------------------------+------------------------+-----------------------------------------+------------------------------------------------------------------------------------------+
 | ``reduced_states``            | integer                | None                                    | Number of states for envelope model reduction                                            |
 +-------------------------------+------------------------+-----------------------------------------+------------------------------------------------------------------------------------------+
 | ``reduced_min_accuracy``      | number                 | None                                    | Minimum accuracy to determine number of states for envelope model reduction              |

@@ -5,6 +5,7 @@
   [#167](https://github.com/NREL/OCHRE/issues/167)
 - Added output registry and verbosity-based output control system
 - Added CLI options for `--output_format` and `--export_res`
+- Added Envelope argument `indoor_temperature_limits` to widen or disable the extreme indoor temperature error
 - Added EV and PV parsing from dedicated HPXML sections (Vehicles, Photovoltaics)
 - Narrowed Python version requirement
 - Allow flat garage roofs
