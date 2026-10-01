@@ -197,6 +197,40 @@ class DwellingWithEquipmentTestCase(unittest.TestCase):
         self.assertGreater(metrics["Total Electric Energy (kWh)"], 0)
 
 
+class DwellingLinearizeInfiltrationTestCase(unittest.TestCase):
+    """
+    Test Case for the Envelope option linearize_infiltration, which removes the heat inputs of multi-node surfaces
+    """
+
+    def setUp(self):
+        args = dwelling_args.copy()
+        args["Envelope"] = {"linearize_infiltration": True}
+        self.dwelling = Dwelling(**args)
+
+    def tearDown(self):
+        # Clean up output files
+        for suffix in ["", "_schedule", "_metrics", "_hourly"]:
+            out_file = os.path.join(test_output_path, f"test_dwelling{suffix}.csv")
+            if os.path.exists(out_file):
+                os.remove(out_file)
+
+    def test_surface_gains_without_heat_input(self):
+        envelope = self.dwelling.envelope
+        no_input = [s for z in envelope.zones.values() for s in z.surfaces if s.t_idx is not None and s.h_idx is None]
+        self.assertGreater(len(no_input), 0)
+
+        # surface radiation must not be added to every input (numpy: a[None] += x)
+        self.dwelling.update()
+        t_ext = envelope.input_names.index("T_EXT")
+        self.assertAlmostEqual(envelope.inputs[t_ext], envelope.current_schedule["Ambient Dry Bulb (C)"])
+
+    def test_simulate(self):
+        df, metrics, hourly = self.dwelling.simulate()
+
+        self.assertEqual(len(df), 96)
+        self.assertTrue(df["Temperature - Indoor (C)"].between(10, 40).all())
+
+
 class ResStockOutputTestCase(unittest.TestCase):
     """Test that ResStock output format produces equivalent results to OCHRE format.
 

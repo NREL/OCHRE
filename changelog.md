@@ -8,6 +8,7 @@
 - Added EV and PV parsing from dedicated HPXML sections (Vehicles, Photovoltaics)
 - Narrowed Python version requirement
 - Allow flat garage roofs
+- Fixed surface heat gains added to all envelope inputs when a surface has no heat input (e.g., with `linearize_infiltration`)
 
 ### OCHRE v0.9.3
 - Allow 120V (aka low power) heat pump water heaters

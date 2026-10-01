@@ -944,11 +944,16 @@ class Envelope(RCModel):
                 # update radiation for all boundaries within zone
                 zone.calculate_interior_radiation(zone.temperature)
                 for surface in zone.surfaces:
+                    to_zone = surface.lwr_gain * (1 - surface.radiation_frac)
                     if surface.t_idx is not None:
-                        # for windows, some of the heat is lost through the boundary
-                        self.inputs_init[surface.h_idx] += surface.lwr_gain * surface.radiation_frac
-                    surface.radiation_to_zone += surface.lwr_gain * (1 - surface.radiation_frac)
-                    zone.radiation_heat += surface.lwr_gain * (1 - surface.radiation_frac)
+                        if surface.h_idx is not None:
+                            self.inputs_init[surface.h_idx] += surface.lwr_gain * surface.radiation_frac
+                        else:
+                            # no heat input at the surface node (e.g., linearize_infiltration), add to zone
+                            to_zone = surface.lwr_gain
+                    # for windows, some of the heat is lost through the boundary
+                    surface.radiation_to_zone += to_zone
+                    zone.radiation_heat += to_zone
 
             # Update zone inputs with total radiation heat gains (windows + internal radiation)
             self.inputs_init[zone.h_idx] += zone.radiation_heat
@@ -1047,7 +1052,11 @@ class Envelope(RCModel):
         for zone in self.zones.values():
             equipment_sens_gains[zone.h_idx] += zone.internal_sens_gain + zone.hvac_sens_gain
             for surface in zone.surfaces:
-                equipment_sens_gains[surface.h_idx] += surface.internal_gain
+                if surface.h_idx is not None:
+                    equipment_sens_gains[surface.h_idx] += surface.internal_gain
+                else:
+                    # no heat input at the surface node (e.g., windows or linearize_infiltration), add to zone
+                    equipment_sens_gains[zone.h_idx] += surface.internal_gain
 
             # Add zone latent gains to humidity models
             if zone.humidity is not None:
